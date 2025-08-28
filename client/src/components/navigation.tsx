@@ -28,27 +28,64 @@ export default function Navigation() {
 
   if (isMobile) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
-        <div className="grid grid-cols-4 h-16">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground"
-                }`}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-xs">{item.label}</span>
-              </Link>
-            );
-          })}
+      <>
+        {/* Mobile Header */}
+        <header className="bg-card border-b border-border sticky top-0 z-50">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="text-xl font-bold travel-gradient bg-clip-text text-transparent">
+                  <MapPin className="inline-block w-5 h-5 mr-2" />
+                  TravelMint
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                {user && (
+                  <div className="flex items-center space-x-2 bg-muted px-2 py-1 rounded-lg">
+                    <Wallet className="h-3 w-3 text-primary" />
+                    <span className="text-xs font-medium" data-testid="user-balance-mobile">
+                      {parseFloat(user.balance).toFixed(0)}
+                    </span>
+                  </div>
+                )}
+                <WalletConnect />
+                {user?.avatar && (
+                  <img
+                    src={user.avatar}
+                    alt="User profile"
+                    className="w-8 h-8 rounded-full border-2 border-primary cursor-pointer"
+                    data-testid="user-avatar-mobile"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Mobile Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
+          <div className="grid grid-cols-4 h-16">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
