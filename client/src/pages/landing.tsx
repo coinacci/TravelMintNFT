@@ -32,6 +32,16 @@ export default function Landing() {
               Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers. Each photo tells a story, each location holds memories.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/mint">
+                <Button 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg"
+                  data-testid="mint-memory-button"
+                >
+                  <Upload className="w-5 h-5 mr-2" />
+                  Mint your Memory
+                </Button>
+              </Link>
               <Link href="/explore">
                 <Button 
                   variant="outline" 
