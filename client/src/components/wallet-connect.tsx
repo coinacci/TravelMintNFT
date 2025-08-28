@@ -36,13 +36,39 @@ export function WalletConnect() {
   const handleConnect = async (connector: any) => {
     try {
       console.log('Attempting to connect with:', connector.name);
+      console.log('Connector details:', connector);
+      
+      // For Farcaster, check if we're in the right environment
+      if (connector.name === 'Farcaster Mini App' || connector.name.includes('Farcaster')) {
+        console.log('Attempting Farcaster connection...');
+        console.log('Current URL:', window.location.href);
+        console.log('User Agent:', navigator.userAgent);
+      }
+      
       await connect({ connector });
       setIsOpen(false);
     } catch (error) {
       console.error('Wallet connection failed:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
+      let errorMessage = "Unknown error occurred";
+      if (error instanceof Error) {
+        if (error.message.includes('buffer') || error.message.includes('Buffer')) {
+          errorMessage = "Browser compatibility issue detected. Please try refreshing the page.";
+        } else if (error.message.includes('not found') || error.message.includes('unavailable')) {
+          errorMessage = "Farcaster wallet not available. Please ensure you're using a Farcaster-compatible browser.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
     }

@@ -8,20 +8,29 @@ if (typeof global === 'undefined') {
   (globalThis as any).global = globalThis;
 }
 
-// Buffer polyfill - try to load synchronously
-try {
-  if (typeof (globalThis as any).Buffer === 'undefined') {
-    const bufferModule = require('buffer');
-    (globalThis as any).Buffer = bufferModule.Buffer;
-  }
-} catch (error) {
-  // If require fails, create a minimal buffer polyfill
-  if (typeof (globalThis as any).Buffer === 'undefined') {
-    (globalThis as any).Buffer = {
-      from: (data: any) => new Uint8Array(data),
-      isBuffer: (obj: any) => obj instanceof Uint8Array,
-    };
-  }
+// Buffer polyfill for browser compatibility
+if (typeof (globalThis as any).Buffer === 'undefined') {
+  (globalThis as any).Buffer = {
+    from: (data: any, encoding?: string) => {
+      if (typeof data === 'string') {
+        return new TextEncoder().encode(data);
+      }
+      return new Uint8Array(data);
+    },
+    isBuffer: (obj: any) => obj instanceof Uint8Array,
+    alloc: (size: number) => new Uint8Array(size),
+    allocUnsafe: (size: number) => new Uint8Array(size),
+    concat: (buffers: Uint8Array[]) => {
+      const totalLength = buffers.reduce((acc, buf) => acc + buf.length, 0);
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buf of buffers) {
+        result.set(buf, offset);
+        offset += buf.length;
+      }
+      return result;
+    }
+  };
 }
 
 // Configure wagmi
