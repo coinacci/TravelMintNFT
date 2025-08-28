@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,12 @@ export default function Mint() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { location, error: locationError, getCurrentLocation } = useLocation();
+  const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
+
+  // Automatically get location when component mounts
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
 
   const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/users"],
@@ -98,9 +103,7 @@ export default function Mint() {
     reader.readAsDataURL(file);
 
     // Try to get location from EXIF (mock for demo)
-    if (!location) {
-      getCurrentLocation();
-    }
+    // Location is automatically obtained on page load, no need to call again
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -296,16 +299,18 @@ export default function Mint() {
                       size="sm"
                       className="text-primary text-xs hover:underline p-0"
                       onClick={getCurrentLocation}
+                      disabled={locationLoading}
                       data-testid="get-location-button"
                     >
-                      Get Location
+                      {locationLoading ? "Getting..." : "Get Location"}
                     </Button>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
                     <MapPin className="w-4 h-4 text-primary" />
                     <span data-testid="detected-location">
-                      {location ? (location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`) : 
-                        locationError ? "Location access denied" : "Location will be auto-detected from photo"}
+                      {locationLoading ? "Getting your location..." :
+                       location ? (location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`) : 
+                       locationError ? "Location access denied - please allow location access" : "Detecting location..."}
                     </span>
                   </div>
                   {location && (
@@ -333,11 +338,15 @@ export default function Mint() {
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={handleMint}
-                    disabled={mintMutation.isPending || !title || !category || !imageFile || !location}
+                    disabled={mintMutation.isPending || !title || !category || !imageFile || !location || locationLoading}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {mintMutation.isPending ? "Minting..." : "Mint NFT for 1 USDC"}
+                    {mintMutation.isPending ? "Minting..." : 
+                     locationLoading ? "Getting location..." :
+                     !location ? "Location required" :
+                     !title || !category || !imageFile ? "Fill all fields" :
+                     `Mint NFT for ${1 + (featuredPlacement ? 0.5 : 0)} USDC`}
                   </Button>
                   
                   <Button
