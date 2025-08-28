@@ -28,10 +28,8 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background"></div>
         <div className="relative container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              <span className="travel-gradient bg-clip-text text-transparent">
-                Travel NFT
-              </span>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight" style={{ color: '#0000ff' }}>
+              Travel NFT
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers. Each photo tells a story, each location holds memories.
