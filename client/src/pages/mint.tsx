@@ -172,7 +172,7 @@ export default function Mint() {
       title,
       description,
       imageUrl: mockImageUrl,
-      location: location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
+      location: location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
       latitude: location.latitude.toString(),
       longitude: location.longitude.toString(),
       category,
@@ -299,13 +299,13 @@ export default function Mint() {
                     <MapPin className="w-4 h-4 text-primary" />
                     <span data-testid="detected-location">
                       {locationLoading ? "Getting your location..." :
-                       location ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : 
+                       location ? (location.city || "Unknown City") : 
                        locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
                     </span>
                   </div>
                   {location && (
                     <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
-                      Latitude: {location.latitude.toFixed(6)}, Longitude: {location.longitude.toFixed(6)}
+                      City-based location for privacy
                     </div>
                   )}
                   {locationError && (
