@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
+import { useEffect } from "react";
+import sdk from "@farcaster/frame-sdk";
 import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
 import Marketplace from "@/pages/marketplace";
@@ -35,6 +37,22 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize Farcaster SDK and notify ready
+    const initFarcaster = async () => {
+      try {
+        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+          await sdk.actions.ready();
+          console.log('Farcaster SDK ready');
+        }
+      } catch (error) {
+        console.log('Farcaster SDK not available or error:', error);
+      }
+    };
+
+    initFarcaster();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <WalletProvider>
