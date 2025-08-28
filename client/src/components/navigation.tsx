@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Store, Camera, Wallet, Globe, Home } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { WalletConnect } from "@/components/wallet-connect";
 
 interface User {
   id: string;
@@ -91,6 +92,7 @@ export default function Navigation() {
                 </span>
               </div>
             )}
+            <WalletConnect />
             {user?.avatar && (
               <img
                 src={user.avatar}
