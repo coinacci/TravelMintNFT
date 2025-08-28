@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Store, Camera, Wallet } from "lucide-react";
+import { MapPin, Store, Camera, Wallet, Globe, Home } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface User {
@@ -19,7 +19,8 @@ export default function Navigation() {
   });
 
   const navItems = [
-    { path: "/", label: "Explore", icon: MapPin },
+    { path: "/", label: "Home", icon: Home },
+    { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
     { path: "/mint", label: "Mint NFT", icon: Camera },
   ];
@@ -27,7 +28,7 @@ export default function Navigation() {
   if (isMobile) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
-        <div className="grid grid-cols-3 h-16">
+        <div className="grid grid-cols-4 h-16">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
