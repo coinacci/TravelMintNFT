@@ -1,0 +1,406 @@
+import { useState } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "@/hooks/use-location";
+import { MapPin, Upload, Wallet, Eye } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface User {
+  id: string;
+  username: string;
+  balance: string;
+}
+
+export default function Mint() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [enableListing, setEnableListing] = useState(false);
+  const [salePrice, setSalePrice] = useState("");
+  const [featuredPlacement, setFeaturedPlacement] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { location, error: locationError, getCurrentLocation } = useLocation();
+
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["/api/users"],
+  });
+
+  const mintMutation = useMutation({
+    mutationFn: async (nftData: any) => {
+      return apiRequest("POST", "/api/nfts", nftData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "NFT Minted Successfully!",
+        description: "Your travel photo has been minted as an NFT.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setCategory("");
+      setImageFile(null);
+      setImagePreview(null);
+      setEnableListing(false);
+      setSalePrice("");
+      setFeaturedPlacement(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Minting Failed",
+        description: error.message || "Failed to mint NFT",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file (JPEG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Try to get location from EXIF (mock for demo)
+    if (!location) {
+      getCurrentLocation();
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleMint = () => {
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Please connect your wallet to mint NFTs",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!title || !category || !imageFile || !location) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields and ensure location is detected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userBalance = parseFloat(currentUser.balance);
+    const mintCost = 1.0 + (featuredPlacement ? 0.5 : 0);
+
+    if (userBalance < mintCost) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ${mintCost} USDC to mint this NFT`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // In a real app, you would upload the image to IPFS or a storage service
+    // For demo purposes, we'll use a placeholder URL
+    const mockImageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
+
+    const nftData = {
+      title,
+      description,
+      imageUrl: mockImageUrl,
+      location: location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
+      latitude: location.latitude.toString(),
+      longitude: location.longitude.toString(),
+      category,
+      price: enableListing ? salePrice : "0",
+      isForSale: enableListing ? 1 : 0,
+      creatorId: currentUser.id,
+      ownerId: currentUser.id,
+      mintPrice: "1.000000",
+      royaltyPercentage: "5.00",
+      metadata: {
+        featured: featuredPlacement,
+        originalFilename: imageFile.name,
+      },
+    };
+
+    mintMutation.mutate(nftData);
+  };
+
+  const categories = ["Landscape", "Architecture", "Street Photography", "Cultural", "Wildlife", "Adventure"];
+
+  return (
+    <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-4" data-testid="mint-title">Mint Your Travel NFT</h1>
+          <p className="text-muted-foreground">Transform your travel memories into unique location-based NFTs</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Upload Section */}
+          <Card className="bg-card border border-border">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Upload Photo</h3>
+              
+              <div
+                className={`upload-dropzone rounded-lg p-8 text-center mb-4 cursor-pointer ${
+                  isDragging ? 'dragover' : ''
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => document.getElementById('file-input')?.click()}
+                data-testid="upload-dropzone"
+              >
+                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">Drop your photo here or click to browse</p>
+                <p className="text-xs text-muted-foreground">Supports JPEG, PNG. Max size: 10MB</p>
+                <input
+                  id="file-input"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                  data-testid="file-input"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title" className="block text-sm font-medium mb-2">Title *</Label>
+                  <Input
+                    id="title"
+                    type="text"
+                    placeholder="Give your NFT a memorable title..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    data-testid="title-input"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description" className="block text-sm font-medium mb-2">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Tell the story behind this moment..."
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    data-testid="description-input"
+                  />
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-medium mb-2">Category *</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger data-testid="category-select">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preview & Location Section */}
+          <Card className="bg-card border border-border">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Preview & Location</h3>
+              
+              {/* Photo Preview */}
+              <div className="bg-muted rounded-lg aspect-square mb-4 flex items-center justify-center overflow-hidden" data-testid="photo-preview">
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    <Upload className="w-12 h-12 mx-auto mb-2" />
+                    <p>Photo preview will appear here</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Location Info */}
+              <div className="space-y-4">
+                <div className="bg-muted p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Detected Location</span>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="text-primary text-xs hover:underline p-0"
+                      onClick={getCurrentLocation}
+                      data-testid="get-location-button"
+                    >
+                      Get Location
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span data-testid="detected-location">
+                      {location ? (location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`) : 
+                        locationError ? "Location access denied" : "Location will be auto-detected from photo"}
+                    </span>
+                  </div>
+                  {location && (
+                    <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
+                      Coordinates: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pricing */}
+                <div className="bg-primary/10 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Mint Price</span>
+                    <span className="text-xl font-bold text-primary" data-testid="mint-price">
+                      {1 + (featuredPlacement ? 0.5 : 0)} USDC
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Fixed minting price for all travel NFTs
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  <Button
+                    className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
+                    onClick={handleMint}
+                    disabled={mintMutation.isPending || !title || !category || !imageFile || !location}
+                    data-testid="mint-button"
+                  >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    {mintMutation.isPending ? "Minting..." : "Mint NFT for 1 USDC"}
+                  </Button>
+                  
+                  <Button
+                    variant="secondary"
+                    className="w-full py-2 font-medium hover:bg-secondary/80 transition-colors"
+                    disabled={!location}
+                    data-testid="preview-button"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview on Map
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Advanced Options */}
+        <Card className="mt-8 bg-card border border-border">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Advanced Options</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="enable-listing"
+                    checked={enableListing}
+                    onCheckedChange={setEnableListing}
+                    data-testid="enable-listing-checkbox"
+                  />
+                  <Label htmlFor="enable-listing" className="text-sm">Enable immediate listing for sale</Label>
+                </div>
+                {enableListing && (
+                  <div className="ml-6 mt-2">
+                    <Input
+                      type="number"
+                      placeholder="Sale price in USDC"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      data-testid="sale-price-input"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="featured-placement"
+                    checked={featuredPlacement}
+                    onCheckedChange={setFeaturedPlacement}
+                    data-testid="featured-placement-checkbox"
+                  />
+                  <Label htmlFor="featured-placement" className="text-sm">Add to featured locations</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 ml-6">
+                  Additional 0.5 USDC fee for premium placement
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
