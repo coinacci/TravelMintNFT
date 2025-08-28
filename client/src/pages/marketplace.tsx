@@ -33,7 +33,7 @@ interface User {
 export default function Marketplace() {
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("all");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("recent");
   const isMobile = useIsMobile();
@@ -112,7 +112,7 @@ export default function Marketplace() {
       return (
         price >= minPrice &&
         price <= maxPrice &&
-        (selectedLocation === "" || nft.location.toLowerCase().includes(selectedLocation.toLowerCase())) &&
+        (selectedLocation === "all" || nft.location.toLowerCase().includes(selectedLocation.toLowerCase())) &&
         (selectedCategories.length === 0 || selectedCategories.includes(nft.category))
       );
     })
@@ -173,7 +173,7 @@ export default function Marketplace() {
                         <SelectValue placeholder="All Locations" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Locations</SelectItem>
+                        <SelectItem value="all">All Locations</SelectItem>
                         {locations.map(location => (
                           <SelectItem key={location} value={location}>{location}</SelectItem>
                         ))}
