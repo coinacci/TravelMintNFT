@@ -129,31 +129,6 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Floating Search Panel */}
-      <div className="absolute top-4 left-4 right-4 md:left-auto md:w-80 floating-panel rounded-lg p-4 z-10">
-        <div className="flex items-center space-x-2 mb-3">
-          <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search locations or NFTs..."
-            className="flex-1 bg-transparent border-none outline-none text-sm"
-            data-testid="search-input"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs hover:bg-primary/90 transition-colors" data-testid="filter-popular">
-            Popular
-          </button>
-          <button className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs hover:bg-secondary/80 transition-colors" data-testid="filter-recent">
-            Recent
-          </button>
-          <button className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs hover:bg-secondary/80 transition-colors" data-testid="filter-trending">
-            Trending
-          </button>
-        </div>
-      </div>
 
       {/* Floating Stats Panel */}
       <div className="absolute bottom-4 left-4 floating-panel rounded-lg p-4 z-10">
