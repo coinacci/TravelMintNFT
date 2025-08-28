@@ -1,22 +1,18 @@
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useAccount, useBalance } from "wagmi";
 import { MapPin, Store, Camera, Wallet, Globe, Home, User } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 
-interface User {
-  id: string;
-  username: string;
-  balance: string;
-  avatar?: string;
-}
-
 export default function Navigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
-
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/users"],
+  const { address, isConnected } = useAccount();
+  
+  const { data: balance } = useBalance({
+    address: address,
+    token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+    query: { enabled: !!address }
   });
 
   const navItems = [
@@ -41,23 +37,15 @@ export default function Navigation() {
               </div>
               
               <div className="flex items-center space-x-3">
-                {user && (
+                {isConnected && balance && (
                   <div className="flex items-center space-x-2 bg-muted px-2 py-1 rounded-lg">
                     <Wallet className="h-3 w-3 text-primary" />
-                    <span className="text-xs font-medium" data-testid="user-balance-mobile">
-                      {parseFloat(user.balance).toFixed(0)}
+                    <span className="text-xs font-medium" data-testid="wallet-balance-mobile">
+                      {parseFloat(balance.formatted || "0").toFixed(0)} USDC
                     </span>
                   </div>
                 )}
                 <WalletConnect />
-                {user?.avatar && (
-                  <img
-                    src={user.avatar}
-                    alt="User profile"
-                    className="w-8 h-8 rounded-full border-2 border-primary cursor-pointer"
-                    data-testid="user-avatar-mobile"
-                  />
-                )}
               </div>
             </div>
           </div>
@@ -121,23 +109,15 @@ export default function Navigation() {
           </nav>
 
           <div className="flex items-center space-x-3">
-            {user && (
+            {isConnected && balance && (
               <div className="hidden md:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
                 <Wallet className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium" data-testid="user-balance">
-                  {parseFloat(user.balance).toFixed(2)} USDC
+                <span className="text-sm font-medium" data-testid="wallet-balance">
+                  {parseFloat(balance.formatted || "0").toFixed(2)} USDC
                 </span>
               </div>
             )}
             <WalletConnect />
-            {user?.avatar && (
-              <img
-                src={user.avatar}
-                alt="User profile"
-                className="w-10 h-10 rounded-full border-2 border-primary cursor-pointer"
-                data-testid="user-avatar"
-              />
-            )}
           </div>
         </div>
       </div>
