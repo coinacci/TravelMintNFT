@@ -38,12 +38,6 @@ export function WalletConnect() {
       console.log('Attempting to connect with:', connector.name);
       console.log('Connector details:', connector);
       
-      // For Farcaster, check if we're in the right environment
-      if (connector.name === 'Farcaster Mini App' || connector.name.includes('Farcaster')) {
-        console.log('Attempting Farcaster connection...');
-        console.log('Current URL:', window.location.href);
-        console.log('User Agent:', navigator.userAgent);
-      }
       
       await connect({ connector });
       setIsOpen(false);
@@ -57,13 +51,7 @@ export function WalletConnect() {
       
       let errorMessage = "Unknown error occurred";
       if (error instanceof Error) {
-        if (error.message.includes('buffer') || error.message.includes('Buffer')) {
-          errorMessage = "Browser compatibility issue detected. Please try refreshing the page.";
-        } else if (error.message.includes('not found') || error.message.includes('unavailable')) {
-          errorMessage = "Farcaster wallet not available. Please ensure you're using a Farcaster-compatible browser.";
-        } else {
-          errorMessage = error.message;
-        }
+        errorMessage = error.message;
       }
       
       toast({
@@ -192,8 +180,6 @@ export function WalletConnect() {
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     {connector.name === 'Coinbase Wallet' ? (
                       <div className="w-5 h-5 rounded bg-blue-600" />
-                    ) : connector.name === 'Farcaster Mini App' ? (
-                      <div className="w-5 h-5 rounded bg-purple-600" />
                     ) : (
                       <Wallet className="w-5 h-5" />
                     )}
@@ -203,8 +189,6 @@ export function WalletConnect() {
                     <p className="text-sm text-muted-foreground">
                       {connector.name === 'Coinbase Wallet' 
                         ? 'Connect using Coinbase Wallet'
-                        : connector.name === 'Farcaster Mini App'
-                        ? 'Connect via Farcaster'
                         : 'Connect wallet'}
                     </p>
                   </div>
