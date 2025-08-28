@@ -157,7 +157,7 @@ export default function Landing() {
             
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-accent mb-2">
-                12
+                0
               </div>
               <div className="text-sm text-muted-foreground">Countries</div>
             </div>
