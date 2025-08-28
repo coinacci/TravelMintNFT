@@ -177,6 +177,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User routes
+  app.post("/api/users", async (req, res) => {
+    try {
+      const { username, walletAddress, avatar } = req.body;
+      
+      // Check if user already exists (for wallet-based creation)
+      if (walletAddress) {
+        const users = Array.from((storage as any).users.values());
+        const existingUser = users.find((user: any) => user.walletAddress === walletAddress);
+        if (existingUser) {
+          return res.json(existingUser);
+        }
+      }
+      
+      const newUser = await storage.createUser({
+        username: username || "Traveler",
+        balance: "10.000000", // Give new users some starting balance
+        avatar: avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+        walletAddress,
+      });
+      
+      res.json(newUser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   app.get("/api/users/:id", async (req, res) => {
     try {
       const user = await storage.getUser(req.params.id);
@@ -193,7 +219,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // For demo purposes, return first user as current user
       const users = Array.from((storage as any).users.values());
-      const currentUser = users[0];
+      let currentUser = users[0];
+      
+      // If no users exist, create a demo user
+      if (!currentUser) {
+        currentUser = await storage.createUser({
+          username: "Demo User",
+          balance: "10.000000", // Give demo user some balance
+          avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+        });
+      }
+      
       res.json(currentUser);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch current user" });
