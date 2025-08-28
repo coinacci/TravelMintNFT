@@ -247,6 +247,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Farcaster webhook endpoint
+  app.post("/api/webhook", async (req, res) => {
+    try {
+      // Handle Farcaster frame interactions
+      const { untrustedData, trustedData } = req.body;
+      
+      // Basic response for now
+      res.json({
+        message: "Webhook received",
+        success: true
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
