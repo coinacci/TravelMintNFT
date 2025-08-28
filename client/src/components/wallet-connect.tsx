@@ -24,14 +24,7 @@ export function WalletConnect() {
     }
   }, [connectError, toast]);
 
-  useEffect(() => {
-    if (isConnected && address) {
-      toast({
-        title: "Wallet Connected",
-        description: `Connected to ${connector?.name}`,
-      });
-    }
-  }, [isConnected, address, connector, toast]);
+  // Removed wallet connected popup as requested
 
   const handleConnect = async (connector: any) => {
     try {
