@@ -292,30 +292,25 @@ export default function Mint() {
               {/* Location Info */}
               <div className="space-y-4">
                 <div className="bg-muted p-4 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Detected Location</span>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="text-primary text-xs hover:underline p-0"
-                      onClick={getCurrentLocation}
-                      disabled={locationLoading}
-                      data-testid="get-location-button"
-                    >
-                      {locationLoading ? "Getting..." : "Get Location"}
-                    </Button>
+                  <div className="mb-2">
+                    <span className="text-sm font-medium">Current Location</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
                     <MapPin className="w-4 h-4 text-primary" />
                     <span data-testid="detected-location">
                       {locationLoading ? "Getting your location..." :
-                       location ? (location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`) : 
-                       locationError ? "Location access denied - please allow location access" : "Detecting location..."}
+                       location ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : 
+                       locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
                     </span>
                   </div>
                   {location && (
                     <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
-                      Coordinates: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                      Latitude: {location.latitude.toFixed(6)}, Longitude: {location.longitude.toFixed(6)}
+                    </div>
+                  )}
+                  {locationError && (
+                    <div className="text-xs text-destructive mt-1">
+                      Location permission needed for NFT minting
                     </div>
                   )}
                 </div>
