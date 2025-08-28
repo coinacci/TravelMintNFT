@@ -24,7 +24,6 @@ export default function Navigation() {
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
     { path: "/my-nfts", label: "My NFTs", icon: User },
-    { path: "/mint", label: "Mint NFT", icon: Camera },
   ];
 
   if (isMobile) {
