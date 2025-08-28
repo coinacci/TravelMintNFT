@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
 import { MapPin, Upload, Wallet, Eye } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-interface User {
-  id: string;
-  username: string;
-  balance: string;
-}
+import { WalletConnect } from "@/components/wallet-connect";
 
 export default function Mint() {
   const [title, setTitle] = useState("");
@@ -34,15 +30,12 @@ export default function Mint() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
+  const { address, isConnected } = useAccount();
 
   // Automatically get location when component mounts
   useEffect(() => {
     getCurrentLocation();
   }, [getCurrentLocation]);
-
-  const { data: currentUser } = useQuery<User>({
-    queryKey: ["/api/users"],
-  });
 
   const mintMutation = useMutation({
     mutationFn: async (nftData: any) => {
@@ -54,7 +47,6 @@ export default function Mint() {
         description: "Your travel photo has been minted as an NFT.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       // Reset form
       setTitle("");
       setDescription("");
@@ -134,9 +126,9 @@ export default function Mint() {
   };
 
   const handleMint = () => {
-    if (!currentUser) {
+    if (!isConnected || !address) {
       toast({
-        title: "Error",
+        title: "Wallet Not Connected",
         description: "Please connect your wallet to mint NFTs",
         variant: "destructive",
       });
@@ -152,23 +144,12 @@ export default function Mint() {
       return;
     }
 
-    const userBalance = parseFloat(currentUser.balance);
-    const mintCost = 1.0 + (featuredPlacement ? 0.5 : 0);
-
-    if (userBalance < mintCost) {
-      toast({
-        title: "Insufficient Balance",
-        description: `You need ${mintCost} USDC to mint this NFT`,
-        variant: "destructive",
-      });
-      return;
-    }
-
     // In a real app, you would upload the image to IPFS or a storage service
     // For demo purposes, we'll use a placeholder URL
     const mockImageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
 
     const nftData = {
+      walletAddress: address,
       title,
       description,
       imageUrl: mockImageUrl,
@@ -178,8 +159,6 @@ export default function Mint() {
       category,
       price: enableListing ? salePrice : "0",
       isForSale: enableListing ? 1 : 0,
-      creatorId: currentUser.id,
-      ownerId: currentUser.id,
       mintPrice: "1.000000",
       royaltyPercentage: "5.00",
       metadata: {
@@ -199,6 +178,16 @@ export default function Mint() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-4" data-testid="mint-title">Mint Your Travel NFT</h1>
           <p className="text-muted-foreground">Transform your travel memories into unique location-based NFTs</p>
+          
+          {!isConnected && (
+            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="flex items-center justify-center space-x-3">
+                <Wallet className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-yellow-800 dark:text-yellow-200 font-medium">Connect your wallet to mint NFTs</span>
+                <WalletConnect />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -333,11 +322,12 @@ export default function Mint() {
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={handleMint}
-                    disabled={mintMutation.isPending || !title || !category || !imageFile || !location || locationLoading}
+                    disabled={mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {mintMutation.isPending ? "Minting..." : 
+                    {mintMutation.isPending ? "Minting..." :
+                     !isConnected ? "Connect wallet to mint" :
                      locationLoading ? "Getting location..." :
                      !location ? "Location required" :
                      !title || !category || !imageFile ? "Fill all fields" :

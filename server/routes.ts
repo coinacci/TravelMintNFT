@@ -9,18 +9,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nfts", async (req, res) => {
     try {
       const nfts = await storage.getAllNFTs();
-      const nftsWithOwners = await Promise.all(
-        nfts.map(async (nft) => {
-          const owner = await storage.getUser(nft.ownerId);
-          const creator = await storage.getUser(nft.creatorId);
-          return {
-            ...nft,
-            owner: owner ? { id: owner.id, username: owner.username, avatar: owner.avatar } : null,
-            creator: creator ? { id: creator.id, username: creator.username, avatar: creator.avatar } : null,
-          };
-        })
-      );
-      res.json(nftsWithOwners);
+      res.json(nfts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFTs" });
     }
@@ -29,18 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nfts/for-sale", async (req, res) => {
     try {
       const nfts = await storage.getNFTsForSale();
-      const nftsWithOwners = await Promise.all(
-        nfts.map(async (nft) => {
-          const owner = await storage.getUser(nft.ownerId);
-          const creator = await storage.getUser(nft.creatorId);
-          return {
-            ...nft,
-            owner: owner ? { id: owner.id, username: owner.username, avatar: owner.avatar } : null,
-            creator: creator ? { id: creator.id, username: creator.username, avatar: creator.avatar } : null,
-          };
-        })
-      );
-      res.json(nftsWithOwners);
+      res.json(nfts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFTs for sale" });
     }
@@ -53,14 +31,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "NFT not found" });
       }
       
-      const owner = await storage.getUser(nft.ownerId);
-      const creator = await storage.getUser(nft.creatorId);
       const transactions = await storage.getTransactionsByNFT(nft.id);
       
       res.json({
         ...nft,
-        owner: owner ? { id: owner.id, username: owner.username, avatar: owner.avatar } : null,
-        creator: creator ? { id: creator.id, username: creator.username, avatar: creator.avatar } : null,
         transactions,
       });
     } catch (error) {
@@ -70,14 +44,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/nfts", async (req, res) => {
     try {
-      const validatedData = insertNFTSchema.parse(req.body);
+      const { walletAddress, ...nftData } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ message: "Wallet address is required" });
+      }
+      
+      const validatedData = insertNFTSchema.parse({
+        ...nftData,
+        creatorAddress: walletAddress,
+        ownerAddress: walletAddress,
+      });
+      
       const nft = await storage.createNFT(validatedData);
       
       // Create mint transaction
       await storage.createTransaction({
         nftId: nft.id,
-        fromUserId: null,
-        toUserId: nft.ownerId,
+        fromAddress: null,
+        toAddress: walletAddress,
         transactionType: "mint",
         amount: nft.mintPrice,
         platformFee: "0.000000",
@@ -95,10 +80,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Purchase NFT
   app.post("/api/nfts/:id/purchase", async (req, res) => {
     try {
-      const { buyerId } = req.body;
+      const { buyerAddress, transactionHash } = req.body;
       
-      if (!buyerId) {
-        return res.status(400).json({ message: "Buyer ID is required" });
+      if (!buyerAddress) {
+        return res.status(400).json({ message: "Buyer wallet address is required" });
+      }
+      
+      if (!transactionHash) {
+        return res.status(400).json({ message: "Transaction hash is required" });
       }
 
       const nft = await storage.getNFT(req.params.id);
@@ -110,48 +99,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "NFT is not for sale" });
       }
 
-      const buyer = await storage.getUser(buyerId);
-      if (!buyer) {
-        return res.status(404).json({ message: "Buyer not found" });
+      if (nft.ownerAddress.toLowerCase() === buyerAddress.toLowerCase()) {
+        return res.status(400).json({ message: "Cannot purchase your own NFT" });
       }
 
-      const buyerBalance = parseFloat(buyer.balance);
       const nftPrice = parseFloat(nft.price);
       const platformFeeRate = 0.05; // 5%
       const platformFee = nftPrice * platformFeeRate;
-      const totalCost = nftPrice;
-
-      if (buyerBalance < totalCost) {
-        return res.status(400).json({ message: "Insufficient balance" });
-      }
-
-      // Update buyer balance
-      const newBuyerBalance = buyerBalance - totalCost;
-      await storage.updateUserBalance(buyerId, newBuyerBalance.toFixed(6));
-
-      // Update seller balance (minus platform fee)
-      const seller = await storage.getUser(nft.ownerId);
-      if (seller) {
-        const sellerBalance = parseFloat(seller.balance);
-        const sellerAmount = nftPrice - platformFee;
-        const newSellerBalance = sellerBalance + sellerAmount;
-        await storage.updateUserBalance(seller.id, newSellerBalance.toFixed(6));
-      }
 
       // Transfer NFT ownership
       await storage.updateNFT(nft.id, {
-        ownerId: buyerId,
+        ownerAddress: buyerAddress,
         isForSale: 0,
       });
 
       // Create transaction record
       await storage.createTransaction({
         nftId: nft.id,
-        fromUserId: nft.ownerId,
-        toUserId: buyerId,
+        fromAddress: nft.ownerAddress,
+        toAddress: buyerAddress,
         transactionType: "sale",
         amount: nftPrice.toFixed(6),
         platformFee: platformFee.toFixed(6),
+        blockchainTxHash: transactionHash,
       });
 
       res.json({ message: "Purchase successful" });

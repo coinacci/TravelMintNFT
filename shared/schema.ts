@@ -23,10 +23,13 @@ export const nfts = pgTable("nfts", {
   category: text("category").notNull(),
   price: decimal("price", { precision: 18, scale: 6 }).notNull(),
   isForSale: integer("is_for_sale").default(0).notNull(), // 0 = false, 1 = true
-  creatorId: varchar("creator_id").notNull().references(() => users.id),
-  ownerId: varchar("owner_id").notNull().references(() => users.id),
+  creatorAddress: text("creator_address").notNull(),
+  ownerAddress: text("owner_address").notNull(),
   mintPrice: decimal("mint_price", { precision: 18, scale: 6 }).default("1").notNull(),
   royaltyPercentage: decimal("royalty_percentage", { precision: 5, scale: 2 }).default("5").notNull(),
+  tokenId: text("token_id"), // NFT contract token ID
+  contractAddress: text("contract_address"), // NFT contract address
+  transactionHash: text("transaction_hash"), // Mint transaction hash
   metadata: json("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -35,11 +38,12 @@ export const nfts = pgTable("nfts", {
 export const transactions = pgTable("transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   nftId: varchar("nft_id").notNull().references(() => nfts.id),
-  fromUserId: varchar("from_user_id").references(() => users.id),
-  toUserId: varchar("to_user_id").notNull().references(() => users.id),
+  fromAddress: text("from_address"),
+  toAddress: text("to_address").notNull(),
   transactionType: text("transaction_type").notNull(), // 'mint', 'sale', 'transfer'
   amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
   platformFee: decimal("platform_fee", { precision: 18, scale: 6 }).default("0").notNull(),
+  blockchainTxHash: text("blockchain_tx_hash"), // On-chain transaction hash
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
