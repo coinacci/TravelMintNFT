@@ -29,7 +29,7 @@ export default function Landing() {
         <div className="relative container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Turn Your Travel Photos Into{" "}
+              Turn Your Travel Into{" "}
               <span className="travel-gradient bg-clip-text text-transparent">
                 NFT Memories
               </span>

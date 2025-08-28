@@ -200,6 +200,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get NFTs by owner
+  app.get("/api/users/:id/nfts", async (req, res) => {
+    try {
+      const nfts = await storage.getNFTsByOwner(req.params.id);
+      const nftsWithOwners = await Promise.all(
+        nfts.map(async (nft) => {
+          const owner = await storage.getUser(nft.ownerId);
+          const creator = await storage.getUser(nft.creatorId);
+          return {
+            ...nft,
+            owner: owner ? { id: owner.id, username: owner.username, avatar: owner.avatar } : null,
+            creator: creator ? { id: creator.id, username: creator.username, avatar: creator.avatar } : null,
+          };
+        })
+      );
+      res.json(nftsWithOwners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user NFTs" });
+    }
+  });
+
   // Transaction routes
   app.get("/api/transactions/nft/:nftId", async (req, res) => {
     try {

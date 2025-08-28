@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Store, Camera, Wallet, Globe, Home } from "lucide-react";
+import { MapPin, Store, Camera, Wallet, Globe, Home, User } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 
@@ -23,6 +23,7 @@ export default function Navigation() {
     { path: "/", label: "Home", icon: Home },
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
+    { path: "/my-nfts", label: "My NFTs", icon: User },
     { path: "/mint", label: "Mint NFT", icon: Camera },
   ];
 

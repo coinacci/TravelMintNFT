@@ -7,6 +7,7 @@ import { WalletProvider } from "@/contexts/wallet-provider";
 import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
 import Marketplace from "@/pages/marketplace";
+import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
@@ -18,6 +19,7 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/explore" component={Explore} />
         <Route path="/marketplace" component={Marketplace} />
+        <Route path="/my-nfts" component={MyNFTs} />
         <Route path="/mint" component={Mint} />
         <Route>
           <div className="min-h-screen flex items-center justify-center">

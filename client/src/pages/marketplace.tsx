@@ -34,7 +34,6 @@ export default function Marketplace() {
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("recent");
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -94,13 +93,6 @@ export default function Marketplace() {
     purchaseMutation.mutate({ nftId: nft.id, buyerId: currentUser.id });
   };
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories([...selectedCategories, category]);
-    } else {
-      setSelectedCategories(selectedCategories.filter(c => c !== category));
-    }
-  };
 
   // Filter and sort NFTs
   const filteredNFTs = nfts
@@ -112,8 +104,7 @@ export default function Marketplace() {
       return (
         price >= minPrice &&
         price <= maxPrice &&
-        (selectedLocation === "all" || nft.location.toLowerCase().includes(selectedLocation.toLowerCase())) &&
-        (selectedCategories.length === 0 || selectedCategories.includes(nft.category))
+        (selectedLocation === "all" || nft.location.toLowerCase().includes(selectedLocation.toLowerCase()))
       );
     })
     .sort((a, b) => {
@@ -129,7 +120,6 @@ export default function Marketplace() {
       }
     });
 
-  const categories = ["Landscape", "Architecture", "Street Photography", "Cultural", "Wildlife", "Adventure"];
   const locations = ["Europe", "Asia", "Americas", "Africa", "Oceania"];
 
   return (
@@ -181,22 +171,6 @@ export default function Marketplace() {
                     </Select>
                   </div>
                   
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Category</Label>
-                    <div className="mt-2 space-y-2">
-                      {categories.map(category => (
-                        <div key={category} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={category}
-                            checked={selectedCategories.includes(category)}
-                            onCheckedChange={(checked) => handleCategoryChange(category, !!checked)}
-                            data-testid={`category-${category.toLowerCase().replace(/\s+/g, "-")}`}
-                          />
-                          <Label htmlFor={category} className="text-sm">{category}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
