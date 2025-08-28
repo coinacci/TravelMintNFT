@@ -9,14 +9,14 @@ export const config = createConfig({
   connectors: [
     coinbaseWallet({
       appName: 'TravelNFT',
-      appLogoUrl: '/logo.png',
+      appLogoUrl: 'https://travelnft.vercel.app/logo.png',
       preference: 'all', // Supports both Smart Wallet and EOA
     }),
     farcasterMiniApp(),
   ],
   transports: {
-    [base.id]: http(),
-    [mainnet.id]: http(),
+    [base.id]: http('https://mainnet.base.org'),
+    [mainnet.id]: http('https://cloudflare-eth.com'),
   },
   ssr: false,
 })

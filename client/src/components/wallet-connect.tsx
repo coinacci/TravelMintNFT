@@ -1,19 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, LogOut, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export function WalletConnect() {
   const [isOpen, setIsOpen] = useState(false);
   const { address, isConnected, connector } = useAccount();
-  const { connectors, connect, isPending } = useConnect();
+  const { connectors, connect, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
+  const { toast } = useToast();
 
-  const handleConnect = (connector: any) => {
-    connect({ connector });
-    setIsOpen(false);
+  useEffect(() => {
+    if (connectError) {
+      console.error('Connection error:', connectError);
+      toast({
+        title: "Connection Failed",
+        description: connectError.message || "Failed to connect wallet",
+        variant: "destructive",
+      });
+    }
+  }, [connectError, toast]);
+
+  useEffect(() => {
+    if (isConnected && address) {
+      toast({
+        title: "Wallet Connected",
+        description: `Connected to ${connector?.name}`,
+      });
+    }
+  }, [isConnected, address, connector, toast]);
+
+  const handleConnect = async (connector: any) => {
+    try {
+      console.log('Attempting to connect with:', connector.name);
+      await connect({ connector });
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Wallet connection failed:', error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDisconnect = () => {
@@ -108,8 +140,12 @@ export function WalletConnect() {
         </DialogHeader>
         
         <div className="space-y-3">
+          {connectors.length === 0 && (
+            <p className="text-center text-muted-foreground">No connectors available</p>
+          )}
           {connectors.map((connector) => {
-            const isLoading = isPending && connector.type === 'coinbaseWallet';
+            const isLoading = isPending;
+            console.log('Available connector:', connector.name, connector.type, connector);
             
             return (
               <Button
