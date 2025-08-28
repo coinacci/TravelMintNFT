@@ -34,87 +34,9 @@ export class MemStorage implements IStorage {
     this.nfts = new Map();
     this.transactions = new Map();
 
-    // Initialize with sample data
-    this.initializeSampleData();
+    // Sample data initialization removed - app starts with empty storage
   }
 
-  private initializeSampleData() {
-    // Create sample users
-    const sampleUsers = [
-      { username: "alpineexplorer", balance: "1250.000000", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" },
-      { username: "japanwanderer", balance: "850.000000", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face" },
-      { username: "arcticphotog", balance: "2100.000000", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" },
-    ];
-
-    sampleUsers.forEach(userData => {
-      const id = randomUUID();
-      const user: User = {
-        id,
-        ...userData,
-        walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-        createdAt: new Date(),
-      };
-      this.users.set(id, user);
-    });
-
-    // Create sample NFTs
-    const userIds = Array.from(this.users.keys());
-    const sampleNFTs = [
-      {
-        title: "Alpine Paradise",
-        description: "A breathtaking view captured during early morning light in the Swiss Alps.",
-        imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop",
-        location: "Zermatt, Switzerland",
-        latitude: "46.94790000",
-        longitude: "7.44740000",
-        category: "Landscape",
-        price: "25.000000",
-        isForSale: 1,
-        creatorId: userIds[0],
-        ownerId: userIds[0],
-      },
-      {
-        title: "Sakura Temple",
-        description: "Traditional Japanese temple surrounded by cherry blossoms in full bloom.",
-        imageUrl: "https://images.unsplash.com/photo-1528164344705-47542687000d?w=600&h=400&fit=crop",
-        location: "Kyoto, Japan",
-        latitude: "35.01160000",
-        longitude: "135.76810000",
-        category: "Cultural",
-        price: "18.000000",
-        isForSale: 1,
-        creatorId: userIds[1],
-        ownerId: userIds[1],
-      },
-      {
-        title: "Aurora Dreams",
-        description: "Stunning aurora borealis dancing across the Arctic sky.",
-        imageUrl: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=600&h=400&fit=crop",
-        location: "Tromsø, Norway",
-        latitude: "69.64920000",
-        longitude: "18.95530000",
-        category: "Landscape",
-        price: "42.000000",
-        isForSale: 1,
-        creatorId: userIds[2],
-        ownerId: userIds[2],
-      },
-    ];
-
-    sampleNFTs.forEach(nftData => {
-      const id = randomUUID();
-      const nft: NFT = {
-        id,
-        ...nftData,
-        mintPrice: "1.000000",
-        royaltyPercentage: "5.00",
-        metadata: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      this.nfts.set(id, nft);
-    });
-  }
 
   // User operations
   async getUser(id: string): Promise<User | undefined> {
