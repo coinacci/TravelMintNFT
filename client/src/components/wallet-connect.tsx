@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -76,6 +76,9 @@ export function WalletConnect() {
               <Wallet className="w-5 h-5" />
               <span>Wallet Connected</span>
             </DialogTitle>
+            <DialogDescription>
+              Manage your connected wallet and view account details
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -137,6 +140,9 @@ export function WalletConnect() {
             <Wallet className="w-5 h-5" />
             <span>Connect Your Wallet</span>
           </DialogTitle>
+          <DialogDescription>
+            Choose a wallet to connect and access the TravelNFT platform
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-3">
