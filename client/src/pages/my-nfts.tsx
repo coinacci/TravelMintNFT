@@ -39,12 +39,12 @@ export default function MyNFTs() {
   const syncedAddressRef = useRef<string | null>(null);
 
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
-    queryKey: [`/api/wallet/${address}/nfts`, Date.now()], // Force completely fresh query
+    queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
     enabled: !!address && isConnected,
-    staleTime: 0, // Force fresh data to show updated images
-    refetchOnMount: true,
+    staleTime: 30_000, // Consider data fresh for 30 seconds
+    refetchOnMount: false, // Don't refetch on every mount
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 0, // Don't cache at all for now
+    gcTime: 300_000, // Keep cache for 5 minutes
   });
   
   // Automatic blockchain sync on wallet connection
@@ -55,10 +55,12 @@ export default function MyNFTs() {
     onSuccess: (data: any) => {
       // Silent sync - no toast notifications
       console.log('✅ Wallet sync successful:', data?.syncedNFTs || 0, 'new NFTs');
-      // Only invalidate wallet NFTs query to prevent flickering
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-      }, 100); // Small delay to prevent race conditions
+      // Only invalidate if there were actually new NFTs synced
+      if (data?.syncedNFTs > 0) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+        }, 500); // Longer delay to prevent race conditions
+      }
     },
     onError: (error: any) => {
       // Silent error handling for background sync
@@ -93,9 +95,7 @@ export default function MyNFTs() {
     if (address && isConnected && syncedAddressRef.current !== address) {
       syncedAddressRef.current = address;
       console.log('🔄 First-time sync for wallet:', address);
-      // Force cache invalidation to ensure fresh images
-      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-      // Only sync if we don't have any NFTs cached
+      // Only sync if we don't have any NFTs cached, no aggressive invalidation
       if (nfts.length === 0) {
         syncMutation.mutate();
       }
@@ -104,7 +104,7 @@ export default function MyNFTs() {
       syncedAddressRef.current = null;
       console.log('❌ Wallet disconnected, clearing sync ref');
     }
-  }, [address, isConnected, nfts.length]);
+  }, [address, isConnected]); // Remove nfts.length dependency to prevent loops
 
   // Log for troubleshooting
   if (isError) {
