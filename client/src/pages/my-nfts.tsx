@@ -39,12 +39,12 @@ export default function MyNFTs() {
   const syncedAddressRef = useRef<string | null>(null);
 
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
-    queryKey: [`/api/wallet/${address}/nfts`],
+    queryKey: [`/api/wallet/${address}/nfts`, Date.now()], // Force completely fresh query
     enabled: !!address && isConnected,
     staleTime: 0, // Force fresh data to show updated images
     refetchOnMount: true,
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 300000, // Keep in cache for 5 minutes
+    gcTime: 0, // Don't cache at all for now
   });
   
   // Automatic blockchain sync on wallet connection
@@ -93,6 +93,8 @@ export default function MyNFTs() {
     if (address && isConnected && syncedAddressRef.current !== address) {
       syncedAddressRef.current = address;
       console.log('🔄 First-time sync for wallet:', address);
+      // Force cache invalidation to ensure fresh images
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
       // Only sync if we don't have any NFTs cached
       if (nfts.length === 0) {
         syncMutation.mutate();
