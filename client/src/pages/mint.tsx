@@ -81,7 +81,7 @@ export default function Mint() {
   const { address, isConnected } = useAccount();
   
   // Blockchain minting hooks
-  const { data: hash, error: contractError, isPending: isContractPending, writeContract } = useWriteContract();
+  const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
@@ -104,51 +104,54 @@ export default function Mint() {
   // Handle two-step minting process
   useEffect(() => {
     if (isConfirmed && hash && mintingStep === 'approving') {
-      // After USDC approval, proceed with NFT minting
-      setMintingStep('minting');
+      // After USDC approval, reset and proceed with NFT minting
+      console.log('USDC approval confirmed, starting NFT mint...');
       
       toast({
         title: "USDC Approved",
         description: "Now minting your NFT...",
       });
       
-      // Second step: Mint NFT after USDC approval
-      const gasPrice = feeData?.gasPrice;
-      const maxFeePerGas = feeData?.maxFeePerGas;
-      const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
+      // Reset write contract state before second transaction
+      resetWriteContract();
       
-      // Create a simple metadata URI for now
-      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
-        name: title,
-        description: description || "Travel NFT minted on TravelMint",
-        image: imagePreview,
-        attributes: [
-          { trait_type: "Category", value: category },
-          { trait_type: "Location", value: location!.city || "Unknown City" },
-          { trait_type: "Minted Date", value: new Date().toISOString() }
-        ]
-      }))}`;
+      // Small delay to ensure state is reset
+      setTimeout(() => {
+        setMintingStep('minting');
+        
+        // Create metadata URI
+        const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
+          name: title,
+          description: description || "Travel NFT minted on TravelMint",
+          image: imagePreview,
+          attributes: [
+            { trait_type: "Category", value: category },
+            { trait_type: "Location", value: location!.city || "Unknown City" },
+            { trait_type: "Minted Date", value: new Date().toISOString() }
+          ]
+        }))}`;
+        
+        // Second step: Mint NFT after USDC approval
+        writeContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: NFT_ABI,
+          functionName: 'mintTravelNFT',
+          args: [
+            address!, // to
+            location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
+            location!.latitude.toString(), // latitude
+            location!.longitude.toString(), // longitude
+            category, // category
+            metadataUri // tokenURI
+          ],
+          gas: BigInt(500000), // Set reasonable gas limit
+        });
+      }, 1000); // 1 second delay
       
-      writeContract({
-        address: NFT_CONTRACT_ADDRESS,
-        abi: NFT_ABI,
-        functionName: 'mintTravelNFT',
-        args: [
-          address!, // to
-          location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
-          location!.latitude.toString(), // latitude
-          location!.longitude.toString(), // longitude
-          category, // category
-          metadataUri // tokenURI
-        ],
-        gas: BigInt(500000), // Set reasonable gas limit
-        gasPrice: gasPrice,
-        maxFeePerGas: maxFeePerGas,
-        maxPriorityFeePerGas: maxPriorityFeePerGas,
-      });
     } else if (isConfirmed && hash && mintingStep === 'minting') {
       // After NFT minting confirmation, save NFT to database
-      // Use the actual uploaded image preview instead of mock URL
+      console.log('NFT minting confirmed, saving to database...');
+      
       const actualImageUrl = imagePreview || `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
       
       const nftData = {
@@ -174,16 +177,18 @@ export default function Mint() {
       mintMutation.mutate(nftData);
       setMintingStep('idle');
     }
-  }, [isConfirmed, hash, mintingStep]);
+  }, [isConfirmed, hash, mintingStep, resetWriteContract]);
   
   // Handle contract errors
   useEffect(() => {
     if (contractError) {
+      console.error('Contract error:', contractError);
       toast({
         title: "Transaction Failed",
-        description: contractError.message,
+        description: contractError.message || "Transaction rejected",
         variant: "destructive",
       });
+      setMintingStep('idle'); // Reset state on error
     }
   }, [contractError]);
 
