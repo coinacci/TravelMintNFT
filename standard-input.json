@@ -10,7 +10,7 @@
       "enabled": false,
       "runs": 200
     },
-    "evmVersion": "default",
+    "evmVersion": "paris",
     "outputSelection": {
       "*": {
         "*": [
