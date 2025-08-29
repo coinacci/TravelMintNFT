@@ -375,6 +375,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Simple simulation - in production you'd read from blockchain
       console.log(`Syncing NFTs for wallet: ${walletAddress}`);
       
+      // Check if user already has NFTs from this contract to avoid duplicates
+      // Use a more specific check for wallet + contract + tokenId combination
+      const existingNFTs = await storage.getNFTsByOwner(walletAddress);
+      const hasContractNFT = existingNFTs.some(nft => 
+        nft.contractAddress === ALLOWED_CONTRACT && 
+        nft.tokenId === "1" && 
+        nft.ownerAddress.toLowerCase() === walletAddress
+      );
+      
+      if (hasContractNFT) {
+        return res.json({ 
+          message: "NFTs already synced for this wallet",
+          syncedNFTs: 0,
+          nfts: existingNFTs.filter(nft => nft.contractAddress === ALLOWED_CONTRACT)
+        });
+      }
+      
       // Create a test NFT from contract
       const testNFT = {
         id: `sync-${Date.now()}`,
