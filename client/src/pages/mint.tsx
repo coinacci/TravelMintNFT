@@ -93,7 +93,7 @@ export default function Mint() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector } = useAccount();
   
   // Blockchain minting hooks
   const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
@@ -237,7 +237,13 @@ export default function Mint() {
   // Handle contract errors
   useEffect(() => {
     if (contractError) {
-      console.error('Contract error:', contractError);
+      console.error('🚨 Contract error detected:', contractError);
+      console.error('Error details:', {
+        name: contractError.name,
+        message: contractError.message,
+        cause: contractError.cause
+      });
+      
       toast({
         title: "Transaction Failed",
         description: contractError.message || "Transaction rejected",
@@ -335,12 +341,28 @@ export default function Mint() {
 
   const handleMint = async () => {
     console.log('🔥 MINT BUTTON CLICKED!');
+    console.log('🔍 Wallet state:', { 
+      isConnected, 
+      address, 
+      connectorName: connector?.name,
+      connectorType: connector?.type 
+    });
     
     if (!isConnected || !address) {
       console.log('❌ Wallet not connected:', { isConnected, address });
       toast({
         title: "Wallet Not Connected",
         description: "Please connect your wallet to mint NFTs",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!connector) {
+      console.log('❌ No connector found');
+      toast({
+        title: "Wallet Connection Error",
+        description: "Wallet connector not found. Please reconnect.",
         variant: "destructive",
       });
       return;
@@ -364,9 +386,9 @@ export default function Mint() {
       console.log('🚀 STARTING BLOCKCHAIN TRANSACTION PROCESS...');
       
       // Use USDC for minting (1 USDC = $1 fixed price)
-      const gasPrice = feeData?.gasPrice;
-      const maxFeePerGas = feeData?.maxFeePerGas;
-      const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
+      const gasPrice = feeData?.gasPrice || undefined;
+      const maxFeePerGas = feeData?.maxFeePerGas || undefined;
+      const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas || undefined;
       
       console.log('⛽ Gas data:', { 
         gasPrice: gasPrice ? gasPrice.toString() : 'null', 
@@ -384,22 +406,35 @@ export default function Mint() {
       console.log('- Chain ID:', 8453);
       console.log('- Contract Pending:', isContractPending);
       
-      // First step: Approve USDC spending to NFT contract
+      // First step: Approve USDC spending to NFT contract  
       console.log('🔥 ABOUT TO CALL writeContract - SHOULD TRIGGER WALLET POPUP NOW!');
-      const result = writeContract({
-        address: USDC_CONTRACT_ADDRESS,
-        abi: USDC_ABI,
-        functionName: 'approve',
-        args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT], // Approve 1 USDC
-        gas: BigInt(100000), // Lower gas for approve
-        gasPrice: gasPrice,
-        maxFeePerGas: maxFeePerGas,
-        maxPriorityFeePerGas: maxPriorityFeePerGas,
-        chainId: 8453, // Force Base mainnet
-      });
       
-      console.log('✅ writeContract called successfully, result:', result);
-      console.log('👀 If you see this but no wallet popup, that\'s the problem!');
+      // Try-catch around writeContract to prevent app crash
+      try {
+        const result = writeContract({
+          address: USDC_CONTRACT_ADDRESS,
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT], // Approve 1 USDC
+          gas: BigInt(100000), // Lower gas for approve
+          gasPrice: gasPrice,
+          maxFeePerGas: maxFeePerGas,
+          maxPriorityFeePerGas: maxPriorityFeePerGas,
+          chainId: 8453, // Force Base mainnet
+        });
+        
+        console.log('✅ writeContract called successfully, result:', result);
+        console.log('🎯 Now waiting for wallet confirmation...');
+        
+        // If no error thrown, transaction should be pending
+        if (result === undefined) {
+          console.log('⚠️ writeContract returned undefined - checking pending state...');
+        }
+        
+      } catch (writeError) {
+        console.error('🚨 writeContract FAILED:', writeError);
+        throw writeError; // Re-throw to outer catch
+      }
       
     } catch (error: any) {
       toast({
