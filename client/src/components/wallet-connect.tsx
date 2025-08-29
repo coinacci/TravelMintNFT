@@ -31,9 +31,18 @@ export function WalletConnect() {
       console.log('Attempting to connect with:', connector.name);
       console.log('Connector details:', connector);
       
+      // Special handling for Coinbase Wallet
+      if (connector.name === 'Coinbase Wallet') {
+        console.log('Coinbase Wallet connection attempt - using smart wallet preference');
+      }
       
       await connect({ connector });
       setIsOpen(false);
+      
+      toast({
+        title: "Wallet Connected",
+        description: `Successfully connected with ${connector.name}`,
+      });
     } catch (error) {
       console.error('Wallet connection failed:', error);
       console.error('Error details:', {
@@ -42,13 +51,23 @@ export function WalletConnect() {
         stack: error instanceof Error ? error.stack : undefined,
       });
       
-      let errorMessage = "Unknown error occurred";
+      let errorMessage = "Failed to connect wallet";
+      let errorTitle = "Connection Failed";
+      
       if (error instanceof Error) {
-        errorMessage = error.message;
+        if (error.message.includes('rejected') || error.message.includes('denied')) {
+          errorTitle = "Connection Rejected";
+          errorMessage = "Please try again and approve the connection request";
+        } else if (error.message.includes('popup')) {
+          errorTitle = "Popup Blocked";
+          errorMessage = "Please allow popups and try again";
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       toast({
-        title: "Connection Failed",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });
@@ -56,8 +75,22 @@ export function WalletConnect() {
   };
 
   const handleDisconnect = () => {
-    disconnect();
-    setIsOpen(false);
+    try {
+      disconnect();
+      setIsOpen(false);
+      
+      toast({
+        title: "Wallet Disconnected",
+        description: "Your wallet has been disconnected successfully",
+      });
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      toast({
+        title: "Disconnect Error",
+        description: "Error disconnecting wallet",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatAddress = (address: string) => {

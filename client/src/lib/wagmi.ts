@@ -9,9 +9,9 @@ export const config = createConfig({
   connectors: [
     frameConnector(),
     coinbaseWallet({
-      appName: 'TravelNFT',
-      appLogoUrl: 'https://travelnft.vercel.app/logo.png',
-      preference: 'all', // Supports both Smart Wallet and EOA
+      appName: 'TravelMint',
+      preference: 'smartWalletOnly', // Use smart wallet for better UX
+      version: '4',
     }),
   ],
   transports: {
