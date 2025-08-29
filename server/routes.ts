@@ -261,11 +261,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get NFTs by wallet address
   app.get("/api/wallet/:address/nfts", async (req, res) => {
     try {
+      console.log('🔍 WALLET NFTs API called for:', req.params.address);
       const nfts = await storage.getNFTsByOwner(req.params.address);
+      console.log('📦 Storage returned NFTs count:', nfts?.length || 0, 'IDs:', nfts?.map(n => n.id.slice(0,8)).join(', '));
+      
       const nftsWithOwners = await Promise.all(
         nfts.map(async (nft) => {
-          return {
+          // Optimize response by truncating image data for list view
+          const optimizedNft = {
             ...nft,
+            imageUrl: nft.imageUrl.length > 100 ? nft.imageUrl.slice(0, 100) + '...' : nft.imageUrl,
+            metadata: nft.metadata ? JSON.stringify(JSON.parse(nft.metadata)).slice(0, 200) + '...' : null,
             owner: { 
               id: nft.ownerAddress, 
               username: nft.ownerAddress.slice(0, 8) + '...', 
@@ -277,10 +283,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               avatar: null 
             }
           };
+          return optimizedNft;
         })
       );
+      
+      console.log('🚀 Response NFTs count:', nftsWithOwners.length);
       res.json(nftsWithOwners);
     } catch (error) {
+      console.error('❌ Wallet NFTs API error:', error);
       res.status(500).json({ message: "Failed to fetch wallet NFTs" });
     }
   });

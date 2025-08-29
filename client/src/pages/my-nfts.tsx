@@ -45,14 +45,16 @@ export default function MyNFTs() {
   });
   
   // DEBUG: Console log for troubleshooting
-  console.log('🔍 MY NFTs DEBUG:', {
+  console.log('🔍 MY NFTs RAW DATA DEBUG:', {
     address, 
     isConnected, 
     enabled: !!address && isConnected,
+    rawNftsData: nfts,
     nftsCount: nfts?.length || 0,
     isLoading,
     isError,
-    error: error?.message
+    error: error?.message,
+    apiUrl: `/api/wallet/${address}/nfts`
   });
 
   // Show wallet connection if not connected
