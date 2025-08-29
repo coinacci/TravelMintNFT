@@ -9,20 +9,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nfts", async (req, res) => {
     try {
       const nfts = await storage.getAllNFTs();
-      // Add owner and creator information for each NFT
-      const nftsWithOwners = nfts.map(nft => ({
-        ...nft,
-        owner: { 
-          id: nft.ownerAddress, 
-          username: nft.ownerAddress.slice(0, 8) + '...', 
-          avatar: null 
-        },
-        creator: { 
-          id: nft.creatorAddress, 
-          username: nft.creatorAddress.slice(0, 8) + '...', 
-          avatar: null 
+      // Add owner and creator information for each NFT and parse metadata
+      const nftsWithOwners = nfts.map(nft => {
+        let parsedMetadata = null;
+        try {
+          if (nft.metadata && typeof nft.metadata === 'string') {
+            parsedMetadata = JSON.parse(nft.metadata);
+          }
+        } catch (e) {
+          console.log('Failed to parse metadata for NFT:', nft.id);
         }
-      }));
+
+        return {
+          ...nft,
+          // Use metadata name and image if available, fallback to NFT fields
+          title: parsedMetadata?.name || nft.title,
+          imageUrl: parsedMetadata?.image || nft.imageUrl,
+          owner: { 
+            id: nft.ownerAddress, 
+            username: nft.ownerAddress.slice(0, 8) + '...', 
+            avatar: null 
+          },
+          creator: { 
+            id: nft.creatorAddress, 
+            username: nft.creatorAddress.slice(0, 8) + '...', 
+            avatar: null 
+          }
+        };
+      });
       res.json(nftsWithOwners);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFTs" });
@@ -32,20 +46,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nfts/for-sale", async (req, res) => {
     try {
       const nfts = await storage.getNFTsForSale();
-      // Add owner and creator information for each NFT
-      const nftsWithOwners = nfts.map(nft => ({
-        ...nft,
-        owner: { 
-          id: nft.ownerAddress, 
-          username: nft.ownerAddress.slice(0, 8) + '...', 
-          avatar: null 
-        },
-        creator: { 
-          id: nft.creatorAddress, 
-          username: nft.creatorAddress.slice(0, 8) + '...', 
-          avatar: null 
+      // Add owner and creator information for each NFT and parse metadata
+      const nftsWithOwners = nfts.map(nft => {
+        let parsedMetadata = null;
+        try {
+          if (nft.metadata && typeof nft.metadata === 'string') {
+            parsedMetadata = JSON.parse(nft.metadata);
+          }
+        } catch (e) {
+          console.log('Failed to parse metadata for NFT:', nft.id);
         }
-      }));
+
+        return {
+          ...nft,
+          // Use metadata name and image if available, fallback to NFT fields
+          title: parsedMetadata?.name || nft.title,
+          imageUrl: parsedMetadata?.image || nft.imageUrl,
+          owner: { 
+            id: nft.ownerAddress, 
+            username: nft.ownerAddress.slice(0, 8) + '...', 
+            avatar: null 
+          },
+          creator: { 
+            id: nft.creatorAddress, 
+            username: nft.creatorAddress.slice(0, 8) + '...', 
+            avatar: null 
+          }
+        };
+      });
       res.json(nftsWithOwners);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFTs for sale" });
@@ -61,8 +89,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const transactions = await storage.getTransactionsByNFT(nft.id);
       
+      // Parse metadata for individual NFT
+      let parsedMetadata = null;
+      try {
+        if (nft.metadata && typeof nft.metadata === 'string') {
+          parsedMetadata = JSON.parse(nft.metadata);
+        }
+      } catch (e) {
+        console.log('Failed to parse metadata for NFT:', nft.id);
+      }
+
       res.json({
         ...nft,
+        // Use metadata name and image if available, fallback to NFT fields
+        title: parsedMetadata?.name || nft.title,
+        imageUrl: parsedMetadata?.image || nft.imageUrl,
         owner: { 
           id: nft.ownerAddress, 
           username: nft.ownerAddress.slice(0, 8) + '...', 
@@ -272,16 +313,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get NFTs by wallet address
   app.get("/api/wallet/:address/nfts", async (req, res) => {
     try {
-      // Filter NFTs by allowed contract
-      const allNfts = await storage.getNFTsByOwner(req.params.address);
+      // Filter NFTs by allowed contract with case-insensitive address matching
+      const walletAddress = req.params.address.toLowerCase();
+      const allNfts = await storage.getNFTsByOwner(walletAddress);
       const nfts = allNfts.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
       
       const nftsWithOwners = await Promise.all(
         nfts.map(async (nft) => {
+          // Parse metadata for wallet NFTs
+          let parsedMetadata = null;
+          try {
+            if (nft.metadata && typeof nft.metadata === 'string') {
+              parsedMetadata = JSON.parse(nft.metadata);
+            }
+          } catch (e) {
+            console.log('Failed to parse metadata for NFT:', nft.id);
+          }
+
           return {
             ...nft,
+            // Use metadata name and image if available, fallback to NFT fields
+            title: parsedMetadata?.name || nft.title,
+            imageUrl: parsedMetadata?.image || nft.imageUrl,
             owner: { 
               id: nft.ownerAddress, 
               username: nft.ownerAddress.slice(0, 8) + '...', 

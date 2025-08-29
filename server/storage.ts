@@ -81,7 +81,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(nfts)
-      .where(eq(nfts.ownerAddress, ownerAddress))
+      .where(sql`LOWER(${nfts.ownerAddress}) = LOWER(${ownerAddress})`)
       .orderBy(sql`${nfts.createdAt} DESC`);
   }
 
