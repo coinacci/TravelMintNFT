@@ -196,18 +196,34 @@ export default function Mint() {
   
   // REMOVED: Old NFT confirmation process - now using batch transactions
   
-  // TEMPORARILY DISABLED - testing HMR loop  
-  // useEffect(() => {
-  //   if (contractError) {
-  //     console.error('Contract error:', contractError);
-  //     toast({
-  //       title: "Transaction Failed", 
-  //       description: contractError.message || "Transaction rejected", 
-  //       variant: "destructive",
-  //     });
-  //     setMintingStep('idle');
-  //   }
-  // }, [contractError]);
+  // Handle batch and contract errors
+  useEffect(() => {
+    if (batchError) {
+      console.error('Batch transaction error:', batchError);
+      const errorMsg = batchError.message.includes('413') 
+        ? "Transaction too large - please use smaller image" 
+        : batchError.message.includes('User rejected')
+        ? "Transaction cancelled by user"
+        : "Transaction failed - please try again";
+      
+      toast({
+        title: "Transaction Failed", 
+        description: errorMsg, 
+        variant: "destructive",
+      });
+      setMintingStep('idle');
+    }
+    
+    if (contractError) {
+      console.error('Contract error:', contractError);
+      toast({
+        title: "Transaction Failed", 
+        description: contractError.message || "Transaction rejected", 
+        variant: "destructive",
+      });
+      setMintingStep('idle');
+    }
+  }, [batchError, contractError, toast]);
 
   const mintMutation = useMutation({
     mutationFn: async (nftData: any) => {
@@ -327,15 +343,14 @@ export default function Mint() {
       setMintingStep('approving');
       console.log('🎯 Creating batch transaction: approve + mint');
       
-      // Create metadata URI
+      // Create optimized metadata URI (smaller payload for mobile)
       const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
         name: title,
-        description: description || "Travel NFT minted on TravelMint",
-        image: imagePreview,
+        description: description || "Travel NFT",
+        image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=400&fit=crop",
         attributes: [
           { trait_type: "Category", value: category },
-          { trait_type: "Location", value: location.city || "Unknown City" },
-          { trait_type: "Minted Date", value: new Date().toISOString() }
+          { trait_type: "Location", value: location.city || "Unknown" }
         ]
       }))}`;
       
@@ -380,9 +395,20 @@ export default function Mint() {
     } catch (error) {
       console.error('❌ Batch transaction failed:', error);
       setMintingStep('idle');
+      
+      // Mobile-specific error handling
+      const isMobileError = error instanceof Error && 
+        (error.message.includes('User rejected') || 
+         error.message.includes('413') ||
+         error.message.includes('chain-proxy'));
+         
+      const errorMsg = isMobileError 
+        ? "Mobile wallet issue - please try connecting with Coinbase Wallet or check your connection"
+        : error instanceof Error ? error.message : "Minting failed";
+      
       toast({
         title: "Transaction Failed",
-        description: error instanceof Error ? error.message : "Minting failed",
+        description: errorMsg,
         variant: "destructive",
       });
     }
