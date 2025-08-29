@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas } from "wagmi";
-import { parseEther, formatGwei } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas, useSendCalls } from "wagmi";
+import { parseEther, formatGwei, encodeFunctionData } from "viem";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +101,9 @@ export default function Mint() {
     hash,
   });
   
+  // FARCASTER BATCH TRANSACTIONS - approve + mint in one confirmation!
+  const { sendCalls, error: batchError, isPending: isBatchPending } = useSendCalls();
+  
   // REMOVED: Blockchain debug - causing re-render loop
   
   // Get current gas fee data from Base network
@@ -121,89 +124,11 @@ export default function Mint() {
 
   // REMOVED: State debug - causing infinite loop
 
-  // Handle USDC approval confirmation
-  useEffect(() => {
-    if (isConfirmed && hash && mintingStep === 'approving' && !approvalHash) {
-      console.log('✅ USDC approval confirmed:', hash);
-      setApprovalHash(hash);
-      
-      // toast removed for cleaner UX
-      
-      // Move to minting step without delay
-      setMintingStep('minting');
-    }
-  }, [isConfirmed, hash, mintingStep, approvalHash]);
+  // REMOVED: Old two-step approval process - now using batch transactions
   
-  // Handle NFT minting step - SIMPLIFIED
-  useEffect(() => {
-    if (mintingStep === 'minting' && approvalHash && !isContractPending) {
-      console.log('🎯 Starting NFT mint transaction...');
-      
-      // Create metadata URI
-      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
-        name: title,
-        description: description || "Travel NFT minted on TravelMint",
-        image: imagePreview,
-        attributes: [
-          { trait_type: "Category", value: category },
-          { trait_type: "Location", value: location!.city || "Unknown City" },
-          { trait_type: "Minted Date", value: new Date().toISOString() }
-        ]
-      }))}`;
-      
-      // Add a small delay to ensure wallet is ready for next transaction
-      setTimeout(() => {
-        writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: NFT_ABI,
-          functionName: 'mintTravelNFT',
-          args: [
-            address!, // to
-            location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
-            location!.latitude.toString(), // latitude
-            location!.longitude.toString(), // longitude
-            category, // category
-            metadataUri // tokenURI
-          ],
-          gas: BigInt(500000),
-          chainId: 8453, // Force Base mainnet
-        });
-      }, 1000);
-    }
-  }, [mintingStep, approvalHash, isContractPending]); // Remove writeContract to prevent loop
+  // REMOVED: Old two-step minting process - now using batch transactions
   
-  // Handle NFT minting confirmation
-  useEffect(() => {
-    if (isConfirmed && hash && mintingStep === 'minting' && hash !== approvalHash) {
-      console.log('✅ NFT minting confirmed:', hash);
-      
-      const actualImageUrl = imagePreview || `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
-      
-      const nftData = {
-        walletAddress: address!,
-        title,
-        description,
-        imageUrl: actualImageUrl,
-        location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
-        latitude: location!.latitude.toString(),
-        longitude: location!.longitude.toString(),
-        category,
-        price: enableListing ? salePrice : "0",
-        isForSale: enableListing ? 1 : 0,
-        mintPrice: "1.000000",
-        royaltyPercentage: "5.00",
-        transactionHash: hash,
-        metadata: {
-          featured: featuredPlacement,
-          originalFilename: imageFile!.name,
-        },
-      };
-      
-      mintMutation.mutate(nftData);
-      setMintingStep('idle');
-      setApprovalHash(null);
-    }
-  }, [isConfirmed, hash, mintingStep, approvalHash]);
+  // REMOVED: Old NFT confirmation process - now using batch transactions
   
   // Handle contract errors - SIMPLIFIED
   useEffect(() => {
@@ -304,110 +229,81 @@ export default function Mint() {
     }
   };
 
+  // 🚀 FARCASTER NATIVE: Batch approve + mint in ONE confirmation!
   const handleMint = async () => {
-    console.log('🔥 MINT BUTTON CLICKED!');
-    console.log('🔍 Wallet state:', { 
-      isConnected, 
-      address, 
-      connectorName: connector?.name,
-      connectorType: connector?.type 
-    });
+    console.log('🔥 BATCH MINT STARTING!');
     
-    if (!isConnected || !address) {
-      console.log('❌ Wallet not connected:', { isConnected, address });
+    if (!isConnected || !address || !location) {
+      console.log('❌ Missing requirements');
+      return;
+    }
+    
+    if (!title || !category || !imageFile) {
       toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to mint NFTs",
+        title: "Missing Information", 
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
-
-    if (!connector) {
-      console.log('❌ No connector found');
-      toast({
-        title: "Wallet Connection Error",
-        description: "Wallet connector not found. Please reconnect.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!title || !category || !imageFile || !location) {
-      console.log('❌ Missing required fields:', { title, category, hasImage: !!imageFile, hasLocation: !!location });
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields and ensure location is detected",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    console.log('✅ All validations passed');
-    console.log('📍 Location data:', location);
-    console.log('📄 Form data:', { title, category, description });
-
+    
     try {
-      console.log('🚀 STARTING BLOCKCHAIN TRANSACTION PROCESS...');
+      setMintingStep('approving');
+      console.log('🎯 Creating batch transaction: approve + mint');
       
-      // Use USDC for minting (1 USDC = $1 fixed price)
-      const gasPrice = feeData?.gasPrice || undefined;
-      const maxFeePerGas = feeData?.maxFeePerGas || undefined;
-      const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas || undefined;
+      // Create metadata URI
+      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
+        name: title,
+        description: description || "Travel NFT minted on TravelMint",
+        image: imagePreview,
+        attributes: [
+          { trait_type: "Category", value: category },
+          { trait_type: "Location", value: location.city || "Unknown City" },
+          { trait_type: "Minted Date", value: new Date().toISOString() }
+        ]
+      }))}`;
       
-      console.log('⛽ Gas data:', { 
-        gasPrice: gasPrice ? String(gasPrice) : 'null', 
-        maxFeePerGas: maxFeePerGas ? String(maxFeePerGas) : 'null' 
+      // 🔥 BATCH: Both approve + mint in single confirmation!
+      await sendCalls({
+        calls: [
+          // 1. Approve USDC spending
+          {
+            to: USDC_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: USDC_ABI,
+              functionName: 'approve',
+              args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
+            })
+          },
+          // 2. Mint NFT immediately after approval
+          {
+            to: NFT_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: NFT_ABI,
+              functionName: 'mintTravelNFT',
+              args: [
+                address,
+                location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
+                location.latitude.toString(),
+                location.longitude.toString(), 
+                category,
+                metadataUri
+              ]
+            })
+          }
+        ]
       });
       
-      setMintingStep('approving');
-      console.log('📝 Set minting step to: approving');
+      console.log('✅ Batch transaction sent!');
       
-      console.log('💳 CALLING writeContract FOR USDC APPROVAL...');
-      console.log('- USDC Contract:', USDC_CONTRACT_ADDRESS);
-      console.log('- NFT Contract (spender):', NFT_CONTRACT_ADDRESS);
-      console.log('- Amount:', USDC_MINT_AMOUNT.toString(), 'wei');
-      console.log('- Wallet:', address);
-      console.log('- Chain ID:', 8453);
-      console.log('- Contract Pending:', isContractPending);
-      
-      // First step: Approve USDC spending to NFT contract  
-      console.log('🔥 ABOUT TO CALL writeContract - SHOULD TRIGGER WALLET POPUP NOW!');
-      
-      // Try-catch around writeContract to prevent app crash
-      try {
-        const result = writeContract({
-          address: USDC_CONTRACT_ADDRESS,
-          abi: USDC_ABI,
-          functionName: 'approve',
-          args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT], // Approve 1 USDC
-          gas: BigInt(100000), // Lower gas for approve
-          gasPrice: gasPrice,
-          maxFeePerGas: maxFeePerGas,
-          maxPriorityFeePerGas: maxPriorityFeePerGas,
-          chainId: 8453, // Force Base mainnet
-        });
-        
-        console.log('✅ writeContract called successfully, result:', result);
-        console.log('🎯 Now waiting for wallet confirmation...');
-        
-        // If no error thrown, transaction should be pending
-        if (result === undefined) {
-          console.log('⚠️ writeContract returned undefined - checking pending state...');
-        }
-        
-      } catch (writeError) {
-        console.error('🚨 writeContract FAILED:', writeError);
-        throw writeError; // Re-throw to outer catch
-      }
-      
-    } catch (error: any) {
+    } catch (error) {
+      console.error('❌ Batch transaction failed:', error);
+      setMintingStep('idle');
       toast({
         title: "Transaction Failed",
-        description: error.message || "Failed to initiate transaction",
+        description: error instanceof Error ? error.message : "Minting failed",
         variant: "destructive",
       });
-      setMintingStep('idle');
     }
   };
 
@@ -604,13 +500,11 @@ export default function Mint() {
                       console.log('🟡 MINT BUTTON CLICKED!');
                       handleMint();
                     }}
-                    disabled={!isConnected || !title || !category || !imageFile || !location}
+                    disabled={isBatchPending || !isConnected || !title || !category || !imageFile || !location}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {isContractPending ? "Confirm in wallet..." :
-                     isConfirming && mintingStep === 'approving' ? "Approving USDC..." :
-                     isConfirming && mintingStep === 'minting' ? "Minting NFT..." :
+                    {isBatchPending ? "Confirm batch transaction..." :
                      mintMutation.isPending ? "Saving to marketplace..." :
                      !isConnected ? "Connect wallet to mint" :
                      locationLoading ? "Getting location..." :

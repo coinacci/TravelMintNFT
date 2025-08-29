@@ -1,13 +1,13 @@
 import { createConfig, http } from 'wagmi'
 import { base, mainnet, baseSepolia } from 'wagmi/chains'
 import { coinbaseWallet } from 'wagmi/connectors'
-import frameConnector from '@farcaster/frame-wagmi-connector'
+import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 
 // Configure wagmi
 export const config = createConfig({
   chains: [base, mainnet, baseSepolia],
   connectors: [
-    frameConnector(),
+    miniAppConnector(), // Native Farcaster Mini App connector
     coinbaseWallet({
       appName: 'TravelMint',
       preference: 'all', // Support both smart wallet and EOA
