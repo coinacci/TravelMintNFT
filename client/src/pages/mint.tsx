@@ -315,7 +315,9 @@ export default function Mint() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save NFT to marketplace');
+        const errorData = await response.text();
+        console.error('❌ Backend error:', response.status, errorData);
+        throw new Error(`Backend error: ${response.status} - ${errorData}`);
       }
       
       console.log('✅ NFT saved to marketplace successfully!');
