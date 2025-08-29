@@ -73,6 +73,7 @@ export default function Mint() {
   const [featuredPlacement, setFeaturedPlacement] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [mintingStep, setMintingStep] = useState<'idle' | 'approving' | 'minting'>('idle');
+  const [approvalHash, setApprovalHash] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -101,37 +102,41 @@ export default function Mint() {
     getCurrentLocation();
   }, [getCurrentLocation]);
 
-  // Handle two-step minting process
+  // Handle USDC approval confirmation
   useEffect(() => {
-    if (isConfirmed && hash && mintingStep === 'approving') {
-      // After USDC approval, reset and proceed with NFT minting
-      console.log('USDC approval confirmed, starting NFT mint...');
+    if (isConfirmed && hash && mintingStep === 'approving' && !approvalHash) {
+      console.log('✅ USDC approval confirmed:', hash);
+      setApprovalHash(hash);
       
       toast({
         title: "USDC Approved",
-        description: "Now minting your NFT...",
+        description: "Now please confirm NFT minting transaction",
       });
       
-      // Reset write contract state before second transaction
-      resetWriteContract();
+      // Move to minting step without delay
+      setMintingStep('minting');
+    }
+  }, [isConfirmed, hash, mintingStep, approvalHash]);
+  
+  // Handle NFT minting step
+  useEffect(() => {
+    if (mintingStep === 'minting' && approvalHash && !isContractPending) {
+      console.log('🎯 Starting NFT mint transaction...');
       
-      // Small delay to ensure state is reset
-      setTimeout(() => {
-        setMintingStep('minting');
-        
-        // Create metadata URI
-        const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
-          name: title,
-          description: description || "Travel NFT minted on TravelMint",
-          image: imagePreview,
-          attributes: [
-            { trait_type: "Category", value: category },
-            { trait_type: "Location", value: location!.city || "Unknown City" },
-            { trait_type: "Minted Date", value: new Date().toISOString() }
-          ]
-        }))}`;
-        
-        // Second step: Mint NFT after USDC approval
+      // Create metadata URI
+      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
+        name: title,
+        description: description || "Travel NFT minted on TravelMint",
+        image: imagePreview,
+        attributes: [
+          { trait_type: "Category", value: category },
+          { trait_type: "Location", value: location!.city || "Unknown City" },
+          { trait_type: "Minted Date", value: new Date().toISOString() }
+        ]
+      }))}`;
+      
+      // Mint NFT with proper error handling
+      try {
         writeContract({
           address: NFT_CONTRACT_ADDRESS,
           abi: NFT_ABI,
@@ -144,13 +149,20 @@ export default function Mint() {
             category, // category
             metadataUri // tokenURI
           ],
-          gas: BigInt(500000), // Set reasonable gas limit
+          gas: BigInt(500000),
         });
-      }, 1000); // 1 second delay
-      
-    } else if (isConfirmed && hash && mintingStep === 'minting') {
-      // After NFT minting confirmation, save NFT to database
-      console.log('NFT minting confirmed, saving to database...');
+      } catch (error) {
+        console.error('Failed to start NFT mint:', error);
+        setMintingStep('idle');
+        setApprovalHash(null);
+      }
+    }
+  }, [mintingStep, approvalHash, isContractPending, writeContract]);
+  
+  // Handle NFT minting confirmation
+  useEffect(() => {
+    if (isConfirmed && hash && mintingStep === 'minting' && hash !== approvalHash) {
+      console.log('✅ NFT minting confirmed:', hash);
       
       const actualImageUrl = imagePreview || `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
       
@@ -165,7 +177,7 @@ export default function Mint() {
         category,
         price: enableListing ? salePrice : "0",
         isForSale: enableListing ? 1 : 0,
-        mintPrice: "1.000000", // 1 USDC in display format
+        mintPrice: "1.000000",
         royaltyPercentage: "5.00",
         transactionHash: hash,
         metadata: {
@@ -176,8 +188,9 @@ export default function Mint() {
       
       mintMutation.mutate(nftData);
       setMintingStep('idle');
+      setApprovalHash(null);
     }
-  }, [isConfirmed, hash, mintingStep, resetWriteContract]);
+  }, [isConfirmed, hash, mintingStep, approvalHash]);
   
   // Handle contract errors
   useEffect(() => {
