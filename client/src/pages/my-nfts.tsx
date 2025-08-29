@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { WalletConnect } from "@/components/wallet-connect";
 
 interface NFT {
   id: string;
@@ -33,15 +35,29 @@ export default function MyNFTs() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const { data: currentUser } = useQuery<User>({
-    queryKey: ["/api/users"],
-  });
+  const { address, isConnected } = useAccount();
 
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
-    queryKey: [`/api/users/${currentUser?.id}/nfts`],
-    enabled: !!currentUser?.id,
+    queryKey: [`/api/wallet/${address}/nfts`],
+    enabled: !!address && isConnected,
   });
+
+  // Show wallet connection if not connected
+  if (!isConnected) {
+    return (
+      <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">My NFTs</h2>
+            <p className="text-muted-foreground mb-6">Connect your wallet to see your NFTs</p>
+            <div className="max-w-md mx-auto">
+              <WalletConnect />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
@@ -52,7 +68,7 @@ export default function MyNFTs() {
         title: "NFT Updated",
         description: "Your NFT listing has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUser?.id}/nfts`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
     },
     onError: (error: any) => {
       toast({

@@ -173,6 +173,7 @@ export default function Mint() {
         description: "Your travel photo has been minted as an NFT.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
       // Reset form
       setTitle("");
       setDescription("");
