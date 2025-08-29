@@ -101,16 +101,7 @@ export default function Mint() {
     hash,
   });
   
-  // Debug blockchain state changes
-  useEffect(() => {
-    console.log('🔄 Blockchain state change:', {
-      hash,
-      contractError: contractError?.message,
-      isContractPending,
-      isConfirming,
-      isConfirmed
-    });
-  }, [hash, contractError, isContractPending, isConfirming, isConfirmed]);
+  // REMOVED: Blockchain debug - causing re-render loop
   
   // Get current gas fee data from Base network
   const { data: feeData, isLoading: isFeeDataLoading } = useFeeData({
@@ -122,30 +113,13 @@ export default function Mint() {
   
   
 
-  // Component mount debug + automatically get location 
+  // Component mount - get location only
   useEffect(() => {
-    console.log('🎬 MINT PAGE LOADED - Component mounted successfully');
-    console.log('🔧 Initial state:', { 
-      hasWagmi: !!writeContract,
-      hasConnector: !!connector,
-      walletConnected: isConnected,
-      address
-    });
+    console.log('🎬 MINT PAGE LOADED');
     getCurrentLocation();
-  }, [getCurrentLocation]);
+  }, []); // Empty deps to prevent loop
 
-  // Debug all state changes
-  useEffect(() => {
-    console.log('📊 State update:', {
-      title: !!title,
-      category: !!category, 
-      hasImage: !!imageFile,
-      hasLocation: !!location,
-      mintingStep,
-      isConnected,
-      address: address?.slice(0, 8) + '...'
-    });
-  }, [title, category, imageFile, location, mintingStep, isConnected, address]);
+  // REMOVED: State debug - causing infinite loop
 
   // Handle USDC approval confirmation
   useEffect(() => {
@@ -160,17 +134,10 @@ export default function Mint() {
     }
   }, [isConfirmed, hash, mintingStep, approvalHash]);
   
-  // Handle NFT minting step with detailed debugging
+  // Handle NFT minting step - SIMPLIFIED
   useEffect(() => {
-    console.log('🔍 Minting step check:', {
-      mintingStep,
-      approvalHash,
-      isContractPending,
-      readyToMint: mintingStep === 'minting' && approvalHash && !isContractPending
-    });
-    
     if (mintingStep === 'minting' && approvalHash && !isContractPending) {
-      console.log('🎯 ALL CONDITIONS MET - Starting NFT mint transaction...');
+      console.log('🎯 Starting NFT mint transaction...');
       
       // Create metadata URI
       const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
@@ -184,42 +151,26 @@ export default function Mint() {
         ]
       }))}`;
       
-      console.log('📝 Contract args:', {
-        to: address,
-        location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
-        latitude: location!.latitude.toString(),
-        longitude: location!.longitude.toString(),
-        category,
-        tokenURI: metadataUri.substring(0, 50) + '...'
-      });
-      
       // Add a small delay to ensure wallet is ready for next transaction
       setTimeout(() => {
-        console.log('🚀 Triggering NFT mint writeContract...');
-        try {
-          writeContract({
-            address: NFT_CONTRACT_ADDRESS,
-            abi: NFT_ABI,
-            functionName: 'mintTravelNFT',
-            args: [
-              address!, // to
-              location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
-              location!.latitude.toString(), // latitude
-              location!.longitude.toString(), // longitude
-              category, // category
-              metadataUri // tokenURI
-            ],
-            gas: BigInt(500000),
-            chainId: 8453, // Force Base mainnet
-          });
-        } catch (error) {
-          console.error('❌ writeContract failed:', error);
-          setMintingStep('idle');
-          setApprovalHash(null);
-        }
-      }, 1000); // 1 second delay for wallet to be ready
+        writeContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: NFT_ABI,
+          functionName: 'mintTravelNFT',
+          args: [
+            address!, // to
+            location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
+            location!.latitude.toString(), // latitude
+            location!.longitude.toString(), // longitude
+            category, // category
+            metadataUri // tokenURI
+          ],
+          gas: BigInt(500000),
+          chainId: 8453, // Force Base mainnet
+        });
+      }, 1000);
     }
-  }, [mintingStep, approvalHash, isContractPending, writeContract]); // Add writeContract back
+  }, [mintingStep, approvalHash, isContractPending]); // Remove writeContract to prevent loop
   
   // Handle NFT minting confirmation
   useEffect(() => {
@@ -254,22 +205,16 @@ export default function Mint() {
     }
   }, [isConfirmed, hash, mintingStep, approvalHash]);
   
-  // Handle contract errors
+  // Handle contract errors - SIMPLIFIED
   useEffect(() => {
     if (contractError) {
-      console.error('🚨 Contract error detected:', contractError);
-      console.error('Error details:', {
-        name: contractError.name,
-        message: contractError.message,
-        cause: contractError.cause
-      });
-      
+      console.error('Contract error:', contractError);
       toast({
-        title: "Transaction Failed",
+        title: "Transaction Failed", 
         description: contractError.message || "Transaction rejected",
         variant: "destructive",
       });
-      setMintingStep('idle'); // Reset state on error
+      setMintingStep('idle');
     }
   }, [contractError]);
 
@@ -642,33 +587,24 @@ export default function Mint() {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
+                  {/* EMERGENCY SIMPLE BUTTON */}
+                  <Button
+                    className="w-full bg-red-600 text-white py-3 font-medium"
+                    onClick={() => {
+                      console.log('🚨 EMERGENCY BUTTON CLICKED!');
+                      alert('BUTTON WORKS!');
+                    }}
+                  >
+                    🚨 TEST BUTTON (Click Me!)
+                  </Button>
+
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={() => {
-                      console.log('🟡 BUTTON CLICKED - Testing basic functionality...');
-                      console.log('Button state check:', {
-                        isContractPending,
-                        isConfirming,
-                        mintMutationPending: mintMutation.isPending,
-                        isConnected,
-                        hasTitle: !!title,
-                        hasCategory: !!category,
-                        hasImage: !!imageFile,
-                        hasLocation: !!location,
-                        locationLoading,
-                        mintingStep,
-                        isButtonDisabled: isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle'
-                      });
-                      
-                      if (isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle') {
-                        console.log('🚫 Button is disabled - cannot proceed');
-                        return;
-                      }
-                      
-                      console.log('🎯 Button enabled - calling handleMint...');
+                      console.log('🟡 MINT BUTTON CLICKED!');
                       handleMint();
                     }}
-                    disabled={isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle'}
+                    disabled={!isConnected || !title || !category || !imageFile || !location}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
