@@ -16,12 +16,37 @@ import { MapPin, Upload, Wallet, Eye } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 
-// Simple NFT Contract ABI for minting
+// USDC Contract on Base mainnet
+const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
+const USDC_ABI = [
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'approve',
+    type: 'function', 
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  }
+] as const;
+
+// Simple NFT Contract ABI for minting  
 const NFT_ABI = [
   {
     name: 'mint',
     type: 'function',
-    stateMutability: 'payable',
+    stateMutability: 'nonpayable', // Changed from payable since we use USDC
     inputs: [
       { name: 'to', type: 'address' },
       { name: 'quantity', type: 'uint256' }
@@ -43,6 +68,7 @@ export default function Mint() {
   const [salePrice, setSalePrice] = useState("");
   const [featuredPlacement, setFeaturedPlacement] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [mintingStep, setMintingStep] = useState<'idle' | 'approving' | 'minting'>('idle');
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -61,23 +87,43 @@ export default function Mint() {
     chainId: 8453, // Base mainnet chain ID
   });
   
-  // Estimate gas for the mint transaction
-  const { data: gasEstimate } = useEstimateGas({
-    to: NFT_CONTRACT_ADDRESS,
-    data: '0x40c10f19', // mint function selector
-    value: parseEther('0.001'),
-    query: { enabled: isConnected && !!address }
-  });
+  // USDC amount: 1 USDC = 1,000,000 (6 decimals)
+  const USDC_MINT_AMOUNT = BigInt(1000000);
+  
+  
 
   // Automatically get location when component mounts
   useEffect(() => {
     getCurrentLocation();
   }, [getCurrentLocation]);
 
-  // Handle successful blockchain transaction
+  // Handle two-step minting process
   useEffect(() => {
-    if (isConfirmed && hash) {
-      // After blockchain confirmation, save NFT to database
+    if (isConfirmed && hash && mintingStep === 'approving') {
+      // After USDC approval, proceed with NFT minting
+      setMintingStep('minting');
+      
+      toast({
+        title: "USDC Approved",
+        description: "Now minting your NFT...",
+      });
+      
+      // Second step: Mint NFT after USDC approval
+      const gasPrice = feeData?.gasPrice;
+      const maxFeePerGas = feeData?.maxFeePerGas;
+      const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
+      
+      writeContract({
+        address: NFT_CONTRACT_ADDRESS,
+        abi: NFT_ABI,
+        functionName: 'mint',
+        args: [address!, BigInt(1)], // mint 1 NFT to user's address
+        gasPrice: gasPrice,
+        maxFeePerGas: maxFeePerGas,
+        maxPriorityFeePerGas: maxPriorityFeePerGas,
+      });
+    } else if (isConfirmed && hash && mintingStep === 'minting') {
+      // After NFT minting confirmation, save NFT to database
       const mockImageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
       
       const nftData = {
@@ -91,7 +137,7 @@ export default function Mint() {
         category,
         price: enableListing ? salePrice : "0",
         isForSale: enableListing ? 1 : 0,
-        mintPrice: "1.000000",
+        mintPrice: "1.000000", // 1 USDC in display format
         royaltyPercentage: "5.00",
         transactionHash: hash,
         metadata: {
@@ -101,8 +147,9 @@ export default function Mint() {
       };
       
       mintMutation.mutate(nftData);
+      setMintingStep('idle');
     }
-  }, [isConfirmed, hash]);
+  }, [isConfirmed, hash, mintingStep]);
   
   // Handle contract errors
   useEffect(() => {
@@ -229,21 +276,22 @@ export default function Mint() {
         description: "Please confirm the transaction in your wallet",
       });
       
-      // Call smart contract mint function with dynamic gas fees
+      // Use USDC for minting (1 USDC = $1 fixed price)
       const gasPrice = feeData?.gasPrice;
       const maxFeePerGas = feeData?.maxFeePerGas;
       const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
       
+      setMintingStep('approving');
+      
+      // First step: Approve USDC spending to NFT contract
       writeContract({
-        address: NFT_CONTRACT_ADDRESS,
-        abi: NFT_ABI,
-        functionName: 'mint',
-        args: [address, BigInt(1)], // mint 1 NFT to user's address
-        value: parseEther('0.001'), // 0.001 ETH mint price
-        gas: gasEstimate ? gasEstimate + BigInt(10000) : BigInt(100000), // Add buffer to gas estimate
-        gasPrice: gasPrice, // Use current gas price from Base network
-        maxFeePerGas: maxFeePerGas, // EIP-1559 max fee
-        maxPriorityFeePerGas: maxPriorityFeePerGas, // EIP-1559 priority fee
+        address: USDC_CONTRACT_ADDRESS,
+        abi: USDC_ABI,
+        functionName: 'approve',
+        args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT], // Approve 1 USDC
+        gasPrice: gasPrice,
+        maxFeePerGas: maxFeePerGas,
+        maxPriorityFeePerGas: maxPriorityFeePerGas,
       });
       
     } catch (error: any) {
@@ -394,7 +442,7 @@ export default function Mint() {
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Mint Price</span>
                     <span className="text-xl font-bold text-primary" data-testid="mint-price">
-                      0.001 ETH
+                      1 USDC
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
@@ -405,7 +453,7 @@ export default function Mint() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Onchain minting on Base Network with dynamic fees
+                    Fixed $1 price in USDC + Base Network gas fees
                   </p>
                   {hash && (
                     <div className="text-xs text-primary mt-2 break-all">
@@ -414,12 +462,14 @@ export default function Mint() {
                   )}
                   {isConfirming && (
                     <div className="text-xs text-yellow-600 mt-1">
-                      ⏳ Waiting for blockchain confirmation...
+                      ⏳ {mintingStep === 'approving' ? 'Approving USDC...' : 
+                          mintingStep === 'minting' ? 'Minting NFT...' : 
+                          'Processing...'}
                     </div>
                   )}
-                  {isConfirmed && (
+                  {isConfirmed && mintingStep === 'idle' && (
                     <div className="text-xs text-green-600 mt-1">
-                      ✅ Transaction confirmed!
+                      ✅ NFT minted successfully!
                     </div>
                   )}
                 </div>
@@ -429,18 +479,19 @@ export default function Mint() {
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={handleMint}
-                    disabled={isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading}
+                    disabled={isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle'}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
                     {isContractPending ? "Confirm in wallet..." :
-                     isConfirming ? "Minting on blockchain..." :
-                     mintMutation.isPending ? "Saving NFT..." :
+                     isConfirming && mintingStep === 'approving' ? "Approving USDC..." :
+                     isConfirming && mintingStep === 'minting' ? "Minting NFT..." :
+                     mintMutation.isPending ? "Saving to marketplace..." :
                      !isConnected ? "Connect wallet to mint" :
                      locationLoading ? "Getting location..." :
                      !location ? "Location required" :
                      !title || !category || !imageFile ? "Fill all fields" :
-                     "Mint NFT onchain (0.001 ETH)"}
+                     "Mint NFT for 1 USDC"}
                   </Button>
                   
                   <Button
