@@ -95,32 +95,28 @@ export default function Mint() {
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
   
-  // Blockchain minting hooks
-  const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
-  
-  // FARCASTER BATCH TRANSACTIONS - approve + mint in one confirmation!
-  const { sendCalls, error: batchError, isPending: isBatchPending } = useSendCalls();
+  // MINIMAL TEST - commenting out wagmi hooks to test HMR loop
+  // const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
+  // const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  // const { sendCalls, error: batchError, isPending: isBatchPending } = useSendCalls();
   
   // REMOVED: Blockchain debug - causing re-render loop
   
-  // Get current gas fee data from Base network
-  const { data: feeData, isLoading: isFeeDataLoading } = useFeeData({
-    chainId: 8453, // Base mainnet chain ID
-  });
+  // TEMPORARILY DISABLED - testing HMR loop
+  // const { data: feeData, isLoading: isFeeDataLoading } = useFeeData({
+  //   chainId: 8453,
+  // });
   
   // USDC amount: 1 USDC = 1,000,000 (6 decimals)
   const USDC_MINT_AMOUNT = BigInt(1000000);
   
   
 
-  // Component mount - get location only
-  useEffect(() => {
-    console.log('🎬 MINT PAGE LOADED');
-    getCurrentLocation();
-  }, []); // Empty deps to prevent loop
+  // TEMPORARILY DISABLED - testing HMR loop
+  // useEffect(() => {
+  //   console.log('🎬 MINT PAGE LOADED');
+  //   getCurrentLocation();
+  // }, []);
 
   // REMOVED: State debug - causing infinite loop
 
@@ -130,18 +126,18 @@ export default function Mint() {
   
   // REMOVED: Old NFT confirmation process - now using batch transactions
   
-  // Handle contract errors - SIMPLIFIED
-  useEffect(() => {
-    if (contractError) {
-      console.error('Contract error:', contractError);
-      toast({
-        title: "Transaction Failed", 
-        description: contractError.message || "Transaction rejected",
-        variant: "destructive",
-      });
-      setMintingStep('idle');
-    }
-  }, [contractError]);
+  // TEMPORARILY DISABLED - testing HMR loop  
+  // useEffect(() => {
+  //   if (contractError) {
+  //     console.error('Contract error:', contractError);
+  //     toast({
+  //       title: "Transaction Failed", 
+  //       description: contractError.message || "Transaction rejected", 
+  //       variant: "destructive",
+  //     });
+  //     setMintingStep('idle');
+  //   }
+  // }, [contractError]);
 
   const mintMutation = useMutation({
     mutationFn: async (nftData: any) => {
@@ -239,8 +235,8 @@ export default function Mint() {
       title,
       category,
       hasImage: !!imageFile,
-      sendCalls: !!sendCalls,
-      isBatchPending
+      sendCalls: false,
+      isBatchPending: false
     });
     
     if (!isConnected || !address || !location) {
@@ -274,35 +270,36 @@ export default function Mint() {
       }))}`;
       
       // 🔥 BATCH: Both approve + mint in single confirmation!
-      await sendCalls({
-        calls: [
-          // 1. Approve USDC spending
-          {
-            to: USDC_CONTRACT_ADDRESS,
-            data: encodeFunctionData({
-              abi: USDC_ABI,
-              functionName: 'approve',
-              args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
-            })
-          },
-          // 2. Mint NFT immediately after approval
-          {
-            to: NFT_CONTRACT_ADDRESS,
-            data: encodeFunctionData({
-              abi: NFT_ABI,
-              functionName: 'mintTravelNFT',
-              args: [
-                address,
-                location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
-                location.latitude.toString(),
-                location.longitude.toString(), 
-                category,
-                metadataUri
-              ]
-            })
-          }
-        ]
-      });
+      console.log('⚠️ Batch transactions disabled - testing mode');
+      
+      // TODO: Re-enable batch transactions once testing is done
+      // await sendCalls({
+      //   calls: [
+      //     {
+      //       to: USDC_CONTRACT_ADDRESS,
+      //       data: encodeFunctionData({
+      //         abi: USDC_ABI,
+      //         functionName: 'approve',
+      //         args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
+      //       })
+      //     },
+      //     {
+      //       to: NFT_CONTRACT_ADDRESS,
+      //       data: encodeFunctionData({
+      //         abi: NFT_ABI,
+      //         functionName: 'mintTravelNFT',
+      //         args: [
+      //           address,
+      //           location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
+      //           location.latitude.toString(),
+      //           location.longitude.toString(), 
+      //           category,
+      //           metadataUri
+      //         ]
+      //       })
+      //     }
+      //   ]
+      // });
       
       console.log('✅ Batch transaction sent!');
       
@@ -461,10 +458,7 @@ export default function Mint() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Current Gas Price</span>
-                    <span className="text-muted-foreground">
-                      {isFeeDataLoading ? 'Loading...' : 
-                       feeData?.gasPrice ? `${formatGwei(feeData.gasPrice)} gwei` : 'N/A'}
-                    </span>
+                    <span className="text-muted-foreground">Base Network</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Fixed $1 price in USDC + Base Network gas fees
@@ -472,19 +466,15 @@ export default function Mint() {
                   <div className="text-xs text-blue-600 mt-1">
                     🛡️ Contract: 0x8c12...558f (Official TravelMint)
                   </div>
-                  {hash && (
-                    <div className="text-xs text-primary mt-2 break-all">
-                      Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
-                    </div>
-                  )}
-                  {isConfirming && (
+                  {/* Transaction hash display disabled during testing */}
+                  {false && (
                     <div className="text-xs text-yellow-600 mt-1">
                       ⏳ {mintingStep === 'approving' ? 'Approving USDC...' : 
                           mintingStep === 'minting' ? 'Minting NFT...' : 
                           'Processing...'}
                     </div>
                   )}
-                  {isConfirmed && mintingStep === 'idle' && (
+                  {false && (
                     <div className="text-xs text-green-600 mt-1">
                       ✅ NFT minted successfully!
                     </div>
@@ -498,17 +488,17 @@ export default function Mint() {
                     onClick={() => {
                       console.log('🟡 MINT BUTTON CLICKED!');
                       console.log('🔍 Button state check:', {
-                        isBatchPending,
+                        isBatchPending: false,
                         isConnected,
                         hasTitle: !!title,
                         hasCategory: !!category,
                         hasImage: !!imageFile,
                         hasLocation: !!location,
                         locationLoading,
-                        buttonDisabled: isBatchPending || !isConnected || !title || !category || !imageFile || !location
+                        buttonDisabled: !isConnected || !title || !category || !imageFile || !location
                       });
                       
-                      if (isBatchPending || !isConnected || !title || !category || !imageFile || !location) {
+                      if (!isConnected || !title || !category || !imageFile || !location) {
                         console.log('🚫 Button is disabled - cannot proceed');
                         return;
                       }
@@ -516,11 +506,11 @@ export default function Mint() {
                       console.log('✅ Button conditions OK - calling handleMint...');
                       handleMint();
                     }}
-                    disabled={isBatchPending || !isConnected || !title || !category || !imageFile || !location}
+                    disabled={!isConnected || !title || !category || !imageFile || !location}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {isBatchPending ? "Confirm batch transaction..." :
+                    {"MINT DISABLED - TESTING HMR" ||
                      mintMutation.isPending ? "Saving to marketplace..." :
                      !isConnected ? "Connect wallet to mint" :
                      locationLoading ? "Getting location..." :
