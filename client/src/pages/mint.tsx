@@ -320,7 +320,8 @@ export default function Mint() {
         throw new Error(`Backend error: ${response.status} - ${errorData}`);
       }
       
-      console.log('✅ NFT saved to marketplace successfully!');
+      const responseData = await response.json();
+      console.log('✅ NFT saved successfully! Response:', responseData);
       
       // Success handling
       setMintingStep('idle');
