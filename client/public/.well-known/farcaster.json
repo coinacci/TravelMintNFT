@@ -1,16 +1,15 @@
 {
-  "frame": {
-    "name": "Travel NFT",
-    "homeUrl": "https://travelnft.replit.app",
-    "iconUrl": "https://travelnft.replit.app/icon.png",
+  "miniapp": {
     "version": "1",
-    "imageUrl": "https://travelnft.replit.app/image.png",
-    "subtitle": "Travel NFT",
-    "webhookUrl": "https://travelnft.replit.app/api/webhook",
-    "description": "Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers. Each photo tells a story, each location holds memories.",
-    "splashImageUrl": "https://travelnft.replit.app/splash.png",
-    "primaryCategory": "social",
-    "splashBackgroundColor": "#0000ff"
+    "name": "TravelMint",
+    "iconUrl": "/icon.png",
+    "homeUrl": "/",
+    "description": "Travel Photo NFT Marketplace - Mint, buy, and sell location-based travel memories on Base blockchain with GPS coordinates",
+    "imageUrl": "/image.png",
+    "buttonTitle": "Open TravelMint",
+    "splashImageUrl": "/splash.png",
+    "splashBackgroundColor": "#0f172a",
+    "webhookUrl": "/api/webhook"
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
