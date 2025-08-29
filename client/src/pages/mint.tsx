@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseEther } from "viem";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,23 @@ import { useLocation } from "@/hooks/use-location";
 import { MapPin, Upload, Wallet, Eye } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
+
+// Simple NFT Contract ABI for minting
+const NFT_ABI = [
+  {
+    name: 'mint',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'quantity', type: 'uint256' }
+    ],
+    outputs: []
+  }
+] as const;
+
+// Example NFT contract address on Base (you would replace with your actual contract)
+const NFT_CONTRACT_ADDRESS = '0x1234567890123456789012345678901234567890' as const;
 
 export default function Mint() {
   const [title, setTitle] = useState("");
@@ -31,11 +49,58 @@ export default function Mint() {
   const queryClient = useQueryClient();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected } = useAccount();
+  
+  // Blockchain minting hooks
+  const { data: hash, error: contractError, isPending: isContractPending, writeContract } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   // Automatically get location when component mounts
   useEffect(() => {
     getCurrentLocation();
   }, [getCurrentLocation]);
+
+  // Handle successful blockchain transaction
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      // After blockchain confirmation, save NFT to database
+      const mockImageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
+      
+      const nftData = {
+        walletAddress: address!,
+        title,
+        description,
+        imageUrl: mockImageUrl,
+        location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
+        latitude: location!.latitude.toString(),
+        longitude: location!.longitude.toString(),
+        category,
+        price: enableListing ? salePrice : "0",
+        isForSale: enableListing ? 1 : 0,
+        mintPrice: "1.000000",
+        royaltyPercentage: "5.00",
+        transactionHash: hash,
+        metadata: {
+          featured: featuredPlacement,
+          originalFilename: imageFile!.name,
+        },
+      };
+      
+      mintMutation.mutate(nftData);
+    }
+  }, [isConfirmed, hash]);
+  
+  // Handle contract errors
+  useEffect(() => {
+    if (contractError) {
+      toast({
+        title: "Transaction Failed",
+        description: contractError.message,
+        variant: "destructive",
+      });
+    }
+  }, [contractError]);
 
   const mintMutation = useMutation({
     mutationFn: async (nftData: any) => {
@@ -125,7 +190,7 @@ export default function Mint() {
     }
   };
 
-  const handleMint = () => {
+  const handleMint = async () => {
     if (!isConnected || !address) {
       toast({
         title: "Wallet Not Connected",
@@ -144,30 +209,29 @@ export default function Mint() {
       return;
     }
 
-    // In a real app, you would upload the image to IPFS or a storage service
-    // For demo purposes, we'll use a placeholder URL
-    const mockImageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
-
-    const nftData = {
-      walletAddress: address,
-      title,
-      description,
-      imageUrl: mockImageUrl,
-      location: location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
-      latitude: location.latitude.toString(),
-      longitude: location.longitude.toString(),
-      category,
-      price: enableListing ? salePrice : "0",
-      isForSale: enableListing ? 1 : 0,
-      mintPrice: "1.000000",
-      royaltyPercentage: "5.00",
-      metadata: {
-        featured: featuredPlacement,
-        originalFilename: imageFile.name,
-      },
-    };
-
-    mintMutation.mutate(nftData);
+    try {
+      // Start blockchain transaction
+      toast({
+        title: "Preparing Transaction",
+        description: "Please confirm the transaction in your wallet",
+      });
+      
+      // Call smart contract mint function
+      writeContract({
+        address: NFT_CONTRACT_ADDRESS,
+        abi: NFT_ABI,
+        functionName: 'mint',
+        args: [address, BigInt(1)], // mint 1 NFT to user's address
+        value: parseEther('0.001'), // 0.001 ETH mint price
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Transaction Failed",
+        description: error.message || "Failed to initiate transaction",
+        variant: "destructive",
+      });
+    }
   };
 
   const categories = ["Landscape", "Architecture", "Street Photography", "Cultural", "Wildlife", "Adventure"];
@@ -309,12 +373,27 @@ export default function Mint() {
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Mint Price</span>
                     <span className="text-xl font-bold text-primary" data-testid="mint-price">
-                      {1 + (featuredPlacement ? 0.5 : 0)} USDC
+                      0.001 ETH
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Fixed minting price for all travel NFTs
+                    Onchain minting on Base Network
                   </p>
+                  {hash && (
+                    <div className="text-xs text-primary mt-2 break-all">
+                      Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
+                    </div>
+                  )}
+                  {isConfirming && (
+                    <div className="text-xs text-yellow-600 mt-1">
+                      ⏳ Waiting for blockchain confirmation...
+                    </div>
+                  )}
+                  {isConfirmed && (
+                    <div className="text-xs text-green-600 mt-1">
+                      ✅ Transaction confirmed!
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
@@ -322,16 +401,18 @@ export default function Mint() {
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={handleMint}
-                    disabled={mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading}
+                    disabled={isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading}
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {mintMutation.isPending ? "Minting..." :
+                    {isContractPending ? "Confirm in wallet..." :
+                     isConfirming ? "Minting on blockchain..." :
+                     mintMutation.isPending ? "Saving NFT..." :
                      !isConnected ? "Connect wallet to mint" :
                      locationLoading ? "Getting location..." :
                      !location ? "Location required" :
                      !title || !category || !imageFile ? "Fill all fields" :
-                     `Mint NFT for ${1 + (featuredPlacement ? 0.5 : 0)} USDC`}
+                     "Mint NFT onchain (0.001 ETH)"}
                   </Button>
                   
                   <Button
@@ -359,7 +440,7 @@ export default function Mint() {
                   <Checkbox
                     id="enable-listing"
                     checked={enableListing}
-                    onCheckedChange={setEnableListing}
+                    onCheckedChange={(checked) => setEnableListing(!!checked)}
                     data-testid="enable-listing-checkbox"
                   />
                   <Label htmlFor="enable-listing" className="text-sm">Enable immediate listing for sale</Label>
@@ -382,7 +463,7 @@ export default function Mint() {
                   <Checkbox
                     id="featured-placement"
                     checked={featuredPlacement}
-                    onCheckedChange={setFeaturedPlacement}
+                    onCheckedChange={(checked) => setFeaturedPlacement(!!checked)}
                     data-testid="featured-placement-checkbox"
                   />
                   <Label htmlFor="featured-placement" className="text-sm">Add to featured locations</Label>
