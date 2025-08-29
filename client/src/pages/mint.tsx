@@ -56,6 +56,20 @@ const NFT_ABI = [
       { name: 'tokenURI', type: 'string' }
     ],
     outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
+    name: 'name',
+    type: 'function', 
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'string' }]
+  },
+  {
+    name: 'MINT_PRICE', 
+    type: 'function',
+    stateMutability: 'view', 
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }]
   }
 ] as const;
 
@@ -135,6 +149,15 @@ export default function Mint() {
         ]
       }))}`;
       
+      console.log('📝 Contract args:', {
+        to: address,
+        location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
+        latitude: location!.latitude.toString(),
+        longitude: location!.longitude.toString(),
+        category,
+        tokenURI: 'metadata...'
+      });
+      
       // Mint NFT with proper error handling
       try {
         writeContract({
@@ -150,14 +173,15 @@ export default function Mint() {
             metadataUri // tokenURI
           ],
           gas: BigInt(500000),
+          chainId: 8453, // Force Base mainnet
         });
       } catch (error) {
-        console.error('Failed to start NFT mint:', error);
+        console.error('❌ Failed to start NFT mint:', error);
         setMintingStep('idle');
         setApprovalHash(null);
       }
     }
-  }, [mintingStep, approvalHash, isContractPending, writeContract]);
+  }, [mintingStep, approvalHash, isContractPending]); // Remove writeContract from deps
   
   // Handle NFT minting confirmation
   useEffect(() => {
@@ -329,15 +353,23 @@ export default function Mint() {
       
       setMintingStep('approving');
       
+      console.log('💳 Starting USDC approval transaction...');
+      console.log('- USDC Contract:', USDC_CONTRACT_ADDRESS);
+      console.log('- NFT Contract (spender):', NFT_CONTRACT_ADDRESS);
+      console.log('- Amount:', USDC_MINT_AMOUNT.toString(), 'wei');
+      console.log('- Wallet:', address);
+      
       // First step: Approve USDC spending to NFT contract
       writeContract({
         address: USDC_CONTRACT_ADDRESS,
         abi: USDC_ABI,
         functionName: 'approve',
         args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT], // Approve 1 USDC
+        gas: BigInt(100000), // Lower gas for approve
         gasPrice: gasPrice,
         maxFeePerGas: maxFeePerGas,
         maxPriorityFeePerGas: maxPriorityFeePerGas,
+        chainId: 8453, // Force Base mainnet
       });
       
     } catch (error: any) {
