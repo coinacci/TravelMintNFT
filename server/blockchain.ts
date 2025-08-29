@@ -106,12 +106,16 @@ export class BlockchainService {
   async tryKnownTokenIds(): Promise<BlockchainNFT[]> {
     console.log("🔄 Trying known token IDs as fallback...");
     const nfts: BlockchainNFT[] = [];
+    let consecutiveFailures = 0;
     
-    // Try token IDs 1-10 (common range for new contracts)
-    for (let tokenId = 1; tokenId <= 10; tokenId++) {
+    // Try token IDs 1-50 to catch newly minted NFTs
+    for (let tokenId = 1; tokenId <= 50; tokenId++) {
       try {
         const owner = await nftContract.ownerOf(tokenId);
         const tokenURI = await nftContract.tokenURI(tokenId);
+        
+        // Reset consecutive failures when we find a valid token
+        consecutiveFailures = 0;
         
         // Fetch metadata if URI is available
         let metadata = null;
@@ -121,6 +125,7 @@ export class BlockchainService {
               const response = await fetch(tokenURI);
               if (response.ok) {
                 metadata = await response.json();
+                console.log(`✅ Parsed IPFS metadata for token ${tokenId}:`, metadata);
               }
             } else if (tokenURI.startsWith('data:application/json;base64,')) {
               // Handle base64 encoded JSON metadata
@@ -144,9 +149,24 @@ export class BlockchainService {
         console.log(`✅ Found NFT #${tokenId} owned by ${owner}`);
         
       } catch (error: any) {
-        // Token doesn't exist, continue to next
-        if (error.reason === "ERC721: invalid token ID" || error.code === "CALL_EXCEPTION") {
-          break; // Stop trying higher token IDs
+        // Debug: Log the actual error to see what's happening
+        console.log(`❌ Error checking token ${tokenId}:`, error.reason || error.message || error);
+        
+        // Only count as failure if it's actually a "token doesn't exist" error
+        if (error.reason === "ERC721: invalid token ID" || 
+            error.code === "CALL_EXCEPTION" ||
+            error.message?.includes("invalid token ID")) {
+          consecutiveFailures++;
+          console.log(`⚠️ Token ${tokenId} doesn't exist (${consecutiveFailures} consecutive failures)`);
+        } else {
+          // Different error - don't count as consecutive failure, just log and continue
+          console.log(`🔄 Non-fatal error for token ${tokenId}, continuing...`);
+        }
+        
+        // If we have 5 consecutive token-not-found failures, likely no more tokens exist
+        if (consecutiveFailures >= 5) {
+          console.log(`🛑 Stopping search after ${consecutiveFailures} consecutive "token not found" failures at token ${tokenId}`);
+          break;
         }
       }
     }
