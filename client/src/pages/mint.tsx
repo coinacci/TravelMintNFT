@@ -272,36 +272,46 @@ export default function Mint() {
       // 🔥 TEMPORARY MOCK MINT - Replace with real blockchain transaction
       console.log('🎯 MOCK MINT: Creating NFT locally...');
       
-      // Create mock NFT data for testing
-      const mockNFT = {
-        id: Math.random().toString(36).substr(2, 9),
+      // Create NFT data matching backend schema
+      const nftData = {
         title,
         description: description || "Travel NFT minted on TravelMint", 
+        imageUrl: imagePreview,
+        location: location.city || "Unknown City",
+        latitude: location.latitude.toString(),
+        longitude: location.longitude.toString(),
         category,
-        image: imagePreview,
-        location: {
-          city: location.city || "Unknown City",
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
-        price: 1,
-        forSale: enableListing,
-        salePrice: enableListing ? parseFloat(salePrice) || 1 : undefined,
-        owner: address,
-        minter: address,
-        mintedAt: new Date().toISOString(),
-        tokenId: Math.floor(Math.random() * 1000000)
+        price: enableListing ? (salePrice || "1") : "1",
+        isForSale: enableListing ? 1 : 0,
+        mintPrice: "1",
+        royaltyPercentage: "5",
+        tokenId: Math.floor(Math.random() * 1000000).toString(),
+        contractAddress: NFT_CONTRACT_ADDRESS,
+        transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`, // Mock tx hash
+        metadata: {
+          name: title,
+          description: description || "Travel NFT minted on TravelMint",
+          image: imagePreview,
+          attributes: [
+            { trait_type: "Category", value: category },
+            { trait_type: "Location", value: location.city || "Unknown City" },
+            { trait_type: "Minted Date", value: new Date().toISOString() }
+          ]
+        }
       };
       
-      console.log('📦 Mock NFT created:', mockNFT);
+      console.log('📦 NFT data prepared for backend:', nftData);
       
-      // Save to marketplace using backend API
+      // Save to marketplace using backend API (with correct format)
       const response = await fetch('/api/nfts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(mockNFT),
+        body: JSON.stringify({
+          walletAddress: address,
+          ...nftData
+        }),
       });
       
       if (!response.ok) {
