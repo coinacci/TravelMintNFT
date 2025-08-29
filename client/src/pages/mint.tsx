@@ -15,6 +15,8 @@ import { useLocation } from "@/hooks/use-location";
 import { MapPin, Upload, Wallet, Eye } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
+import { ipfsClient } from "@/lib/ipfs";
+import { createNFTMetadata, createIPFSUrl } from "@shared/ipfs";
 
 // USDC Contract on Base mainnet
 const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
@@ -82,12 +84,15 @@ export default function Mint() {
   const [category, setCategory] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageIpfsUrl, setImageIpfsUrl] = useState<string | null>(null);
+  const [metadataIpfsUrl, setMetadataIpfsUrl] = useState<string | null>(null);
   const [enableListing, setEnableListing] = useState(false);
   const [salePrice, setSalePrice] = useState("");
   const [featuredPlacement, setFeaturedPlacement] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [mintingStep, setMintingStep] = useState<'idle' | 'approving' | 'minting'>('idle');
+  const [mintingStep, setMintingStep] = useState<'idle' | 'uploading-image' | 'uploading-metadata' | 'approving' | 'minting'>('idle');
   const [approvalHash, setApprovalHash] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -254,7 +259,7 @@ export default function Mint() {
     },
   });
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid File",
@@ -282,8 +287,36 @@ export default function Mint() {
     };
     reader.readAsDataURL(file);
 
-    // Try to get location from EXIF (mock for demo)
-    // Location is automatically obtained on page load, no need to call again
+    // Upload to IPFS immediately
+    try {
+      setMintingStep('uploading-image');
+      setUploadProgress('Uploading image to IPFS...');
+      
+      console.log('📤 Starting IPFS image upload...');
+      const ipfsUrl = await ipfsClient.uploadImage(file);
+      setImageIpfsUrl(ipfsUrl);
+      
+      console.log('✅ Image uploaded to IPFS:', ipfsUrl);
+      toast({
+        title: "✅ Image Uploaded",
+        description: "Your image has been uploaded to IPFS successfully!",
+        variant: "default",
+      });
+      
+      setMintingStep('idle');
+      setUploadProgress('');
+      
+    } catch (error) {
+      console.error('❌ IPFS upload failed:', error);
+      setMintingStep('idle');
+      setUploadProgress('');
+      
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image to IPFS",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -313,42 +346,55 @@ export default function Mint() {
     }
   };
 
-  // 🚀 FARCASTER NATIVE: Batch approve + mint in ONE confirmation!
+  // 🚀 IPFS + FARCASTER NATIVE: Upload metadata to IPFS then mint!
   const handleMint = async () => {
-    console.log('🔥 BATCH MINT STARTING!');
+    console.log('🔥 IPFS MINT STARTING!');
     
     if (!isConnected || !address || !location) {
       console.log('❌ Missing requirements');
       return;
     }
     
-    if (!title || !category || !imageFile) {
+    if (!title || !category || !imageFile || !imageIpfsUrl) {
       toast({
         title: "Missing Information", 
-        description: "Please fill in all required fields",
+        description: !imageIpfsUrl ? "Please wait for image to upload to IPFS" : "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      setMintingStep('approving');
-      console.log('🎯 Creating batch transaction: approve + mint');
+      // Step 1: Upload metadata to IPFS
+      setMintingStep('uploading-metadata');
+      setUploadProgress('Creating metadata and uploading to IPFS...');
       
-      // Create optimized metadata URI with actual uploaded image
-      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
-        name: title,
+      console.log('📋 Creating NFT metadata...');
+      const metadata = createNFTMetadata({
+        title,
         description: description || "Travel NFT",
-        image: imagePreview || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=400&fit=crop",
-        attributes: [
-          { trait_type: "Category", value: category },
-          { trait_type: "Location", value: location.city || "Unknown" },
-          { trait_type: "Uploaded Image", value: "true" } // Mark that this uses real uploaded image
-        ]
-      }))}`;
+        imageIpfsUrl,
+        category,
+        location: {
+          city: location.city || "Unknown City",
+          latitude: location.latitude.toString(),
+          longitude: location.longitude.toString()
+        }
+      });
+      
+      console.log('📤 Uploading metadata to IPFS...');
+      const metadataIpfsUrl = await ipfsClient.uploadMetadata(metadata);
+      setMetadataIpfsUrl(metadataIpfsUrl);
+      
+      console.log('✅ Metadata uploaded to IPFS:', metadataIpfsUrl);
+      
+      // Step 2: Batch approve + mint with IPFS metadata URL
+      setMintingStep('approving');
+      setUploadProgress('');
+      console.log('🎯 Creating batch transaction: approve + mint with IPFS metadata');
       
       // 🚀 REAL BLOCKCHAIN: Batch approve + mint in ONE Farcaster confirmation!
-      console.log('⚡ STARTING REAL BLOCKCHAIN MINT...');
+      console.log('⚡ STARTING REAL BLOCKCHAIN MINT WITH IPFS...');
       
       await sendCalls({
         calls: [
@@ -361,7 +407,7 @@ export default function Mint() {
               args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
             })
           },
-          // 2. Mint NFT immediately after approval
+          // 2. Mint NFT with IPFS metadata URL
           {
             to: NFT_CONTRACT_ADDRESS,
             data: encodeFunctionData({
@@ -373,21 +419,22 @@ export default function Mint() {
                 location.latitude.toString(),
                 location.longitude.toString(), 
                 category,
-                metadataUri
+                metadataIpfsUrl // IPFS metadata URL instead of base64
               ]
             })
           }
         ]
       });
       
-      console.log('✅ Blockchain transaction batch sent!');
+      console.log('✅ Blockchain transaction batch sent with IPFS metadata!');
       console.log('⏳ Waiting for transaction confirmation...');
       
       // Transaction sent successfully - UI will update when confirmed via useWaitForTransactionReceipt
       
     } catch (error) {
-      console.error('❌ Batch transaction failed:', error);
+      console.error('❌ IPFS mint failed:', error);
       setMintingStep('idle');
+      setUploadProgress('');
       
       // Mobile-specific error handling
       const isMobileError = error instanceof Error && 
@@ -583,7 +630,7 @@ export default function Mint() {
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={async () => {
-                      console.log('⚡ MINT: Starting blockchain transaction...');
+                      console.log('⚡ MINT: Starting IPFS + blockchain transaction...');
                       
                       if (!isConnected || !title || !category || !imageFile || !location) {
                         console.log('❌ Missing required fields');
@@ -596,16 +643,45 @@ export default function Mint() {
                         console.error('🚨 Mint failed:', err);
                       }
                     }}
-                    disabled={isBatchPending || !isConnected || !title || !category || !imageFile || !location}
+                    disabled={isBatchPending || !isConnected || !title || !category || !imageFile || !location || mintingStep !== 'idle'}
                     data-testid="mint-button"
                   >
-                    <Wallet className="w-4 h-4 mr-2" />
-                    {isBatchPending ? "Confirming blockchain transaction..." :
-                     !isConnected ? "Connect wallet to mint" :
-                     locationLoading ? "Getting location..." :
-                     !location ? "Location required" :
-                     !title || !category || !imageFile ? "Fill all fields" :
-                     "Mint NFT for 1 USDC"}
+                    {mintingStep === 'uploading-image' && (
+                      <>
+                        <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                        Uploading Image to IPFS...
+                      </>
+                    )}
+                    {mintingStep === 'uploading-metadata' && (
+                      <>
+                        <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                        Uploading Metadata to IPFS...
+                      </>
+                    )}
+                    {mintingStep === 'approving' && (
+                      <>
+                        <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                        {approvalHash ? 'Minting NFT...' : 'Approving USDC...'}
+                      </>
+                    )}
+                    {mintingStep === 'minting' && (
+                      <>
+                        <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                        Minting NFT...
+                      </>
+                    )}
+                    {mintingStep === 'idle' && (
+                      <>
+                        <Wallet className="w-4 h-4 mr-2" />
+                        {isBatchPending ? "Confirming blockchain transaction..." :
+                         !isConnected ? "Connect wallet to mint" :
+                         locationLoading ? "Getting location..." :
+                         !location ? "Location required" :
+                         !title || !category || !imageFile ? "Fill all fields" :
+                         !imageIpfsUrl ? "Upload image first" :
+                         "Mint NFT for 1 USDC"}
+                      </>
+                    )}
                   </Button>
                   
                   <Button
@@ -617,6 +693,35 @@ export default function Mint() {
                     <Eye className="w-4 h-4 mr-2" />
                     Preview on Map
                   </Button>
+
+                  {/* IPFS Progress Indicator */}
+                  {uploadProgress && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                      <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
+                        <div className="mr-2 h-4 w-4 animate-spin border-2 border-blue-600 border-t-transparent rounded-full" />
+                        {uploadProgress}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* IPFS Status Indicators */}
+                  {imageIpfsUrl && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                      <div className="flex items-center text-sm text-green-600 dark:text-green-400">
+                        <div className="mr-2 h-4 w-4 rounded-full bg-green-500" />
+                        Image uploaded to IPFS successfully
+                      </div>
+                    </div>
+                  )}
+
+                  {metadataIpfsUrl && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                      <div className="flex items-center text-sm text-green-600 dark:text-green-400">
+                        <div className="mr-2 h-4 w-4 rounded-full bg-green-500" />
+                        Metadata uploaded to IPFS successfully
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

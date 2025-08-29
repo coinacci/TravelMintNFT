@@ -3,6 +3,7 @@ import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService } from "./blockchain";
 import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
+import ipfsRoutes from "./routes/ipfs";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 
@@ -397,6 +398,9 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Webhook processing failed" });
     }
   });
+
+  // IPFS routes
+  app.use("/api/ipfs", ipfsRoutes);
 
   return createServer(app);
 }
