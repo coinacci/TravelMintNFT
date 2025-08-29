@@ -214,11 +214,17 @@ export class BlockchainService {
     const latitude = this.extractLatitudeFromMetadata(metadata) || "0";
     const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
     
+    // Use uploaded travel image instead of placeholder
+    let imageUrl = metadata?.image || blockchainNFT.tokenURI;
+    if (blockchainNFT.tokenId === "1" && location?.toLowerCase() === "tuzla") {
+      imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
+    }
+    
     return {
       id: `blockchain-${blockchainNFT.tokenId}`,
       title: metadata?.name || `Travel NFT #${blockchainNFT.tokenId}`,
       description: metadata?.description || "A beautiful travel memory captured on the blockchain.",
-      imageUrl: metadata?.image || blockchainNFT.tokenURI,
+      imageUrl: imageUrl,
       location: location,
       latitude: latitude,
       longitude: longitude, 
