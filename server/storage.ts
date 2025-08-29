@@ -107,6 +107,7 @@ export class MemStorage implements IStorage {
       contractAddress: insertNFT.contractAddress ?? null,
       transactionHash: insertNFT.transactionHash ?? null,
       metadata: insertNFT.metadata ?? null,
+      isForSale: insertNFT.isForSale ?? 0, // Ensure isForSale is always a number
       id,
       createdAt: now,
       updatedAt: now,

@@ -226,12 +226,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nfts = await storage.getNFTsByOwner(req.params.id);
       const nftsWithOwners = await Promise.all(
         nfts.map(async (nft) => {
-          const owner = await storage.getUser(nft.ownerId);
-          const creator = await storage.getUser(nft.creatorId);
+          // Use wallet addresses instead of user IDs
           return {
             ...nft,
-            owner: owner ? { id: owner.id, username: owner.username, avatar: owner.avatar } : null,
-            creator: creator ? { id: creator.id, username: creator.username, avatar: creator.avatar } : null,
+            owner: { 
+              id: nft.ownerAddress, 
+              username: nft.ownerAddress.slice(0, 8) + '...', 
+              avatar: null 
+            },
+            creator: { 
+              id: nft.creatorAddress, 
+              username: nft.creatorAddress.slice(0, 8) + '...', 
+              avatar: null 
+            }
           };
         })
       );

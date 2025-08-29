@@ -61,7 +61,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
               />
             )}
             <span className="text-xs text-muted-foreground" data-testid={`owner-username-${nft.id}`}>
-              Owner: {nft.owner?.username || nft.owner?.id || 'unknown'}
+              Owner: {nft.owner?.username || 'unknown'}
             </span>
           </div>
           
