@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseEther } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas } from "wagmi";
+import { parseEther, formatGwei } from "viem";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,19 @@ export default function Mint() {
   const { data: hash, error: contractError, isPending: isContractPending, writeContract } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
+  });
+  
+  // Get current gas fee data from Base network
+  const { data: feeData, isLoading: isFeeDataLoading } = useFeeData({
+    chainId: 8453, // Base mainnet chain ID
+  });
+  
+  // Estimate gas for the mint transaction
+  const { data: gasEstimate } = useEstimateGas({
+    to: NFT_CONTRACT_ADDRESS,
+    data: '0x40c10f19', // mint function selector
+    value: parseEther('0.001'),
+    query: { enabled: isConnected && !!address }
   });
 
   // Automatically get location when component mounts
@@ -216,13 +229,21 @@ export default function Mint() {
         description: "Please confirm the transaction in your wallet",
       });
       
-      // Call smart contract mint function
+      // Call smart contract mint function with dynamic gas fees
+      const gasPrice = feeData?.gasPrice;
+      const maxFeePerGas = feeData?.maxFeePerGas;
+      const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
+      
       writeContract({
         address: NFT_CONTRACT_ADDRESS,
         abi: NFT_ABI,
         functionName: 'mint',
         args: [address, BigInt(1)], // mint 1 NFT to user's address
         value: parseEther('0.001'), // 0.001 ETH mint price
+        gas: gasEstimate ? gasEstimate + BigInt(10000) : BigInt(100000), // Add buffer to gas estimate
+        gasPrice: gasPrice, // Use current gas price from Base network
+        maxFeePerGas: maxFeePerGas, // EIP-1559 max fee
+        maxPriorityFeePerGas: maxPriorityFeePerGas, // EIP-1559 priority fee
       });
       
     } catch (error: any) {
@@ -376,8 +397,15 @@ export default function Mint() {
                       0.001 ETH
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Current Gas Price</span>
+                    <span className="text-muted-foreground">
+                      {isFeeDataLoading ? 'Loading...' : 
+                       feeData?.gasPrice ? `${formatGwei(feeData.gasPrice)} gwei` : 'N/A'}
+                    </span>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Onchain minting on Base Network
+                    Onchain minting on Base Network with dynamic fees
                   </p>
                   {hash && (
                     <div className="text-xs text-primary mt-2 break-all">
