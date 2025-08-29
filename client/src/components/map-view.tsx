@@ -27,8 +27,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
-    staleTime: 0, // Always fetch fresh
+    staleTime: 15000, // Cache for 15 seconds for performance
     refetchOnMount: true,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
   
   // Log errors for troubleshooting
@@ -73,7 +74,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   }, []);
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !nfts.length) return;
+    if (!mapInstanceRef.current) return;
 
     const map = mapInstanceRef.current;
 
@@ -84,12 +85,16 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       }
     });
 
-    // Add NFT markers
+    // Add NFT markers - even if empty array for proper cleanup
     nfts.forEach((nft) => {
       const lat = parseFloat(nft.latitude);
       const lng = parseFloat(nft.longitude);
 
-      if (isNaN(lat) || isNaN(lng)) return;
+      // Skip NFTs with invalid coordinates (0,0 or NaN)
+      if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+        console.warn('⚠️ Skipping NFT with invalid coordinates:', nft.title, lat, lng);
+        return;
+      }
 
       const customIcon = L.divIcon({
         className: "custom-marker",

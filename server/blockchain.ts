@@ -214,11 +214,14 @@ export class BlockchainService {
     const latitude = this.extractLatitudeFromMetadata(metadata) || "0";
     const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
     
-    // Always use the uploaded travel image for Token #1 - ignore metadata image completely
-    let imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
-    if (blockchainNFT.tokenId !== "1") {
-      // For other tokens, use metadata image as fallback
-      imageUrl = metadata?.image || blockchainNFT.tokenURI;
+    // Use uploaded travel images for known tokens, fallback to metadata
+    let imageUrl = metadata?.image || blockchainNFT.tokenURI;
+    if (blockchainNFT.tokenId === "1") {
+      // Token #1: Coast photo
+      imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
+    } else if (blockchainNFT.tokenId === "2") {
+      // Token #2: Tram photo (if exists)
+      imageUrl = "/attached_assets/tram-photo.jpeg"; // This will need to be updated with actual filename
     }
     
     return {
@@ -273,6 +276,8 @@ export class BlockchainService {
     
     if (locationAttr?.value?.toLowerCase() === 'tuzla') {
       return "40.8256"; // Tuzla, Istanbul coordinates
+    } else if (locationAttr?.value?.toLowerCase() === 'kadikoy' || locationAttr?.value?.toLowerCase() === 'kadıköy') {
+      return "40.9833"; // Kadıköy, Istanbul coordinates
     }
     
     return null;
@@ -298,6 +303,8 @@ export class BlockchainService {
     
     if (locationAttr?.value?.toLowerCase() === 'tuzla') {
       return "29.2997"; // Tuzla, Istanbul coordinates
+    } else if (locationAttr?.value?.toLowerCase() === 'kadikoy' || locationAttr?.value?.toLowerCase() === 'kadıköy') {
+      return "29.0167"; // Kadıköy, Istanbul coordinates
     }
     
     return null;
