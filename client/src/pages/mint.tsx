@@ -525,26 +525,48 @@ export default function Mint() {
                 <div className="space-y-3">
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
-                    onClick={() => {
-                      console.log('🟡 MINT BUTTON CLICKED!');
-                      console.log('🔍 Button state check:', {
-                        isBatchPending: false,
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('🟡 MINT BUTTON CLICKED! 🔥');
+                      console.log('🔍 DETAILED Button state:', {
                         isConnected,
-                        hasTitle: !!title,
-                        hasCategory: !!category,
-                        hasImage: !!imageFile,
-                        hasLocation: !!location,
+                        address,
+                        title,
+                        category,
+                        imageFile: imageFile?.name,
+                        location,
                         locationLoading,
+                        locationError,
+                        mintingStep,
                         buttonDisabled: !isConnected || !title || !category || !imageFile || !location
                       });
                       
-                      if (!isConnected || !title || !category || !imageFile || !location) {
-                        console.log('🚫 Button is disabled - cannot proceed');
+                      // Check each condition
+                      if (!isConnected) {
+                        console.log('❌ BLOCKED: Wallet not connected');
+                        return;
+                      }
+                      if (!title) {
+                        console.log('❌ BLOCKED: Title missing');
+                        return;
+                      }
+                      if (!category) {
+                        console.log('❌ BLOCKED: Category missing'); 
+                        return;
+                      }
+                      if (!imageFile) {
+                        console.log('❌ BLOCKED: Image missing');
+                        return;
+                      }
+                      if (!location) {
+                        console.log('❌ BLOCKED: Location missing');
                         return;
                       }
                       
-                      console.log('✅ Button conditions OK - calling handleMint...');
-                      handleMint();
+                      console.log('✅ ALL CONDITIONS OK - CALLING handleMint...');
+                      handleMint().catch(err => {
+                        console.error('🚨 HandleMint ERROR:', err);
+                      });
                     }}
                     disabled={!isConnected || !title || !category || !imageFile || !location}
                     data-testid="mint-button"
