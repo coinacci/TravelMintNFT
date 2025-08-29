@@ -17,39 +17,44 @@ export async function registerRoutes(app: Express) {
   // Get all NFTs - combine database and blockchain data
   app.get("/api/nfts", async (req, res) => {
     try {
-      console.log("🔗 Fetching all NFTs from blockchain...");
+      console.log("🔗 Fetching all NFTs from blockchain and database...");
       
-      // First get all NFTs from blockchain
-      const blockchainNFTs = await blockchainService.getAllNFTs();
-      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
-      
-      // Sync any new NFTs to database
+      // First get all NFTs from database (this includes manually added ones)
       const allDbNFTs = await storage.getAllNFTs();
       const contractNFTs = allDbNFTs.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
       
-      // Merge blockchain and database data
-      const mergedNFTs = [];
+      // Also get NFTs from blockchain for sync
+      const blockchainNFTs = await blockchainService.getAllNFTs();
+      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
+      console.log(`Found ${contractNFTs.length} NFTs in database`);
       
+      // Merge database and blockchain data
+      const mergedNFTs = [...contractNFTs]; // Start with all database NFTs
+      
+      // Sync any blockchain NFTs that aren't in database yet
       for (const blockchainNFT of blockchainNFTs) {
-        const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+        const existsInDb = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
         
-        // Check if this NFT exists in database
-        let dbNFT = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
-        
-        if (!dbNFT) {
-          // Create new NFT record if not exists
-          dbNFT = await storage.createNFT(dbFormat);
-        } else if (dbNFT.ownerAddress !== blockchainNFT.owner) {
+        if (!existsInDb) {
+          console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
+          const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+          const newDbNFT = await storage.createNFT(dbFormat);
+          if (newDbNFT) {
+            mergedNFTs.push(newDbNFT);
+          }
+        } else if (existsInDb.ownerAddress !== blockchainNFT.owner) {
           // Update owner if it changed on blockchain
-          dbNFT = await storage.updateNFT(dbNFT.id, {
+          console.log(`🔄 Updating owner for NFT #${blockchainNFT.tokenId}`);
+          const updatedNFT = await storage.updateNFT(existsInDb.id, {
             ownerAddress: blockchainNFT.owner
           });
-        }
-        
-        if (dbNFT) {
-          mergedNFTs.push(dbNFT);
+          // Update the NFT in mergedNFTs array
+          const index = mergedNFTs.findIndex(nft => nft.id === existsInDb.id);
+          if (index !== -1 && updatedNFT) {
+            mergedNFTs[index] = updatedNFT;
+          }
         }
       }
       
