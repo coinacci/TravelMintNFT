@@ -132,10 +132,17 @@ export default function Mint() {
     }
   }, [isConfirmed, hash, mintingStep, approvalHash]);
   
-  // Handle NFT minting step
+  // Handle NFT minting step with detailed debugging
   useEffect(() => {
+    console.log('🔍 Minting step check:', {
+      mintingStep,
+      approvalHash,
+      isContractPending,
+      readyToMint: mintingStep === 'minting' && approvalHash && !isContractPending
+    });
+    
     if (mintingStep === 'minting' && approvalHash && !isContractPending) {
-      console.log('🎯 Starting NFT mint transaction...');
+      console.log('🎯 ALL CONDITIONS MET - Starting NFT mint transaction...');
       
       // Create metadata URI
       const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
@@ -155,33 +162,36 @@ export default function Mint() {
         latitude: location!.latitude.toString(),
         longitude: location!.longitude.toString(),
         category,
-        tokenURI: 'metadata...'
+        tokenURI: metadataUri.substring(0, 50) + '...'
       });
       
-      // Mint NFT with proper error handling
-      try {
-        writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: NFT_ABI,
-          functionName: 'mintTravelNFT',
-          args: [
-            address!, // to
-            location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
-            location!.latitude.toString(), // latitude
-            location!.longitude.toString(), // longitude
-            category, // category
-            metadataUri // tokenURI
-          ],
-          gas: BigInt(500000),
-          chainId: 8453, // Force Base mainnet
-        });
-      } catch (error) {
-        console.error('❌ Failed to start NFT mint:', error);
-        setMintingStep('idle');
-        setApprovalHash(null);
-      }
+      // Add a small delay to ensure wallet is ready for next transaction
+      setTimeout(() => {
+        console.log('🚀 Triggering NFT mint writeContract...');
+        try {
+          writeContract({
+            address: NFT_CONTRACT_ADDRESS,
+            abi: NFT_ABI,
+            functionName: 'mintTravelNFT',
+            args: [
+              address!, // to
+              location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
+              location!.latitude.toString(), // latitude
+              location!.longitude.toString(), // longitude
+              category, // category
+              metadataUri // tokenURI
+            ],
+            gas: BigInt(500000),
+            chainId: 8453, // Force Base mainnet
+          });
+        } catch (error) {
+          console.error('❌ writeContract failed:', error);
+          setMintingStep('idle');
+          setApprovalHash(null);
+        }
+      }, 1000); // 1 second delay for wallet to be ready
     }
-  }, [mintingStep, approvalHash, isContractPending]); // Remove writeContract from deps
+  }, [mintingStep, approvalHash, isContractPending, writeContract]); // Add writeContract back
   
   // Handle NFT minting confirmation
   useEffect(() => {
