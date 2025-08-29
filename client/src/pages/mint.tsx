@@ -41,12 +41,12 @@ const USDC_ABI = [
   }
 ] as const;
 
-// TravelNFT Contract ABI for minting  
+// TravelNFT Contract ABI - exact match with deployed contract  
 const NFT_ABI = [
   {
     name: 'mintTravelNFT',
     type: 'function',
-    stateMutability: 'nonreentrant',
+    stateMutability: 'nonpayable',
     inputs: [
       { name: 'to', type: 'address' },
       { name: 'location', type: 'string' },
@@ -141,6 +141,7 @@ export default function Mint() {
           category, // category
           metadataUri // tokenURI
         ],
+        gas: BigInt(500000), // Set reasonable gas limit
         gasPrice: gasPrice,
         maxFeePerGas: maxFeePerGas,
         maxPriorityFeePerGas: maxPriorityFeePerGas,
@@ -300,7 +301,7 @@ export default function Mint() {
       // Start blockchain transaction
       toast({
         title: "Preparing Transaction",
-        description: "Please confirm the transaction in your wallet",
+        description: "Please confirm the transaction in your wallet. If you see a safety warning, you can proceed - this is our official contract.",
       });
       
       // Use USDC for minting (1 USDC = $1 fixed price)
@@ -483,6 +484,9 @@ export default function Mint() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Fixed $1 price in USDC + Base Network gas fees
                   </p>
+                  <div className="text-xs text-blue-600 mt-1">
+                    🛡️ Contract: 0x8c12...558f (Official TravelMint)
+                  </div>
                   {hash && (
                     <div className="text-xs text-primary mt-2 break-all">
                       Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
