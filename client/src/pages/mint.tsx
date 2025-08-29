@@ -124,13 +124,14 @@ export default function Mint() {
       });
     } else if (isConfirmed && hash && mintingStep === 'minting') {
       // After NFT minting confirmation, save NFT to database
-      const mockImageUrl = `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
+      // Use the actual uploaded image preview instead of mock URL
+      const actualImageUrl = imagePreview || `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
       
       const nftData = {
         walletAddress: address!,
         title,
         description,
-        imageUrl: mockImageUrl,
+        imageUrl: actualImageUrl,
         location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
         latitude: location!.latitude.toString(),
         longitude: location!.longitude.toString(),

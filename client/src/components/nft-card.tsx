@@ -52,16 +52,16 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
         
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {nft.creator?.avatar && (
+            {nft.owner?.avatar && (
               <img
-                src={nft.creator.avatar}
-                alt="Creator profile"
+                src={nft.owner.avatar}
+                alt="Owner profile"
                 className="w-6 h-6 rounded-full"
-                data-testid={`creator-avatar-${nft.id}`}
+                data-testid={`owner-avatar-${nft.id}`}
               />
             )}
-            <span className="text-xs text-muted-foreground" data-testid={`creator-username-${nft.id}`}>
-              @{nft.creator?.username || 'unknown'}
+            <span className="text-xs text-muted-foreground" data-testid={`owner-username-${nft.id}`}>
+              Owner: {nft.owner?.username || nft.owner?.id || 'unknown'}
             </span>
           </div>
           
