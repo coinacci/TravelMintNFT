@@ -6,8 +6,20 @@ const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for image uploads
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Serve attached assets statically
-app.use('/attached_assets', express.static('attached_assets'));
+// Serve attached assets statically with proper headers
+app.use('/attached_assets', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+}, express.static('attached_assets', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.jpeg') || path.endsWith('.jpg') || path.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
