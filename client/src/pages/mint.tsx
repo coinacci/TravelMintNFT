@@ -165,9 +165,11 @@ export default function Mint() {
               variant: "default",
             });
             
-            // Refresh data and reset form
+            // Refresh data and reset form - FIX: Add missing My NFTs cache invalidation!
             queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
             
             setTitle('');
             setDescription('');
