@@ -61,11 +61,26 @@ export function useLocation() {
   }, []);
 
 
+  // Function to convert Turkish characters to English equivalents
+  const turkishToEnglish = (text: string): string => {
+    const turkishChars: { [key: string]: string } = {
+      'ç': 'c', 'Ç': 'C',
+      'ğ': 'g', 'Ğ': 'G', 
+      'ı': 'i', 'I': 'I',
+      'İ': 'I', 'i': 'i',
+      'ö': 'o', 'Ö': 'O',
+      'ş': 's', 'Ş': 'S',
+      'ü': 'u', 'Ü': 'U'
+    };
+    
+    return text.replace(/[çÇğĞıIİiöÖşŞüÜ]/g, (char) => turkishChars[char] || char);
+  };
+
   // Reverse geocoding function using OpenStreetMap Nominatim API
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1&accept-language=en`
       );
       
       if (!response.ok) {
@@ -76,13 +91,16 @@ export function useLocation() {
       
       // Extract city name from the response
       const address = data.address;
-      const city = address?.city || 
-                   address?.town || 
-                   address?.village || 
-                   address?.municipality || 
-                   address?.county || 
-                   address?.state || 
-                   "Unknown Location";
+      let city = address?.city || 
+                 address?.town || 
+                 address?.village || 
+                 address?.municipality || 
+                 address?.county || 
+                 address?.state || 
+                 "Unknown Location";
+      
+      // Convert Turkish characters to English for blockchain compatibility
+      city = turkishToEnglish(city);
       
       return city;
     } catch (error) {

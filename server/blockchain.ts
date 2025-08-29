@@ -4,16 +4,15 @@ const BASE_RPC_URL = "https://mainnet.base.org";
 const BASESCAN_API_URL = "https://api.basescan.org/api";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 
-// ERC721 ABI for reading NFT data
+// ERC721 ABI for reading NFT data (without Enumerable extension)
 const ERC721_ABI = [
-  "function totalSupply() view returns (uint256)",
-  "function tokenByIndex(uint256 index) view returns (uint256)",
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function balanceOf(address owner) view returns (uint256)",
-  "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
   "function name() view returns (string)",
-  "function symbol() view returns (string)"
+  "function symbol() view returns (string)",
+  "function getApproved(uint256 tokenId) view returns (address)",
+  "function isApprovedForAll(address owner, address operator) view returns (bool)"
 ];
 
 // Create provider for Base network
@@ -31,21 +30,40 @@ export interface BlockchainNFT {
 
 export class BlockchainService {
   
-  // Get all NFTs from the contract
+  // Get all NFTs from the contract using Basescan API for Transfer events
   async getAllNFTs(): Promise<BlockchainNFT[]> {
     try {
-      console.log("Fetching total supply from contract...");
-      const totalSupply = await nftContract.totalSupply();
-      const totalSupplyNumber = Number(totalSupply);
+      console.log("🔗 Fetching NFTs using Basescan API...");
       
-      console.log(`Total NFTs in contract: ${totalSupplyNumber}`);
+      // Use Basescan API to get all Transfer events
+      const basescanUrl = `${BASESCAN_API_URL}?module=account&action=tokennfttx&contractaddress=${NFT_CONTRACT_ADDRESS}&page=1&offset=100&sort=asc&apikey=${process.env.BASESCAN_API_KEY}`;
+      
+      const response = await fetch(basescanUrl);
+      const data = await response.json();
+      
+      if (data.status !== "1") {
+        console.log("No NFT transfers found or API error:", data.message);
+        // Fallback: try known token IDs
+        return await this.tryKnownTokenIds();
+      }
+      
+      const transfers = data.result;
+      const uniqueTokenIds = new Set<string>();
+      
+      // Extract unique token IDs from transfers
+      for (const transfer of transfers) {
+        if (transfer.to !== "0x0000000000000000000000000000000000000000") {
+          uniqueTokenIds.add(transfer.tokenID);
+        }
+      }
+      
+      console.log(`Found ${uniqueTokenIds.size} unique NFTs from transfer events`);
       
       const nfts: BlockchainNFT[] = [];
       
-      // Get each NFT by index
-      for (let i = 0; i < totalSupplyNumber; i++) {
+      // Get current owner and metadata for each token
+      for (const tokenId of Array.from(uniqueTokenIds)) {
         try {
-          const tokenId = await nftContract.tokenByIndex(i);
           const owner = await nftContract.ownerOf(tokenId);
           const tokenURI = await nftContract.tokenURI(tokenId);
           
@@ -53,9 +71,9 @@ export class BlockchainService {
           let metadata = null;
           if (tokenURI && tokenURI.startsWith('http')) {
             try {
-              const response = await fetch(tokenURI);
-              if (response.ok) {
-                metadata = await response.json();
+              const metadataResponse = await fetch(tokenURI);
+              if (metadataResponse.ok) {
+                metadata = await metadataResponse.json();
               }
             } catch (e) {
               console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
@@ -70,69 +88,77 @@ export class BlockchainService {
           });
           
         } catch (error) {
-          console.error(`Error fetching NFT at index ${i}:`, error);
+          console.error(`Error fetching NFT ${tokenId}:`, error);
         }
       }
       
-      console.log(`Successfully fetched ${nfts.length} NFTs from blockchain`);
+      console.log(`✅ Successfully fetched ${nfts.length} NFTs from blockchain`);
       return nfts;
       
     } catch (error) {
       console.error("Error fetching all NFTs:", error);
-      return [];
+      // Fallback: try known token IDs
+      return await this.tryKnownTokenIds();
     }
+  }
+
+  // Fallback method to try known token IDs
+  async tryKnownTokenIds(): Promise<BlockchainNFT[]> {
+    console.log("🔄 Trying known token IDs as fallback...");
+    const nfts: BlockchainNFT[] = [];
+    
+    // Try token IDs 1-10 (common range for new contracts)
+    for (let tokenId = 1; tokenId <= 10; tokenId++) {
+      try {
+        const owner = await nftContract.ownerOf(tokenId);
+        const tokenURI = await nftContract.tokenURI(tokenId);
+        
+        // Fetch metadata if URI is available
+        let metadata = null;
+        if (tokenURI && tokenURI.startsWith('http')) {
+          try {
+            const response = await fetch(tokenURI);
+            if (response.ok) {
+              metadata = await response.json();
+            }
+          } catch (e) {
+            console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
+          }
+        }
+        
+        nfts.push({
+          tokenId: tokenId.toString(),
+          owner: owner.toLowerCase(),
+          tokenURI,
+          metadata
+        });
+        
+        console.log(`✅ Found NFT #${tokenId} owned by ${owner}`);
+        
+      } catch (error: any) {
+        // Token doesn't exist, continue to next
+        if (error.reason === "ERC721: invalid token ID" || error.code === "CALL_EXCEPTION") {
+          break; // Stop trying higher token IDs
+        }
+      }
+    }
+    
+    console.log(`Found ${nfts.length} NFTs using fallback method`);
+    return nfts;
   }
   
   // Get NFTs owned by a specific address
   async getNFTsByOwner(ownerAddress: string): Promise<BlockchainNFT[]> {
     try {
       ownerAddress = ownerAddress.toLowerCase();
-      console.log(`Fetching NFTs for owner: ${ownerAddress}`);
+      console.log(`🔗 Fetching NFTs for owner: ${ownerAddress}`);
       
-      const balance = await nftContract.balanceOf(ownerAddress);
-      const balanceNumber = Number(balance);
+      // Get all NFTs first, then filter by owner
+      const allNFTs = await this.getAllNFTs();
+      const ownerNFTs = allNFTs.filter(nft => nft.owner === ownerAddress);
       
-      console.log(`Owner has ${balanceNumber} NFTs`);
-      
-      if (balanceNumber === 0) {
-        return [];
-      }
-      
-      const nfts: BlockchainNFT[] = [];
-      
-      // Get each NFT owned by this address
-      for (let i = 0; i < balanceNumber; i++) {
-        try {
-          const tokenId = await nftContract.tokenOfOwnerByIndex(ownerAddress, i);
-          const tokenURI = await nftContract.tokenURI(tokenId);
-          
-          // Fetch metadata if URI is available
-          let metadata = null;
-          if (tokenURI && tokenURI.startsWith('http')) {
-            try {
-              const response = await fetch(tokenURI);
-              if (response.ok) {
-                metadata = await response.json();
-              }
-            } catch (e) {
-              console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
-            }
-          }
-          
-          nfts.push({
-            tokenId: tokenId.toString(),
-            owner: ownerAddress,
-            tokenURI,
-            metadata
-          });
-          
-        } catch (error) {
-          console.error(`Error fetching NFT at index ${i} for owner ${ownerAddress}:`, error);
-        }
-      }
-      
-      console.log(`Successfully fetched ${nfts.length} NFTs for owner ${ownerAddress}`);
-      return nfts;
+      console.log(`✅ Owner ${ownerAddress} has ${ownerNFTs.length} NFTs`);
+      return ownerNFTs;
       
     } catch (error) {
       console.error(`Error fetching NFTs for owner ${ownerAddress}:`, error);
