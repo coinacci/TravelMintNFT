@@ -106,7 +106,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
       const popupContent = `
         <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
-          <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" />
+          <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
+               onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
           <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
           <p class="text-xs text-gray-600 mb-2">${nft.location}</p>
           <div class="flex justify-between items-center mb-2">
