@@ -217,7 +217,7 @@ export class BlockchainService {
     // Use uploaded travel image instead of placeholder
     let imageUrl = metadata?.image || blockchainNFT.tokenURI;
     if (blockchainNFT.tokenId === "1" && location?.toLowerCase() === "tuzla") {
-      imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
+      imageUrl = "http://localhost:5000/attached_assets/IMG_4085_1756446465520.jpeg";
     }
     
     return {
