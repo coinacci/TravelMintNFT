@@ -122,10 +122,30 @@ export default function Mint() {
   
   
 
-  // Automatically get location when component mounts
+  // Component mount debug + automatically get location 
   useEffect(() => {
+    console.log('🎬 MINT PAGE LOADED - Component mounted successfully');
+    console.log('🔧 Initial state:', { 
+      hasWagmi: !!writeContract,
+      hasConnector: !!connector,
+      walletConnected: isConnected,
+      address
+    });
     getCurrentLocation();
   }, [getCurrentLocation]);
+
+  // Debug all state changes
+  useEffect(() => {
+    console.log('📊 State update:', {
+      title: !!title,
+      category: !!category, 
+      hasImage: !!imageFile,
+      hasLocation: !!location,
+      mintingStep,
+      isConnected,
+      address: address?.slice(0, 8) + '...'
+    });
+  }, [title, category, imageFile, location, mintingStep, isConnected, address]);
 
   // Handle USDC approval confirmation
   useEffect(() => {
@@ -624,7 +644,30 @@ export default function Mint() {
                 <div className="space-y-3">
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
-                    onClick={handleMint}
+                    onClick={() => {
+                      console.log('🟡 BUTTON CLICKED - Testing basic functionality...');
+                      console.log('Button state check:', {
+                        isContractPending,
+                        isConfirming,
+                        mintMutationPending: mintMutation.isPending,
+                        isConnected,
+                        hasTitle: !!title,
+                        hasCategory: !!category,
+                        hasImage: !!imageFile,
+                        hasLocation: !!location,
+                        locationLoading,
+                        mintingStep,
+                        isButtonDisabled: isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle'
+                      });
+                      
+                      if (isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle') {
+                        console.log('🚫 Button is disabled - cannot proceed');
+                        return;
+                      }
+                      
+                      console.log('🎯 Button enabled - calling handleMint...');
+                      handleMint();
+                    }}
                     disabled={isContractPending || isConfirming || mintMutation.isPending || !isConnected || !title || !category || !imageFile || !location || locationLoading || mintingStep !== 'idle'}
                     data-testid="mint-button"
                   >
