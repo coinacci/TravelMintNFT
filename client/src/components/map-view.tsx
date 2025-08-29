@@ -5,11 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 interface NFT {
   id: string;
   title: string;
+  description?: string;
   price: string;
   latitude: string;
   longitude: string;
   imageUrl: string;
   location: string;
+  isForSale: number;
+  createdAt: string;
   owner: { username: string; avatar?: string } | null;
   creator: { username: string; avatar?: string } | null;
 }
@@ -68,7 +71,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     const map = mapInstanceRef.current;
 
     // Clear existing markers
-    map.eachLayer((layer) => {
+    map.eachLayer((layer: any) => {
       if (layer instanceof L.Marker) {
         map.removeLayer(layer);
       }

@@ -9,7 +9,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nfts", async (req, res) => {
     try {
       const nfts = await storage.getAllNFTs();
-      res.json(nfts);
+      // Add owner and creator information for each NFT
+      const nftsWithOwners = nfts.map(nft => ({
+        ...nft,
+        owner: { 
+          id: nft.ownerAddress, 
+          username: nft.ownerAddress.slice(0, 8) + '...', 
+          avatar: null 
+        },
+        creator: { 
+          id: nft.creatorAddress, 
+          username: nft.creatorAddress.slice(0, 8) + '...', 
+          avatar: null 
+        }
+      }));
+      res.json(nftsWithOwners);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFTs" });
     }
@@ -49,6 +63,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         ...nft,
+        owner: { 
+          id: nft.ownerAddress, 
+          username: nft.ownerAddress.slice(0, 8) + '...', 
+          avatar: null 
+        },
+        creator: { 
+          id: nft.creatorAddress, 
+          username: nft.creatorAddress.slice(0, 8) + '...', 
+          avatar: null 
+        },
         transactions,
       });
     } catch (error) {

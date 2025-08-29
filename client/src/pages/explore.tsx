@@ -16,6 +16,8 @@ interface NFT {
   latitude: string;
   longitude: string;
   price: string;
+  isForSale: number;
+  createdAt: string;
   creator: { username: string; avatar?: string } | null;
   owner: { username: string; avatar?: string } | null;
 }
