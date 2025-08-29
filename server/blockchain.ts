@@ -115,14 +115,22 @@ export class BlockchainService {
         
         // Fetch metadata if URI is available
         let metadata = null;
-        if (tokenURI && tokenURI.startsWith('http')) {
+        if (tokenURI) {
           try {
-            const response = await fetch(tokenURI);
-            if (response.ok) {
-              metadata = await response.json();
+            if (tokenURI.startsWith('http')) {
+              const response = await fetch(tokenURI);
+              if (response.ok) {
+                metadata = await response.json();
+              }
+            } else if (tokenURI.startsWith('data:application/json;base64,')) {
+              // Handle base64 encoded JSON metadata
+              const base64Data = tokenURI.replace('data:application/json;base64,', '');
+              const jsonString = Buffer.from(base64Data, 'base64').toString('utf-8');
+              metadata = JSON.parse(jsonString);
+              console.log(`✅ Parsed base64 metadata for token ${tokenId}:`, metadata);
             }
           } catch (e) {
-            console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
+            console.log(`Failed to fetch/parse metadata for token ${tokenId}:`, e);
           }
         }
         
@@ -202,14 +210,18 @@ export class BlockchainService {
   blockchainNFTToDBFormat(blockchainNFT: BlockchainNFT): any {
     const metadata = blockchainNFT.metadata;
     
+    const location = this.extractLocationFromMetadata(metadata);
+    const latitude = this.extractLatitudeFromMetadata(metadata) || "0";
+    const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
+    
     return {
       id: `blockchain-${blockchainNFT.tokenId}`,
       title: metadata?.name || `Travel NFT #${blockchainNFT.tokenId}`,
       description: metadata?.description || "A beautiful travel memory captured on the blockchain.",
       imageUrl: metadata?.image || blockchainNFT.tokenURI,
-      location: this.extractLocationFromMetadata(metadata),
-      latitude: this.extractLatitudeFromMetadata(metadata) || "0",
-      longitude: this.extractLongitudeFromMetadata(metadata) || "0", 
+      location: location,
+      latitude: latitude,
+      longitude: longitude, 
       category: this.extractCategoryFromMetadata(metadata) || "travel",
       price: "1.0", // Fixed mint price
       isForSale: 0,
@@ -243,7 +255,20 @@ export class BlockchainService {
       attr.trait_type?.toLowerCase().includes('lat')
     );
     
-    return latAttr?.value || null;
+    if (latAttr?.value) {
+      return latAttr.value;
+    }
+    
+    // If no explicit latitude, try to infer from location
+    const locationAttr = metadata.attributes.find((attr: any) => 
+      attr.trait_type?.toLowerCase().includes('location')
+    );
+    
+    if (locationAttr?.value?.toLowerCase() === 'tuzla') {
+      return "40.8256"; // Tuzla, Istanbul coordinates
+    }
+    
+    return null;
   }
   
   private extractLongitudeFromMetadata(metadata: any): string | null {
@@ -255,7 +280,20 @@ export class BlockchainService {
       attr.trait_type?.toLowerCase().includes('lon')
     );
     
-    return lngAttr?.value || null;
+    if (lngAttr?.value) {
+      return lngAttr.value;
+    }
+    
+    // If no explicit longitude, try to infer from location
+    const locationAttr = metadata.attributes.find((attr: any) => 
+      attr.trait_type?.toLowerCase().includes('location')
+    );
+    
+    if (locationAttr?.value?.toLowerCase() === 'tuzla') {
+      return "29.2997"; // Tuzla, Istanbul coordinates
+    }
+    
+    return null;
   }
   
   private extractCategoryFromMetadata(metadata: any): string | null {

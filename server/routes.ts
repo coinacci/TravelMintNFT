@@ -353,13 +353,25 @@ export async function registerRoutes(app: Express) {
             platformFee: "0.0",
           });
         } else {
-          // Update existing NFT with latest data
-          const updatedNFT = await storage.updateNFT(dbFormat.id, {
-            ownerAddress: walletAddress,
-            metadata: dbFormat.metadata
-          });
+          // Update existing NFT with fresh data from blockchain
+          const updateData = {
+            ownerAddress: dbFormat.ownerAddress,
+            metadata: dbFormat.metadata,
+            location: dbFormat.location,
+            latitude: dbFormat.latitude,
+            longitude: dbFormat.longitude,
+            category: dbFormat.category,
+            title: dbFormat.title,
+            description: dbFormat.description,
+            imageUrl: dbFormat.imageUrl
+          };
+          
+          console.log(`🔄 Updating NFT ${dbFormat.id} with fresh blockchain data:`, updateData);
+          
+          const updatedNFT = await storage.updateNFT(dbFormat.id, updateData);
           if (updatedNFT) {
             dbNFTs.push(updatedNFT);
+            console.log(`✅ Updated NFT ${dbFormat.id} with fresh metadata: location=${dbFormat.location}, coords=${dbFormat.latitude},${dbFormat.longitude}`);
           }
         }
       }
