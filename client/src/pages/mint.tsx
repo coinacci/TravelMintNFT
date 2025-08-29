@@ -483,17 +483,6 @@ export default function Mint() {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  {/* EMERGENCY SIMPLE BUTTON */}
-                  <Button
-                    className="w-full bg-red-600 text-white py-3 font-medium"
-                    onClick={() => {
-                      console.log('🚨 EMERGENCY BUTTON CLICKED!');
-                      alert('BUTTON WORKS!');
-                    }}
-                  >
-                    🚨 TEST BUTTON (Click Me!)
-                  </Button>
-
                   <Button
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={() => {
