@@ -391,8 +391,8 @@ export default function Mint() {
       const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas || undefined;
       
       console.log('⛽ Gas data:', { 
-        gasPrice: gasPrice ? gasPrice.toString() : 'null', 
-        maxFeePerGas: maxFeePerGas ? maxFeePerGas.toString() : 'null' 
+        gasPrice: gasPrice ? String(gasPrice) : 'null', 
+        maxFeePerGas: maxFeePerGas ? String(maxFeePerGas) : 'null' 
       });
       
       setMintingStep('approving');
