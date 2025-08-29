@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import NFTCard from "@/components/nft-card";
@@ -66,41 +66,30 @@ export default function MyNFTs() {
     );
   }
 
-  // Blockchain sync mutation
+  // Automatic blockchain sync on wallet connection
   const syncMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/sync/wallet/${address}`, {});
     },
     onSuccess: (data: any) => {
-      toast({
-        title: "Sync Successful",
-        description: `Synced ${data.syncedNFTs || 1} NFT(s) from blockchain`,
-      });
+      // Silent sync - no toast notifications
       // Invalidate all NFT queries to refresh the display
       queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
       queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
       queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Sync Failed",
-        description: error.message || "Failed to sync NFTs from blockchain",
-        variant: "destructive",
-      });
+      // Silent error handling for background sync
+      console.log('Background sync failed:', error.message);
     },
   });
 
-  const handleSyncFromBlockchain = () => {
-    if (!address) {
-      toast({
-        title: "Wallet Required",
-        description: "Please connect your wallet to sync NFTs",
-        variant: "destructive",
-      });
-      return;
+  // Auto-sync when wallet address is available
+  React.useEffect(() => {
+    if (address && isConnected) {
+      syncMutation.mutate();
     }
-    syncMutation.mutate();
-  };
+  }, [address, isConnected]);
 
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
@@ -249,19 +238,9 @@ export default function MyNFTs() {
             <p className="text-muted-foreground mb-4" data-testid="no-nfts-message">
               You don't have any NFTs yet
             </p>
-            <div className="space-y-3">
-              <Button 
-                onClick={handleSyncFromBlockchain}
-                disabled={syncMutation.isPending}
-                data-testid="sync-nfts-button"
-                className="mr-3"
-              >
-                {syncMutation.isPending ? "Syncing..." : "Sync from Blockchain"}
-              </Button>
-              <Button data-testid="create-nft-button">
-                <a href="/mint">Create New NFT</a>
-              </Button>
-            </div>
+            <Button data-testid="create-nft-button">
+              <a href="/mint">Create Your First NFT</a>
+            </Button>
           </div>
         )}
       </div>
