@@ -135,19 +135,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
       {/* Floating Stats Panel */}
       <div className="absolute bottom-4 left-4 floating-panel rounded-lg p-4 z-10">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-primary" data-testid="total-nfts">
-              {stats?.totalNFTs || 0}
-            </div>
-            <div className="text-xs text-muted-foreground">NFTs Minted</div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-primary" data-testid="total-nfts">
+            {stats?.totalNFTs || 0}
           </div>
-          <div>
-            <div className="text-2xl font-bold text-accent" data-testid="total-volume">
-              {stats?.totalVolume || "0"}K
-            </div>
-            <div className="text-xs text-muted-foreground">USDC Volume</div>
-          </div>
+          <div className="text-xs text-muted-foreground">NFTs Minted</div>
         </div>
       </div>
     </div>

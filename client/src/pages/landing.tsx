@@ -147,7 +147,7 @@ export default function Landing() {
       {/* Statistics Section */}
       <section className="py-16 bg-muted/50">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto">
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-primary mb-2" data-testid="stats-nfts">
                 {stats?.totalNFTs || 0}
@@ -167,13 +167,6 @@ export default function Landing() {
                 {Math.floor((stats?.totalNFTs || 0) * 0.7)}
               </div>
               <div className="text-sm text-muted-foreground">Active Traders</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-accent mb-2" data-testid="stats-volume">
-                {formatVolume(stats?.totalVolume || "0")}k
-              </div>
-              <div className="text-sm text-muted-foreground">USDC Volume</div>
             </div>
           </div>
         </div>
