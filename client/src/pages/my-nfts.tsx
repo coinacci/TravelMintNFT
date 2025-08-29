@@ -69,6 +69,8 @@ export default function MyNFTs() {
         description: "Your NFT listing has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
     },
     onError: (error: any) => {
       toast({
