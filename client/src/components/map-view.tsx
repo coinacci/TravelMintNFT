@@ -25,8 +25,19 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
-  const { data: nfts = [] } = useQuery<NFT[]>({
+  const { data: nfts = [], isLoading: nftsLoading, isError, error } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
+    staleTime: 0, // Always fetch fresh
+    refetchOnMount: true,
+  });
+  
+  // DEBUG: Console log for troubleshooting
+  console.log('🗺 EXPLORE MAP DEBUG:', {
+    nftsCount: nfts?.length || 0,
+    nftsLoading,
+    isError,
+    error: error?.message,
+    firstNFT: nfts?.[0]
   });
 
   const { data: stats } = useQuery<{ totalNFTs: number; totalVolume: string }>({

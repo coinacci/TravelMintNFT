@@ -37,9 +37,22 @@ export default function MyNFTs() {
   const queryClient = useQueryClient();
   const { address, isConnected } = useAccount();
 
-  const { data: nfts = [], isLoading } = useQuery<NFT[]>({
+  const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`],
     enabled: !!address && isConnected,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+  });
+  
+  // DEBUG: Console log for troubleshooting
+  console.log('🔍 MY NFTs DEBUG:', {
+    address, 
+    isConnected, 
+    enabled: !!address && isConnected,
+    nftsCount: nfts?.length || 0,
+    isLoading,
+    isError,
+    error: error?.message
   });
 
   // Show wallet connection if not connected
@@ -118,6 +131,14 @@ export default function MyNFTs() {
         return 0; // Recent (default order)
     }
   });
+  
+  // DEBUG: Sorting debug
+  console.log('📊 SORTED NFTs DEBUG:', {
+    originalCount: nfts?.length || 0,
+    sortedCount: sortedNFTs?.length || 0,
+    sortBy,
+    firstSorted: sortedNFTs?.[0]
+  });
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
@@ -147,8 +168,9 @@ export default function MyNFTs() {
               </div>
             ))}
           </div>
-        ) : sortedNFTs.length > 0 ? (
+        ) : (sortedNFTs && sortedNFTs.length > 0) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="my-nfts-grid">
+            <div className="text-xs text-blue-600 mb-2">DEBUG: Rendering {sortedNFTs.length} NFTs</div>
             {sortedNFTs.map((nft) => (
               <div key={nft.id} className="space-y-3">
                 <NFTCard
@@ -203,7 +225,7 @@ export default function MyNFTs() {
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4" data-testid="no-nfts-message">
-              You don't have any NFTs yet
+              You don't have any NFTs yet (Debug: {sortedNFTs?.length || 0} NFTs, original: {nfts?.length || 0})
             </p>
             <Button data-testid="create-nft-button">
               <a href="/mint">Create Your First NFT</a>
