@@ -41,22 +41,26 @@ const USDC_ABI = [
   }
 ] as const;
 
-// Simple NFT Contract ABI for minting  
+// TravelNFT Contract ABI for minting  
 const NFT_ABI = [
   {
-    name: 'mint',
+    name: 'mintTravelNFT',
     type: 'function',
-    stateMutability: 'nonpayable', // Changed from payable since we use USDC
+    stateMutability: 'nonreentrant',
     inputs: [
       { name: 'to', type: 'address' },
-      { name: 'quantity', type: 'uint256' }
+      { name: 'location', type: 'string' },
+      { name: 'latitude', type: 'string' },
+      { name: 'longitude', type: 'string' },
+      { name: 'category', type: 'string' },
+      { name: 'tokenURI', type: 'string' }
     ],
-    outputs: []
+    outputs: [{ name: '', type: 'uint256' }]
   }
 ] as const;
 
-// Mock NFT contract for demo purposes - this would be replaced with real contract
-const NFT_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+// Real TravelNFT contract deployed on Base mainnet
+const NFT_CONTRACT_ADDRESS = '0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f' as const;
 
 export default function Mint() {
   const [title, setTitle] = useState("");
@@ -113,11 +117,30 @@ export default function Mint() {
       const maxFeePerGas = feeData?.maxFeePerGas;
       const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
       
+      // Create a simple metadata URI for now
+      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
+        name: title,
+        description: description || "Travel NFT minted on TravelMint",
+        image: imagePreview,
+        attributes: [
+          { trait_type: "Category", value: category },
+          { trait_type: "Location", value: location!.city || "Unknown City" },
+          { trait_type: "Minted Date", value: new Date().toISOString() }
+        ]
+      }))}`;
+      
       writeContract({
         address: NFT_CONTRACT_ADDRESS,
         abi: NFT_ABI,
-        functionName: 'mint',
-        args: [address!, BigInt(1)], // mint 1 NFT to user's address
+        functionName: 'mintTravelNFT',
+        args: [
+          address!, // to
+          location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`, // location
+          location!.latitude.toString(), // latitude
+          location!.longitude.toString(), // longitude
+          category, // category
+          metadataUri // tokenURI
+        ],
         gasPrice: gasPrice,
         maxFeePerGas: maxFeePerGas,
         maxPriorityFeePerGas: maxPriorityFeePerGas,
@@ -271,40 +294,7 @@ export default function Mint() {
       return;
     }
 
-    // Check if we have a valid NFT contract
-    if (NFT_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
-      toast({
-        title: "Demo Mode",
-        description: "Currently in demo mode - creating NFT record without blockchain transaction",
-        variant: "default",
-      });
-
-      // Create NFT record directly in database for demo
-      const actualImageUrl = imagePreview || `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
-      
-      const nftData = {
-        walletAddress: address!,
-        title,
-        description,
-        imageUrl: actualImageUrl,
-        location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
-        latitude: location!.latitude.toString(),
-        longitude: location!.longitude.toString(),
-        category,
-        price: enableListing ? salePrice : "0",
-        isForSale: enableListing ? 1 : 0,
-        mintPrice: "1.000000", // 1 USDC in display format
-        royaltyPercentage: "5.00",
-        transactionHash: `0xdemo${Date.now()}`, // Demo transaction hash
-        metadata: {
-          featured: featuredPlacement,
-          originalFilename: imageFile!.name,
-        },
-      };
-
-      mintMutation.mutate(nftData);
-      return;
-    }
+    // Now using real NFT contract on Base mainnet
 
     try {
       // Start blockchain transaction
