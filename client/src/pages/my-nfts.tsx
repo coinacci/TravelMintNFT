@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import NFTCard from "@/components/nft-card";
@@ -36,6 +36,7 @@ export default function MyNFTs() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { address, isConnected } = useAccount();
+  const syncedAddressRef = useRef<string | null>(null);
 
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`],
@@ -84,9 +85,10 @@ export default function MyNFTs() {
     },
   });
 
-  // Auto-sync when wallet address is available
+  // Auto-sync when wallet address is available (only once per address)
   React.useEffect(() => {
-    if (address && isConnected) {
+    if (address && isConnected && syncedAddressRef.current !== address) {
+      syncedAddressRef.current = address;
       syncMutation.mutate();
     }
   }, [address, isConnected]);
