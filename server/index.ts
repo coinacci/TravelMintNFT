@@ -6,6 +6,9 @@ const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for image uploads
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Serve attached assets statically
+app.use('/attached_assets', express.static('attached_assets'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
