@@ -510,8 +510,7 @@ export default function Mint() {
                     data-testid="mint-button"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {"MINT DISABLED - TESTING HMR" ||
-                     mintMutation.isPending ? "Saving to marketplace..." :
+                    {mintMutation.isPending ? "Saving to marketplace..." :
                      !isConnected ? "Connect wallet to mint" :
                      locationLoading ? "Getting location..." :
                      !location ? "Location required" :
