@@ -226,76 +226,46 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Get NFTs by wallet address - use real blockchain data
+  // Get NFTs by wallet address - simplified and stable
   app.get("/api/wallet/:address/nfts", async (req, res) => {
     try {
       const walletAddress = req.params.address.toLowerCase();
       console.log(`🔗 Fetching NFTs for wallet: ${walletAddress}`);
       
-      // Get real NFTs from blockchain for this wallet
-      const blockchainNFTs = await blockchainService.getNFTsByOwner(walletAddress);
-      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain for wallet ${walletAddress}`);
-      
-      // Also get existing NFTs from database to merge data
+      // Get NFTs from database first (already synced)
       const dbNfts = await storage.getNFTsByOwner(walletAddress);
       const contractDbNfts = dbNfts.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
       
-      // Merge blockchain and database data
-      const mergedNFTs = [];
-      
-      for (const blockchainNFT of blockchainNFTs) {
-        const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
-        
-        // Check if this NFT exists in database
-        let dbNFT = contractDbNfts.find(nft => nft.tokenId === blockchainNFT.tokenId);
-        
-        if (!dbNFT) {
-          // Create new NFT record if not exists
-          dbNFT = await storage.createNFT(dbFormat);
-        } else if (dbNFT.ownerAddress !== blockchainNFT.owner) {
-          // Update owner if it changed on blockchain
-          dbNFT = await storage.updateNFT(dbNFT.id, {
-            ownerAddress: blockchainNFT.owner
-          });
-        }
-        
-        if (dbNFT) {
-          mergedNFTs.push(dbNFT);
-        }
-      }
-      
-      const nftsWithOwners = await Promise.all(
-        mergedNFTs.map(async (nft) => {
-          // Parse metadata for wallet NFTs
-          let parsedMetadata = null;
-          try {
-            if (nft.metadata && typeof nft.metadata === 'string') {
-              parsedMetadata = JSON.parse(nft.metadata);
-            }
-          } catch (e) {
-            console.log('Failed to parse metadata for NFT:', nft.id);
+      const nftsWithOwners = contractDbNfts.map((nft) => {
+        // Parse metadata for wallet NFTs
+        let parsedMetadata = null;
+        try {
+          if (nft.metadata && typeof nft.metadata === 'string') {
+            parsedMetadata = JSON.parse(nft.metadata);
           }
+        } catch (e) {
+          console.log('Failed to parse metadata for NFT:', nft.id);
+        }
 
-          return {
-            ...nft,
-            // Use metadata name and image if available, fallback to NFT fields
-            title: parsedMetadata?.name || nft.title,
-            imageUrl: parsedMetadata?.image || nft.imageUrl,
-            owner: { 
-              id: nft.ownerAddress, 
-              username: nft.ownerAddress.slice(0, 8) + '...', 
-              avatar: null 
-            },
-            creator: { 
-              id: nft.creatorAddress, 
-              username: nft.creatorAddress.slice(0, 8) + '...', 
-              avatar: null 
-            }
-          };
-        })
-      );
+        return {
+          ...nft,
+          // Use uploaded travel images for known tokens, otherwise use stored imageUrl
+          imageUrl: nft.imageUrl, // This already has the correct image paths
+          title: parsedMetadata?.name || nft.title,
+          owner: { 
+            id: nft.ownerAddress, 
+            username: nft.ownerAddress.slice(0, 8) + '...', 
+            avatar: null 
+          },
+          creator: { 
+            id: nft.creatorAddress, 
+            username: nft.creatorAddress.slice(0, 8) + '...', 
+            avatar: null 
+          }
+        };
+      });
       
       console.log(`✅ Returning ${nftsWithOwners.length} NFTs for wallet ${walletAddress}`);
       res.json(nftsWithOwners);
