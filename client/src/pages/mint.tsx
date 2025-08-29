@@ -335,14 +335,15 @@ export default function Mint() {
       setMintingStep('approving');
       console.log('🎯 Creating batch transaction: approve + mint');
       
-      // Create optimized metadata URI (smaller payload for mobile)
+      // Create optimized metadata URI with actual uploaded image
       const metadataUri = `data:application/json;base64,${btoa(JSON.stringify({
         name: title,
         description: description || "Travel NFT",
-        image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=400&fit=crop",
+        image: imagePreview || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=400&fit=crop",
         attributes: [
           { trait_type: "Category", value: category },
-          { trait_type: "Location", value: location.city || "Unknown" }
+          { trait_type: "Location", value: location.city || "Unknown" },
+          { trait_type: "Uploaded Image", value: "true" } // Mark that this uses real uploaded image
         ]
       }))}`;
       

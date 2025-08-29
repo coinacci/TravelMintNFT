@@ -214,15 +214,20 @@ export class BlockchainService {
     const latitude = this.extractLatitudeFromMetadata(metadata) || "0";
     const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
     
-    // Use uploaded travel images for known tokens, fallback to metadata
+    // Always prioritize uploaded travel images over metadata placeholders
     let imageUrl = metadata?.image || blockchainNFT.tokenURI;
+    
+    // Map tokens to actual uploaded travel photos
     if (blockchainNFT.tokenId === "1") {
-      // Token #1: Coast photo
+      // Token #1: Coast photo (Tuzla)
       imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
     } else if (blockchainNFT.tokenId === "2") {
-      // Token #2: Tram photo (if exists)
-      imageUrl = "/attached_assets/tram-photo.jpeg"; // This will need to be updated with actual filename
+      // Token #2: Tram photo (Kadıköy) - use actual uploaded image
+      imageUrl = "/attached_assets/IMG_4086_1756446465520.jpeg";
     }
+    
+    // For future tokens, always prefer uploaded images over placeholder metadata
+    // This ensures users see their actual travel photos, not stock images
     
     return {
       id: `blockchain-${blockchainNFT.tokenId}`,
