@@ -29,14 +29,14 @@ export function WalletConnect() {
   const handleConnect = async (connector: any) => {
     try {
       console.log('Attempting to connect with:', connector.name);
-      console.log('Connector details:', connector);
       
-      // Special handling for Coinbase Wallet
-      if (connector.name === 'Coinbase Wallet') {
-        console.log('Coinbase Wallet connection attempt - using smart wallet preference');
-      }
+      // Add connection timeout
+      const connectionPromise = connect({ connector });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout')), 30000)
+      );
       
-      await connect({ connector });
+      await Promise.race([connectionPromise, timeoutPromise]);
       setIsOpen(false);
       
       toast({
@@ -45,22 +45,23 @@ export function WalletConnect() {
       });
     } catch (error) {
       console.error('Wallet connection failed:', error);
-      console.error('Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
       
       let errorMessage = "Failed to connect wallet";
       let errorTitle = "Connection Failed";
       
       if (error instanceof Error) {
-        if (error.message.includes('rejected') || error.message.includes('denied')) {
+        if (error.message.includes('timeout')) {
+          errorTitle = "Connection Timeout";
+          errorMessage = "Connection took too long. Please try again";
+        } else if (error.message.includes('rejected') || error.message.includes('denied')) {
           errorTitle = "Connection Rejected";
-          errorMessage = "Please try again and approve the connection request";
+          errorMessage = "Please approve the connection request";
         } else if (error.message.includes('popup')) {
           errorTitle = "Popup Blocked";
           errorMessage = "Please allow popups and try again";
+        } else if (error.message.includes('User rejected')) {
+          errorTitle = "Connection Cancelled";
+          errorMessage = "Connection was cancelled by user";
         } else {
           errorMessage = error.message;
         }
@@ -71,6 +72,9 @@ export function WalletConnect() {
         description: errorMessage,
         variant: "destructive",
       });
+      
+      // Reset dialog state on error
+      setIsOpen(false);
     }
   };
 

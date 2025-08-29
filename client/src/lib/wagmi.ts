@@ -10,13 +10,17 @@ export const config = createConfig({
     frameConnector(),
     coinbaseWallet({
       appName: 'TravelMint',
-      preference: 'smartWalletOnly', // Use smart wallet for better UX
+      preference: 'all', // Support both smart wallet and EOA
       version: '4',
     }),
   ],
   transports: {
-    [base.id]: http('https://mainnet.base.org'),
-    [mainnet.id]: http('https://cloudflare-eth.com'),
+    [base.id]: http('https://mainnet.base.org', {
+      timeout: 10000, // 10 second timeout
+    }),
+    [mainnet.id]: http('https://cloudflare-eth.com', {
+      timeout: 10000, // 10 second timeout
+    }),
   },
   ssr: false,
 })
