@@ -91,9 +91,13 @@ export default function Explore() {
                     alt={nftDetails.title}
                     className="w-full h-64 md:h-80 object-cover rounded-lg"
                     data-testid="modal-nft-image"
+                    loading="eager"
+                    decoding="async"
+                    onLoad={() => console.log('✅ Image loaded successfully:', nftDetails.imageUrl)}
                     onError={(e) => {
-                      console.error('Image failed to load:', nftDetails.imageUrl);
-                      e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="320"><rect width="100%" height="100%" fill="#ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#999">Image not found</text></svg>';
+                      console.error('❌ Image failed to load:', nftDetails.imageUrl);
+                      const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="320"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-family="Inter,sans-serif">Travel Photo Loading...</text></svg>';
+                      e.currentTarget.src = fallbackSvg;
                     }}
                   />
                   

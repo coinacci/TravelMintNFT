@@ -32,6 +32,14 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           alt={nft.title}
           className="w-full h-48 object-cover"
           data-testid={`nft-image-${nft.id}`}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => console.log('✅ Card image loaded:', nft.title)}
+          onError={(e) => {
+            console.error('❌ Card image failed:', nft.imageUrl);
+            const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="192"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-size="14" font-family="Inter,sans-serif">Travel Photo</text></svg>';
+            e.currentTarget.src = fallbackSvg;
+          }}
         />
         <div className="absolute top-2 right-2 price-tag text-white px-2 py-1 rounded text-xs font-medium">
           <span data-testid={`nft-price-${nft.id}`}>{formatPrice(nft.price)} USDC</span>
