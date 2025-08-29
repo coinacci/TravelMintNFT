@@ -55,8 +55,8 @@ const NFT_ABI = [
   }
 ] as const;
 
-// Example NFT contract address on Base (you would replace with your actual contract)
-const NFT_CONTRACT_ADDRESS = '0x1234567890123456789012345678901234567890' as const;
+// Mock NFT contract for demo purposes - this would be replaced with real contract
+const NFT_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export default function Mint() {
   const [title, setTitle] = useState("");
@@ -271,6 +271,41 @@ export default function Mint() {
       return;
     }
 
+    // Check if we have a valid NFT contract
+    if (NFT_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      toast({
+        title: "Demo Mode",
+        description: "Currently in demo mode - creating NFT record without blockchain transaction",
+        variant: "default",
+      });
+
+      // Create NFT record directly in database for demo
+      const actualImageUrl = imagePreview || `https://images.unsplash.com/photo-${Date.now()}?w=600&h=400&fit=crop`;
+      
+      const nftData = {
+        walletAddress: address!,
+        title,
+        description,
+        imageUrl: actualImageUrl,
+        location: location!.city || `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`,
+        latitude: location!.latitude.toString(),
+        longitude: location!.longitude.toString(),
+        category,
+        price: enableListing ? salePrice : "0",
+        isForSale: enableListing ? 1 : 0,
+        mintPrice: "1.000000", // 1 USDC in display format
+        royaltyPercentage: "5.00",
+        transactionHash: `0xdemo${Date.now()}`, // Demo transaction hash
+        metadata: {
+          featured: featuredPlacement,
+          originalFilename: imageFile!.name,
+        },
+      };
+
+      mintMutation.mutate(nftData);
+      return;
+    }
+
     try {
       // Start blockchain transaction
       toast({
@@ -302,6 +337,7 @@ export default function Mint() {
         description: error.message || "Failed to initiate transaction",
         variant: "destructive",
       });
+      setMintingStep('idle');
     }
   };
 

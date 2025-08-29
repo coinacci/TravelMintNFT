@@ -1,11 +1,11 @@
 import { createConfig, http } from 'wagmi'
-import { base, mainnet } from 'wagmi/chains'
+import { base, mainnet, baseSepolia } from 'wagmi/chains'
 import { coinbaseWallet } from 'wagmi/connectors'
 import frameConnector from '@farcaster/frame-wagmi-connector'
 
 // Configure wagmi
 export const config = createConfig({
-  chains: [base, mainnet],
+  chains: [base, mainnet, baseSepolia],
   connectors: [
     frameConnector(),
     coinbaseWallet({
@@ -19,6 +19,9 @@ export const config = createConfig({
       timeout: 10000, // 10 second timeout
     }),
     [mainnet.id]: http('https://cloudflare-eth.com', {
+      timeout: 10000, // 10 second timeout
+    }),
+    [baseSepolia.id]: http('https://sepolia.base.org', {
       timeout: 10000, // 10 second timeout
     }),
   },
