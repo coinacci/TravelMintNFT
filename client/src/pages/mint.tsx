@@ -112,11 +112,11 @@ export default function Mint() {
   
   
 
-  // TEMPORARILY DISABLED - testing HMR loop
-  // useEffect(() => {
-  //   console.log('🎬 MINT PAGE LOADED');
-  //   getCurrentLocation();
-  // }, []);
+  // Auto-get location when page loads
+  useEffect(() => {
+    console.log('🎬 MINT PAGE LOADED - Getting location...');
+    getCurrentLocation();
+  }, [getCurrentLocation]);
 
   // REMOVED: State debug - causing infinite loop
 
