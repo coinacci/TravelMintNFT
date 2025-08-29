@@ -269,39 +269,67 @@ export default function Mint() {
         ]
       }))}`;
       
-      // 🔥 BATCH: Both approve + mint in single confirmation!
-      console.log('⚠️ Batch transactions disabled - testing mode');
+      // 🔥 TEMPORARY MOCK MINT - Replace with real blockchain transaction
+      console.log('🎯 MOCK MINT: Creating NFT locally...');
       
-      // TODO: Re-enable batch transactions once testing is done
-      // await sendCalls({
-      //   calls: [
-      //     {
-      //       to: USDC_CONTRACT_ADDRESS,
-      //       data: encodeFunctionData({
-      //         abi: USDC_ABI,
-      //         functionName: 'approve',
-      //         args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
-      //       })
-      //     },
-      //     {
-      //       to: NFT_CONTRACT_ADDRESS,
-      //       data: encodeFunctionData({
-      //         abi: NFT_ABI,
-      //         functionName: 'mintTravelNFT',
-      //         args: [
-      //           address,
-      //           location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
-      //           location.latitude.toString(),
-      //           location.longitude.toString(), 
-      //           category,
-      //           metadataUri
-      //         ]
-      //       })
-      //     }
-      //   ]
-      // });
+      // Create mock NFT data for testing
+      const mockNFT = {
+        id: Math.random().toString(36).substr(2, 9),
+        title,
+        description: description || "Travel NFT minted on TravelMint", 
+        category,
+        image: imagePreview,
+        location: {
+          city: location.city || "Unknown City",
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+        price: 1,
+        forSale: enableListing,
+        salePrice: enableListing ? parseFloat(salePrice) || 1 : undefined,
+        owner: address,
+        minter: address,
+        mintedAt: new Date().toISOString(),
+        tokenId: Math.floor(Math.random() * 1000000)
+      };
       
-      console.log('✅ Batch transaction sent!');
+      console.log('📦 Mock NFT created:', mockNFT);
+      
+      // Save to marketplace using backend API
+      const response = await fetch('/api/nfts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mockNFT),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save NFT to marketplace');
+      }
+      
+      console.log('✅ NFT saved to marketplace successfully!');
+      
+      // Success handling
+      setMintingStep('idle');
+      toast({
+        title: "🎉 NFT Minted Successfully!",
+        description: `Your travel NFT "${title}" has been created and saved to the marketplace`,
+        variant: "default",
+      });
+      
+      // Refresh marketplace data
+      queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      // Reset form (optional - user might want to mint more)
+      setTitle('');
+      setDescription('');
+      setCategory('');
+      setImageFile(null);
+      setImagePreview(null);
+      setEnableListing(false);
+      setSalePrice('');
       
     } catch (error) {
       console.error('❌ Batch transaction failed:', error);
