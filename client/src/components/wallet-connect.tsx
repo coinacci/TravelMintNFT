@@ -39,10 +39,7 @@ export function WalletConnect() {
       await Promise.race([connectionPromise, timeoutPromise]);
       setIsOpen(false);
       
-      toast({
-        title: "Wallet Connected",
-        description: `Successfully connected with ${connector.name}`,
-      });
+      // Wallet connected toast removed for cleaner UX
     } catch (error) {
       console.error('Wallet connection failed:', error);
       
@@ -83,10 +80,7 @@ export function WalletConnect() {
       disconnect();
       setIsOpen(false);
       
-      toast({
-        title: "Wallet Disconnected",
-        description: "Your wallet has been disconnected successfully",
-      });
+      // Wallet disconnected toast removed for cleaner UX
     } catch (error) {
       console.error('Disconnect error:', error);
       toast({

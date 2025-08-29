@@ -122,10 +122,7 @@ export default function Mint() {
       console.log('✅ USDC approval confirmed:', hash);
       setApprovalHash(hash);
       
-      toast({
-        title: "USDC Approved",
-        description: "Now please confirm NFT minting transaction",
-      });
+      // toast removed for cleaner UX
       
       // Move to minting step without delay
       setMintingStep('minting');
@@ -244,10 +241,7 @@ export default function Mint() {
       return apiRequest("POST", "/api/nfts", nftData);
     },
     onSuccess: () => {
-      toast({
-        title: "NFT Minted Successfully!",
-        description: "Your travel photo has been minted as an NFT.",
-      });
+      // NFT success toast removed for cleaner UX
       queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
       queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
       // Reset form
@@ -351,10 +345,7 @@ export default function Mint() {
 
     try {
       // Start blockchain transaction
-      toast({
-        title: "Preparing Transaction",
-        description: "Please confirm the transaction in your wallet. If you see a safety warning, you can proceed - this is our official contract.",
-      });
+      // Preparing transaction toast removed for cleaner UX
       
       // Use USDC for minting (1 USDC = $1 fixed price)
       const gasPrice = feeData?.gasPrice;
