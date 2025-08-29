@@ -66,6 +66,42 @@ export default function MyNFTs() {
     );
   }
 
+  // Blockchain sync mutation
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/sync/wallet/${address}`, {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Sync Successful",
+        description: `Synced ${data.syncedNFTs || 1} NFT(s) from blockchain`,
+      });
+      // Invalidate all NFT queries to refresh the display
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync NFTs from blockchain",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSyncFromBlockchain = () => {
+    if (!address) {
+      toast({
+        title: "Wallet Required",
+        description: "Please connect your wallet to sync NFTs",
+        variant: "destructive",
+      });
+      return;
+    }
+    syncMutation.mutate();
+  };
+
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
       return apiRequest("PATCH", `/api/nfts/${nftId}`, updates);
@@ -211,11 +247,21 @@ export default function MyNFTs() {
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4" data-testid="no-nfts-message">
-              You don't have any NFTs yet (Debug: {sortedNFTs?.length || 0} NFTs, original: {nfts?.length || 0})
+              You don't have any NFTs yet
             </p>
-            <Button data-testid="create-nft-button">
-              <a href="/mint">Create Your First NFT</a>
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={handleSyncFromBlockchain}
+                disabled={syncMutation.isPending}
+                data-testid="sync-nfts-button"
+                className="mr-3"
+              >
+                {syncMutation.isPending ? "Syncing..." : "Sync from Blockchain"}
+              </Button>
+              <Button data-testid="create-nft-button">
+                <a href="/mint">Create New NFT</a>
+              </Button>
+            </div>
           </div>
         )}
       </div>

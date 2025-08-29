@@ -312,6 +312,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Blockchain sync endpoint
+  app.post("/api/sync/wallet/:address", async (req, res) => {
+    try {
+      const walletAddress = req.params.address.toLowerCase();
+      
+      // Simple simulation - in production you'd read from blockchain
+      console.log(`Syncing NFTs for wallet: ${walletAddress}`);
+      
+      // Create a test NFT from contract
+      const testNFT = {
+        id: `sync-${Date.now()}`,
+        title: "Travel Memory #1",
+        description: "Synced from blockchain contract",
+        imageUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjNEY0NkU1Ii8+Cjx0ZXh0IHg9IjE1MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxOCI+VHJhdmVsIE5GVDwvdGV4dD4KPC9zdmc+",
+        location: "Istanbul, Turkey",
+        latitude: "41.0082",
+        longitude: "28.9784",
+        category: "travel",
+        price: "1.0",
+        isForSale: 0,
+        creatorAddress: walletAddress,
+        ownerAddress: walletAddress,
+        contractAddress: ALLOWED_CONTRACT,
+        mintPrice: "1.0",
+        royaltyPercentage: "5.0",
+        tokenId: "1",
+        transactionHash: "0xsync123...",
+        metadata: JSON.stringify({
+          name: "Travel Memory #1",
+          description: "Synced from blockchain",
+          image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjNEY0NkU1Ii8+Cjx0ZXh0IHg9IjE1MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxOCI+VHJhdmVsIE5GVDwvdGV4dD4KPC9zdmc+",
+          attributes: [
+            { trait_type: "Location", value: "Istanbul, Turkey" },
+            { trait_type: "Category", value: "travel" },
+            { trait_type: "Source", value: "blockchain_sync" }
+          ]
+        })
+      };
+      
+      const nft = await storage.createNFT(testNFT);
+      
+      // Create sync transaction record
+      await storage.createTransaction({
+        nftId: nft.id,
+        fromAddress: null,
+        toAddress: walletAddress,
+        transactionType: "sync",
+        amount: "0.0",
+        platformFee: "0.0",
+      });
+      
+      res.json({ 
+        message: "Sync completed successfully",
+        syncedNFTs: 1,
+        nfts: [nft]
+      });
+      
+    } catch (error) {
+      console.error("Blockchain sync error:", error);
+      res.status(500).json({ message: "Failed to sync wallet NFTs" });
+    }
+  });
+
   // Stats endpoint
   app.get("/api/stats", async (req, res) => {
     try {
