@@ -45,28 +45,6 @@ export default function MyNFTs() {
     refetchOnMount: true,
   });
   
-  // Log for troubleshooting
-  if (isError) {
-    console.log('NFT fetch error:', error?.message);
-  }
-
-  // Show wallet connection if not connected
-  if (!isConnected) {
-    return (
-      <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">My NFTs</h2>
-            <p className="text-muted-foreground mb-6">Connect your wallet to see your NFTs</p>
-            <div className="max-w-md mx-auto">
-              <WalletConnect />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Automatic blockchain sync on wallet connection
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -84,14 +62,6 @@ export default function MyNFTs() {
       console.log('Background sync failed:', error.message);
     },
   });
-
-  // Auto-sync when wallet address is available (only once per address)
-  React.useEffect(() => {
-    if (address && isConnected && syncedAddressRef.current !== address) {
-      syncedAddressRef.current = address;
-      syncMutation.mutate();
-    }
-  }, [address, isConnected]);
 
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
@@ -114,6 +84,36 @@ export default function MyNFTs() {
       });
     },
   });
+
+  // Auto-sync when wallet address is available (only once per address)
+  React.useEffect(() => {
+    if (address && isConnected && syncedAddressRef.current !== address) {
+      syncedAddressRef.current = address;
+      syncMutation.mutate();
+    }
+  }, [address, isConnected]);
+
+  // Log for troubleshooting
+  if (isError) {
+    console.log('NFT fetch error:', error?.message);
+  }
+
+  // Show wallet connection if not connected
+  if (!isConnected) {
+    return (
+      <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">My NFTs</h2>
+            <p className="text-muted-foreground mb-6">Connect your wallet to see your NFTs</p>
+            <div className="max-w-md mx-auto">
+              <WalletConnect />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleListing = (nft: NFT, price?: string) => {
     if (nft.isForSale === 1) {
