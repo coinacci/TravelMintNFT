@@ -316,16 +316,6 @@ export default function Mint() {
   // 🚀 FARCASTER NATIVE: Batch approve + mint in ONE confirmation!
   const handleMint = async () => {
     console.log('🔥 BATCH MINT STARTING!');
-    console.log('🔍 HandleMint called with state:', {
-      address,
-      isConnected,
-      location,
-      title,
-      category,
-      hasImage: !!imageFile,
-      sendCalls: !!sendCalls,
-      isBatchPending
-    });
     
     if (!isConnected || !address || !location) {
       console.log('❌ Missing requirements');

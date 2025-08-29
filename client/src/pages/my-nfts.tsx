@@ -44,18 +44,10 @@ export default function MyNFTs() {
     refetchOnMount: true,
   });
   
-  // DEBUG: Console log for troubleshooting
-  console.log('🔍 MY NFTs RAW DATA DEBUG:', {
-    address, 
-    isConnected, 
-    enabled: !!address && isConnected,
-    rawNftsData: nfts,
-    nftsCount: nfts?.length || 0,
-    isLoading,
-    isError,
-    error: error?.message,
-    apiUrl: `/api/wallet/${address}/nfts`
-  });
+  // Log for troubleshooting
+  if (isError) {
+    console.log('NFT fetch error:', error?.message);
+  }
 
   // Show wallet connection if not connected
   if (!isConnected) {
@@ -134,13 +126,6 @@ export default function MyNFTs() {
     }
   });
   
-  // DEBUG: Sorting debug
-  console.log('📊 SORTED NFTs DEBUG:', {
-    originalCount: nfts?.length || 0,
-    sortedCount: sortedNFTs?.length || 0,
-    sortBy,
-    firstSorted: sortedNFTs?.[0]
-  });
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
@@ -172,7 +157,6 @@ export default function MyNFTs() {
           </div>
         ) : (sortedNFTs && sortedNFTs.length > 0) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="my-nfts-grid">
-            <div className="text-xs text-blue-600 mb-2">DEBUG: Rendering {sortedNFTs.length} NFTs</div>
             {sortedNFTs.map((nft) => (
               <div key={nft.id} className="space-y-3">
                 <NFTCard

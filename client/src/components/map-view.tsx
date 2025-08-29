@@ -31,14 +31,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     refetchOnMount: true,
   });
   
-  // DEBUG: Console log for troubleshooting
-  console.log('🗺 EXPLORE MAP DEBUG:', {
-    nftsCount: nfts?.length || 0,
-    nftsLoading,
-    isError,
-    error: error?.message,
-    firstNFT: nfts?.[0]
-  });
+  // Log errors for troubleshooting
+  if (isError) {
+    console.log('Map data fetch error:', error?.message);
+  }
 
   const { data: stats } = useQuery<{ totalNFTs: number; totalVolume: string }>({
     queryKey: ["/api/stats"],
