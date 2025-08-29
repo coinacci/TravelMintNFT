@@ -41,7 +41,7 @@ export default function MyNFTs() {
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`],
     enabled: !!address && isConnected,
-    staleTime: 60000, // Cache for 1 minute for stability
+    staleTime: 0, // Force fresh data to show updated images
     refetchOnMount: true,
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
     gcTime: 300000, // Keep in cache for 5 minutes

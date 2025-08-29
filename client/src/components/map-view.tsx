@@ -27,7 +27,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
-    staleTime: 15000, // Cache for 15 seconds for performance
+    staleTime: 0, // Force fresh data to show updated images
     refetchOnMount: true,
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
