@@ -108,6 +108,8 @@ export class MemStorage implements IStorage {
       transactionHash: insertNFT.transactionHash ?? null,
       metadata: insertNFT.metadata ?? null,
       isForSale: insertNFT.isForSale ?? 0, // Ensure isForSale is always a number
+      mintPrice: insertNFT.mintPrice ?? "1.000000", // Default to 1 USDC
+      royaltyPercentage: insertNFT.royaltyPercentage ?? "5.00", // Default to 5%
       id,
       createdAt: now,
       updatedAt: now,
