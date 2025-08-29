@@ -232,6 +232,16 @@ export default function Mint() {
   // 🚀 FARCASTER NATIVE: Batch approve + mint in ONE confirmation!
   const handleMint = async () => {
     console.log('🔥 BATCH MINT STARTING!');
+    console.log('🔍 HandleMint called with state:', {
+      address,
+      isConnected,
+      location,
+      title,
+      category,
+      hasImage: !!imageFile,
+      sendCalls: !!sendCalls,
+      isBatchPending
+    });
     
     if (!isConnected || !address || !location) {
       console.log('❌ Missing requirements');
@@ -487,6 +497,23 @@ export default function Mint() {
                     className="w-full bg-primary text-primary-foreground py-3 font-medium hover:bg-primary/90 transition-colors"
                     onClick={() => {
                       console.log('🟡 MINT BUTTON CLICKED!');
+                      console.log('🔍 Button state check:', {
+                        isBatchPending,
+                        isConnected,
+                        hasTitle: !!title,
+                        hasCategory: !!category,
+                        hasImage: !!imageFile,
+                        hasLocation: !!location,
+                        locationLoading,
+                        buttonDisabled: isBatchPending || !isConnected || !title || !category || !imageFile || !location
+                      });
+                      
+                      if (isBatchPending || !isConnected || !title || !category || !imageFile || !location) {
+                        console.log('🚫 Button is disabled - cannot proceed');
+                        return;
+                      }
+                      
+                      console.log('✅ Button conditions OK - calling handleMint...');
                       handleMint();
                     }}
                     disabled={isBatchPending || !isConnected || !title || !category || !imageFile || !location}
