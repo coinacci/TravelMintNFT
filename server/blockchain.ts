@@ -214,10 +214,11 @@ export class BlockchainService {
     const latitude = this.extractLatitudeFromMetadata(metadata) || "0";
     const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
     
-    // Use uploaded travel image instead of placeholder
+    // Always use the uploaded travel image for Token #1
     let imageUrl = metadata?.image || blockchainNFT.tokenURI;
-    if (blockchainNFT.tokenId === "1" && location?.toLowerCase() === "tuzla") {
-      imageUrl = "http://localhost:5000/attached_assets/IMG_4085_1756446465520.jpeg";
+    if (blockchainNFT.tokenId === "1") {
+      // Override metadata image with the actual uploaded photo
+      imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
     }
     
     return {
