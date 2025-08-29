@@ -101,6 +101,17 @@ export default function Mint() {
     hash,
   });
   
+  // Debug blockchain state changes
+  useEffect(() => {
+    console.log('🔄 Blockchain state change:', {
+      hash,
+      contractError: contractError?.message,
+      isContractPending,
+      isConfirming,
+      isConfirmed
+    });
+  }, [hash, contractError, isContractPending, isConfirming, isConfirmed]);
+  
   // Get current gas fee data from Base network
   const { data: feeData, isLoading: isFeeDataLoading } = useFeeData({
     chainId: 8453, // Base mainnet chain ID
@@ -323,7 +334,10 @@ export default function Mint() {
   };
 
   const handleMint = async () => {
+    console.log('🔥 MINT BUTTON CLICKED!');
+    
     if (!isConnected || !address) {
+      console.log('❌ Wallet not connected:', { isConnected, address });
       toast({
         title: "Wallet Not Connected",
         description: "Please connect your wallet to mint NFTs",
@@ -333,6 +347,7 @@ export default function Mint() {
     }
 
     if (!title || !category || !imageFile || !location) {
+      console.log('❌ Missing required fields:', { title, category, hasImage: !!imageFile, hasLocation: !!location });
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields and ensure location is detected",
@@ -341,27 +356,37 @@ export default function Mint() {
       return;
     }
 
-    // Now using real NFT contract on Base mainnet
+    console.log('✅ All validations passed');
+    console.log('📍 Location data:', location);
+    console.log('📄 Form data:', { title, category, description });
 
     try {
-      // Start blockchain transaction
-      // Preparing transaction toast removed for cleaner UX
+      console.log('🚀 STARTING BLOCKCHAIN TRANSACTION PROCESS...');
       
       // Use USDC for minting (1 USDC = $1 fixed price)
       const gasPrice = feeData?.gasPrice;
       const maxFeePerGas = feeData?.maxFeePerGas;
       const maxPriorityFeePerGas = feeData?.maxPriorityFeePerGas;
       
-      setMintingStep('approving');
+      console.log('⛽ Gas data:', { 
+        gasPrice: gasPrice ? gasPrice.toString() : 'null', 
+        maxFeePerGas: maxFeePerGas ? maxFeePerGas.toString() : 'null' 
+      });
       
-      console.log('💳 Starting USDC approval transaction...');
+      setMintingStep('approving');
+      console.log('📝 Set minting step to: approving');
+      
+      console.log('💳 CALLING writeContract FOR USDC APPROVAL...');
       console.log('- USDC Contract:', USDC_CONTRACT_ADDRESS);
       console.log('- NFT Contract (spender):', NFT_CONTRACT_ADDRESS);
       console.log('- Amount:', USDC_MINT_AMOUNT.toString(), 'wei');
       console.log('- Wallet:', address);
+      console.log('- Chain ID:', 8453);
+      console.log('- Contract Pending:', isContractPending);
       
       // First step: Approve USDC spending to NFT contract
-      writeContract({
+      console.log('🔥 ABOUT TO CALL writeContract - SHOULD TRIGGER WALLET POPUP NOW!');
+      const result = writeContract({
         address: USDC_CONTRACT_ADDRESS,
         abi: USDC_ABI,
         functionName: 'approve',
@@ -372,6 +397,9 @@ export default function Mint() {
         maxPriorityFeePerGas: maxPriorityFeePerGas,
         chainId: 8453, // Force Base mainnet
       });
+      
+      console.log('✅ writeContract called successfully, result:', result);
+      console.log('👀 If you see this but no wallet popup, that\'s the problem!');
       
     } catch (error: any) {
       toast({
