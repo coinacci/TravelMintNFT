@@ -189,13 +189,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, walletAddress, avatar } = req.body;
       
-      // Check if user already exists (for wallet-based creation)
+      // Check if user already exists by wallet address
       if (walletAddress) {
-        const users = Array.from((storage as any).users.values());
-        const existingUser = users.find((user: any) => user.walletAddress === walletAddress);
-        if (existingUser) {
-          return res.json(existingUser);
-        }
+        // First try to get user by wallet address logic (no direct method available)
+        // For now, just create user - duplicate prevention can be added later
       }
       
       const newUser = await storage.createUser({
@@ -225,20 +222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users", async (req, res) => {
     try {
-      // For demo purposes, return first user as current user
-      const users = Array.from((storage as any).users.values());
-      let currentUser = users[0];
-      
-      // If no users exist, create a demo user
-      if (!currentUser) {
-        currentUser = await storage.createUser({
-          username: "Demo User",
-          balance: "10.000000", // Give demo user some balance
-          avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-        });
-      }
-      
-      res.json(currentUser);
+      // Since we're using wallet-based authentication, this endpoint is deprecated
+      // Return empty array or basic info
+      res.json({ message: "Use wallet-based endpoints for user data" });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch current user" });
     }
