@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
+import { blockchainService } from "./blockchain";
 import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -12,17 +13,47 @@ export async function registerRoutes(app: Express) {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
   });
 
-  // Get all NFTs
+  // Get all NFTs - combine database and blockchain data
   app.get("/api/nfts", async (req, res) => {
     try {
-      const allNfts = await storage.getAllNFTs();
-      // Filter by allowed contract only
-      const nfts = allNfts.filter(nft => 
+      console.log("🔗 Fetching all NFTs from blockchain...");
+      
+      // First get all NFTs from blockchain
+      const blockchainNFTs = await blockchainService.getAllNFTs();
+      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
+      
+      // Sync any new NFTs to database
+      const allDbNFTs = await storage.getAllNFTs();
+      const contractNFTs = allDbNFTs.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
       
+      // Merge blockchain and database data
+      const mergedNFTs = [];
+      
+      for (const blockchainNFT of blockchainNFTs) {
+        const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+        
+        // Check if this NFT exists in database
+        let dbNFT = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
+        
+        if (!dbNFT) {
+          // Create new NFT record if not exists
+          dbNFT = await storage.createNFT(dbFormat);
+        } else if (dbNFT.ownerAddress !== blockchainNFT.owner) {
+          // Update owner if it changed on blockchain
+          dbNFT = await storage.updateNFT(dbNFT.id, {
+            ownerAddress: blockchainNFT.owner
+          });
+        }
+        
+        if (dbNFT) {
+          mergedNFTs.push(dbNFT);
+        }
+      }
+      
       const nftsWithOwners = await Promise.all(
-        nfts.map(async (nft) => {
+        mergedNFTs.map(async (nft) => {
           // Parse metadata for display
           let parsedMetadata = null;
           try {
@@ -51,8 +82,11 @@ export async function registerRoutes(app: Express) {
           };
         })
       );
+      
+      console.log(`✅ Returning ${nftsWithOwners.length} total NFTs`);
       res.json(nftsWithOwners);
     } catch (error) {
+      console.error("Error fetching NFTs:", error);
       res.status(500).json({ message: "Failed to fetch NFTs" });
     }
   });
@@ -192,18 +226,48 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Get NFTs by wallet address
+  // Get NFTs by wallet address - use real blockchain data
   app.get("/api/wallet/:address/nfts", async (req, res) => {
     try {
-      // Filter NFTs by allowed contract with case-insensitive address matching
       const walletAddress = req.params.address.toLowerCase();
-      const allNfts = await storage.getNFTsByOwner(walletAddress);
-      const nfts = allNfts.filter(nft => 
+      console.log(`🔗 Fetching NFTs for wallet: ${walletAddress}`);
+      
+      // Get real NFTs from blockchain for this wallet
+      const blockchainNFTs = await blockchainService.getNFTsByOwner(walletAddress);
+      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain for wallet ${walletAddress}`);
+      
+      // Also get existing NFTs from database to merge data
+      const dbNfts = await storage.getNFTsByOwner(walletAddress);
+      const contractDbNfts = dbNfts.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
       
+      // Merge blockchain and database data
+      const mergedNFTs = [];
+      
+      for (const blockchainNFT of blockchainNFTs) {
+        const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+        
+        // Check if this NFT exists in database
+        let dbNFT = contractDbNfts.find(nft => nft.tokenId === blockchainNFT.tokenId);
+        
+        if (!dbNFT) {
+          // Create new NFT record if not exists
+          dbNFT = await storage.createNFT(dbFormat);
+        } else if (dbNFT.ownerAddress !== blockchainNFT.owner) {
+          // Update owner if it changed on blockchain
+          dbNFT = await storage.updateNFT(dbNFT.id, {
+            ownerAddress: blockchainNFT.owner
+          });
+        }
+        
+        if (dbNFT) {
+          mergedNFTs.push(dbNFT);
+        }
+      }
+      
       const nftsWithOwners = await Promise.all(
-        nfts.map(async (nft) => {
+        mergedNFTs.map(async (nft) => {
           // Parse metadata for wallet NFTs
           let parsedMetadata = null;
           try {
@@ -233,8 +297,10 @@ export async function registerRoutes(app: Express) {
         })
       );
       
+      console.log(`✅ Returning ${nftsWithOwners.length} NFTs for wallet ${walletAddress}`);
       res.json(nftsWithOwners);
     } catch (error) {
+      console.error(`Error fetching NFTs for wallet ${req.params.address}:`, error);
       res.status(500).json({ message: "Failed to fetch wallet NFTs" });
     }
   });
@@ -249,24 +315,62 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Blockchain sync endpoint - now returns real blockchain data only
+  // Blockchain sync endpoint - fetches real blockchain data
   app.post("/api/sync/wallet/:address", async (req, res) => {
     try {
       const walletAddress = req.params.address.toLowerCase();
       
-      // In real implementation, this would query blockchain for actual NFTs
-      // For now, we only show existing NFTs from database without creating fake ones
-      console.log(`Syncing NFTs for wallet: ${walletAddress}`);
+      console.log(`🔗 Syncing NFTs from blockchain for wallet: ${walletAddress}`);
       
-      const existingNFTs = await storage.getNFTsByOwner(walletAddress);
-      const contractNFTs = existingNFTs.filter(nft => 
-        nft.contractAddress === ALLOWED_CONTRACT
-      );
+      // Fetch real NFTs from blockchain for this wallet
+      const blockchainNFTs = await blockchainService.getNFTsByOwner(walletAddress);
+      
+      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain for wallet ${walletAddress}`);
+      
+      let syncedCount = 0;
+      const dbNFTs = [];
+      
+      // Store each blockchain NFT in database if not already exists
+      for (const blockchainNFT of blockchainNFTs) {
+        const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+        
+        // Check if this NFT already exists in database
+        const existing = await storage.getNFT(dbFormat.id);
+        
+        if (!existing) {
+          // Create new NFT record
+          const nft = await storage.createNFT(dbFormat);
+          dbNFTs.push(nft);
+          syncedCount++;
+          
+          // Create sync transaction record
+          await storage.createTransaction({
+            nftId: nft.id,
+            fromAddress: null,
+            toAddress: walletAddress,
+            transactionType: "sync",
+            amount: "0.0",
+            platformFee: "0.0",
+          });
+        } else {
+          // Update existing NFT with latest data
+          const updatedNFT = await storage.updateNFT(dbFormat.id, {
+            ownerAddress: walletAddress,
+            metadata: dbFormat.metadata
+          });
+          if (updatedNFT) {
+            dbNFTs.push(updatedNFT);
+          }
+        }
+      }
+      
+      console.log(`✅ Sync completed: ${syncedCount} new NFTs, ${blockchainNFTs.length} total`);
       
       res.json({ 
-        message: "Sync completed - showing only real NFTs",
-        syncedNFTs: 0, // No fake NFTs created
-        nfts: contractNFTs
+        message: `Sync completed - ${syncedCount} new NFTs found`,
+        syncedNFTs: syncedCount,
+        totalNFTs: blockchainNFTs.length,
+        nfts: dbNFTs
       });
       
     } catch (error) {
