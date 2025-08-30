@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseUnits } from "viem";
 
 interface NFT {
   id: string;
@@ -47,19 +48,59 @@ export default function Marketplace() {
     gcTime: 30 * 1000, // 30 seconds cache time
   });
 
+  const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
   const purchaseMutation = useMutation({
     mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
-      return apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId });
+      // First, prepare the purchase transaction
+      const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId }) as any;
+      
+      if (!response.requiresOnchainPayment) {
+        throw new Error("Expected onchain payment requirement");
+      }
+      
+      return response;
     },
-    onSuccess: () => {
-      toast({
-        title: "Purchase Successful!",
-        description: "You have successfully purchased the NFT.",
-      });
-      // Immediate cache invalidation for faster updates
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
-      queryClient.refetchQueries({ queryKey: ["/api/nfts"] });
+    onSuccess: async (purchaseData) => {
+      try {
+        toast({
+          title: "Processing Purchase...",
+          description: "Please approve the USDC payment in your wallet.",
+        });
+        
+        // Execute USDC payment transaction
+        writeContract({
+          address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, // USDC address
+          abi: [
+            {
+              name: "transferFrom",
+              type: "function",
+              inputs: [
+                { name: "from", type: "address" },
+                { name: "to", type: "address" },
+                { name: "amount", type: "uint256" }
+              ],
+              outputs: [{ name: "", type: "bool" }]
+            }
+          ],
+          functionName: "transferFrom",
+          args: [
+            (purchaseData as any).buyer,
+            (purchaseData as any).seller,
+            parseUnits("1.0", 6) // 1 USDC with 6 decimals
+          ],
+        });
+        
+      } catch (error: any) {
+        toast({
+          title: "Transaction Failed",
+          description: error.message || "Failed to process USDC payment",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -70,7 +111,7 @@ export default function Marketplace() {
     },
   });
 
-  const handlePurchase = (nft: NFT) => {
+  const handlePurchase = async (nft: NFT) => {
     if (!isConnected || !walletAddress) {
       toast({
         title: "Error",
@@ -80,11 +121,48 @@ export default function Marketplace() {
       return;
     }
 
-    // For demo purposes, skip balance check 
-    // In a real app, you'd check wallet balance
+    toast({
+      title: "Preparing Purchase...",
+      description: "Setting up onchain payment transaction",
+    });
     
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
+
+  // Handle transaction confirmation
+  React.useEffect(() => {
+    if (txHash && !isConfirming) {
+      // Transaction confirmed, update database
+      const confirmPurchase = async () => {
+        try {
+          await apiRequest("POST", `/api/nfts/confirm-purchase`, {
+            buyerId: walletAddress,
+            transactionHash: txHash
+          });
+          
+          toast({
+            title: "Purchase Successful!",
+            description: "You have successfully purchased the NFT with USDC!",
+          });
+          
+          // Immediate cache invalidation for faster updates
+          queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+          queryClient.refetchQueries({ queryKey: ["/api/nfts"] });
+          
+        } catch (error) {
+          console.error("Failed to confirm purchase:", error);
+          toast({
+            title: "Purchase Confirmation Failed",
+            description: "Payment succeeded but database update failed. Contact support.",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      confirmPurchase();
+    }
+  }, [txHash, isConfirming, walletAddress, queryClient, toast]);
 
 
   // Filter and sort NFTs

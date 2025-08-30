@@ -3,6 +3,7 @@ import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService } from "./blockchain";
 import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
+import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -383,14 +384,19 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Purchase NFT endpoint
+  // Purchase NFT with onchain USDC payment
   app.post("/api/nfts/:id/purchase", async (req, res) => {
     try {
       const { id: nftId } = req.params;
       const { buyerId } = req.body;
       
       if (!buyerId) {
-        return res.status(400).json({ message: "Buyer ID is required" });
+        return res.status(400).json({ message: "Buyer wallet address is required" });
+      }
+      
+      // Validate wallet address format
+      if (!ethers.isAddress(buyerId)) {
+        return res.status(400).json({ message: "Invalid wallet address format" });
       }
       
       // Get the NFT
@@ -408,9 +414,60 @@ export async function registerRoutes(app: Express) {
       if (nft.ownerAddress.toLowerCase() === buyerId.toLowerCase()) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
+
+      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
+      const tokenId = nft.id.replace("blockchain-", "");
+      if (!tokenId || isNaN(Number(tokenId))) {
+        return res.status(400).json({ message: "Invalid NFT token ID" });
+      }
       
-      // For simplicity, we'll assume the purchase is valid and process it
-      // In a real app, you'd check wallet balances and process actual payment
+      console.log(`🔄 Generating onchain purchase transaction for NFT #${tokenId}`);
+      
+      // Generate onchain purchase transaction data
+      const purchaseData = await blockchainService.generatePurchaseTransaction(
+        tokenId,
+        buyerId.toLowerCase(),
+        nft.ownerAddress.toLowerCase()
+      );
+      
+      if (!purchaseData.success) {
+        return res.status(400).json({ 
+          message: purchaseData.error || "Failed to generate purchase transaction",
+          type: "ONCHAIN_ERROR"
+        });
+      }
+      
+      console.log(`✅ Generated purchase transaction data for NFT #${tokenId}`);
+      
+      // Return transaction data for frontend to execute
+      res.json({ 
+        message: "Purchase transaction prepared",
+        requiresOnchainPayment: true,
+        transactionData: purchaseData,
+        nftId: nftId,
+        tokenId: tokenId,
+        buyer: buyerId.toLowerCase(),
+        seller: nft.ownerAddress.toLowerCase(),
+        priceUSDC: "1.0"
+      });
+      
+    } catch (error) {
+      console.error("Purchase preparation error:", error);
+      res.status(500).json({ message: "Failed to prepare purchase transaction" });
+    }
+  });
+
+  // Confirm purchase after onchain transaction
+  app.post("/api/nfts/:id/confirm-purchase", async (req, res) => {
+    try {
+      const { id: nftId } = req.params;
+      const { buyerId, transactionHash } = req.body;
+      
+      if (!buyerId || !transactionHash) {
+        return res.status(400).json({ message: "Buyer ID and transaction hash are required" });
+      }
+      
+      console.log(`🔄 Confirming purchase for NFT ${nftId} with tx: ${transactionHash}`);
       
       // Update NFT ownership and remove from sale
       await storage.updateNFT(nftId, {
@@ -419,25 +476,31 @@ export async function registerRoutes(app: Express) {
       });
       
       // Create transaction record
-      await storage.createTransaction({
-        nftId: nftId,
-        toAddress: buyerId.toLowerCase(),
-        transactionType: "purchase",
-        amount: nft.price,
-        platformFee: "0.05", // 5% platform fee
-        fromAddress: nft.ownerAddress,
-      });
+      const nft = await storage.getNFT(nftId);
+      if (nft) {
+        await storage.createTransaction({
+          nftId: nftId,
+          toAddress: buyerId.toLowerCase(),
+          transactionType: "purchase",
+          amount: "1.0", // 1 USDC
+          platformFee: "0.05", // 5% platform fee
+          fromAddress: nft.ownerAddress,
+        });
+      }
+      
+      console.log(`✅ Purchase confirmed for NFT ${nftId}`);
       
       res.json({ 
-        message: "NFT purchased successfully",
+        message: "NFT purchase confirmed successfully",
         nftId: nftId,
         newOwner: buyerId.toLowerCase(),
-        price: nft.price
+        transactionHash: transactionHash,
+        priceUSDC: "1.0"
       });
       
     } catch (error) {
-      console.error("Purchase error:", error);
-      res.status(500).json({ message: "Failed to process purchase" });
+      console.error("Purchase confirmation error:", error);
+      res.status(500).json({ message: "Failed to confirm purchase" });
     }
   });
 

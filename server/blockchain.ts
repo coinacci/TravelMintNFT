@@ -3,6 +3,8 @@ import { ethers } from "ethers";
 const BASE_RPC_URL = "https://mainnet.base.org";
 const BASESCAN_API_URL = "https://api.basescan.org/api";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
 
 // ERC721 ABI for reading NFT data (without Enumerable extension)
 const ERC721_ABI = [
@@ -12,14 +14,27 @@ const ERC721_ABI = [
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function getApproved(uint256 tokenId) view returns (address)",
-  "function isApprovedForAll(address owner, address operator) view returns (bool)"
+  "function isApprovedForAll(address owner, address operator) view returns (bool)",
+  "function transferFrom(address from, address to, uint256 tokenId)",
+  "function approve(address to, uint256 tokenId)"
+];
+
+// ERC20 ABI for USDC interactions
+const ERC20_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)"
 ];
 
 // Create provider for Base network
 const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
 
-// Create contract instance
+// Create contract instances
 const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, ERC721_ABI, provider);
+const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
 
 export interface BlockchainNFT {
   tokenId: string;
@@ -345,6 +360,97 @@ export class BlockchainService {
     );
     
     return categoryAttr?.value || null;
+  }
+
+  // Check USDC balance for an address
+  async getUSDCBalance(address: string): Promise<string> {
+    try {
+      const balance = await usdcContract.balanceOf(address);
+      // USDC has 6 decimals, so convert to human readable format
+      return ethers.formatUnits(balance, 6);
+    } catch (error) {
+      console.error(`Error fetching USDC balance for ${address}:`, error);
+      return "0";
+    }
+  }
+
+  // Check USDC allowance for NFT purchases
+  async getUSDCAllowance(owner: string, spender: string): Promise<string> {
+    try {
+      const allowance = await usdcContract.allowance(owner, spender);
+      return ethers.formatUnits(allowance, 6);
+    } catch (error) {
+      console.error(`Error fetching USDC allowance:`, error);
+      return "0";
+    }
+  }
+
+  // Generate transaction data for onchain NFT purchase
+  // This returns transaction data that the frontend can execute
+  async generatePurchaseTransaction(tokenId: string, buyerAddress: string, sellerAddress: string) {
+    try {
+      // Validate inputs
+      if (!tokenId || !buyerAddress || !sellerAddress) {
+        throw new Error("Missing required parameters for purchase");
+      }
+
+      // Check if NFT exists and get current owner
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      if (currentOwner.toLowerCase() !== sellerAddress.toLowerCase()) {
+        throw new Error("Seller is not the current owner of this NFT");
+      }
+
+      // Check buyer's USDC balance
+      const buyerBalance = await this.getUSDCBalance(buyerAddress);
+      if (parseFloat(buyerBalance) < 1.0) {
+        throw new Error(`Insufficient USDC balance. Required: 1 USDC, Available: ${buyerBalance} USDC`);
+      }
+
+      // Generate transaction data for the frontend to execute
+      // The frontend will need to:
+      // 1. Approve USDC spending (if needed)
+      // 2. Transfer USDC to seller
+      // 3. Transfer NFT from seller to buyer
+
+      const purchasePrice = ethers.parseUnits("1.0", 6); // 1 USDC with 6 decimals
+
+      return {
+        success: true,
+        transactions: [
+          {
+            type: "USDC_TRANSFER",
+            to: USDC_CONTRACT_ADDRESS,
+            data: usdcContract.interface.encodeFunctionData("transferFrom", [
+              buyerAddress,
+              sellerAddress,
+              purchasePrice
+            ]),
+            description: "Transfer 1 USDC to seller"
+          },
+          {
+            type: "NFT_TRANSFER", 
+            to: NFT_CONTRACT_ADDRESS,
+            data: nftContract.interface.encodeFunctionData("transferFrom", [
+              sellerAddress,
+              buyerAddress,
+              tokenId
+            ]),
+            description: `Transfer NFT #${tokenId} to buyer`
+          }
+        ],
+        tokenId,
+        buyerAddress,
+        sellerAddress,
+        priceUSDC: "1.0"
+      };
+
+    } catch (error: any) {
+      console.error("Error generating purchase transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate purchase transaction"
+      };
+    }
   }
 }
 
