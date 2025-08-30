@@ -116,6 +116,10 @@ export async function registerRoutes(app: Express) {
           }
           
           console.log("✅ Background blockchain sync completed");
+          
+          // Clear cache after background sync to show new/updated NFTs
+          delete nftCache['all-nfts'];
+          delete nftCache['for-sale'];
         } catch (error) {
           console.error("Background sync failed:", error);
         }
@@ -218,8 +222,15 @@ export async function registerRoutes(app: Express) {
     try {
       const validatedNFT = insertNFTSchema.parse(req.body);
       const nft = await storage.createNFT(validatedNFT);
+      
+      // 🚀 CRITICAL: Clear cache so new NFT appears immediately in Explore
+      console.log('🔄 New NFT created - invalidating cache for immediate visibility');
+      delete nftCache['all-nfts'];
+      delete nftCache['for-sale'];
+      
       res.status(201).json(nft);
     } catch (error) {
+      console.error('Error creating NFT:', error);
       res.status(500).json({ message: "Failed to create NFT" });
     }
   });
@@ -231,6 +242,12 @@ export async function registerRoutes(app: Express) {
       if (!nft) {
         return res.status(404).json({ message: "NFT not found" });
       }
+      
+      // Clear cache after NFT update
+      console.log('🔄 NFT updated - invalidating cache');
+      delete nftCache['all-nfts'];
+      delete nftCache['for-sale'];
+      
       res.json(nft);
     } catch (error) {
       res.status(500).json({ message: "Failed to update NFT" });

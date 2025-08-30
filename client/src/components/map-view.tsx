@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface NFT {
   id: string;
@@ -24,20 +24,49 @@ interface MapViewProps {
 export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data: nfts = [], isLoading: nftsLoading, isError, error } = useQuery<NFT[]>({
+  const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
-    staleTime: 60 * 1000, // Cache for 1 minute to avoid expensive blockchain calls
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    refetchOnMount: false, // Don't refetch on mount - use cache
-    refetchOnWindowFocus: false, // Don't refetch on focus
-    refetchInterval: false, // Disable auto-refresh to reduce blockchain calls
+    staleTime: 10 * 1000, // Cache for 10 seconds (reduced for immediate updates)
+    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes
+    refetchOnMount: true, // Allow refetch on mount to show new NFTs
+    refetchOnWindowFocus: true, // Allow refetch on focus to show updates
+    refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds for new mints
   });
   
   // Log errors for troubleshooting
   if (isError) {
     console.log('Map data fetch error:', error?.message);
   }
+  
+  // Log NFT count for monitoring
+  useEffect(() => {
+    console.log('🗺️ Map View loaded', nfts.length, 'NFTs');
+  }, [nfts]);
+
+  // Add automatic cache refresh mechanism for new mints
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('🔄 Storage change detected - refreshing NFT data');
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+    };
+
+    // Listen for storage events (when NFTs are minted in other tabs)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also expose a global refresh function for manual use
+    (window as any).refreshMapNFTs = () => {
+      console.log('🔄 Manual NFT refresh triggered');
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      refetch();
+    };
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      delete (window as any).refreshMapNFTs;
+    };
+  }, [queryClient, refetch]);
 
   const { data: stats } = useQuery<{ totalNFTs: number; totalVolume: string }>({
     queryKey: ["/api/stats"],
@@ -90,7 +119,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     });
 
     // Add NFT markers - even if empty array for proper cleanup
-    nfts.forEach((nft) => {
+    nfts.forEach((nft, index) => {
       const lat = parseFloat(nft.latitude);
       const lng = parseFloat(nft.longitude);
 
