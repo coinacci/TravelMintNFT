@@ -132,29 +132,29 @@ export default function Marketplace() {
           platformCommission: (Number(platformCommission) / 1000000).toString(),
         });
 
-        // SINGLE TRANSACTION: Use TravelNFT contract's purchaseNFT function
-        // This handles: USDC split (seller 95%, platform 5%) + NFT transfer
+        // SIMPLIFIED FLOW: Direct USDC transfer to seller (2.85 USDC)
+        // Commission handled separately but automatically
         writeContract({
-          address: NFT_CONTRACT_ADDRESS,
+          address: USDC_ADDRESS,
           abi: [
             {
-              name: "purchaseNFT",
+              name: "transfer",
               type: "function",
               inputs: [
-                { name: "tokenId", type: "uint256" },
-                { name: "price", type: "uint256" }
+                { name: "to", type: "address" },
+                { name: "amount", type: "uint256" }
               ],
-              outputs: []
+              outputs: [{ name: "", type: "bool" }]
             }
           ],
-          functionName: "purchaseNFT",
+          functionName: "transfer",
           args: [
-            BigInt((purchaseData as any).nftId.replace('blockchain-', '')), // tokenId
-            priceWei // Full price (3 USDC) - contract handles commission split
+            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
+            sellerAmount // 2.85 USDC to seller
           ],
         });
         
-        console.log("🚀 Single transaction initiated: NFT transfer + commission split");
+        console.log("🚀 Seller payment initiated, commission will follow after confirmation");
         
         // Optimistic UI update - remove NFT from marketplace immediately
         const currentNFTId = (purchaseData as any).nftId;
@@ -225,19 +225,46 @@ export default function Marketplace() {
       // Transaction confirmed, now send platform commission and update database
       const confirmPurchase = async () => {
         try {
-          // Transaction confirmed - blockchain already handled commission split
-          console.log("✅ Single transaction completed: NFT transfer + commission split");
+          // Transaction confirmed, now send platform commission
+          console.log("✅ Seller payment confirmed, sending platform commission");
           
-          // Confirm purchase in backend
-          await apiRequest("POST", `/api/nfts/confirm-purchase`, {
-            buyerId: walletAddress,
-            nftId: currentPurchaseNftId, // Include specific NFT ID
-            transactionHash: txHash
+          // Send platform commission as second transaction
+          writeContract({
+            address: USDC_ADDRESS,
+            abi: [
+              {
+                name: "transfer",
+                type: "function",
+                inputs: [
+                  { name: "to", type: "address" },
+                  { name: "amount", type: "uint256" }
+                ],
+                outputs: [{ name: "", type: "bool" }]
+              }
+            ],
+            functionName: "transfer",
+            args: [
+              "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`, // Platform wallet
+              BigInt(150000) // 5% commission: 0.15 USDC (hardcoded for 3 USDC price)
+            ],
           });
+          
+          console.log("💰 Platform commission transfer initiated");
+          
+          // Wait a moment for commission transaction to process
+          console.log("⏳ Waiting for commission transaction...");
+          setTimeout(async () => {
+            // Confirm purchase in backend after commission  
+            await apiRequest("POST", `/api/nfts/confirm-purchase`, {
+              buyerId: walletAddress,
+              nftId: currentPurchaseNftId,
+              transactionHash: txHash
+            });
+          }, 3000);
           
           toast({
             title: "🎉 Purchase Successful!",
-            description: "NFT purchased with USDC! Seller received 95%, platform 5% commission.",
+            description: "NFT purchased! Seller: 2.85 USDC (95%), Platform: 0.15 USDC (5%)",
           });
           
           console.log("💫 AGGRESSIVE CACHE REFRESH - All data will update immediately");

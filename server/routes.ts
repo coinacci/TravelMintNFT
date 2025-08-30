@@ -553,15 +553,12 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Calculate amounts
+      // Calculate commission split
       const purchasePrice = parseFloat(nftToUpdate.price);
       const platformFee = purchasePrice * 0.05; // 5% platform fee
       const sellerAmount = purchasePrice - platformFee;
       
-      // Update balances: Full price flow
-      // Buyer: -3.00 USDC (full price paid)
-      // Seller: +2.85 USDC (95% after commission deduction)  
-      // Platform: +0.15 USDC (5% commission)
+      // Update balances
       const buyerNewBalance = (parseFloat(buyer.balance) - purchasePrice).toString();
       const sellerNewBalance = (parseFloat(seller.balance) + sellerAmount).toString();
       
@@ -571,21 +568,19 @@ export async function registerRoutes(app: Express) {
       let platformUser = await storage.getUserByWalletAddress(PLATFORM_WALLET);
       if (!platformUser) {
         platformUser = await storage.createUser({
-          username: "TravelMint Platform",
+          username: "TravelMint Platform", 
           walletAddress: PLATFORM_WALLET,
           balance: "0"
         });
       }
       
-      // Update platform balance with commission
       const platformNewBalance = (parseFloat(platformUser.balance) + platformFee).toString();
-      await storage.updateUserBalance(platformUser.id, platformNewBalance);
-      
       console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (Balance: ${platformNewBalance} USDC)`);
       
-      // Update user balances
+      // Update all balances
       await storage.updateUserBalance(buyer.id, buyerNewBalance);
       await storage.updateUserBalance(seller.id, sellerNewBalance);
+      await storage.updateUserBalance(platformUser.id, platformNewBalance);
       
       // Update NFT ownership and remove from sale
       await storage.updateNFT(nftToUpdate.id, {
@@ -593,7 +588,7 @@ export async function registerRoutes(app: Express) {
         isForSale: 0,
       });
       
-      // Create main transaction record
+      // Create transaction records for platform distribution flow
       await storage.createTransaction({
         nftId: nftToUpdate.id,
         toAddress: buyerId.toLowerCase(),
@@ -604,7 +599,7 @@ export async function registerRoutes(app: Express) {
         blockchainTxHash: transactionHash,
       });
       
-      // Create platform commission transaction record
+      // Record platform commission
       await storage.createTransaction({
         nftId: nftToUpdate.id,
         toAddress: PLATFORM_WALLET,
@@ -615,7 +610,7 @@ export async function registerRoutes(app: Express) {
         blockchainTxHash: transactionHash,
       });
       
-      console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Balance: ${buyerNewBalance} USDC)`);
+      console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Platform distribution completed)`);
       
       res.json({
         success: true,

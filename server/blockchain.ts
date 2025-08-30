@@ -471,13 +471,32 @@ export class BlockchainService {
         success: true,
         transactions: [
           {
-            type: "NFT_PURCHASE",
-            to: NFT_CONTRACT_ADDRESS,
-            data: nftContract.interface.encodeFunctionData("purchaseNFT", [
-              tokenId,
-              purchasePrice // Full price - contract handles commission split automatically
+            type: "USDC_TRANSFER",
+            to: USDC_CONTRACT_ADDRESS,
+            data: usdcContract.interface.encodeFunctionData("transfer", [
+              sellerAddress,
+              sellerAmount // 95% to seller
             ]),
-            description: `Purchase NFT #${tokenId} for ${price} USDC (includes 5% platform commission)`
+            description: `Transfer ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC to seller`
+          },
+          {
+            type: "USDC_COMMISSION_TRANSFER",
+            to: USDC_CONTRACT_ADDRESS,
+            data: usdcContract.interface.encodeFunctionData("transfer", [
+              PLATFORM_WALLET, // 5% commission to platform
+              platformFee
+            ]),
+            description: `Transfer ${(Number(platformFee) / 1000000).toFixed(6)} USDC platform commission`
+          },
+          {
+            type: "NFT_TRANSFER", 
+            to: NFT_CONTRACT_ADDRESS,
+            data: nftContract.interface.encodeFunctionData("transferFrom", [
+              sellerAddress,
+              buyerAddress,
+              tokenId
+            ]),
+            description: `Transfer NFT #${tokenId} to buyer`
           }
         ],
         tokenId,
@@ -496,6 +515,7 @@ export class BlockchainService {
       };
     }
   }
+
 }
 
 export const blockchainService = new BlockchainService();
