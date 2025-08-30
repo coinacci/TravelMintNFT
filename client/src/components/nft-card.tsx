@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
+import { useAccount } from "wagmi";
 
 interface NFTCardProps {
   nft: {
@@ -20,9 +21,15 @@ interface NFTCardProps {
 }
 
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
+  const { address: connectedWallet } = useAccount();
+  
   const formatPrice = (price: string) => {
     return parseFloat(price).toFixed(0);
   };
+  
+  // Check if the connected wallet owns this NFT
+  const isOwnNFT = connectedWallet && nft.owner?.id && 
+    connectedWallet.toLowerCase() === nft.owner.id.toLowerCase();
 
   return (
     <Card className="nft-card bg-card rounded-lg overflow-hidden cursor-pointer" onClick={onSelect} data-testid={`nft-card-${nft.id}`}>
@@ -70,7 +77,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
             </span>
           </div>
           
-          {showPurchaseButton && nft.isForSale === 1 && (
+          {showPurchaseButton && nft.isForSale === 1 && !isOwnNFT && (
             <div className="flex items-center space-x-2">
               <span className="text-sm font-semibold text-primary" data-testid={`nft-price-${nft.id}`}>
                 {formatPrice(nft.price)} USDC
