@@ -123,7 +123,19 @@ export default function Marketplace() {
           description: `Transferring ${priceUSDC} USDC directly to seller.`,
         });
         
-        // Direct USDC transfer from buyer to seller
+        // Calculate platform commission (5%)
+        const platformCommission = priceWei * BigInt(5) / BigInt(100);
+        const sellerAmount = priceWei - platformCommission;
+        const platformWallet = "0xe02E2557bB807Cf7E30CeF8c3146963a8a1d4496";
+        
+        console.log("💰 Payment breakdown:", {
+          totalPrice: priceUSDC,
+          sellerAmount: (Number(sellerAmount) / 1000000).toString(),
+          platformCommission: (Number(platformCommission) / 1000000).toString(),
+          platformWallet
+        });
+
+        // Direct USDC transfer from buyer to seller (95%)
         writeContract({
           address: USDC_ADDRESS,
           abi: [
@@ -139,8 +151,8 @@ export default function Marketplace() {
           ],
           functionName: "transfer",
           args: [
-            (purchaseData as any).seller, // Send directly to seller
-            priceWei
+            (purchaseData as any).seller, // Send 95% to seller
+            sellerAmount
           ],
         });
         
@@ -150,6 +162,10 @@ export default function Marketplace() {
           if (!oldNFTs) return oldNFTs;
           return oldNFTs.filter(nft => nft.id !== currentNFTId);
         });
+        
+        // Store commission data for second transfer
+        sessionStorage.setItem('platformCommission', platformCommission.toString());
+        sessionStorage.setItem('platformWallet', platformWallet);
         
         console.log("💸 Direct USDC transfer initiated to seller:", (purchaseData as any).seller);
         console.log("🚀 Optimistic update: Removed NFT from marketplace UI");
@@ -211,9 +227,40 @@ export default function Marketplace() {
   // Handle transaction confirmation
   React.useEffect(() => {
     if (txHash && !isConfirming) {
-      // Transaction confirmed, update database
+      // Transaction confirmed, now send platform commission and update database
       const confirmPurchase = async () => {
         try {
+          // Step 1: Send platform commission (5%)
+          const storedCommission = sessionStorage.getItem('platformCommission');
+          const storedPlatformWallet = sessionStorage.getItem('platformWallet');
+          
+          if (storedCommission && storedPlatformWallet) {
+            console.log("💰 Sending platform commission after seller payment...");
+            
+            // Send commission to platform wallet
+            writeContract({
+              address: USDC_ADDRESS,
+              abi: [
+                {
+                  name: "transfer",
+                  type: "function",
+                  inputs: [
+                    { name: "to", type: "address" },
+                    { name: "amount", type: "uint256" }
+                  ],
+                  outputs: [{ name: "", type: "bool" }]
+                }
+              ],
+              functionName: "transfer",
+              args: [storedPlatformWallet as `0x${string}`, BigInt(storedCommission)],
+            });
+            
+            // Clear stored data
+            sessionStorage.removeItem('platformCommission');
+            sessionStorage.removeItem('platformWallet');
+          }
+          
+          // Step 2: Confirm purchase in backend
           await apiRequest("POST", `/api/nfts/confirm-purchase`, {
             buyerId: walletAddress,
             nftId: currentPurchaseNftId, // Include specific NFT ID
@@ -222,7 +269,7 @@ export default function Marketplace() {
           
           toast({
             title: "🎉 Purchase Successful!",
-            description: "NFT purchased with USDC! Check 'My NFTs' to see your new collectible.",
+            description: "NFT purchased with USDC! Seller received 95%, platform 5% commission.",
           });
           
           console.log("💫 AGGRESSIVE CACHE REFRESH - All data will update immediately");

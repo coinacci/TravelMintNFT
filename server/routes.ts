@@ -7,6 +7,7 @@ import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+const PLATFORM_WALLET = "0xe02E2557bB807Cf7E30CeF8c3146963a8a1d4496"; // Platform commission wallet
 
 export async function registerRoutes(app: Express) {
 
@@ -563,6 +564,22 @@ export async function registerRoutes(app: Express) {
       
       console.log(`💰 Balance updates: Buyer ${buyerNewBalance} USDC, Seller ${sellerNewBalance} USDC`);
       
+      // Get or create platform user for commission tracking
+      let platformUser = await storage.getUserByWalletAddress(PLATFORM_WALLET);
+      if (!platformUser) {
+        platformUser = await storage.createUser({
+          username: "TravelMint Platform",
+          walletAddress: PLATFORM_WALLET,
+          balance: "0"
+        });
+      }
+      
+      // Update platform balance with commission
+      const platformNewBalance = (parseFloat(platformUser.balance) + platformFee).toString();
+      await storage.updateUserBalance(platformUser.id, platformNewBalance);
+      
+      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (Balance: ${platformNewBalance} USDC)`);
+      
       // Update user balances
       await storage.updateUserBalance(buyer.id, buyerNewBalance);
       await storage.updateUserBalance(seller.id, sellerNewBalance);
@@ -573,7 +590,7 @@ export async function registerRoutes(app: Express) {
         isForSale: 0,
       });
       
-      // Create transaction record
+      // Create main transaction record
       await storage.createTransaction({
         nftId: nftToUpdate.id,
         toAddress: buyerId.toLowerCase(),
@@ -581,6 +598,17 @@ export async function registerRoutes(app: Express) {
         amount: nftToUpdate.price,
         platformFee: platformFee.toString(),
         fromAddress: nftToUpdate.ownerAddress,
+        blockchainTxHash: transactionHash,
+      });
+      
+      // Create platform commission transaction record
+      await storage.createTransaction({
+        nftId: nftToUpdate.id,
+        toAddress: PLATFORM_WALLET,
+        transactionType: "commission",
+        amount: platformFee.toString(),
+        platformFee: "0",
+        fromAddress: buyerId.toLowerCase(),
         blockchainTxHash: transactionHash,
       });
       
