@@ -123,7 +123,12 @@ export default function Marketplace() {
       try {
         const priceUSDC = (purchaseData as any).priceUSDC || "3.0";
         const priceWei = parseUnits(priceUSDC, 6);
-        const tokenId = (purchaseData as any).nftId;
+        const nftId = (purchaseData as any).nftId;
+        
+        // Extract numeric tokenId from blockchain ID (e.g., "blockchain-4" -> 4)
+        const tokenId = nftId.includes('blockchain-') 
+          ? parseInt(nftId.split('blockchain-')[1]) 
+          : parseInt(nftId);
         
         console.log("💰 Single-contract purchase:", {
           tokenId,

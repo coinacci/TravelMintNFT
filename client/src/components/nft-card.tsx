@@ -96,7 +96,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
                 className="bg-primary text-primary-foreground px-3 py-1 text-xs font-medium hover:bg-primary/90 transition-colors"
                 data-testid={`buy-button-${nft.id}`}
               >
-                Buy for {nft.price} USDC
+                Buy
               </Button>
             </div>
           )}
