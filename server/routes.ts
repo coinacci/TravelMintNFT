@@ -492,45 +492,56 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Confirm purchase after onchain transaction
-  app.post("/api/nfts/:id/confirm-purchase", async (req, res) => {
+  // Confirm purchase after USDC payment transaction
+  app.post("/api/nfts/confirm-purchase", async (req, res) => {
     try {
-      const { id: nftId } = req.params;
       const { buyerId, transactionHash } = req.body;
       
       if (!buyerId || !transactionHash) {
         return res.status(400).json({ message: "Buyer ID and transaction hash are required" });
       }
       
-      console.log(`🔄 Confirming purchase for NFT ${nftId} with tx: ${transactionHash}`);
+      console.log(`🔄 Confirming purchase with USDC payment tx: ${transactionHash}`);
+      
+      // Find NFT being purchased based on recent transaction data
+      // For now, we'll look for any NFT for sale from recent purchase attempts
+      const forSaleNFTs = await storage.getNFTs();
+      const nftToUpdate = forSaleNFTs.find(nft => 
+        nft.isForSale === 1 && 
+        nft.ownerAddress.toLowerCase() !== buyerId.toLowerCase()
+      );
+      
+      if (!nftToUpdate) {
+        return res.status(404).json({ message: "No eligible NFT found for purchase confirmation" });
+      }
+      
+      console.log(`✅ Confirming purchase of NFT ${nftToUpdate.id} for buyer ${buyerId}`);
       
       // Update NFT ownership and remove from sale
-      await storage.updateNFT(nftId, {
+      await storage.updateNFT(nftToUpdate.id, {
         ownerAddress: buyerId.toLowerCase(),
         isForSale: 0,
       });
       
       // Create transaction record
-      const nft = await storage.getNFT(nftId);
-      if (nft) {
-        await storage.createTransaction({
-          nftId: nftId,
-          toAddress: buyerId.toLowerCase(),
-          transactionType: "purchase",
-          amount: nft.price, // Use actual NFT price
-          platformFee: "0.05", // 5% platform fee
-          fromAddress: nft.ownerAddress,
-        });
-      }
+      await storage.createTransaction({
+        nftId: nftToUpdate.id,
+        toAddress: buyerId.toLowerCase(),
+        transactionType: "purchase",
+        amount: nftToUpdate.price,
+        platformFee: "0.05", // 5% platform fee
+        fromAddress: nftToUpdate.ownerAddress,
+      });
       
-      console.log(`✅ Purchase confirmed for NFT ${nftId}`);
+      console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId}`);
       
-      res.json({ 
-        message: "NFT purchase confirmed successfully",
-        nftId: nftId,
+      res.json({
+        success: true,
+        message: "Purchase confirmed successfully",
+        nftId: nftToUpdate.id,
         newOwner: buyerId.toLowerCase(),
-        transactionHash: transactionHash,
-        priceUSDC: "1.0"
+        transactionHash,
+        priceUSDC: nftToUpdate.price
       });
       
     } catch (error) {

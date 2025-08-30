@@ -58,22 +58,21 @@ export default function Marketplace() {
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 
-  // Check USDC allowance
-  const { data: usdcAllowance } = useReadContract({
+  // Check USDC balance (for direct transfers)
+  const { data: usdcBalance } = useReadContract({
     address: USDC_ADDRESS,
     abi: [
       {
-        name: "allowance",
+        name: "balanceOf",
         type: "function",
         inputs: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" }
+          { name: "account", type: "address" }
         ],
         outputs: [{ name: "", type: "uint256" }]
       }
     ],
-    functionName: "allowance",
-    args: [walletAddress as `0x${string}`, NFT_CONTRACT_ADDRESS],
+    functionName: "balanceOf",
+    args: [walletAddress as `0x${string}`],
     query: {
       enabled: !!walletAddress
     }
@@ -110,85 +109,49 @@ export default function Marketplace() {
         const priceUSDC = (purchaseData as any).priceUSDC || "1.0";
         const priceWei = parseUnits(priceUSDC, 6);
         
-        console.log("💰 Checking USDC allowance...", {
+        console.log("💰 Checking USDC balance...", {
           priceUSDC,
           priceWei: priceWei.toString(),
-          currentAllowance: usdcAllowance?.toString()
+          currentBalance: usdcBalance?.toString(),
+          hasEnoughBalance: usdcBalance && usdcBalance >= priceWei
         });
         
-        // Check if we have enough allowance
-        const needsApproval = !usdcAllowance || usdcAllowance < priceWei;
+        // DIRECT TRANSFER APPROACH (No smart contract marketplace)
+        toast({
+          title: "💰 Sending Payment",
+          description: `Transferring ${priceUSDC} USDC directly to seller.`,
+        });
         
-        if (needsApproval) {
-          toast({
-            title: "Approval Required",
-            description: `First, approve ${priceUSDC} USDC spending for marketplace contract.`,
-          });
-          
-          // Step 1: Approve USDC spending
-          writeContract({
-            address: USDC_ADDRESS,
-            abi: [
-              {
-                name: "approve",
-                type: "function",
-                inputs: [
-                  { name: "spender", type: "address" },
-                  { name: "amount", type: "uint256" }
-                ],
-                outputs: [{ name: "", type: "bool" }]
-              }
-            ],
-            functionName: "approve",
-            args: [
-              NFT_CONTRACT_ADDRESS,
-              priceWei // Approve the exact amount needed
-            ],
-          });
-          
-          // Immediate cache refresh after approval
-          setTimeout(() => {
-            console.log("🔄 Refreshing allowance after approval...");
-            queryClient.invalidateQueries({ queryKey: ["/api"] });
-          }, 2000);
-        } else {
-          // Step 2: Execute purchase (we have enough allowance)
-          toast({
-            title: "Processing Purchase...",
-            description: `Transferring ${priceUSDC} USDC to seller.`,
-          });
-          
-          writeContract({
-            address: USDC_ADDRESS,
-            abi: [
-              {
-                name: "transferFrom",
-                type: "function",
-                inputs: [
-                  { name: "from", type: "address" },
-                  { name: "to", type: "address" },
-                  { name: "amount", type: "uint256" }
-                ],
-                outputs: [{ name: "", type: "bool" }]
-              }
-            ],
-            functionName: "transferFrom",
-            args: [
-              (purchaseData as any).buyer,
-              (purchaseData as any).seller,
-              priceWei
-            ],
-          });
-          
-          // Optimistic UI update - remove NFT from marketplace immediately
-          const currentNFTId = (purchaseData as any).nftId;
-          queryClient.setQueryData(["/api/nfts/for-sale"], (oldNFTs: NFT[] | undefined) => {
-            if (!oldNFTs) return oldNFTs;
-            return oldNFTs.filter(nft => nft.id !== currentNFTId);
-          });
-          
-          console.log("🚀 Optimistic update: Removed NFT from marketplace UI");
-        }
+        // Direct USDC transfer from buyer to seller
+        writeContract({
+          address: USDC_ADDRESS,
+          abi: [
+            {
+              name: "transfer",
+              type: "function",
+              inputs: [
+                { name: "to", type: "address" },
+                { name: "amount", type: "uint256" }
+              ],
+              outputs: [{ name: "", type: "bool" }]
+            }
+          ],
+          functionName: "transfer",
+          args: [
+            (purchaseData as any).seller, // Send directly to seller
+            priceWei
+          ],
+        });
+        
+        // Optimistic UI update - remove NFT from marketplace immediately
+        const currentNFTId = (purchaseData as any).nftId;
+        queryClient.setQueryData(["/api/nfts/for-sale"], (oldNFTs: NFT[] | undefined) => {
+          if (!oldNFTs) return oldNFTs;
+          return oldNFTs.filter(nft => nft.id !== currentNFTId);
+        });
+        
+        console.log("💸 Direct USDC transfer initiated to seller:", (purchaseData as any).seller);
+        console.log("🚀 Optimistic update: Removed NFT from marketplace UI");
         
       } catch (error: any) {
         console.error("Purchase transaction error:", error);
