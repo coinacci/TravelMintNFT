@@ -55,24 +55,29 @@ export default function Marketplace() {
 
   const purchaseMutation = useMutation({
     mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
+      console.log("🚀 Starting purchase for NFT:", nftId, "buyer:", buyerId);
+      
       // First, prepare the purchase transaction
-      const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId }) as any;
+      const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId });
+      const data = await response.json();
+      
+      console.log("✅ Purchase API response:", data);
       
       // Check if this is an ownership error
-      if (response.message && response.message.includes("cannot buy your own NFT")) {
+      if (data.message && data.message.includes("cannot buy your own NFT")) {
         throw new Error("You cannot buy your own NFT");
       }
       
       // Check for API errors
-      if (response.message && !response.requiresOnchainPayment) {
-        throw new Error(response.message || "Purchase failed");
+      if (data.message && !data.requiresOnchainPayment) {
+        throw new Error(data.message || "Purchase failed");
       }
       
-      if (!response.requiresOnchainPayment) {
+      if (!data.requiresOnchainPayment) {
         throw new Error("Purchase transaction could not be prepared");
       }
       
-      return response;
+      return data;
     },
     onSuccess: async (purchaseData) => {
       try {
@@ -130,6 +135,14 @@ export default function Marketplace() {
       }
     },
     onError: (error: any) => {
+      console.error("Purchase mutation error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response,
+        status: error.status,
+        data: error.data
+      });
+      
       toast({
         title: "Purchase Failed",
         description: error.message || "Failed to purchase NFT",
@@ -147,6 +160,13 @@ export default function Marketplace() {
       });
       return;
     }
+
+    console.log("💳 Purchase attempt:", {
+      nftId: nft.id,
+      price: nft.price,
+      buyer: walletAddress,
+      seller: nft.ownerAddress
+    });
 
     toast({
       title: "Preparing Purchase...",
