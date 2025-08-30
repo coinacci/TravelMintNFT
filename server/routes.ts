@@ -703,6 +703,9 @@ export async function registerRoutes(app: Express) {
         "primaryCategory": "art-creativity",
         "tags": ["travel", "nft", "base", "photos", "maps"],
         "requiredChains": ["eip155:8453"] // Base mainnet
+      },
+      "baseBuilder": {
+        "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
       }
     };
     
