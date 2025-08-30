@@ -126,7 +126,7 @@ export default function Marketplace() {
         // Calculate platform commission (5%)
         const platformCommission = priceWei * BigInt(5) / BigInt(100);
         const sellerAmount = priceWei - platformCommission;
-        const platformWallet = "0xe02E2557bB807Cf7E30CeF8c3146963a8a1d4496";
+        const platformWallet = "0x7CDe7822456AAC667Df0420cD048295b92704084";
         
         console.log("💰 Payment breakdown:", {
           totalPrice: priceUSDC,

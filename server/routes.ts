@@ -7,7 +7,7 @@ import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
-const PLATFORM_WALLET = "0xe02E2557bB807Cf7E30CeF8c3146963a8a1d4496"; // Platform commission wallet
+const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 
 export async function registerRoutes(app: Express) {
 
