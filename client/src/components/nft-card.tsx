@@ -12,8 +12,9 @@ interface NFTCardProps {
     location: string;
     price: string;
     isForSale: number;
+    ownerAddress?: string;
     creator: { username: string; avatar?: string } | null;
-    owner: { username: string; avatar?: string } | null;
+    owner: { id?: string; username: string; avatar?: string } | null;
   };
   onSelect?: () => void;
   onPurchase?: () => void;
@@ -28,8 +29,10 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   };
   
   // Check if the connected wallet owns this NFT
-  const isOwnNFT = connectedWallet && nft.owner?.id && 
-    connectedWallet.toLowerCase() === nft.owner.id.toLowerCase();
+  const isOwnNFT = connectedWallet && (
+    (nft.ownerAddress && connectedWallet.toLowerCase() === nft.ownerAddress.toLowerCase()) ||
+    (nft.owner?.id && connectedWallet.toLowerCase() === nft.owner.id.toLowerCase())
+  );
 
   return (
     <Card className="nft-card bg-card rounded-lg overflow-hidden cursor-pointer" onClick={onSelect} data-testid={`nft-card-${nft.id}`}>

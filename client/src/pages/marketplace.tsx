@@ -58,12 +58,15 @@ export default function Marketplace() {
       // First, prepare the purchase transaction
       const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId }) as any;
       
+      console.log("🔍 Purchase API Response:", response);
+      
       // Check if this is an ownership error
       if (response.message && response.message.includes("cannot buy your own NFT")) {
         throw new Error("You cannot buy your own NFT");
       }
       
       if (!response.requiresOnchainPayment) {
+        console.error("❌ Missing requiresOnchainPayment in response:", response);
         throw new Error("Purchase cannot be processed - please try again");
       }
       
