@@ -368,6 +368,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Debug endpoint for USDC balance
+  app.post("/api/debug/usdc-balance", async (req, res) => {
+    try {
+      const { address } = req.body;
+      
+      if (!address) {
+        return res.status(400).json({ message: "Address is required" });
+      }
+      
+      console.log(`🔍 Checking USDC balance for: ${address}`);
+      
+      const balance = await blockchainService.getUSDCBalance(address);
+      const allowance = await blockchainService.getUSDCAllowance(address, "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f");
+      
+      const result = {
+        address,
+        balance,
+        allowance,
+        contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        network: "Base Mainnet"
+      };
+      
+      console.log(`✅ USDC Balance Result:`, result);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error checking USDC balance:", error);
+      res.status(500).json({ 
+        message: "Failed to check USDC balance",
+        error: (error as Error).message 
+      });
+    }
+  });
+
   // Stats endpoint
   app.get("/api/stats", async (req, res) => {
     try {

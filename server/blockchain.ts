@@ -401,11 +401,19 @@ export class BlockchainService {
       }
 
       // Check buyer's USDC balance
+      console.log(`🔍 Checking USDC balance for buyer: ${buyerAddress}`);
       const buyerBalance = await this.getUSDCBalance(buyerAddress);
       const requiredAmount = parseFloat(price);
+      
+      console.log(`💰 Balance check: Required=${requiredAmount} USDC, Available=${buyerBalance} USDC`);
+      
       if (parseFloat(buyerBalance) < requiredAmount) {
+        console.log(`❌ Insufficient balance: ${buyerBalance} < ${requiredAmount}`);
         throw new Error(`Insufficient USDC balance. Required: ${requiredAmount} USDC, Available: ${buyerBalance} USDC`);
       }
+      
+      console.log(`✅ Balance check passed: ${buyerBalance} >= ${requiredAmount}`);
+      
 
       // Generate transaction data for the frontend to execute
       // The frontend will need to:
