@@ -38,7 +38,7 @@ export default function Marketplace() {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
-  const [approvalStep, setApprovalStep] = useState<'idle' | 'approval' | 'purchase'>('idle');
+  const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -139,35 +139,45 @@ export default function Marketplace() {
         });
         
         toast({
-          title: "💰 Approving USDC",
-          description: "Step 1: Approving contract to spend USDC...",
+          title: "💰 Sending Payment", 
+          description: "Step 1: Paying seller 1.90 USDC (95%)",
         });
 
-        // STEP 1: Approve contract to spend USDC
-        setApprovalStep('approval');
+        // BACK TO WORKING SYSTEM: Direct USDC transfers
+        // Calculate commission split  
+        const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
+        const sellerAmount = priceWei - platformCommission; // 95%
+        
+        console.log("💰 Payment breakdown:", {
+          totalPrice: priceUSDC,
+          sellerAmount: (Number(sellerAmount) / 1000000).toString() + " USDC",
+          platformCommission: (Number(platformCommission) / 1000000).toString() + " USDC"
+        });
+
+        // STEP 1: Pay seller directly (95%)
+        setTransactionStep('seller_payment');
         
         writeContract({
           address: USDC_ADDRESS,
           abi: [
             {
-              name: "approve",
-              type: "function", 
-              stateMutability: "nonpayable",
+              name: "transfer",
+              type: "function",
               inputs: [
-                { name: "spender", type: "address" },
+                { name: "to", type: "address" },
                 { name: "amount", type: "uint256" }
               ],
               outputs: [{ name: "", type: "bool" }]
             }
           ],
-          functionName: "approve",
+          functionName: "transfer",
           args: [
-            NFT_CONTRACT_ADDRESS as `0x${string}`, // Approve NFT contract
-            priceWei  // Full amount (3 USDC)
+            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
+            sellerAmount // 95% to seller
           ],
         });
         
-        console.log("🎯 Starting approval for single contract purchase...");
+        console.log("🚀 Reliable dual-payment system initiated");
         
         // Optimistic UI update
         const currentNFTId = (purchaseData as any).nftId;
@@ -223,47 +233,68 @@ export default function Marketplace() {
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
 
-  // Handle two-step transaction confirmation  
+  // Handle dual transaction confirmations
   React.useEffect(() => {
     if (txHash && !isConfirming) {
-      if (approvalStep === 'approval') {
-        // STEP 1 CONFIRMED: USDC approved, now call contract purchase
-        console.log("✅ USDC approval confirmed, calling contract purchase...");
-        
-        // Get the stored purchase data
-        const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
-        if (!currentNFT) return;
-        
-        const priceWei = parseUnits(currentNFT.price, 6);
-        const tokenId = currentPurchaseNftId?.includes('blockchain-') 
-          ? parseInt(currentPurchaseNftId.split('blockchain-')[1]) 
-          : parseInt(currentPurchaseNftId || "0");
-        
-        toast({
-          title: "💰 Processing Purchase",
-          description: "Step 2: Contract executing automatic fee split...",
-        });
-        
-        setApprovalStep('purchase');
-        
-        // STEP 2: Call contract purchase function
-        writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: NFT_ABI,
-          functionName: "purchaseNFT",
-          args: [
-            BigInt(tokenId), // tokenId
-            priceWei         // price in USDC wei
-          ],
-        });
-        
-      } else if (approvalStep === 'purchase') {
-        // STEP 2 CONFIRMED: Purchase complete
-        const confirmPurchase = async () => {
+      if (transactionStep === 'seller_payment') {
+        // STEP 1 CONFIRMED: Seller payment done, now send commission
+        const sendCommission = async () => {
           try {
-            console.log("✅ Contract purchase confirmed:", txHash);
+            console.log("✅ Seller payment confirmed, sending platform commission");
             
-            // Update database with purchase
+            const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
+            if (!currentNFT) return;
+            
+            const priceWei = parseUnits(currentNFT.price, 6);
+            const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
+            
+            toast({
+              title: "💰 Sending Commission",
+              description: `Step 2: Platform commission ${(Number(platformCommission)/1000000).toFixed(2)} USDC`,
+            });
+
+            setTransactionStep('commission_payment');
+
+            // STEP 2: Send platform commission
+            writeContract({
+              address: USDC_ADDRESS,
+              abi: [
+                {
+                  name: "transfer",
+                  type: "function",
+                  inputs: [
+                    { name: "to", type: "address" },
+                    { name: "amount", type: "uint256" }
+                  ],
+                  outputs: [{ name: "", type: "bool" }]
+                }
+              ],
+              functionName: "transfer",
+              args: [
+                "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`,
+                platformCommission
+              ],
+            });
+            
+          } catch (error) {
+            console.error("Failed to send commission:", error);
+            toast({
+              title: "Commission Transfer Failed",
+              description: "Seller payment succeeded but commission failed. Contact support.",
+              variant: "destructive",
+            });
+          }
+        };
+        
+        sendCommission();
+        
+      } else if (transactionStep === 'commission_payment') {
+        // STEP 2 CONFIRMED: Commission sent, finalize purchase
+        const finalizePurchase = async () => {
+          try {
+            console.log("✅ Commission payment confirmed, finalizing purchase");
+            
+            // Update database
             await apiRequest("POST", `/api/nfts/confirm-purchase`, {
               buyerId: walletAddress,
               nftId: currentPurchaseNftId,
@@ -272,11 +303,11 @@ export default function Marketplace() {
             
             toast({
               title: "🎉 Purchase Complete!",
-              description: "NFT transferred! Seller paid, platform commission collected.",
+              description: "NFT purchased! Seller paid, platform commission collected.",
             });
             
             // Reset state
-            setApprovalStep('idle');
+            setTransactionStep('idle');
             setCurrentPurchaseNftId(null);
             
             // Refresh all data
@@ -287,19 +318,19 @@ export default function Marketplace() {
             queryClient.refetchQueries();
             
           } catch (error) {
-            console.error("Failed to confirm purchase:", error);
+            console.error("Failed to finalize purchase:", error);
             toast({
-              title: "Purchase Confirmation Failed",
-              description: "Transaction succeeded but database update failed. Contact support.",
+              title: "Purchase Finalization Failed",
+              description: "Payments succeeded but database update failed. Contact support.",
               variant: "destructive",
             });
           }
         };
         
-        confirmPurchase();
+        finalizePurchase();
       }
     }
-  }, [txHash, isConfirming, approvalStep, walletAddress, currentPurchaseNftId, queryClient, nfts]);
+  }, [txHash, isConfirming, transactionStep, walletAddress, currentPurchaseNftId, queryClient, nfts]);
 
 
   // Filter and sort NFTs
