@@ -16,8 +16,8 @@ const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 
-// ERC721 ABI for reading NFT data (without Enumerable extension)
-const ERC721_ABI = [
+// TravelNFT ABI with purchase function
+const TRAVEL_NFT_ABI = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function balanceOf(address owner) view returns (uint256)",
@@ -26,7 +26,9 @@ const ERC721_ABI = [
   "function getApproved(uint256 tokenId) view returns (address)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
   "function transferFrom(address from, address to, uint256 tokenId)",
-  "function approve(address to, uint256 tokenId)"
+  "function approve(address to, uint256 tokenId)",
+  "function purchaseNFT(uint256 tokenId, uint256 price)",
+  "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee)"
 ];
 
 // ERC20 ABI for USDC interactions
@@ -75,7 +77,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
 
 // Create contract instances
-const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, ERC721_ABI, provider);
+const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider);
 const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
 
 export interface BlockchainNFT {
@@ -469,40 +471,21 @@ export class BlockchainService {
         success: true,
         transactions: [
           {
-            type: "USDC_TRANSFER",
-            to: USDC_CONTRACT_ADDRESS,
-            data: usdcContract.interface.encodeFunctionData("transferFrom", [
-              buyerAddress,
-              sellerAddress,
-              sellerAmount // 95% to seller
-            ]),
-            description: `Transfer ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC to seller`
-          },
-          {
-            type: "USDC_COMMISSION_TRANSFER",
-            to: USDC_CONTRACT_ADDRESS,
-            data: usdcContract.interface.encodeFunctionData("transferFrom", [
-              buyerAddress,
-              PLATFORM_WALLET, // 5% commission to platform
-              platformFee
-            ]),
-            description: `Transfer ${(Number(platformFee) / 1000000).toFixed(6)} USDC platform commission`
-          },
-          {
-            type: "NFT_TRANSFER", 
+            type: "NFT_PURCHASE",
             to: NFT_CONTRACT_ADDRESS,
-            data: nftContract.interface.encodeFunctionData("transferFrom", [
-              sellerAddress,
-              buyerAddress,
-              tokenId
+            data: nftContract.interface.encodeFunctionData("purchaseNFT", [
+              tokenId,
+              purchasePrice // Full price - contract handles commission split automatically
             ]),
-            description: `Transfer NFT #${tokenId} to buyer`
+            description: `Purchase NFT #${tokenId} for ${price} USDC (includes 5% platform commission)`
           }
         ],
         tokenId,
         buyerAddress,
         sellerAddress,
-        priceUSDC: price
+        priceUSDC: price,
+        sellerAmount: (Number(sellerAmount) / 1000000).toFixed(6),
+        platformFee: (Number(platformFee) / 1000000).toFixed(6)
       };
 
     } catch (error: any) {

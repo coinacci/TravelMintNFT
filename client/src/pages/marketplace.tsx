@@ -132,32 +132,29 @@ export default function Marketplace() {
           platformCommission: (Number(platformCommission) / 1000000).toString(),
         });
 
-        // Execute SELLER PAYMENT: 95% of price (2.85 USDC)  
+        // SINGLE TRANSACTION: Use TravelNFT contract's purchaseNFT function
+        // This handles: USDC split (seller 95%, platform 5%) + NFT transfer
         writeContract({
-          address: USDC_ADDRESS,
+          address: NFT_CONTRACT_ADDRESS,
           abi: [
             {
-              name: "transfer",
+              name: "purchaseNFT",
               type: "function",
               inputs: [
-                { name: "to", type: "address" },
-                { name: "amount", type: "uint256" }
+                { name: "tokenId", type: "uint256" },
+                { name: "price", type: "uint256" }
               ],
-              outputs: [{ name: "", type: "bool" }]
+              outputs: []
             }
           ],
-          functionName: "transfer",
+          functionName: "purchaseNFT",
           args: [
-            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
-            sellerAmount // 2.85 USDC to seller
+            BigInt((purchaseData as any).nftId.replace('blockchain-', '')), // tokenId
+            priceWei // Full price (3 USDC) - contract handles commission split
           ],
         });
         
-        // Store commission data for second blockchain transfer
-        sessionStorage.setItem('platformCommission', platformCommission.toString());
-        sessionStorage.setItem('platformWallet', "0x7CDe7822456AAC667Df0420cD048295b92704084");
-        
-        console.log("💸 Seller transfer initiated, commission will follow after confirmation");
+        console.log("🚀 Single transaction initiated: NFT transfer + commission split");
         
         // Optimistic UI update - remove NFT from marketplace immediately
         const currentNFTId = (purchaseData as any).nftId;
@@ -228,40 +225,10 @@ export default function Marketplace() {
       // Transaction confirmed, now send platform commission and update database
       const confirmPurchase = async () => {
         try {
-          // Step 1: Send platform commission (0.15 USDC) to blockchain
-          const storedCommission = sessionStorage.getItem('platformCommission');
-          const storedPlatformWallet = sessionStorage.getItem('platformWallet');
+          // Transaction confirmed - blockchain already handled commission split
+          console.log("✅ Single transaction completed: NFT transfer + commission split");
           
-          if (storedCommission && storedPlatformWallet) {
-            console.log("💰 Sending platform commission to blockchain:", storedCommission);
-            
-            // Send commission to platform wallet on blockchain
-            writeContract({
-              address: USDC_ADDRESS,
-              abi: [
-                {
-                  name: "transfer",
-                  type: "function",
-                  inputs: [
-                    { name: "to", type: "address" },
-                    { name: "amount", type: "uint256" }
-                  ],
-                  outputs: [{ name: "", type: "bool" }]
-                }
-              ],
-              functionName: "transfer",
-              args: [
-                storedPlatformWallet as `0x${string}`,
-                BigInt(storedCommission)
-              ],
-            });
-            
-            // Clear stored data
-            sessionStorage.removeItem('platformCommission');
-            sessionStorage.removeItem('platformWallet');
-          }
-          
-          // Step 2: Confirm purchase in backend
+          // Confirm purchase in backend
           await apiRequest("POST", `/api/nfts/confirm-purchase`, {
             buyerId: walletAddress,
             nftId: currentPurchaseNftId, // Include specific NFT ID

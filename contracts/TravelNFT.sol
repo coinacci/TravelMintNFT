@@ -16,9 +16,16 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     // Fixed mint price: 1 USDC (6 decimals)
     uint256 public constant MINT_PRICE = 1000000; // 1 USDC
     
+    // Platform commission wallet
+    address public constant PLATFORM_WALLET = 0x7CDe7822456AAC667Df0420cD048295b92704084;
+    
+    // Platform commission: 5%
+    uint256 public constant PLATFORM_FEE_PERCENT = 5;
+    
     // Events
     event TravelNFTMinted(address indexed to, uint256 indexed tokenId, string location);
     event RoyaltyPaid(uint256 indexed tokenId, address indexed recipient, uint256 amount);
+    event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
     
     // Struct for NFT metadata
     struct TravelMetadata {
@@ -146,6 +153,35 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         return _nextTokenId;
     }
     
+    /**
+     * @dev Purchase NFT with USDC - handles commission split automatically
+     * @param tokenId The NFT token ID to purchase
+     * @param price The price in USDC (with 6 decimals)
+     */
+    function purchaseNFT(uint256 tokenId, uint256 price) external nonReentrant {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        address seller = ownerOf(tokenId);
+        require(seller != msg.sender, "Cannot buy your own NFT");
+        require(price > 0, "Price must be greater than 0");
+        
+        // Calculate commission split
+        uint256 platformFee = (price * PLATFORM_FEE_PERCENT) / 100;
+        uint256 sellerAmount = price - platformFee;
+        
+        // Transfer USDC from buyer to seller (95%)
+        bool sellerSuccess = USDC.transferFrom(msg.sender, seller, sellerAmount);
+        require(sellerSuccess, "USDC transfer to seller failed");
+        
+        // Transfer platform commission (5%)
+        bool platformSuccess = USDC.transferFrom(msg.sender, PLATFORM_WALLET, platformFee);
+        require(platformSuccess, "USDC transfer to platform failed");
+        
+        // Transfer NFT from seller to buyer
+        _transfer(seller, msg.sender, tokenId);
+        
+        emit NFTPurchased(tokenId, msg.sender, seller, price, platformFee);
+    }
+
     /**
      * @dev Emergency withdraw function for owner
      */
