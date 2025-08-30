@@ -50,9 +50,10 @@ export class BlockchainService {
       const transfers = data.result;
       const uniqueTokenIds = new Set<string>();
       
-      // Extract unique token IDs from transfers
+      // Extract unique token IDs from transfers (excluding unwanted NFTs)
       for (const transfer of transfers) {
-        if (transfer.to !== "0x0000000000000000000000000000000000000000") {
+        if (transfer.to !== "0x0000000000000000000000000000000000000000" &&
+            transfer.tokenID !== "1" && transfer.tokenID !== "2") {
           uniqueTokenIds.add(transfer.tokenID);
         }
       }
@@ -108,8 +109,8 @@ export class BlockchainService {
     const nfts: BlockchainNFT[] = [];
     let consecutiveFailures = 0;
     
-    // Try token IDs 1-50 to catch newly minted NFTs
-    for (let tokenId = 1; tokenId <= 50; tokenId++) {
+    // Try token IDs 3-50 to catch newly minted NFTs (excluding unwanted tokens 1 & 2)
+    for (let tokenId = 3; tokenId <= 50; tokenId++) {
       try {
         const owner = await nftContract.ownerOf(tokenId);
         const tokenURI = await nftContract.tokenURI(tokenId);
