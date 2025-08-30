@@ -117,51 +117,49 @@ export default function Marketplace() {
           hasEnoughBalance: usdcBalance ? Number(usdcBalance) >= Number(priceWei) : false
         });
         
-        // MULTI-TRANSACTION APPROACH: Execute all transactions from backend
-        const transactions = (purchaseData as any).transactionData?.transactions || [];
+        // SIMPLIFIED APPROACH: Just execute seller payment, full amount deduction handled in backend
+        const platformCommission = priceWei * BigInt(5) / BigInt(100);
+        const sellerAmount = priceWei - platformCommission;
         
         toast({
-          title: "💰 Processing Payment",
-          description: `Executing ${transactions.length} transactions: seller payment + commission + NFT transfer.`,
+          title: "💰 Sending Payment",
+          description: `Transferring ${priceUSDC} USDC (${priceUSDC} total: ${(Number(sellerAmount)/1000000).toFixed(2)} to seller + ${(Number(platformCommission)/1000000).toFixed(2)} commission)`,
         });
         
-        console.log("💰 Executing multiple transactions:", transactions);
-        
-        // Execute each transaction sequentially
-        for (let i = 0; i < transactions.length; i++) {
-          const tx = transactions[i];
-          
-          if (tx.type === "USDC_TRANSFER" || tx.type === "USDC_COMMISSION_TRANSFER") {
-            // Execute USDC transfers
-            console.log(`💸 Executing ${tx.type}: ${tx.description}`);
-            
-            writeContract({
-              address: tx.to as `0x${string}`,
-              abi: [
-                {
-                  name: "transferFrom",
-                  type: "function",
-                  inputs: [
-                    { name: "from", type: "address" },
-                    { name: "to", type: "address" },
-                    { name: "amount", type: "uint256" }
-                  ],
-                  outputs: [{ name: "", type: "bool" }]
-                }
+        console.log("💰 Payment breakdown:", {
+          totalPrice: priceUSDC,
+          sellerAmount: (Number(sellerAmount) / 1000000).toString(),
+          platformCommission: (Number(platformCommission) / 1000000).toString(),
+        });
+
+        // Execute seller USDC transfer (95% of total price)
+        writeContract({
+          address: USDC_ADDRESS,
+          abi: [
+            {
+              name: "transferFrom",
+              type: "function",
+              inputs: [
+                { name: "from", type: "address" },
+                { name: "to", type: "address" },
+                { name: "amount", type: "uint256" }
               ],
-              functionName: "transferFrom",
-              args: (tx as any).data ? [] : [], // Data already encoded in backend
-              value: undefined
-            });
-            
-            // Wait for transaction to be mined before next one
-            // (writeContract will handle this automatically)
-            
-          } else if (tx.type === "NFT_TRANSFER") {
-            // NFT transfer will happen automatically after USDC transfers
-            console.log(`🖼️ NFT transfer ready: ${tx.description}`);
-          }
-        }
+              outputs: [{ name: "", type: "bool" }]
+            }
+          ],
+          functionName: "transferFrom",
+          args: [
+            walletAddress as `0x${string}`,
+            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
+            sellerAmount // 95% to seller
+          ],
+        });
+        
+        // Store commission data for second transfer after confirmation
+        sessionStorage.setItem('platformCommission', platformCommission.toString());
+        sessionStorage.setItem('totalPrice', priceWei.toString());
+        
+        console.log("💸 Seller transfer initiated, commission will follow after confirmation");
         
         // Optimistic UI update - remove NFT from marketplace immediately
         const currentNFTId = (purchaseData as any).nftId;
@@ -234,32 +232,36 @@ export default function Marketplace() {
         try {
           // Step 1: Send platform commission (5%)
           const storedCommission = sessionStorage.getItem('platformCommission');
-          const storedPlatformWallet = sessionStorage.getItem('platformWallet');
           
-          if (storedCommission && storedPlatformWallet) {
-            console.log("💰 Sending platform commission after seller payment...");
+          if (storedCommission) {
+            console.log("💰 Sending platform commission after seller payment:", storedCommission);
             
-            // Send commission to platform wallet
+            // Send commission to platform wallet using transferFrom
             writeContract({
               address: USDC_ADDRESS,
               abi: [
                 {
-                  name: "transfer",
+                  name: "transferFrom",
                   type: "function",
                   inputs: [
+                    { name: "from", type: "address" },
                     { name: "to", type: "address" },
                     { name: "amount", type: "uint256" }
                   ],
                   outputs: [{ name: "", type: "bool" }]
                 }
               ],
-              functionName: "transfer",
-              args: [storedPlatformWallet as `0x${string}`, BigInt(storedCommission)],
+              functionName: "transferFrom",
+              args: [
+                walletAddress as `0x${string}`,
+                "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`,
+                BigInt(storedCommission)
+              ],
             });
             
             // Clear stored data
             sessionStorage.removeItem('platformCommission');
-            sessionStorage.removeItem('platformWallet');
+            sessionStorage.removeItem('totalPrice');
           }
           
           // Step 2: Confirm purchase in backend
