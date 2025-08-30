@@ -1,6 +1,15 @@
 import { ethers } from "ethers";
 
-const BASE_RPC_URL = "https://mainnet.base.org";
+// Use multiple RPC providers for rate limit handling
+const BASE_RPC_URLS = [
+  "https://mainnet.base.org",
+  "https://base.llamarpc.com",
+  "https://base.gateway.tenderly.co",
+  "https://base-rpc.publicnode.com"
+];
+
+let currentRpcIndex = 0;
+const BASE_RPC_URL = BASE_RPC_URLS[0];
 const BASESCAN_API_URL = "https://api.basescan.org/api";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -28,6 +37,38 @@ const ERC20_ABI = [
   "function allowance(address owner, address spender) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
+
+// Rate limit retry utility
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  let lastError: Error;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Check if it's a rate limit error
+      if (error && typeof error === 'object' && 'info' in error) {
+        const info = (error as any).info;
+        if (info?.error?.code === -32016 || info?.error?.message?.includes('rate limit')) {
+          console.log(`⚠️ Rate limit hit (attempt ${i + 1}/${maxRetries}), waiting...`);
+          
+          // Wait longer on rate limit
+          await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+          continue;
+        }
+      }
+      
+      // For non-rate-limit errors, wait before retry
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  
+  throw lastError!;
+}
 
 // Create provider for Base network
 const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
@@ -80,8 +121,8 @@ export class BlockchainService {
       // Get current owner and metadata for each token
       for (const tokenId of Array.from(uniqueTokenIds)) {
         try {
-          const owner = await nftContract.ownerOf(tokenId);
-          const tokenURI = await nftContract.tokenURI(tokenId);
+          const owner = await withRetry(() => nftContract.ownerOf(tokenId));
+          const tokenURI = await withRetry(() => nftContract.tokenURI(tokenId));
           
           // Fetch metadata if URI is available
           let metadata = null;
@@ -127,7 +168,7 @@ export class BlockchainService {
     // Try token IDs 3-50 to catch newly minted NFTs (excluding unwanted tokens 1 & 2)
     for (let tokenId = 3; tokenId <= 50; tokenId++) {
       try {
-        const owner = await nftContract.ownerOf(tokenId);
+        const owner = await withRetry(() => nftContract.ownerOf(tokenId));
         const tokenURI = await nftContract.tokenURI(tokenId);
         
         // Reset consecutive failures when we find a valid token
@@ -364,25 +405,25 @@ export class BlockchainService {
 
   // Check USDC balance for an address
   async getUSDCBalance(address: string): Promise<string> {
-    try {
+    return withRetry(async () => {
       const balance = await usdcContract.balanceOf(address);
       // USDC has 6 decimals, so convert to human readable format
       return ethers.formatUnits(balance, 6);
-    } catch (error) {
+    }).catch(error => {
       console.error(`Error fetching USDC balance for ${address}:`, error);
       return "0";
-    }
+    });
   }
 
   // Check USDC allowance for NFT purchases
   async getUSDCAllowance(owner: string, spender: string): Promise<string> {
-    try {
+    return withRetry(async () => {
       const allowance = await usdcContract.allowance(owner, spender);
       return ethers.formatUnits(allowance, 6);
-    } catch (error) {
+    }).catch(error => {
       console.error(`Error fetching USDC allowance:`, error);
       return "0";
-    }
+    });
   }
 
   // Generate transaction data for onchain NFT purchase
