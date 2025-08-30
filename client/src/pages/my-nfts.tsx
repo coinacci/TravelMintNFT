@@ -57,10 +57,11 @@ export default function MyNFTs() {
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
     enabled: !!address && isConnected,
-    staleTime: 30_000, // Consider data fresh for 30 seconds
-    refetchOnMount: false, // Don't refetch on every mount
+    staleTime: 2_000, // 2 seconds for immediate updates after purchase
+    refetchOnMount: true, // Refetch when component mounts (new purchases)
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 300_000, // Keep cache for 5 minutes
+    gcTime: 30_000, // 30 seconds cache time for faster updates
+    refetchInterval: 5_000, // Auto-refetch every 5 seconds for real-time updates
   });
 
   // Get detailed NFT data when one is selected
@@ -74,10 +75,11 @@ export default function MyNFTs() {
   const { data: nftsQuery = [], isLoading: isLoadingQuery, isError: isErrorQuery, error: errorQuery } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
     enabled: !!address && isConnected,
-    staleTime: 30_000, // Consider data fresh for 30 seconds
-    refetchOnMount: false, // Don't refetch on every mount
+    staleTime: 2_000, // 2 seconds for immediate updates after purchase
+    refetchOnMount: true, // Refetch when component mounts (new purchases)
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 300_000, // Keep cache for 5 minutes
+    gcTime: 30_000, // 30 seconds cache time for faster updates
+    refetchInterval: 5_000, // Auto-refetch every 5 seconds for real-time updates
   });
   
   // Automatic blockchain sync on wallet connection

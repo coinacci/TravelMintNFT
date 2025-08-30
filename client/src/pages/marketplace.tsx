@@ -44,8 +44,9 @@ export default function Marketplace() {
 
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
     queryKey: ["/api/nfts/for-sale"],
-    staleTime: 10 * 1000, // 10 seconds for faster updates
-    gcTime: 30 * 1000, // 30 seconds cache time
+    staleTime: 2 * 1000, // 2 seconds for immediate updates
+    gcTime: 10 * 1000, // 10 seconds cache time
+    refetchInterval: 5 * 1000, // Auto-refetch every 5 seconds
   });
 
   const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
@@ -144,6 +145,12 @@ export default function Marketplace() {
               priceWei // Approve the exact amount needed
             ],
           });
+          
+          // Immediate cache refresh after approval
+          setTimeout(() => {
+            console.log("🔄 Refreshing allowance after approval...");
+            queryClient.invalidateQueries({ queryKey: ["/api"] });
+          }, 2000);
         } else {
           // Step 2: Execute purchase (we have enough allowance)
           toast({
@@ -172,6 +179,15 @@ export default function Marketplace() {
               priceWei
             ],
           });
+          
+          // Optimistic UI update - remove NFT from marketplace immediately
+          const currentNFTId = (purchaseData as any).nftId;
+          queryClient.setQueryData(["/api/nfts/for-sale"], (oldNFTs: NFT[] | undefined) => {
+            if (!oldNFTs) return oldNFTs;
+            return oldNFTs.filter(nft => nft.id !== currentNFTId);
+          });
+          
+          console.log("🚀 Optimistic update: Removed NFT from marketplace UI");
         }
         
       } catch (error: any) {
@@ -237,14 +253,33 @@ export default function Marketplace() {
           });
           
           toast({
-            title: "Purchase Successful!",
-            description: "You have successfully purchased the NFT with USDC!",
+            title: "🎉 Purchase Successful!",
+            description: "NFT purchased with USDC! Check 'My NFTs' to see your new collectible.",
           });
           
-          // Immediate cache invalidation for faster updates
-          queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+          console.log("💫 AGGRESSIVE CACHE REFRESH - All data will update immediately");
+          
+          // IMMEDIATE AND COMPREHENSIVE CACHE INVALIDATION
+          // 1. Marketplace NFTs (remove purchased item)
           queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
-          queryClient.refetchQueries({ queryKey: ["/api/nfts"] });
+          queryClient.refetchQueries({ queryKey: ["/api/nfts/for-sale"] });
+          
+          // 2. My NFTs (add new purchase) - Use correct My NFTs cache key
+          queryClient.invalidateQueries({ queryKey: [`/api/wallet/${walletAddress}/nfts`] });
+          queryClient.refetchQueries({ queryKey: [`/api/wallet/${walletAddress}/nfts`] });
+          
+          // 3. User balance (subtract USDC spent)
+          queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/users", walletAddress] });
+          
+          // 4. All NFT-related queries
+          queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+          
+          // 5. Stats (volume increase)
+          queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+          
+          // 6. Force immediate refetch for all queries
+          queryClient.refetchQueries();
           
         } catch (error) {
           console.error("Failed to confirm purchase:", error);
