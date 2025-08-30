@@ -103,7 +103,7 @@ export default function Mint() {
   // ⚡ REAL BLOCKCHAIN TRANSACTIONS - Enabled for production
   const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
-  const { sendCalls, error: batchError, isPending: isBatchPending } = useSendCalls();
+  const { data: sendCallsData, sendCalls, error: batchError, isPending: isBatchPending } = useSendCalls();
   
   // REMOVED: Blockchain debug - causing re-render loop
   
@@ -123,17 +123,101 @@ export default function Mint() {
     getCurrentLocation();
   }, [getCurrentLocation]);
 
-  // Handle successful blockchain transaction
+  // Handle successful batch transaction (sendCalls)
   useEffect(() => {
-    if (isConfirmed && hash && mintingStep !== 'idle') {
-      console.log('🎉 Transaction confirmed! Saving to backend...', hash);
+    if (sendCallsData && mintingStep === 'approving') {
+      console.log('🎉 Batch transaction completed! Saving to backend...', sendCallsData);
       
       const saveNFTToBackend = async () => {
         try {
           const nftData = {
             title,
             description: description || "Travel NFT minted on TravelMint",
-            imageUrl: imagePreview,
+            imageUrl: imageIpfsUrl, // Use IPFS URL, not base64 preview
+            location: location?.city || "Unknown City",
+            latitude: location?.latitude.toString() || "0",
+            longitude: location?.longitude.toString() || "0",
+            category,
+            price: enableListing ? (salePrice || "1") : "1",
+            isForSale: enableListing ? 1 : 0,
+            mintPrice: "1",
+            royaltyPercentage: "5",
+            contractAddress: NFT_CONTRACT_ADDRESS,
+            transactionHash: sendCallsData, // Batch transaction ID
+            metadata: {
+              name: title,
+              description: description || "Travel NFT minted on TravelMint",
+              image: imageIpfsUrl,
+              attributes: [
+                { trait_type: "Category", value: category },
+                { trait_type: "Location", value: location?.city || "Unknown City" },
+                { trait_type: "Latitude", value: location?.latitude.toString() || "0" },
+                { trait_type: "Longitude", value: location?.longitude.toString() || "0" },
+                { trait_type: "Minted Date", value: new Date().toISOString() },
+                { trait_type: "Platform", value: "TravelMint" }
+              ]
+            }
+          };
+
+          const response = await fetch('/api/nfts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ walletAddress: address, ...nftData }),
+          });
+
+          if (response.ok) {
+            console.log('✅ NFT saved to marketplace with batch transaction!');
+            toast({
+              title: "🎉 NFT Başarıyla Mint Edildi!",
+              description: `"${title}" NFT'in blockchain'de mint edildi ve marketplace'e eklendi`,
+              variant: "default",
+            });
+            
+            // Refresh data and reset form
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
+            
+            // Reset form
+            setTitle('');
+            setDescription('');
+            setCategory('');
+            setImageFile(null);
+            setImagePreview(null);
+            setImageIpfsUrl(null);
+            setMetadataIpfsUrl(null);
+            setEnableListing(false);
+            setSalePrice('');
+            setFeaturedPlacement(false);
+          }
+        } catch (error) {
+          console.error('❌ Error saving to backend:', error);
+          toast({
+            title: "Backend Hatası",
+            description: "NFT blockchain'de mint edildi ama marketplace'e kaydedilemedi",
+            variant: "destructive",
+          });
+        } finally {
+          setMintingStep('idle');
+        }
+      };
+
+      saveNFTToBackend();
+    }
+  }, [sendCallsData, mintingStep, title, description, imageIpfsUrl, location, category, enableListing, salePrice, address, queryClient, toast]);
+
+  // Handle successful individual transaction (writeContract) - backup method
+  useEffect(() => {
+    if (isConfirmed && hash && mintingStep !== 'idle') {
+      console.log('🎉 Individual transaction confirmed! Saving to backend...', hash);
+      
+      const saveNFTToBackend = async () => {
+        try {
+          const nftData = {
+            title,
+            description: description || "Travel NFT minted on TravelMint",
+            imageUrl: imageIpfsUrl,
             location: location?.city || "Unknown City",
             latitude: location?.latitude.toString() || "0",
             longitude: location?.longitude.toString() || "0",
@@ -147,11 +231,14 @@ export default function Mint() {
             metadata: {
               name: title,
               description: description || "Travel NFT minted on TravelMint",
-              image: imagePreview,
+              image: imageIpfsUrl,
               attributes: [
                 { trait_type: "Category", value: category },
                 { trait_type: "Location", value: location?.city || "Unknown City" },
-                { trait_type: "Minted Date", value: new Date().toISOString() }
+                { trait_type: "Latitude", value: location?.latitude.toString() || "0" },
+                { trait_type: "Longitude", value: location?.longitude.toString() || "0" },
+                { trait_type: "Minted Date", value: new Date().toISOString() },
+                { trait_type: "Platform", value: "TravelMint" }
               ]
             }
           };
@@ -163,26 +250,30 @@ export default function Mint() {
           });
 
           if (response.ok) {
-            console.log('✅ NFT saved to marketplace with real transaction hash!');
+            console.log('✅ NFT saved to marketplace with individual transaction!');
             toast({
-              title: "🎉 NFT Minted Successfully!",
-              description: `Your travel NFT "${title}" has been minted on blockchain and saved to marketplace`,
+              title: "🎉 NFT Başarıyla Mint Edildi!",
+              description: `"${title}" NFT'in blockchain'de mint edildi ve marketplace'e eklendi`,
               variant: "default",
             });
             
-            // Refresh data and reset form - FIX: Add missing My NFTs cache invalidation!
+            // Refresh data and reset form
             queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
             queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
             queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
             
+            // Reset form
             setTitle('');
             setDescription('');
             setCategory('');
             setImageFile(null);
             setImagePreview(null);
+            setImageIpfsUrl(null);
+            setMetadataIpfsUrl(null);
             setEnableListing(false);
             setSalePrice('');
+            setFeaturedPlacement(false);
           }
         } catch (error) {
           console.error('❌ Error saving to backend:', error);
@@ -193,7 +284,7 @@ export default function Mint() {
 
       saveNFTToBackend();
     }
-  }, [isConfirmed, hash, mintingStep, title, description, imagePreview, location, category, enableListing, salePrice, address, queryClient, toast]);
+  }, [isConfirmed, hash, mintingStep, title, description, imageIpfsUrl, location, category, enableListing, salePrice, address, queryClient, toast]);
 
   // REMOVED: State debug - causing infinite loop
 
@@ -611,16 +702,16 @@ export default function Mint() {
                       Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
                     </div>
                   )}
-                  {isConfirming && !isConfirmed && (
+                  {(isConfirming || isBatchPending) && !isConfirmed && !sendCallsData && (
                     <div className="text-xs text-yellow-600 mt-1">
-                      ⏳ {mintingStep === 'approving' ? 'Approving USDC...' : 
+                      ⏳ {mintingStep === 'approving' ? 'Approving USDC & Minting...' : 
                           mintingStep === 'minting' ? 'Minting NFT...' : 
                           'Processing...'}
                     </div>
                   )}
-                  {isConfirmed && (
+                  {(isConfirmed || sendCallsData) && (
                     <div className="text-xs text-green-600 mt-1">
-                      ✅ NFT minted successfully!
+                      ✅ NFT başarıyla mint edildi!
                     </div>
                   )}
                 </div>
@@ -643,7 +734,7 @@ export default function Mint() {
                         console.error('🚨 Mint failed:', err);
                       }
                     }}
-                    disabled={isBatchPending || !isConnected || !title || !category || !imageFile || !location || mintingStep !== 'idle'}
+                    disabled={isBatchPending || isContractPending || !isConnected || !title || !category || !imageFile || !location || mintingStep !== 'idle'}
                     data-testid="mint-button"
                   >
                     {mintingStep === 'uploading-image' && (
@@ -670,13 +761,13 @@ export default function Mint() {
                         Minting NFT...
                       </>
                     )}
-                    {isConfirmed && (
+                    {(isConfirmed || sendCallsData) && (
                       <>
                         <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                        NFT Minted Successfully!
+                        NFT Başarıyla Mint Edildi!
                       </>
                     )}
-                    {mintingStep === 'idle' && !isConfirmed && (
+                    {mintingStep === 'idle' && !isConfirmed && !sendCallsData && (
                       <>
                         <Wallet className="w-4 h-4 mr-2" />
                         {isBatchPending ? "Confirming blockchain transaction..." :
