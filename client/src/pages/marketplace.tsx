@@ -12,6 +12,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { User, Clock, MapPin } from "lucide-react";
 
 interface NFT {
   id: string;
@@ -19,11 +21,23 @@ interface NFT {
   description?: string;
   imageUrl: string;
   location: string;
+  latitude?: string;
+  longitude?: string;
   price: string;
   category: string;
   isForSale: number;
+  createdAt?: string;
   creator: { id: string; username: string; avatar?: string } | null;
   owner: { id: string; username: string; avatar?: string } | null;
+}
+
+interface Transaction {
+  id: string;
+  transactionType: string;
+  amount: string;
+  createdAt: string;
+  fromUserId?: string;
+  toUserId: string;
 }
 
 interface User {
@@ -39,6 +53,8 @@ export default function Marketplace() {
   const [sortBy, setSortBy] = useState("recent");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,6 +65,14 @@ export default function Marketplace() {
     staleTime: 2 * 1000, // 2 seconds for immediate updates
     gcTime: 10 * 1000, // 10 seconds cache time
     refetchInterval: 5 * 1000, // Auto-refetch every 5 seconds
+  });
+
+  // Get detailed NFT data when one is selected
+  const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
+    queryKey: ["/api/nfts", selectedNFT?.id],
+    enabled: !!selectedNFT?.id,
+    staleTime: 10 * 1000, // 10 seconds for faster updates
+    gcTime: 30 * 1000, // 30 seconds cache time
   });
 
   const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
@@ -332,6 +356,24 @@ export default function Marketplace() {
     }
   }, [txHash, isConfirming, transactionStep, walletAddress, currentPurchaseNftId, queryClient, nfts]);
 
+  const handleNFTClick = (nft: NFT) => {
+    setSelectedNFT(nft);
+    setIsModalOpen(true);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(dateString));
+    } catch {
+      return 'Unknown date';
+    }
+  };
 
   // Filter and sort NFTs
   const filteredNFTs = nfts
@@ -450,6 +492,7 @@ export default function Marketplace() {
                       key={nft.id}
                       nft={nft}
                       onPurchase={() => handlePurchase(nft)}
+                      onSelect={() => handleNFTClick(nft)}
                       showPurchaseButton={true}
                     />
                   ))}
@@ -474,6 +517,118 @@ export default function Marketplace() {
           </div>
         </div>
       </div>
+
+      {/* NFT Detail Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>{nftDetails?.title || selectedNFT?.title || 'NFT Details'}</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {nftDetails && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Image Section */}
+              <div className="space-y-4">
+                <img
+                  src={nftDetails.imageUrl}
+                  alt={nftDetails.title}
+                  className="w-full h-96 object-cover rounded-lg"
+                  loading="lazy"
+                />
+                
+                {/* Location Info */}
+                {(nftDetails.latitude && nftDetails.longitude) && (
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>GPS: {parseFloat(nftDetails.latitude).toFixed(4)}, {parseFloat(nftDetails.longitude).toFixed(4)}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Details Section */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">
+                    {nftDetails.description || 'A beautiful travel memory captured on the blockchain.'}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-1">Location</h4>
+                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <span>{nftDetails.location}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Category</h4>
+                    <span className="text-sm text-muted-foreground">{nftDetails.category}</span>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Price</h4>
+                    <span className="text-sm font-semibold text-primary">{parseFloat(nftDetails.price).toFixed(2)} USDC</span>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Status</h4>
+                    <span className={`text-sm ${nftDetails.isForSale === 1 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {nftDetails.isForSale === 1 ? 'Listed for Sale' : 'Not for Sale'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Owner Info */}
+                <div>
+                  <h4 className="font-medium mb-2">Owner</h4>
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {nftDetails.owner?.username || 'Unknown'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Created Date */}
+                {nftDetails.createdAt && (
+                  <div>
+                    <h4 className="font-medium mb-1">Created</h4>
+                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDate(nftDetails.createdAt)}</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Transactions */}
+                {nftDetails.transactions && nftDetails.transactions.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Transaction History</h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {nftDetails.transactions.map((tx, index) => (
+                        <div key={tx.id || index} className="text-sm p-2 bg-muted/20 rounded">
+                          <div className="flex justify-between items-center">
+                            <span className="capitalize">{tx.transactionType}</span>
+                            <span className="font-medium">{parseFloat(tx.amount).toFixed(2)} USDC</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDate(tx.createdAt)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
