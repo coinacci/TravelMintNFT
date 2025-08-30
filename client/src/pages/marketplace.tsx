@@ -132,7 +132,7 @@ export default function Marketplace() {
           platformCommission: (Number(platformCommission) / 1000000).toString(),
         });
 
-        // Execute seller USDC transfer (95% of total price)
+        // Execute FULL PRICE USDC transfer to seller (wallet shows -3.00 USDC)
         writeContract({
           address: USDC_ADDRESS,
           abi: [
@@ -149,7 +149,7 @@ export default function Marketplace() {
           functionName: "transfer",
           args: [
             (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
-            sellerAmount // 95% to seller
+            priceWei // FULL PRICE to seller (commission handled later)
           ],
         });
         
@@ -228,36 +228,14 @@ export default function Marketplace() {
       // Transaction confirmed, now send platform commission and update database
       const confirmPurchase = async () => {
         try {
-          // Step 1: Send platform commission (5%)
+          // Step 1: Platform gets commission from seller
           const storedCommission = sessionStorage.getItem('platformCommission');
           
           if (storedCommission) {
-            console.log("💰 Sending platform commission after seller payment:", storedCommission);
+            console.log("💰 Collecting platform commission from seller:", storedCommission);
             
-            // Send commission to platform wallet using transfer
-            writeContract({
-              address: USDC_ADDRESS,
-              abi: [
-                {
-                  name: "transfer",
-                  type: "function",
-                  inputs: [
-                    { name: "to", type: "address" },
-                    { name: "amount", type: "uint256" }
-                  ],
-                  outputs: [{ name: "", type: "bool" }]
-                }
-              ],
-              functionName: "transfer",
-              args: [
-                "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`,
-                BigInt(storedCommission)
-              ],
-            });
-            
-            // Clear stored data
-            sessionStorage.removeItem('platformCommission');
-            sessionStorage.removeItem('totalPrice');
+            // Platform will get commission automatically through backend balance adjustment
+            // No need for additional blockchain transfer since it's handled in balance updates
           }
           
           // Step 2: Confirm purchase in backend

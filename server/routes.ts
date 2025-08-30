@@ -558,7 +558,10 @@ export async function registerRoutes(app: Express) {
       const platformFee = purchasePrice * 0.05; // 5% platform fee
       const sellerAmount = purchasePrice - platformFee;
       
-      // Update balances: Buyer -USDC, Seller +USDC (minus fees)
+      // Update balances: Full price flow
+      // Buyer: -3.00 USDC (full price paid)
+      // Seller: +2.85 USDC (95% after commission deduction)  
+      // Platform: +0.15 USDC (5% commission)
       const buyerNewBalance = (parseFloat(buyer.balance) - purchasePrice).toString();
       const sellerNewBalance = (parseFloat(seller.balance) + sellerAmount).toString();
       
