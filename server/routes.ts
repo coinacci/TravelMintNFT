@@ -427,7 +427,8 @@ export async function registerRoutes(app: Express) {
       const purchaseData = await blockchainService.generatePurchaseTransaction(
         tokenId,
         buyerId.toLowerCase(),
-        nft.ownerAddress.toLowerCase()
+        nft.ownerAddress.toLowerCase(),
+        nft.price // Pass actual NFT price
       );
       
       if (!purchaseData.success) {
@@ -448,7 +449,7 @@ export async function registerRoutes(app: Express) {
         tokenId: tokenId,
         buyer: buyerId.toLowerCase(),
         seller: nft.ownerAddress.toLowerCase(),
-        priceUSDC: "1.0"
+        priceUSDC: nft.price // Use actual NFT price
       });
       
     } catch (error) {
@@ -482,7 +483,7 @@ export async function registerRoutes(app: Express) {
           nftId: nftId,
           toAddress: buyerId.toLowerCase(),
           transactionType: "purchase",
-          amount: "1.0", // 1 USDC
+          amount: nft.price, // Use actual NFT price
           platformFee: "0.05", // 5% platform fee
           fromAddress: nft.ownerAddress,
         });

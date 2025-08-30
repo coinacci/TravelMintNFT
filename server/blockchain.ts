@@ -387,7 +387,7 @@ export class BlockchainService {
 
   // Generate transaction data for onchain NFT purchase
   // This returns transaction data that the frontend can execute
-  async generatePurchaseTransaction(tokenId: string, buyerAddress: string, sellerAddress: string) {
+  async generatePurchaseTransaction(tokenId: string, buyerAddress: string, sellerAddress: string, price: string = "1.0") {
     try {
       // Validate inputs
       if (!tokenId || !buyerAddress || !sellerAddress) {
@@ -402,8 +402,9 @@ export class BlockchainService {
 
       // Check buyer's USDC balance
       const buyerBalance = await this.getUSDCBalance(buyerAddress);
-      if (parseFloat(buyerBalance) < 1.0) {
-        throw new Error(`Insufficient USDC balance. Required: 1 USDC, Available: ${buyerBalance} USDC`);
+      const requiredAmount = parseFloat(price);
+      if (parseFloat(buyerBalance) < requiredAmount) {
+        throw new Error(`Insufficient USDC balance. Required: ${requiredAmount} USDC, Available: ${buyerBalance} USDC`);
       }
 
       // Generate transaction data for the frontend to execute
@@ -412,7 +413,7 @@ export class BlockchainService {
       // 2. Transfer USDC to seller
       // 3. Transfer NFT from seller to buyer
 
-      const purchasePrice = ethers.parseUnits("1.0", 6); // 1 USDC with 6 decimals
+      const purchasePrice = ethers.parseUnits(price, 6); // NFT price in USDC with 6 decimals
 
       return {
         success: true,
@@ -425,7 +426,7 @@ export class BlockchainService {
               sellerAddress,
               purchasePrice
             ]),
-            description: "Transfer 1 USDC to seller"
+            description: `Transfer ${price} USDC to seller`
           },
           {
             type: "NFT_TRANSFER", 
@@ -441,7 +442,7 @@ export class BlockchainService {
         tokenId,
         buyerAddress,
         sellerAddress,
-        priceUSDC: "1.0"
+        priceUSDC: price
       };
 
     } catch (error: any) {

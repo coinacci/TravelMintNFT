@@ -90,7 +90,7 @@ export default function Marketplace() {
           args: [
             (purchaseData as any).buyer,
             (purchaseData as any).seller,
-            parseUnits("1.0", 6) // 1 USDC with 6 decimals
+            parseUnits((purchaseData as any).priceUSDC || "1.0", 6) // Use actual NFT price
           ],
         });
         
