@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
 
 interface NFT {
@@ -53,6 +53,31 @@ export default function Marketplace() {
     hash: txHash,
   });
 
+  // USDC Contract configuration
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+  const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+
+  // Check USDC allowance
+  const { data: usdcAllowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: [
+      {
+        name: "allowance",
+        type: "function",
+        inputs: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" }
+        ],
+        outputs: [{ name: "", type: "uint256" }]
+      }
+    ],
+    functionName: "allowance",
+    args: [walletAddress as `0x${string}`, NFT_CONTRACT_ADDRESS],
+    query: {
+      enabled: !!walletAddress
+    }
+  });
+
   const purchaseMutation = useMutation({
     mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
       console.log("🚀 Starting purchase for NFT:", nftId, "buyer:", buyerId);
@@ -81,49 +106,73 @@ export default function Marketplace() {
     },
     onSuccess: async (purchaseData) => {
       try {
-        // Backend returns transaction data that the frontend should execute
-        const transactionData = (purchaseData as any).transactionData;
         const priceUSDC = (purchaseData as any).priceUSDC || "1.0";
+        const priceWei = parseUnits(priceUSDC, 6);
         
-        if (!transactionData || !transactionData.transactions) {
-          throw new Error("Invalid transaction data received from backend");
-        }
-        
-        toast({
-          title: "Processing Purchase...",
-          description: `Please approve ${priceUSDC} USDC payment in your wallet.`,
+        console.log("💰 Checking USDC allowance...", {
+          priceUSDC,
+          priceWei: priceWei.toString(),
+          currentAllowance: usdcAllowance?.toString()
         });
         
-        // Use the first transaction (USDC transfer) from backend response
-        const usdcTransfer = transactionData.transactions.find((tx: any) => tx.type === "USDC_TRANSFER");
+        // Check if we have enough allowance
+        const needsApproval = !usdcAllowance || usdcAllowance < priceWei;
         
-        if (!usdcTransfer) {
-          throw new Error("USDC transfer transaction not found");
+        if (needsApproval) {
+          toast({
+            title: "Approval Required",
+            description: `First, approve ${priceUSDC} USDC spending for marketplace contract.`,
+          });
+          
+          // Step 1: Approve USDC spending
+          writeContract({
+            address: USDC_ADDRESS,
+            abi: [
+              {
+                name: "approve",
+                type: "function",
+                inputs: [
+                  { name: "spender", type: "address" },
+                  { name: "amount", type: "uint256" }
+                ],
+                outputs: [{ name: "", type: "bool" }]
+              }
+            ],
+            functionName: "approve",
+            args: [
+              NFT_CONTRACT_ADDRESS,
+              priceWei // Approve the exact amount needed
+            ],
+          });
+        } else {
+          // Step 2: Execute purchase (we have enough allowance)
+          toast({
+            title: "Processing Purchase...",
+            description: `Transferring ${priceUSDC} USDC to seller.`,
+          });
+          
+          writeContract({
+            address: USDC_ADDRESS,
+            abi: [
+              {
+                name: "transferFrom",
+                type: "function",
+                inputs: [
+                  { name: "from", type: "address" },
+                  { name: "to", type: "address" },
+                  { name: "amount", type: "uint256" }
+                ],
+                outputs: [{ name: "", type: "bool" }]
+              }
+            ],
+            functionName: "transferFrom",
+            args: [
+              (purchaseData as any).buyer,
+              (purchaseData as any).seller,
+              priceWei
+            ],
+          });
         }
-        
-        // Execute the prepared USDC transfer transaction
-        writeContract({
-          address: usdcTransfer.to as `0x${string}`,
-          abi: [
-            {
-              name: "transferFrom",
-              type: "function",
-              inputs: [
-                { name: "from", type: "address" },
-                { name: "to", type: "address" },
-                { name: "amount", type: "uint256" }
-              ],
-              outputs: [{ name: "", type: "bool" }]
-            }
-          ],
-          functionName: "transferFrom",
-          // Decode the prepared transaction data
-          args: [
-            (purchaseData as any).buyer,
-            (purchaseData as any).seller,
-            parseUnits(priceUSDC, 6)
-          ],
-        });
         
       } catch (error: any) {
         console.error("Purchase transaction error:", error);
