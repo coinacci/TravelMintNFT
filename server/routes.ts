@@ -383,6 +383,64 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Purchase NFT endpoint
+  app.post("/api/nfts/:id/purchase", async (req, res) => {
+    try {
+      const { id: nftId } = req.params;
+      const { buyerId } = req.body;
+      
+      if (!buyerId) {
+        return res.status(400).json({ message: "Buyer ID is required" });
+      }
+      
+      // Get the NFT
+      const nft = await storage.getNFT(nftId);
+      if (!nft) {
+        return res.status(404).json({ message: "NFT not found" });
+      }
+      
+      // Check if NFT is for sale
+      if (nft.isForSale !== 1) {
+        return res.status(400).json({ message: "NFT is not for sale" });
+      }
+      
+      // Check if buyer is not the current owner
+      if (nft.ownerAddress.toLowerCase() === buyerId.toLowerCase()) {
+        return res.status(400).json({ message: "You cannot buy your own NFT" });
+      }
+      
+      // For simplicity, we'll assume the purchase is valid and process it
+      // In a real app, you'd check wallet balances and process actual payment
+      
+      // Update NFT ownership and remove from sale
+      await storage.updateNFT(nftId, {
+        ownerAddress: buyerId.toLowerCase(),
+        isForSale: 0,
+      });
+      
+      // Create transaction record
+      await storage.createTransaction({
+        nftId: nftId,
+        toAddress: buyerId.toLowerCase(),
+        transactionType: "purchase",
+        amount: nft.price,
+        platformFee: "0.05", // 5% platform fee
+        fromAddress: nft.ownerAddress,
+      });
+      
+      res.json({ 
+        message: "NFT purchased successfully",
+        nftId: nftId,
+        newOwner: buyerId.toLowerCase(),
+        price: nft.price
+      });
+      
+    } catch (error) {
+      console.error("Purchase error:", error);
+      res.status(500).json({ message: "Failed to process purchase" });
+    }
+  });
+
   // User routes (stub)
   app.get("/api/users", async (req, res) => {
     res.json({ message: "Use wallet-based endpoints for user data" });

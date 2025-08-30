@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MapPin, User, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface NFT {
   id: string;
@@ -35,10 +37,34 @@ export default function Explore() {
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
     queryKey: ["/api/nfts", selectedNFT?.id],
     enabled: !!selectedNFT?.id,
+  });
+
+  // Purchase mutation
+  const purchaseMutation = useMutation({
+    mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
+      return apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Purchase Successful!",
+        description: "You have successfully purchased the NFT.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      setIsModalOpen(false);
+      setSelectedNFT(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "Failed to purchase NFT",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleNFTSelect = (nft: NFT) => {
@@ -49,6 +75,16 @@ export default function Explore() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedNFT(null);
+  };
+
+  const handlePurchase = () => {
+    if (!nftDetails) return;
+    
+    // For demo purposes, we'll use a dummy buyer ID
+    // In a real app, this would come from the connected wallet
+    const dummyBuyerId = "0x1234567890123456789012345678901234567890";
+    
+    purchaseMutation.mutate({ nftId: nftDetails.id, buyerId: dummyBuyerId });
   };
 
   const formatDate = (dateString: string) => {
@@ -113,8 +149,10 @@ export default function Explore() {
                       <Button 
                         className="bg-primary hover:bg-primary/90 text-primary-foreground"
                         data-testid="modal-buy-button"
+                        onClick={handlePurchase}
+                        disabled={purchaseMutation.isPending}
                       >
-                        Buy Now
+                        {purchaseMutation.isPending ? "Processing..." : "Buy Now"}
                       </Button>
                     )}
                   </div>
