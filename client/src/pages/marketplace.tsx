@@ -55,9 +55,23 @@ export default function Marketplace() {
     hash: txHash,
   });
 
-  // USDC Contract configuration
+  // Contract addresses
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+
+  // TravelNFT Contract ABI - includes purchaseNFT function for single-transaction purchases
+  const NFT_ABI = [
+    {
+      name: 'purchaseNFT',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'price', type: 'uint256' }
+      ],
+      outputs: []
+    }
+  ] as const;
 
   // Check USDC balance (for direct transfers)
   const { data: usdcBalance } = useReadContract({
@@ -81,15 +95,15 @@ export default function Marketplace() {
 
   const purchaseMutation = useMutation({
     mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
-      console.log("🚀 Starting purchase for NFT:", nftId, "buyer:", buyerId);
+      console.log("🚀 Single-transaction purchase for NFT:", nftId, "buyer:", buyerId);
       
-      // First, prepare the purchase transaction
+      // Get NFT data for purchase
       const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId });
       const data = await response.json();
       
       console.log("✅ Purchase API response:", data);
       
-      // Check if this is an ownership error
+      // Check for ownership error
       if (data.message && data.message.includes("cannot buy your own NFT")) {
         throw new Error("You cannot buy your own NFT");
       }
@@ -107,84 +121,56 @@ export default function Marketplace() {
     },
     onSuccess: async (purchaseData) => {
       try {
-        const priceUSDC = (purchaseData as any).priceUSDC || "1.0";
+        const priceUSDC = (purchaseData as any).priceUSDC || "3.0";
         const priceWei = parseUnits(priceUSDC, 6);
+        const tokenId = (purchaseData as any).nftId;
         
-        console.log("💰 Checking USDC balance...", {
+        console.log("💰 Single-contract purchase:", {
+          tokenId,
           priceUSDC,
           priceWei: priceWei.toString(),
-          currentBalance: usdcBalance?.toString(),
-          hasEnoughBalance: usdcBalance ? Number(usdcBalance) >= Number(priceWei) : false
+          currentBalance: usdcBalance?.toString()
         });
-        
-        // SIMPLIFIED APPROACH: Just execute seller payment, full amount deduction handled in backend
-        const platformCommission = priceWei * BigInt(5) / BigInt(100);
-        const sellerAmount = priceWei - platformCommission;
         
         toast({
-          title: "💰 Sending Payment",
-          description: `Transferring ${priceUSDC} USDC (${priceUSDC} total: ${(Number(sellerAmount)/1000000).toFixed(2)} to seller + ${(Number(platformCommission)/1000000).toFixed(2)} commission)`,
-        });
-        
-        console.log("💰 Payment breakdown:", {
-          totalPrice: priceUSDC,
-          sellerAmount: (Number(sellerAmount) / 1000000).toString(),
-          platformCommission: (Number(platformCommission) / 1000000).toString(),
+          title: "💰 Processing Purchase",
+          description: "Single transaction: 2.85 USDC to seller + 0.15 USDC platform fee",
         });
 
-        // SIMPLIFIED FLOW: Direct USDC transfer to seller (2.85 USDC)
-        // Commission handled separately but automatically
+        // SINGLE TRANSACTION: Use contract's purchaseNFT function
+        // This automatically handles seller payment (95%) + platform commission (5%)
         writeContract({
-          address: USDC_ADDRESS,
-          abi: [
-            {
-              name: "transfer",
-              type: "function",
-              inputs: [
-                { name: "to", type: "address" },
-                { name: "amount", type: "uint256" }
-              ],
-              outputs: [{ name: "", type: "bool" }]
-            }
-          ],
-          functionName: "transfer",
+          address: NFT_CONTRACT_ADDRESS,
+          abi: NFT_ABI,
+          functionName: "purchaseNFT",
           args: [
-            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
-            sellerAmount // 2.85 USDC to seller
+            BigInt(tokenId), // tokenId
+            priceWei         // price in USDC wei (3000000 = 3 USDC)
           ],
         });
         
-        console.log("🚀 Seller payment initiated, commission will follow after confirmation");
+        console.log("🎯 Single contract purchase initiated - automatic fee split!");
         
-        // Optimistic UI update - remove NFT from marketplace immediately
+        // Optimistic UI update
         const currentNFTId = (purchaseData as any).nftId;
         queryClient.setQueryData(["/api/nfts/for-sale"], (oldNFTs: NFT[] | undefined) => {
           if (!oldNFTs) return oldNFTs;
           return oldNFTs.filter(nft => nft.id !== currentNFTId);
         });
         
-        console.log("🚀 Multi-transaction purchase initiated, UI updated optimistically");
-        
       } catch (error: any) {
-        console.error("Purchase transaction error:", error);
+        console.error("Contract purchase error:", error);
         toast({
-          title: "Wallet Transaction Failed",
-          description: error.message || "Could not open wallet for payment approval",
+          title: "Contract Purchase Failed",
+          description: error.message || "Could not execute purchase transaction",
           variant: "destructive",
         });
       }
     },
     onError: (error: any) => {
       console.error("Purchase mutation error:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response,
-        status: error.status,
-        data: error.data
-      });
-      
       toast({
-        title: "Purchase Failed",
+        title: "Purchase Failed", 
         description: error.message || "Failed to purchase NFT",
         variant: "destructive",
       });
@@ -219,83 +205,40 @@ export default function Marketplace() {
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
 
-  // Handle transaction confirmation
+  // Handle single transaction confirmation  
   React.useEffect(() => {
     if (txHash && !isConfirming) {
-      // Transaction confirmed, now send platform commission and update database
+      // Single contract transaction confirmed
       const confirmPurchase = async () => {
         try {
-          // Transaction confirmed, now send platform commission
-          console.log("✅ Seller payment confirmed, sending platform commission");
+          console.log("✅ Single purchase transaction confirmed:", txHash);
           
-          // Send platform commission as second transaction
-          writeContract({
-            address: USDC_ADDRESS,
-            abi: [
-              {
-                name: "transfer",
-                type: "function",
-                inputs: [
-                  { name: "to", type: "address" },
-                  { name: "amount", type: "uint256" }
-                ],
-                outputs: [{ name: "", type: "bool" }]
-              }
-            ],
-            functionName: "transfer",
-            args: [
-              "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`, // Platform wallet
-              BigInt(150000) // 5% commission: 0.15 USDC (hardcoded for 3 USDC price)
-            ],
+          // Update database with purchase
+          await apiRequest("POST", `/api/nfts/confirm-purchase`, {
+            buyerId: walletAddress,
+            nftId: currentPurchaseNftId,
+            transactionHash: txHash
           });
-          
-          console.log("💰 Platform commission transfer initiated");
-          
-          // Wait a moment for commission transaction to process
-          console.log("⏳ Waiting for commission transaction...");
-          setTimeout(async () => {
-            // Confirm purchase in backend after commission  
-            await apiRequest("POST", `/api/nfts/confirm-purchase`, {
-              buyerId: walletAddress,
-              nftId: currentPurchaseNftId,
-              transactionHash: txHash
-            });
-          }, 3000);
           
           toast({
-            title: "🎉 Purchase Successful!",
-            description: "NFT purchased! Seller: 2.85 USDC (95%), Platform: 0.15 USDC (5%)",
+            title: "🎉 Purchase Complete!",
+            description: "Single transaction: NFT transferred, seller paid 2.85 USDC, platform got 0.15 USDC",
           });
           
-          console.log("💫 AGGRESSIVE CACHE REFRESH - All data will update immediately");
+          console.log("💫 Refreshing data after single-transaction purchase");
           
-          // IMMEDIATE AND COMPREHENSIVE CACHE INVALIDATION
-          // 1. Marketplace NFTs (remove purchased item)
+          // Refresh all relevant data
           queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
-          queryClient.refetchQueries({ queryKey: ["/api/nfts/for-sale"] });
-          
-          // 2. My NFTs (add new purchase) - Use correct My NFTs cache key
           queryClient.invalidateQueries({ queryKey: [`/api/wallet/${walletAddress}/nfts`] });
-          queryClient.refetchQueries({ queryKey: [`/api/wallet/${walletAddress}/nfts`] });
-          
-          // 3. User balance (subtract USDC spent)
           queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/users", walletAddress] });
-          
-          // 4. All NFT-related queries
-          queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
-          
-          // 5. Stats (volume increase)
           queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-          
-          // 6. Force immediate refetch for all queries
           queryClient.refetchQueries();
           
         } catch (error) {
           console.error("Failed to confirm purchase:", error);
           toast({
             title: "Purchase Confirmation Failed",
-            description: "Payment succeeded but database update failed. Contact support.",
+            description: "Transaction succeeded but database update failed. Contact support.",
             variant: "destructive",
           });
         }
@@ -303,7 +246,7 @@ export default function Marketplace() {
       
       confirmPurchase();
     }
-  }, [txHash, isConfirming, walletAddress, queryClient, toast]);
+  }, [txHash, isConfirming, walletAddress, currentPurchaseNftId, queryClient]);
 
 
   // Filter and sort NFTs
