@@ -38,6 +38,7 @@ export default function Marketplace() {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
+  const [approvalStep, setApprovalStep] = useState<'idle' | 'approval' | 'purchase'>('idle');
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -138,23 +139,35 @@ export default function Marketplace() {
         });
         
         toast({
-          title: "💰 Processing Purchase",
-          description: "Single transaction: 2.85 USDC to seller + 0.15 USDC platform fee",
+          title: "💰 Approving USDC",
+          description: "Step 1: Approving contract to spend USDC...",
         });
 
-        // SINGLE TRANSACTION: Use contract's purchaseNFT function
-        // This automatically handles seller payment (95%) + platform commission (5%)
+        // STEP 1: Approve contract to spend USDC
+        setApprovalStep('approval');
+        
         writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: NFT_ABI,
-          functionName: "purchaseNFT",
+          address: USDC_ADDRESS,
+          abi: [
+            {
+              name: "approve",
+              type: "function", 
+              stateMutability: "nonpayable",
+              inputs: [
+                { name: "spender", type: "address" },
+                { name: "amount", type: "uint256" }
+              ],
+              outputs: [{ name: "", type: "bool" }]
+            }
+          ],
+          functionName: "approve",
           args: [
-            BigInt(tokenId), // tokenId
-            priceWei         // price in USDC wei (3000000 = 3 USDC)
+            NFT_CONTRACT_ADDRESS as `0x${string}`, // Approve NFT contract
+            priceWei  // Full amount (3 USDC)
           ],
         });
         
-        console.log("🎯 Single contract purchase initiated - automatic fee split!");
+        console.log("🎯 Starting approval for single contract purchase...");
         
         // Optimistic UI update
         const currentNFTId = (purchaseData as any).nftId;
@@ -210,48 +223,83 @@ export default function Marketplace() {
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
 
-  // Handle single transaction confirmation  
+  // Handle two-step transaction confirmation  
   React.useEffect(() => {
     if (txHash && !isConfirming) {
-      // Single contract transaction confirmed
-      const confirmPurchase = async () => {
-        try {
-          console.log("✅ Single purchase transaction confirmed:", txHash);
-          
-          // Update database with purchase
-          await apiRequest("POST", `/api/nfts/confirm-purchase`, {
-            buyerId: walletAddress,
-            nftId: currentPurchaseNftId,
-            transactionHash: txHash
-          });
-          
-          toast({
-            title: "🎉 Purchase Complete!",
-            description: "Single transaction: NFT transferred, seller paid 2.85 USDC, platform got 0.15 USDC",
-          });
-          
-          console.log("💫 Refreshing data after single-transaction purchase");
-          
-          // Refresh all relevant data
-          queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
-          queryClient.invalidateQueries({ queryKey: [`/api/wallet/${walletAddress}/nfts`] });
-          queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-          queryClient.refetchQueries();
-          
-        } catch (error) {
-          console.error("Failed to confirm purchase:", error);
-          toast({
-            title: "Purchase Confirmation Failed",
-            description: "Transaction succeeded but database update failed. Contact support.",
-            variant: "destructive",
-          });
-        }
-      };
-      
-      confirmPurchase();
+      if (approvalStep === 'approval') {
+        // STEP 1 CONFIRMED: USDC approved, now call contract purchase
+        console.log("✅ USDC approval confirmed, calling contract purchase...");
+        
+        // Get the stored purchase data
+        const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
+        if (!currentNFT) return;
+        
+        const priceWei = parseUnits(currentNFT.price, 6);
+        const tokenId = currentPurchaseNftId?.includes('blockchain-') 
+          ? parseInt(currentPurchaseNftId.split('blockchain-')[1]) 
+          : parseInt(currentPurchaseNftId || "0");
+        
+        toast({
+          title: "💰 Processing Purchase",
+          description: "Step 2: Contract executing automatic fee split...",
+        });
+        
+        setApprovalStep('purchase');
+        
+        // STEP 2: Call contract purchase function
+        writeContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: NFT_ABI,
+          functionName: "purchaseNFT",
+          args: [
+            BigInt(tokenId), // tokenId
+            priceWei         // price in USDC wei
+          ],
+        });
+        
+      } else if (approvalStep === 'purchase') {
+        // STEP 2 CONFIRMED: Purchase complete
+        const confirmPurchase = async () => {
+          try {
+            console.log("✅ Contract purchase confirmed:", txHash);
+            
+            // Update database with purchase
+            await apiRequest("POST", `/api/nfts/confirm-purchase`, {
+              buyerId: walletAddress,
+              nftId: currentPurchaseNftId,
+              transactionHash: txHash
+            });
+            
+            toast({
+              title: "🎉 Purchase Complete!",
+              description: "NFT transferred! Seller paid, platform commission collected.",
+            });
+            
+            // Reset state
+            setApprovalStep('idle');
+            setCurrentPurchaseNftId(null);
+            
+            // Refresh all data
+            queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${walletAddress}/nfts`] });
+            queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+            queryClient.refetchQueries();
+            
+          } catch (error) {
+            console.error("Failed to confirm purchase:", error);
+            toast({
+              title: "Purchase Confirmation Failed",
+              description: "Transaction succeeded but database update failed. Contact support.",
+              variant: "destructive",
+            });
+          }
+        };
+        
+        confirmPurchase();
+      }
     }
-  }, [txHash, isConfirming, walletAddress, currentPurchaseNftId, queryClient]);
+  }, [txHash, isConfirming, approvalStep, walletAddress, currentPurchaseNftId, queryClient, nfts]);
 
 
   // Filter and sort NFTs
