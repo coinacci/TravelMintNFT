@@ -137,19 +137,17 @@ export default function Marketplace() {
           address: USDC_ADDRESS,
           abi: [
             {
-              name: "transferFrom",
+              name: "transfer",
               type: "function",
               inputs: [
-                { name: "from", type: "address" },
                 { name: "to", type: "address" },
                 { name: "amount", type: "uint256" }
               ],
               outputs: [{ name: "", type: "bool" }]
             }
           ],
-          functionName: "transferFrom",
+          functionName: "transfer",
           args: [
-            walletAddress as `0x${string}`,
             (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
             sellerAmount // 95% to seller
           ],
@@ -236,24 +234,22 @@ export default function Marketplace() {
           if (storedCommission) {
             console.log("💰 Sending platform commission after seller payment:", storedCommission);
             
-            // Send commission to platform wallet using transferFrom
+            // Send commission to platform wallet using transfer
             writeContract({
               address: USDC_ADDRESS,
               abi: [
                 {
-                  name: "transferFrom",
+                  name: "transfer",
                   type: "function",
                   inputs: [
-                    { name: "from", type: "address" },
                     { name: "to", type: "address" },
                     { name: "amount", type: "uint256" }
                   ],
                   outputs: [{ name: "", type: "bool" }]
                 }
               ],
-              functionName: "transferFrom",
+              functionName: "transfer",
               args: [
-                walletAddress as `0x${string}`,
                 "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`,
                 BigInt(storedCommission)
               ],
