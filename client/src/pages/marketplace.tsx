@@ -605,25 +605,6 @@ export default function Marketplace() {
                   </div>
                 )}
                 
-                {/* Transactions */}
-                {nftDetails.transactions && nftDetails.transactions.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-2">Transaction History</h4>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {nftDetails.transactions.map((tx, index) => (
-                        <div key={tx.id || index} className="text-sm p-2 bg-muted/20 rounded">
-                          <div className="flex justify-between items-center">
-                            <span className="capitalize">{tx.transactionType}</span>
-                            <span className="font-medium">{parseFloat(tx.amount).toFixed(2)} USDC</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDate(tx.createdAt)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}

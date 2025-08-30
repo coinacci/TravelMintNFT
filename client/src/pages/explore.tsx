@@ -327,27 +327,6 @@ export default function Explore() {
                     </div>
                   </div>
 
-                  {/* Trading History */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Trading History</h3>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        {nftDetails.transactions && nftDetails.transactions.length > 0 ? (
-                          nftDetails.transactions.slice(0, 3).map((transaction, index) => (
-                            <div key={transaction.id} className="flex justify-between items-center text-xs">
-                              <span className="capitalize">{transaction.transactionType}</span>
-                              <span>{parseFloat(transaction.amount).toFixed(0)} USDC</span>
-                              <span className="text-muted-foreground">
-                                {formatDate(transaction.createdAt)}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs text-muted-foreground">No trading history available</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </>

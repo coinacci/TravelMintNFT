@@ -196,6 +196,7 @@ export async function registerRoutes(app: Express) {
         console.log('Failed to parse metadata for NFT:', nft.id);
       }
 
+
       res.json({
         ...nft,
         // Use metadata name and image if available, fallback to NFT fields
