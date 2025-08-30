@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface Stats {
   totalNFTs: number;
   totalVolume: string;
+  totalCountries: number;
 }
 
 export default function Landing() {
@@ -156,8 +157,8 @@ export default function Landing() {
             </div>
             
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-accent mb-2">
-                0
+              <div className="text-3xl md:text-4xl font-bold text-accent mb-2" data-testid="stats-countries">
+                {stats?.totalCountries || 0}
               </div>
               <div className="text-sm text-muted-foreground">Countries</div>
             </div>

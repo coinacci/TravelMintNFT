@@ -450,18 +450,60 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Stats endpoint
+  // Stats endpoint with country calculation
   app.get("/api/stats", async (req, res) => {
     try {
       const allNFTs = await storage.getAllNFTs();
       const totalNFTs = allNFTs.length;
       const totalVolume = allNFTs.reduce((sum, nft) => sum + parseFloat(nft.price), 0);
       
+      // Calculate unique countries from NFT locations
+      const locationToCountry: Record<string, string> = {
+        // Turkey
+        'Tuzla': 'Turkey',
+        'Pendik': 'Turkey', 
+        'Istanbul': 'Turkey',
+        'Ankara': 'Turkey',
+        'Izmir': 'Turkey',
+        // Canada
+        'Vancouver': 'Canada',
+        'Toronto': 'Canada',
+        'Montreal': 'Canada',
+        'Calgary': 'Canada',
+        // USA
+        'New York': 'USA',
+        'Los Angeles': 'USA',
+        'San Francisco': 'USA',
+        'Chicago': 'USA',
+        'Miami': 'USA',
+        // Other major cities
+        'London': 'UK',
+        'Paris': 'France',
+        'Tokyo': 'Japan',
+        'Sydney': 'Australia',
+        'Dubai': 'UAE',
+        'Singapore': 'Singapore',
+        'Amsterdam': 'Netherlands',
+        'Berlin': 'Germany',
+        'Rome': 'Italy',
+        'Barcelona': 'Spain'
+      };
+      
+      const uniqueCountries = new Set<string>();
+      allNFTs.forEach(nft => {
+        const country = locationToCountry[nft.location] || 'Unknown';
+        if (country !== 'Unknown') {
+          uniqueCountries.add(country);
+        }
+      });
+      
       res.json({
         totalNFTs,
         totalVolume: totalVolume.toFixed(1),
+        totalCountries: uniqueCountries.size
       });
     } catch (error) {
+      console.error('Stats endpoint error:', error);
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
