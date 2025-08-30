@@ -58,28 +58,37 @@ export default function Marketplace() {
       // First, prepare the purchase transaction
       const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId }) as any;
       
-      console.log("🔍 Purchase API Response:", response);
-      
       // Check if this is an ownership error
       if (response.message && response.message.includes("cannot buy your own NFT")) {
         throw new Error("You cannot buy your own NFT");
       }
       
+      // Check for API errors
+      if (response.message && !response.requiresOnchainPayment) {
+        throw new Error(response.message || "Purchase failed");
+      }
+      
       if (!response.requiresOnchainPayment) {
-        console.error("❌ Missing requiresOnchainPayment in response:", response);
-        throw new Error("Purchase cannot be processed - please try again");
+        throw new Error("Purchase transaction could not be prepared");
       }
       
       return response;
     },
     onSuccess: async (purchaseData) => {
       try {
+        const priceUSDC = (purchaseData as any).priceUSDC || "1.0";
+        
         toast({
           title: "Processing Purchase...",
-          description: "Please approve the USDC payment in your wallet.",
+          description: `Please approve ${priceUSDC} USDC payment in your wallet.`,
         });
         
-        // Execute USDC payment transaction
+        // Ensure we have valid transaction data
+        if (!purchaseData.buyer || !purchaseData.seller || !priceUSDC) {
+          throw new Error("Invalid transaction data received");
+        }
+        
+        // Execute USDC payment transaction with better error handling
         writeContract({
           address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, // USDC address
           abi: [
@@ -98,14 +107,14 @@ export default function Marketplace() {
           args: [
             (purchaseData as any).buyer,
             (purchaseData as any).seller,
-            parseUnits((purchaseData as any).priceUSDC || "1.0", 6) // Use actual NFT price
+            parseUnits(priceUSDC, 6)
           ],
         });
         
       } catch (error: any) {
         toast({
-          title: "Transaction Failed",
-          description: error.message || "Failed to process USDC payment",
+          title: "Wallet Transaction Failed",
+          description: error.message || "Could not open wallet for payment approval",
           variant: "destructive",
         });
       }

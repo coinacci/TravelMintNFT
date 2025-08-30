@@ -34,14 +34,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     (nft.owner?.id && connectedWallet.toLowerCase() === nft.owner.id.toLowerCase())
   );
   
-  // Debug ownership check
-  console.log("🔍 NFT Ownership Check:", {
-    connectedWallet,
-    nftOwnerAddress: nft.ownerAddress,
-    nftOwnerId: nft.owner?.id,
-    isOwnNFT,
-    showButton: showPurchaseButton && nft.isForSale === 1 && !isOwnNFT
-  });
+  // Remove debug logging for production
 
   return (
     <Card className="nft-card bg-card rounded-lg overflow-hidden cursor-pointer" onClick={onSelect} data-testid={`nft-card-${nft.id}`}>
