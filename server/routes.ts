@@ -124,6 +124,7 @@ export async function registerRoutes(app: Express) {
             // Use metadata name and image if available, fallback to NFT fields
             title: parsedMetadata?.name || nft.title,
             imageUrl: parsedMetadata?.image || nft.imageUrl,
+            ownerAddress: nft.ownerAddress, // Include raw owner address for purchases
             owner: { 
               id: nft.ownerAddress, 
               username: nft.ownerAddress.slice(0, 8) + '...', 
@@ -495,24 +496,39 @@ export async function registerRoutes(app: Express) {
   // Confirm purchase after USDC payment transaction
   app.post("/api/nfts/confirm-purchase", async (req, res) => {
     try {
-      const { buyerId, transactionHash } = req.body;
+      const { buyerId, transactionHash, nftId } = req.body;
       
       if (!buyerId || !transactionHash) {
         return res.status(400).json({ message: "Buyer ID and transaction hash are required" });
       }
       
-      console.log(`🔄 Confirming purchase with USDC payment tx: ${transactionHash}`);
+      console.log(`🔄 Confirming purchase with USDC payment tx: ${transactionHash} for NFT: ${nftId}`);
       
-      // Find NFT being purchased based on recent transaction data
-      // For now, we'll look for any NFT for sale from recent purchase attempts
-      const forSaleNFTs = await storage.getNFTs();
-      const nftToUpdate = forSaleNFTs.find(nft => 
-        nft.isForSale === 1 && 
-        nft.ownerAddress.toLowerCase() !== buyerId.toLowerCase()
-      );
+      // Find the specific NFT being purchased
+      let nftToUpdate;
+      if (nftId) {
+        nftToUpdate = await storage.getNFT(nftId);
+      } else {
+        // Fallback: Find any NFT for sale that the buyer doesn't own
+        const allNFTs = await storage.getAllNFTs();
+        nftToUpdate = allNFTs.find((nft: any) => 
+          nft.isForSale === 1 && 
+          nft.ownerAddress.toLowerCase() !== buyerId.toLowerCase()
+        );
+      }
       
       if (!nftToUpdate) {
-        return res.status(404).json({ message: "No eligible NFT found for purchase confirmation" });
+        return res.status(404).json({ message: "NFT not found for purchase confirmation" });
+      }
+      
+      // Check if NFT is for sale
+      if (nftToUpdate.isForSale !== 1) {
+        return res.status(400).json({ message: "NFT is not for sale" });
+      }
+      
+      // Check if buyer is not the current owner
+      if (nftToUpdate.ownerAddress.toLowerCase() === buyerId.toLowerCase()) {
+        return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
       
       console.log(`✅ Confirming purchase of NFT ${nftToUpdate.id} for buyer ${buyerId}`);

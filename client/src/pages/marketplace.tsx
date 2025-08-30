@@ -37,6 +37,7 @@ export default function Marketplace() {
   const [priceMax, setPriceMax] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
+  const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -113,7 +114,7 @@ export default function Marketplace() {
           priceUSDC,
           priceWei: priceWei.toString(),
           currentBalance: usdcBalance?.toString(),
-          hasEnoughBalance: usdcBalance && usdcBalance >= priceWei
+          hasEnoughBalance: usdcBalance ? Number(usdcBalance) >= Number(priceWei) : false
         });
         
         // DIRECT TRANSFER APPROACH (No smart contract marketplace)
@@ -193,13 +194,16 @@ export default function Marketplace() {
       nftId: nft.id,
       price: nft.price,
       buyer: walletAddress,
-      seller: nft.ownerAddress
+      seller: nft.owner?.id
     });
 
     toast({
       title: "Preparing Purchase...",
       description: "Setting up onchain payment transaction",
     });
+    
+    // Store current NFT ID for purchase confirmation
+    setCurrentPurchaseNftId(nft.id);
     
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
@@ -212,6 +216,7 @@ export default function Marketplace() {
         try {
           await apiRequest("POST", `/api/nfts/confirm-purchase`, {
             buyerId: walletAddress,
+            nftId: currentPurchaseNftId, // Include specific NFT ID
             transactionHash: txHash
           });
           
