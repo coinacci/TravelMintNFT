@@ -119,10 +119,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
           <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
           <p class="text-xs text-gray-600 mb-2">${nft.location}</p>
+          ${nft.isForSale === 1 ? `
           <div class="flex justify-between items-center mb-2">
             <span class="text-xs text-gray-500">Price:</span>
             <span class="font-medium text-sm" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
           </div>
+          ` : ''}
           <button 
             onclick="window.selectNFT('${nft.id}')"
             class="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
