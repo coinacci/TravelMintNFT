@@ -82,11 +82,16 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
             </span>
           </div>
           
-          {showPurchaseButton && nft.isForSale === 1 && !isOwnNFT && (
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
+            {/* Always show price for NFTs for sale */}
+            {nft.isForSale === 1 && (
               <span className="text-sm font-semibold text-primary" data-testid={`nft-price-${nft.id}`}>
                 {formatPrice(nft.price)} USDC
               </span>
+            )}
+            
+            {/* Show buy button only if not own NFT */}
+            {showPurchaseButton && nft.isForSale === 1 && !isOwnNFT && (
               <Button
                 size="sm"
                 onClick={(e) => {
@@ -98,8 +103,8 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
               >
                 Buy
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
