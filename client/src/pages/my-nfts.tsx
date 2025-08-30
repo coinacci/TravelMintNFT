@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MapPin, User, Clock } from "lucide-react";
 
 interface NFT {
   id: string;
@@ -17,11 +19,23 @@ interface NFT {
   description?: string;
   imageUrl: string;
   location: string;
+  latitude?: string;
+  longitude?: string;
   price: string;
   category: string;
   isForSale: number;
+  createdAt?: string;
   creator: { id: string; username: string; avatar?: string } | null;
   owner: { id: string; username: string; avatar?: string } | null;
+}
+
+interface Transaction {
+  id: string;
+  transactionType: string;
+  amount: string;
+  createdAt: string;
+  fromUserId?: string;
+  toUserId: string;
 }
 
 interface User {
@@ -32,6 +46,8 @@ interface User {
 
 export default function MyNFTs() {
   const [sortBy, setSortBy] = useState("recent");
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,6 +55,23 @@ export default function MyNFTs() {
   const syncedAddressRef = useRef<string | null>(null);
 
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
+    queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
+    enabled: !!address && isConnected,
+    staleTime: 30_000, // Consider data fresh for 30 seconds
+    refetchOnMount: false, // Don't refetch on every mount
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    gcTime: 300_000, // Keep cache for 5 minutes
+  });
+
+  // Get detailed NFT data when one is selected
+  const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
+    queryKey: ["/api/nfts", selectedNFT?.id],
+    enabled: !!selectedNFT?.id,
+    staleTime: 10 * 1000, // 10 seconds for faster updates
+    gcTime: 30 * 1000, // 30 seconds cache time
+  });
+
+  const { data: nftsQuery = [], isLoading: isLoadingQuery, isError: isErrorQuery, error: errorQuery } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
     enabled: !!address && isConnected,
     staleTime: 30_000, // Consider data fresh for 30 seconds
@@ -152,6 +185,25 @@ export default function MyNFTs() {
     }
   };
 
+  const handleNFTClick = (nft: NFT) => {
+    setSelectedNFT(nft);
+    setIsModalOpen(true);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(dateString));
+    } catch {
+      return 'Unknown date';
+    }
+  };
+
   // Sort NFTs
   const sortedNFTs = [...nfts].sort((a, b) => {
     switch (sortBy) {
@@ -202,6 +254,7 @@ export default function MyNFTs() {
                 <NFTCard
                   nft={nft}
                   showPurchaseButton={false}
+                  onSelect={() => handleNFTClick(nft)}
                 />
                 
                 <Card className="p-3 bg-muted/20">
@@ -259,6 +312,118 @@ export default function MyNFTs() {
           </div>
         )}
       </div>
+
+      {/* NFT Detail Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>{nftDetails?.title || selectedNFT?.title || 'NFT Details'}</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {nftDetails && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Image Section */}
+              <div className="space-y-4">
+                <img
+                  src={nftDetails.imageUrl}
+                  alt={nftDetails.title}
+                  className="w-full h-96 object-cover rounded-lg"
+                  loading="lazy"
+                />
+                
+                {/* Location Info */}
+                {(nftDetails.latitude && nftDetails.longitude) && (
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>GPS: {parseFloat(nftDetails.latitude).toFixed(4)}, {parseFloat(nftDetails.longitude).toFixed(4)}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Details Section */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">
+                    {nftDetails.description || 'A beautiful travel memory captured on the blockchain.'}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-1">Location</h4>
+                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <span>{nftDetails.location}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Category</h4>
+                    <span className="text-sm text-muted-foreground">{nftDetails.category}</span>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Price</h4>
+                    <span className="text-sm font-semibold text-primary">{parseFloat(nftDetails.price).toFixed(2)} USDC</span>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Status</h4>
+                    <span className={`text-sm ${nftDetails.isForSale === 1 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {nftDetails.isForSale === 1 ? 'Listed for Sale' : 'Not for Sale'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Owner Info */}
+                <div>
+                  <h4 className="font-medium mb-2">Owner</h4>
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {nftDetails.owner?.username || 'You'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Created Date */}
+                {nftDetails.createdAt && (
+                  <div>
+                    <h4 className="font-medium mb-1">Created</h4>
+                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDate(nftDetails.createdAt)}</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Transactions */}
+                {nftDetails.transactions && nftDetails.transactions.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Transaction History</h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {nftDetails.transactions.map((tx, index) => (
+                        <div key={tx.id || index} className="text-sm p-2 bg-muted/20 rounded">
+                          <div className="flex justify-between items-center">
+                            <span className="capitalize">{tx.transactionType}</span>
+                            <span className="font-medium">{parseFloat(tx.amount).toFixed(2)} USDC</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDate(tx.createdAt)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
