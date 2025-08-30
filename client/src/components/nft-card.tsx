@@ -28,13 +28,13 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     <Card className="nft-card bg-card rounded-lg overflow-hidden cursor-pointer" onClick={onSelect} data-testid={`nft-card-${nft.id}`}>
       <div className="relative">
         <img
-          src={`${nft.imageUrl}?v=${Date.now()}`}
+          src={nft.imageUrl}
           alt={nft.title}
           className="w-full h-48 object-cover"
           data-testid={`nft-image-${nft.id}`}
           loading="lazy"
           decoding="async"
-          onLoad={() => console.log('✅ Card image loaded:', nft.title, `${nft.imageUrl}?v=${Date.now()}`)}
+          onLoad={() => console.log('✅ Card image loaded:', nft.title, nft.imageUrl)}
           onError={(e) => {
             console.error('❌ Card image failed:', nft.imageUrl);
             const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="192"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-size="14" font-family="Inter,sans-serif">Travel Photo</text></svg>';
