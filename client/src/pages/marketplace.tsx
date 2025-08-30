@@ -76,21 +76,29 @@ export default function Marketplace() {
     },
     onSuccess: async (purchaseData) => {
       try {
+        // Backend returns transaction data that the frontend should execute
+        const transactionData = (purchaseData as any).transactionData;
         const priceUSDC = (purchaseData as any).priceUSDC || "1.0";
+        
+        if (!transactionData || !transactionData.transactions) {
+          throw new Error("Invalid transaction data received from backend");
+        }
         
         toast({
           title: "Processing Purchase...",
           description: `Please approve ${priceUSDC} USDC payment in your wallet.`,
         });
         
-        // Ensure we have valid transaction data
-        if (!purchaseData.buyer || !purchaseData.seller || !priceUSDC) {
-          throw new Error("Invalid transaction data received");
+        // Use the first transaction (USDC transfer) from backend response
+        const usdcTransfer = transactionData.transactions.find((tx: any) => tx.type === "USDC_TRANSFER");
+        
+        if (!usdcTransfer) {
+          throw new Error("USDC transfer transaction not found");
         }
         
-        // Execute USDC payment transaction with better error handling
+        // Execute the prepared USDC transfer transaction
         writeContract({
-          address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, // USDC address
+          address: usdcTransfer.to as `0x${string}`,
           abi: [
             {
               name: "transferFrom",
@@ -104,6 +112,7 @@ export default function Marketplace() {
             }
           ],
           functionName: "transferFrom",
+          // Decode the prepared transaction data
           args: [
             (purchaseData as any).buyer,
             (purchaseData as any).seller,
@@ -112,6 +121,7 @@ export default function Marketplace() {
         });
         
       } catch (error: any) {
+        console.error("Purchase transaction error:", error);
         toast({
           title: "Wallet Transaction Failed",
           description: error.message || "Could not open wallet for payment approval",

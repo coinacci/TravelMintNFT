@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
-import { MapPin, Upload, Wallet, Eye } from "lucide-react";
+import { MapPin, Upload, Wallet, Eye, CheckCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
@@ -611,14 +611,14 @@ export default function Mint() {
                       Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
                     </div>
                   )}
-                  {isConfirming && (
+                  {isConfirming && !isConfirmed && (
                     <div className="text-xs text-yellow-600 mt-1">
                       ⏳ {mintingStep === 'approving' ? 'Approving USDC...' : 
                           mintingStep === 'minting' ? 'Minting NFT...' : 
                           'Processing...'}
                     </div>
                   )}
-                  {isConfirmed && mintingStep === 'idle' && (
+                  {isConfirmed && (
                     <div className="text-xs text-green-600 mt-1">
                       ✅ NFT minted successfully!
                     </div>
@@ -658,19 +658,25 @@ export default function Mint() {
                         Uploading Metadata to IPFS...
                       </>
                     )}
-                    {mintingStep === 'approving' && (
+                    {mintingStep === 'approving' && !isConfirmed && (
                       <>
                         <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
                         {approvalHash ? 'Minting NFT...' : 'Approving USDC...'}
                       </>
                     )}
-                    {mintingStep === 'minting' && (
+                    {mintingStep === 'minting' && !isConfirmed && (
                       <>
                         <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
                         Minting NFT...
                       </>
                     )}
-                    {mintingStep === 'idle' && (
+                    {isConfirmed && (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                        NFT Minted Successfully!
+                      </>
+                    )}
+                    {mintingStep === 'idle' && !isConfirmed && (
                       <>
                         <Wallet className="w-4 h-4 mr-2" />
                         {isBatchPending ? "Confirming blockchain transaction..." :
