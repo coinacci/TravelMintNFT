@@ -41,9 +41,6 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
             e.currentTarget.src = fallbackSvg;
           }}
         />
-        <div className="absolute top-2 right-2 price-tag text-white px-2 py-1 rounded text-xs font-medium">
-          <span data-testid={`nft-price-${nft.id}`}>{formatPrice(nft.price)} USDC</span>
-        </div>
       </div>
       
       <CardContent className="p-4">
