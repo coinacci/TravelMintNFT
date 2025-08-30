@@ -533,6 +533,40 @@ export async function registerRoutes(app: Express) {
       
       console.log(`✅ Confirming purchase of NFT ${nftToUpdate.id} for buyer ${buyerId}`);
       
+      // Get or create buyer and seller users
+      let buyer = await storage.getUserByWalletAddress(buyerId.toLowerCase());
+      if (!buyer) {
+        buyer = await storage.createUser({
+          username: `${buyerId.slice(0, 8)}...`,
+          walletAddress: buyerId.toLowerCase(),
+          balance: "0"
+        });
+      }
+      
+      let seller = await storage.getUserByWalletAddress(nftToUpdate.ownerAddress);
+      if (!seller) {
+        seller = await storage.createUser({
+          username: `${nftToUpdate.ownerAddress.slice(0, 8)}...`,
+          walletAddress: nftToUpdate.ownerAddress,
+          balance: "0"
+        });
+      }
+      
+      // Calculate amounts
+      const purchasePrice = parseFloat(nftToUpdate.price);
+      const platformFee = purchasePrice * 0.05; // 5% platform fee
+      const sellerAmount = purchasePrice - platformFee;
+      
+      // Update balances: Buyer -USDC, Seller +USDC (minus fees)
+      const buyerNewBalance = (parseFloat(buyer.balance) - purchasePrice).toString();
+      const sellerNewBalance = (parseFloat(seller.balance) + sellerAmount).toString();
+      
+      console.log(`💰 Balance updates: Buyer ${buyerNewBalance} USDC, Seller ${sellerNewBalance} USDC`);
+      
+      // Update user balances
+      await storage.updateUserBalance(buyer.id, buyerNewBalance);
+      await storage.updateUserBalance(seller.id, sellerNewBalance);
+      
       // Update NFT ownership and remove from sale
       await storage.updateNFT(nftToUpdate.id, {
         ownerAddress: buyerId.toLowerCase(),
@@ -545,11 +579,12 @@ export async function registerRoutes(app: Express) {
         toAddress: buyerId.toLowerCase(),
         transactionType: "purchase",
         amount: nftToUpdate.price,
-        platformFee: "0.05", // 5% platform fee
+        platformFee: platformFee.toString(),
         fromAddress: nftToUpdate.ownerAddress,
+        blockchainTxHash: transactionHash,
       });
       
-      console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId}`);
+      console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Balance: ${buyerNewBalance} USDC)`);
       
       res.json({
         success: true,
