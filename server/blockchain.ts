@@ -14,6 +14,7 @@ const BASESCAN_API_URL = "https://api.basescan.org/api";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
+const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 
 // ERC721 ABI for reading NFT data (without Enumerable extension)
 const ERC721_ABI = [
@@ -457,6 +458,12 @@ export class BlockchainService {
       // 3. Transfer NFT from seller to buyer
 
       const purchasePrice = ethers.parseUnits(price, 6); // NFT price in USDC with 6 decimals
+      
+      // Calculate commission split: 95% to seller, 5% to platform
+      const platformFee = purchasePrice * BigInt(5) / BigInt(100); // 5% commission
+      const sellerAmount = purchasePrice - platformFee; // 95% to seller
+      
+      console.log(`💰 Commission split: Seller ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC, Platform ${(Number(platformFee) / 1000000).toFixed(6)} USDC`);
 
       return {
         success: true,
@@ -467,9 +474,19 @@ export class BlockchainService {
             data: usdcContract.interface.encodeFunctionData("transferFrom", [
               buyerAddress,
               sellerAddress,
-              purchasePrice
+              sellerAmount // 95% to seller
             ]),
-            description: `Transfer ${price} USDC to seller`
+            description: `Transfer ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC to seller`
+          },
+          {
+            type: "USDC_COMMISSION_TRANSFER",
+            to: USDC_CONTRACT_ADDRESS,
+            data: usdcContract.interface.encodeFunctionData("transferFrom", [
+              buyerAddress,
+              PLATFORM_WALLET, // 5% commission to platform
+              platformFee
+            ]),
+            description: `Transfer ${(Number(platformFee) / 1000000).toFixed(6)} USDC platform commission`
           },
           {
             type: "NFT_TRANSFER", 
