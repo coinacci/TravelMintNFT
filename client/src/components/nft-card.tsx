@@ -71,17 +71,22 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           </div>
           
           {showPurchaseButton && nft.isForSale === 1 && (
-            <Button
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPurchase?.();
-              }}
-              className="bg-primary text-primary-foreground px-3 py-1 text-xs font-medium hover:bg-primary/90 transition-colors"
-              data-testid={`buy-button-${nft.id}`}
-            >
-              Buy Now
-            </Button>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-semibold text-primary" data-testid={`nft-price-${nft.id}`}>
+                {formatPrice(nft.price)} USDC
+              </span>
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPurchase?.();
+                }}
+                className="bg-primary text-primary-foreground px-3 py-1 text-xs font-medium hover:bg-primary/90 transition-colors"
+                data-testid={`buy-button-${nft.id}`}
+              >
+                Buy Now
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

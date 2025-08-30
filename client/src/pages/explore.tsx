@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAccount } from "wagmi";
 
 interface NFT {
   id: string;
@@ -38,10 +39,13 @@ export default function Explore() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { address: walletAddress, isConnected } = useAccount();
 
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
     queryKey: ["/api/nfts", selectedNFT?.id],
     enabled: !!selectedNFT?.id,
+    staleTime: 10 * 1000, // 10 seconds for faster updates
+    gcTime: 30 * 1000, // 30 seconds cache time
   });
 
   // Purchase mutation
@@ -54,7 +58,10 @@ export default function Explore() {
         title: "Purchase Successful!",
         description: "You have successfully purchased the NFT.",
       });
+      // Immediate cache invalidation for faster updates
       queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+      queryClient.refetchQueries({ queryKey: ["/api/nfts"] });
       setIsModalOpen(false);
       setSelectedNFT(null);
     },
@@ -80,11 +87,16 @@ export default function Explore() {
   const handlePurchase = () => {
     if (!nftDetails) return;
     
-    // For demo purposes, we'll use a dummy buyer ID
-    // In a real app, this would come from the connected wallet
-    const dummyBuyerId = "0x1234567890123456789012345678901234567890";
+    if (!isConnected || !walletAddress) {
+      toast({
+        title: "Error",
+        description: "Please connect your wallet to purchase NFTs",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    purchaseMutation.mutate({ nftId: nftDetails.id, buyerId: dummyBuyerId });
+    purchaseMutation.mutate({ nftId: nftDetails.id, buyerId: walletAddress });
   };
 
   const formatDate = (dateString: string) => {
