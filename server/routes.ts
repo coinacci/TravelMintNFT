@@ -9,6 +9,28 @@ import ipfsRoutes from "./routes/ipfs";
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 
+// Simple in-memory cache to avoid expensive blockchain calls
+interface CacheEntry {
+  data: any[];
+  timestamp: number;
+}
+
+const nftCache: { [key: string]: CacheEntry } = {};
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes cache
+
+function isCacheValid(key: string): boolean {
+  const entry = nftCache[key];
+  if (!entry) return false;
+  return (Date.now() - entry.timestamp) < CACHE_DURATION;
+}
+
+function setCacheEntry(key: string, data: any[]): void {
+  nftCache[key] = {
+    data,
+    timestamp: Date.now()
+  };
+}
+
 export async function registerRoutes(app: Express) {
 
   // Health check
@@ -16,52 +38,26 @@ export async function registerRoutes(app: Express) {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
   });
 
-  // Get all NFTs - combine database and blockchain data
+  // Get all NFTs - fast cached version
   app.get("/api/nfts", async (req, res) => {
     try {
-      console.log("🔗 Fetching all NFTs from blockchain and database...");
+      // Check cache first for instant response
+      if (isCacheValid('all-nfts')) {
+        console.log("⚡ Returning cached NFTs (instant response)");
+        return res.json(nftCache['all-nfts'].data);
+      }
+
+      console.log("🔗 Cache miss - fetching NFTs from database...");
       
-      // First get all NFTs from database (this includes manually added ones)
+      // Get all NFTs from database immediately (fast response)
       const allDbNFTs = await storage.getAllNFTs();
       const contractNFTs = allDbNFTs.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
       
-      // Also get NFTs from blockchain for sync
-      const blockchainNFTs = await blockchainService.getAllNFTs();
-      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
-      console.log(`Found ${contractNFTs.length} NFTs in database`);
-      
-      // Merge database and blockchain data
-      const mergedNFTs = [...contractNFTs]; // Start with all database NFTs
-      
-      // Sync any blockchain NFTs that aren't in database yet
-      for (const blockchainNFT of blockchainNFTs) {
-        const existsInDb = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
-        
-        if (!existsInDb) {
-          console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
-          const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
-          const newDbNFT = await storage.createNFT(dbFormat);
-          if (newDbNFT) {
-            mergedNFTs.push(newDbNFT);
-          }
-        } else if (existsInDb.ownerAddress !== blockchainNFT.owner) {
-          // Update owner if it changed on blockchain
-          console.log(`🔄 Updating owner for NFT #${blockchainNFT.tokenId}`);
-          const updatedNFT = await storage.updateNFT(existsInDb.id, {
-            ownerAddress: blockchainNFT.owner
-          });
-          // Update the NFT in mergedNFTs array
-          const index = mergedNFTs.findIndex(nft => nft.id === existsInDb.id);
-          if (index !== -1 && updatedNFT) {
-            mergedNFTs[index] = updatedNFT;
-          }
-        }
-      }
-      
+      // Process database NFTs for immediate response
       const nftsWithOwners = await Promise.all(
-        mergedNFTs.map(async (nft) => {
+        contractNFTs.map(async (nft: any) => {
           // Parse metadata for display
           let parsedMetadata = null;
           try {
@@ -91,7 +87,40 @@ export async function registerRoutes(app: Express) {
         })
       );
       
-      console.log(`✅ Returning ${nftsWithOwners.length} total NFTs`);
+      // Cache the processed results for fast future requests
+      setCacheEntry('all-nfts', nftsWithOwners);
+      console.log(`✅ Returning ${nftsWithOwners.length} total NFTs (cached for fast access)`);
+      
+      // Background blockchain sync (non-blocking)
+      setImmediate(async () => {
+        try {
+          console.log("🔄 Background blockchain sync starting...");
+          const blockchainNFTs = await blockchainService.getAllNFTs();
+          console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
+          
+          // Sync any blockchain NFTs that aren't in database yet
+          for (const blockchainNFT of blockchainNFTs) {
+            const existsInDb = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
+            
+            if (!existsInDb) {
+              console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
+              const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+              await storage.createNFT(dbFormat);
+            } else if (existsInDb.ownerAddress !== blockchainNFT.owner) {
+              // Update owner if it changed on blockchain
+              console.log(`🔄 Updating owner for NFT #${blockchainNFT.tokenId}`);
+              await storage.updateNFT(existsInDb.id, {
+                ownerAddress: blockchainNFT.owner
+              });
+            }
+          }
+          
+          console.log("✅ Background blockchain sync completed");
+        } catch (error) {
+          console.error("Background sync failed:", error);
+        }
+      });
+      
       res.json(nftsWithOwners);
     } catch (error) {
       console.error("Error fetching NFTs:", error);

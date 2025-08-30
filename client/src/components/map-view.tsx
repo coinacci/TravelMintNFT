@@ -27,9 +27,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
-    staleTime: 0, // Force fresh data to show updated images
-    refetchOnMount: true,
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    staleTime: 60 * 1000, // Cache for 1 minute to avoid expensive blockchain calls
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnMount: false, // Don't refetch on mount - use cache
+    refetchOnWindowFocus: false, // Don't refetch on focus
+    refetchInterval: false, // Disable auto-refresh to reduce blockchain calls
   });
   
   // Log errors for troubleshooting
@@ -39,6 +41,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   const { data: stats } = useQuery<{ totalNFTs: number; totalVolume: string }>({
     queryKey: ["/api/stats"],
+    staleTime: 2 * 60 * 1000, // Cache stats for 2 minutes
+    gcTime: 10 * 60 * 1000, // Keep stats in cache for 10 minutes
   });
 
   useEffect(() => {
