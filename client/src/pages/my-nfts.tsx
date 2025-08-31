@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, User, Clock } from "lucide-react";
+import { MapPin, User, Clock, Share2 } from "lucide-react";
 
 interface NFT {
   id: string;
@@ -192,6 +192,29 @@ export default function MyNFTs() {
     setIsModalOpen(true);
   };
 
+  const handleShareNFT = (nft: NFT, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Create Farcaster share URL
+    const shareText = `Check out my travel NFT "${nft.title}" from ${nft.location}! 🌍 ✈️`;
+    const nftUrl = `${window.location.origin}/explore`; // Link to explore page where others can see it
+    
+    const params = new URLSearchParams();
+    params.append('text', shareText);
+    params.append('embeds[]', nftUrl);
+    params.append('embeds[]', nft.imageUrl); // Include the NFT image
+    
+    const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
+    
+    // Open Warpcast in new tab
+    window.open(warpcastUrl, '_blank');
+    
+    toast({
+      title: "Opening Farcaster",
+      description: "Your travel NFT is ready to share on Farcaster!",
+    });
+  };
+
   const formatDate = (dateString: string) => {
     try {
       return new Intl.DateTimeFormat('en-US', {
@@ -264,15 +287,26 @@ export default function MyNFTs() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-green-600">Listed for {parseFloat(nft.price).toFixed(2)} USDC</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleToggleListing(nft)}
-                          disabled={updateListingMutation.isPending}
-                          data-testid={`unlist-${nft.id}`}
-                        >
-                          Remove from Sale
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => handleShareNFT(nft, e)}
+                            data-testid={`share-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleToggleListing(nft)}
+                            disabled={updateListingMutation.isPending}
+                            data-testid={`unlist-${nft.id}`}
+                          >
+                            Remove from Sale
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -285,6 +319,15 @@ export default function MyNFTs() {
                           id={`price-${nft.id}`}
                           data-testid={`price-input-${nft.id}`}
                         />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => handleShareNFT(nft, e)}
+                          data-testid={`share-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </Button>
                         <Button
                           size="sm"
                           onClick={() => {
