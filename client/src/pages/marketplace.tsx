@@ -583,14 +583,26 @@ export default function Marketplace() {
                   </div>
                 </div>
                 
-                {/* Owner Info */}
-                <div>
-                  <h4 className="font-medium mb-2">Owner</h4>
-                  <div className="flex items-center space-x-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {nftDetails.owner?.username || 'Unknown'}
-                    </span>
+                {/* Creator & Owner Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Creator</h4>
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {nftDetails.creator?.username || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Owner</h4>
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {nftDetails.owner?.username || 'Unknown'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
