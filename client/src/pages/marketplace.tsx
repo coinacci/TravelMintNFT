@@ -538,13 +538,6 @@ export default function Marketplace() {
                   loading="lazy"
                 />
                 
-                {/* Location Info */}
-                {(nftDetails.latitude && nftDetails.longitude) && (
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    <span>GPS: {parseFloat(nftDetails.latitude).toFixed(4)}, {parseFloat(nftDetails.longitude).toFixed(4)}</span>
-                  </div>
-                )}
               </div>
               
               {/* Details Section */}
