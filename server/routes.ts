@@ -453,6 +453,10 @@ export async function registerRoutes(app: Express) {
 
   // Function to determine country from coordinates
   const getCountryFromCoordinates = (lat: number, lng: number): string => {
+    // Montenegro borders: roughly 42-43.5°N, 18.5-20.5°E
+    if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
+      return 'Montenegro';
+    }
     // Turkey borders: roughly 36-42°N, 26-45°E
     if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) {
       return 'Turkey';
@@ -460,6 +464,10 @@ export async function registerRoutes(app: Express) {
     // Egypt borders: roughly 22-32°N, 25-35°E  
     if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
       return 'Egypt';
+    }
+    // UAE borders: roughly 22-26°N, 51-56°E
+    if (lat >= 22 && lat <= 26 && lng >= 51 && lng <= 56) {
+      return 'UAE';
     }
     // Canada borders: roughly 42-75°N, -141 to -52°W
     if (lat >= 42 && lat <= 75 && lng >= -141 && lng <= -52) {
@@ -491,6 +499,9 @@ export async function registerRoutes(app: Express) {
         'Didim': 'Turkey',
         'Datça': 'Turkey',
         'Maltepe': 'Turkey',
+        // Montenegro
+        'Karadağ': 'Montenegro',
+        'Karadag Nature': 'Montenegro',
         // Canada
         'Vancouver': 'Canada',
         'Toronto': 'Canada',
