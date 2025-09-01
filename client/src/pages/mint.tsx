@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas, useSendCalls } from "wagmi";
 import { parseEther, formatGwei, encodeFunctionData } from "viem";
@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
 import { createNFTMetadata, createIPFSUrl } from "@shared/ipfs";
+import L from "leaflet";
 
 // USDC Contract on Base mainnet
 const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
@@ -95,6 +96,10 @@ export default function Mint() {
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [useManualLocation, setUseManualLocation] = useState(false);
   const [manualLocation, setManualLocation] = useState('');
+  const [selectedCoords, setSelectedCoords] = useState<{lat: number, lng: number} | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -210,6 +215,56 @@ export default function Mint() {
       saveNFTToBackend();
     }
   }, [sendCallsData, mintingStep, title, description, imageIpfsUrl, location, category, enableListing, salePrice, address, queryClient, toast, useManualLocation, manualLocation]);
+
+  // Initialize mini map for manual location selection
+  useEffect(() => {
+    if (!useManualLocation || !mapRef.current || mapInstanceRef.current) return;
+
+    // Initialize map
+    const map = L.map(mapRef.current, {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([39.9334, 32.8597], 6); // Turkey center
+    mapInstanceRef.current = map;
+
+    // Add tile layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    // Handle map clicks
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      
+      // Remove existing marker
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+      }
+      
+      // Add new marker
+      const marker = L.marker([lat, lng]).addTo(map);
+      markerRef.current = marker;
+      
+      // Update state
+      setSelectedCoords({ lat, lng });
+      
+      // Optional: Set a generic location name based on coordinates
+      setManualLocation(`Location at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      
+      toast({
+        title: "Location Selected",
+        description: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      });
+    });
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, [useManualLocation, toast]);
 
   // Handle successful individual transaction (writeContract) - backup method
   useEffect(() => {
@@ -472,8 +527,8 @@ export default function Mint() {
         category,
         location: {
           city: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
-          latitude: useManualLocation ? "0" : (location?.latitude.toString() || "0"),
-          longitude: useManualLocation ? "0" : (location?.longitude.toString() || "0")
+          latitude: useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
+          longitude: useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0")
         }
       });
       
@@ -511,8 +566,8 @@ export default function Mint() {
               args: [
                 address,
                 useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
-                useManualLocation ? "0" : (location?.latitude.toString() || "0"),
-                useManualLocation ? "0" : (location?.longitude.toString() || "0"), 
+                useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
+                useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
                 category,
                 metadataIpfsUrl // IPFS metadata URL instead of base64
               ]
@@ -673,7 +728,7 @@ export default function Mint() {
                 {useManualLocation ? (
                   /* Manual Location Input */
                   <div className="bg-muted p-4 rounded-lg">
-                    <div className="mb-2">
+                    <div className="mb-3">
                       <span className="text-sm font-medium">Manual Location</span>
                     </div>
                     <Input
@@ -681,10 +736,27 @@ export default function Mint() {
                       placeholder="Enter city name (e.g., Paris, Tokyo, New York)"
                       value={manualLocation}
                       onChange={(e) => setManualLocation(e.target.value)}
-                      className="bg-background"
+                      className="bg-background mb-3"
                       data-testid="manual-location-input"
                     />
-                    <div className="text-xs text-muted-foreground mt-1">
+                    
+                    {/* Interactive Mini Map */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Or click on map to set location:</p>
+                      <div 
+                        ref={mapRef}
+                        className="w-full h-48 rounded-lg border border-border bg-background"
+                        data-testid="mint-mini-map"
+                      ></div>
+                      {selectedCoords && (
+                        <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                          <MapPin className="w-3 h-3" />
+                          Selected: {selectedCoords.lat.toFixed(4)}, {selectedCoords.lng.toFixed(4)}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground mt-3">
                       💡 Manual location protects your privacy
                     </div>
                   </div>
