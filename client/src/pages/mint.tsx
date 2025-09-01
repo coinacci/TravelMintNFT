@@ -93,6 +93,8 @@ export default function Mint() {
   const [mintingStep, setMintingStep] = useState<'idle' | 'uploading-image' | 'uploading-metadata' | 'approving' | 'minting'>('idle');
   const [approvalHash, setApprovalHash] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [useManualLocation, setUseManualLocation] = useState(false);
+  const [manualLocation, setManualLocation] = useState('');
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -117,11 +119,13 @@ export default function Mint() {
   
   
 
-  // Auto-get location when page loads
+  // Auto-get location when page loads (only if not using manual location)
   useEffect(() => {
-    console.log('🎬 MINT PAGE LOADED - Getting location...');
-    getCurrentLocation();
-  }, [getCurrentLocation]);
+    if (!useManualLocation) {
+      console.log('🎬 MINT PAGE LOADED - Getting location...');
+      getCurrentLocation();
+    }
+  }, [getCurrentLocation, useManualLocation]);
 
   // Handle successful batch transaction (sendCalls)
   useEffect(() => {
@@ -134,9 +138,9 @@ export default function Mint() {
             title,
             description: description || "Travel NFT minted on TravelMint",
             imageUrl: imageIpfsUrl, // Use IPFS URL, not base64 preview
-            location: location?.city || "Unknown City",
-            latitude: location?.latitude.toString() || "0",
-            longitude: location?.longitude.toString() || "0",
+            location: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
+            latitude: useManualLocation ? "0" : (location?.latitude.toString() || "0"),
+            longitude: useManualLocation ? "0" : (location?.longitude.toString() || "0"),
             category,
             price: enableListing ? (salePrice || "1") : "1",
             isForSale: enableListing ? 1 : 0,
@@ -150,9 +154,9 @@ export default function Mint() {
               image: imageIpfsUrl,
               attributes: [
                 { trait_type: "Category", value: category },
-                { trait_type: "Location", value: location?.city || "Unknown City" },
-                { trait_type: "Latitude", value: location?.latitude.toString() || "0" },
-                { trait_type: "Longitude", value: location?.longitude.toString() || "0" },
+                { trait_type: "Location", value: useManualLocation ? manualLocation : (location?.city || "Unknown City") },
+                { trait_type: "Latitude", value: useManualLocation ? "0" : (location?.latitude.toString() || "0") },
+                { trait_type: "Longitude", value: useManualLocation ? "0" : (location?.longitude.toString() || "0") },
                 { trait_type: "Minted Date", value: new Date().toISOString() },
                 { trait_type: "Platform", value: "TravelMint" }
               ]
@@ -205,7 +209,7 @@ export default function Mint() {
 
       saveNFTToBackend();
     }
-  }, [sendCallsData, mintingStep, title, description, imageIpfsUrl, location, category, enableListing, salePrice, address, queryClient, toast]);
+  }, [sendCallsData, mintingStep, title, description, imageIpfsUrl, location, category, enableListing, salePrice, address, queryClient, toast, useManualLocation, manualLocation]);
 
   // Handle successful individual transaction (writeContract) - backup method
   useEffect(() => {
@@ -234,9 +238,9 @@ export default function Mint() {
               image: imageIpfsUrl,
               attributes: [
                 { trait_type: "Category", value: category },
-                { trait_type: "Location", value: location?.city || "Unknown City" },
-                { trait_type: "Latitude", value: location?.latitude.toString() || "0" },
-                { trait_type: "Longitude", value: location?.longitude.toString() || "0" },
+                { trait_type: "Location", value: useManualLocation ? manualLocation : (location?.city || "Unknown City") },
+                { trait_type: "Latitude", value: useManualLocation ? "0" : (location?.latitude.toString() || "0") },
+                { trait_type: "Longitude", value: useManualLocation ? "0" : (location?.longitude.toString() || "0") },
                 { trait_type: "Minted Date", value: new Date().toISOString() },
                 { trait_type: "Platform", value: "TravelMint" }
               ]
@@ -467,9 +471,9 @@ export default function Mint() {
         imageIpfsUrl,
         category,
         location: {
-          city: location.city || "Unknown City",
-          latitude: location.latitude.toString(),
-          longitude: location.longitude.toString()
+          city: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
+          latitude: useManualLocation ? "0" : (location?.latitude.toString() || "0"),
+          longitude: useManualLocation ? "0" : (location?.longitude.toString() || "0")
         }
       });
       
@@ -506,9 +510,9 @@ export default function Mint() {
               functionName: 'mintTravelNFT',
               args: [
                 address,
-                location.city || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
-                location.latitude.toString(),
-                location.longitude.toString(), 
+                useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
+                useManualLocation ? "0" : (location?.latitude.toString() || "0"),
+                useManualLocation ? "0" : (location?.longitude.toString() || "0"), 
                 category,
                 metadataIpfsUrl // IPFS metadata URL instead of base64
               ]
@@ -655,29 +659,61 @@ export default function Mint() {
 
               {/* Location Info */}
               <div className="space-y-4">
-                <div className="bg-muted p-4 rounded-lg">
-                  <div className="mb-2">
-                    <span className="text-sm font-medium">Current Location</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    <span data-testid="detected-location">
-                      {locationLoading ? "Getting your location..." :
-                       location ? (location.city || "Unknown City") : 
-                       locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
-                    </span>
-                  </div>
-                  {location && (
-                    <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
-                      City-based location for privacy
-                    </div>
-                  )}
-                  {locationError && (
-                    <div className="text-xs text-destructive mt-1">
-                      Location permission needed for NFT minting
-                    </div>
-                  )}
+                {/* Manual Location Toggle */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="manual-location"
+                    checked={useManualLocation}
+                    onCheckedChange={(checked) => setUseManualLocation(!!checked)}
+                    data-testid="manual-location-checkbox"
+                  />
+                  <Label htmlFor="manual-location" className="text-sm">Enter location manually (for privacy)</Label>
                 </div>
+                
+                {useManualLocation ? (
+                  /* Manual Location Input */
+                  <div className="bg-muted p-4 rounded-lg">
+                    <div className="mb-2">
+                      <span className="text-sm font-medium">Manual Location</span>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Enter city name (e.g., Paris, Tokyo, New York)"
+                      value={manualLocation}
+                      onChange={(e) => setManualLocation(e.target.value)}
+                      className="bg-background"
+                      data-testid="manual-location-input"
+                    />
+                    <div className="text-xs text-muted-foreground mt-1">
+                      💡 Manual location protects your privacy
+                    </div>
+                  </div>
+                ) : (
+                  /* Automatic GPS Location */
+                  <div className="bg-muted p-4 rounded-lg">
+                    <div className="mb-2">
+                      <span className="text-sm font-medium">Current Location</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span data-testid="detected-location">
+                        {locationLoading ? "Getting your location..." :
+                         location ? (location.city || "Unknown City") : 
+                         locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
+                      </span>
+                    </div>
+                    {location && (
+                      <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
+                        City-based location for privacy
+                      </div>
+                    )}
+                    {locationError && (
+                      <div className="text-xs text-destructive mt-1">
+                        Location permission needed for NFT minting
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Pricing */}
                 <div className="bg-primary/10 p-4 rounded-lg">
@@ -718,7 +754,7 @@ export default function Mint() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          const shareText = `Just minted my travel NFT "${title}" from ${location?.city}! 🌍 ✨ #TravelMint #NFT`;
+                          const shareText = `Just minted my travel NFT "${title}" from ${useManualLocation ? manualLocation : location?.city}! 🌍 ✨ #TravelMint #NFT`;
                           const nftUrl = `${window.location.origin}/marketplace`;
                           
                           const params = new URLSearchParams();
@@ -754,7 +790,10 @@ export default function Mint() {
                     onClick={async () => {
                       console.log('⚡ MINT: Starting IPFS + blockchain transaction...');
                       
-                      if (!isConnected || !title || !category || !imageFile || !location) {
+                      const finalLocation = useManualLocation ? 
+                        { city: manualLocation, latitude: 0, longitude: 0 } : location;
+                      
+                      if (!isConnected || !title || !category || !imageFile || (!location && !useManualLocation) || (useManualLocation && !manualLocation)) {
                         console.log('❌ Missing required fields');
                         return;
                       }
@@ -765,7 +804,7 @@ export default function Mint() {
                         console.error('🚨 Mint failed:', err);
                       }
                     }}
-                    disabled={isBatchPending || isContractPending || !isConnected || !title || !category || !imageFile || !location || mintingStep !== 'idle'}
+                    disabled={isBatchPending || isContractPending || !isConnected || !title || !category || !imageFile || (!useManualLocation && !location) || (useManualLocation && !manualLocation) || mintingStep !== 'idle'}
                     data-testid="mint-button"
                   >
                     {mintingStep === 'uploading-image' && (
@@ -803,8 +842,9 @@ export default function Mint() {
                         <Wallet className="w-4 h-4 mr-2" />
                         {isBatchPending ? "Confirming blockchain transaction..." :
                          !isConnected ? "Connect wallet to mint" :
-                         locationLoading ? "Getting location..." :
-                         !location ? "Location required" :
+                         locationLoading && !useManualLocation ? "Getting location..." :
+                         !useManualLocation && !location ? "Location required" :
+                         useManualLocation && !manualLocation ? "Enter location manually" :
                          !title || !category || !imageFile ? "Fill all fields" :
                          !imageIpfsUrl ? "Upload image first" :
                          "Mint NFT for 1 USDC"}
@@ -818,7 +858,7 @@ export default function Mint() {
                       variant="secondary"
                       className="w-full py-2 font-medium hover:bg-secondary/80 transition-colors bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                       onClick={() => {
-                        const shareText = `Just minted my travel NFT "${title}" from ${location?.city}! 🌍 ✨ Check it out on TravelMint! #TravelMint #NFT`;
+                        const shareText = `Just minted my travel NFT "${title}" from ${useManualLocation ? manualLocation : location?.city}! 🌍 ✨ Check it out on TravelMint! #TravelMint #NFT`;
                         const nftUrl = `${window.location.origin}/marketplace`;
                         
                         const params = new URLSearchParams();
@@ -847,7 +887,7 @@ export default function Mint() {
                   <Button
                     variant="secondary"
                     className="w-full py-2 font-medium hover:bg-secondary/80 transition-colors"
-                    disabled={!location}
+                    disabled={!useManualLocation && !location}
                     data-testid="preview-button"
                   >
                     <Eye className="w-4 h-4 mr-2" />
