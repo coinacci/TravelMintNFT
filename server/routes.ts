@@ -466,11 +466,20 @@ export async function registerRoutes(app: Express) {
         'Istanbul': 'Turkey',
         'Ankara': 'Turkey',
         'Izmir': 'Turkey',
+        'Beyoglu': 'Turkey',
+        'Bodrum': 'Turkey',
+        'Kadikoy': 'Turkey',
+        'Osmangazi': 'Turkey',
         // Canada
         'Vancouver': 'Canada',
         'Toronto': 'Canada',
         'Montreal': 'Canada',
         'Calgary': 'Canada',
+        // Egypt
+        'El Obour': 'Egypt',
+        'Cairo': 'Egypt',
+        'Alexandria': 'Egypt',
+        'Giza': 'Egypt',
         // USA
         'New York': 'USA',
         'Los Angeles': 'USA',

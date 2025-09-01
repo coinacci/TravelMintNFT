@@ -50,7 +50,7 @@ export default function Marketplace() {
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [sortBy, setSortBy] = useState("recent");
+  const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);

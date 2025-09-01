@@ -168,8 +168,8 @@ export default function Mint() {
           if (response.ok) {
             console.log('✅ NFT saved to marketplace with batch transaction!');
             toast({
-              title: "🎉 NFT Başarıyla Mint Edildi!",
-              description: `"${title}" NFT'in blockchain'de mint edildi ve marketplace'e eklendi`,
+              title: "🎉 NFT Successfully Minted!",
+              description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
             
@@ -194,8 +194,8 @@ export default function Mint() {
         } catch (error) {
           console.error('❌ Error saving to backend:', error);
           toast({
-            title: "Backend Hatası",
-            description: "NFT blockchain'de mint edildi ama marketplace'e kaydedilemedi",
+            title: "Backend Error",
+            description: "NFT minted on blockchain but failed to save to marketplace",
             variant: "destructive",
           });
         } finally {
@@ -252,8 +252,8 @@ export default function Mint() {
           if (response.ok) {
             console.log('✅ NFT saved to marketplace with individual transaction!');
             toast({
-              title: "🎉 NFT Başarıyla Mint Edildi!",
-              description: `"${title}" NFT'in blockchain'de mint edildi ve marketplace'e eklendi`,
+              title: "🎉 NFT Successfully Minted!",
+              description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
             
@@ -711,7 +711,7 @@ export default function Mint() {
                   )}
                   {(isConfirmed || sendCallsData) && (
                     <div className="text-xs text-green-600 mt-1">
-                      ✅ NFT başarıyla mint edildi!
+                      ✅ NFT successfully minted!
                     </div>
                   )}
                 </div>
@@ -764,7 +764,7 @@ export default function Mint() {
                     {(isConfirmed || sendCallsData) && (
                       <>
                         <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                        NFT Başarıyla Mint Edildi!
+                        NFT Successfully Minted!
                       </>
                     )}
                     {mintingStep === 'idle' && !isConfirmed && !sendCallsData && (

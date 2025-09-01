@@ -195,9 +195,9 @@ export default function MyNFTs() {
   const handleShareNFT = (nft: NFT, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Create Farcaster share URL
+    // Create Farcaster share URL with specific NFT details link
     const shareText = `Check out my travel NFT "${nft.title}" from ${nft.location}! 🌍 ✈️`;
-    const nftUrl = `${window.location.origin}/explore`; // Link to explore page where others can see it
+    const nftUrl = `${window.location.origin}/marketplace`; // Link to marketplace where NFT details can be viewed
     
     const params = new URLSearchParams();
     params.append('text', shareText);
@@ -206,8 +206,16 @@ export default function MyNFTs() {
     
     const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
     
-    // Open Warpcast in new tab
-    window.open(warpcastUrl, '_blank');
+    // Check if we're in a Farcaster frame or Base App
+    const isInFrame = window.parent !== window || window.location !== window.parent.location;
+    
+    if (isInFrame) {
+      // Within Farcaster/Base App - use same window
+      window.location.href = warpcastUrl;
+    } else {
+      // Regular browser - open in new tab
+      window.open(warpcastUrl, '_blank');
+    }
     
     toast({
       title: "Opening Farcaster",
