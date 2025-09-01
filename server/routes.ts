@@ -451,13 +451,31 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Function to determine country from coordinates
+  const getCountryFromCoordinates = (lat: number, lng: number): string => {
+    // Turkey borders: roughly 36-42°N, 26-45°E
+    if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) {
+      return 'Turkey';
+    }
+    // Egypt borders: roughly 22-32°N, 25-35°E  
+    if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
+      return 'Egypt';
+    }
+    // Canada borders: roughly 42-75°N, -141 to -52°W
+    if (lat >= 42 && lat <= 75 && lng >= -141 && lng <= -52) {
+      return 'Canada';
+    }
+    // Add more countries as needed
+    return 'Unknown';
+  };
+
   // Stats endpoint with country calculation
   app.get("/api/stats", async (req, res) => {
     try {
       const allNFTs = await storage.getAllNFTs();
       const totalNFTs = allNFTs.length;
       const totalVolume = allNFTs.reduce((sum, nft) => sum + parseFloat(nft.price), 0);
-      
+
       // Calculate unique countries from NFT locations
       const locationToCountry: Record<string, string> = {
         // Turkey
@@ -471,6 +489,8 @@ export async function registerRoutes(app: Express) {
         'Kadikoy': 'Turkey',
         'Osmangazi': 'Turkey',
         'Didim': 'Turkey',
+        'Datça': 'Turkey',
+        'Maltepe': 'Turkey',
         // Canada
         'Vancouver': 'Canada',
         'Toronto': 'Canada',
@@ -481,8 +501,6 @@ export async function registerRoutes(app: Express) {
         'Cairo': 'Egypt',
         'Alexandria': 'Egypt',
         'Giza': 'Egypt',
-        // Montenegro
-        'Karadag Nature': 'Montenegro',
         // USA
         'New York': 'USA',
         'Los Angeles': 'USA',
@@ -504,7 +522,18 @@ export async function registerRoutes(app: Express) {
       
       const uniqueCountries = new Set<string>();
       allNFTs.forEach(nft => {
-        const country = locationToCountry[nft.location] || 'Unknown';
+        let country = locationToCountry[nft.location];
+        
+        // If not found in mapping and it's a manual location (has coordinates), use coordinates
+        if (!country && nft.location.startsWith('Location at ') && parseFloat(nft.latitude.toString()) !== 0 && parseFloat(nft.longitude.toString()) !== 0) {
+          country = getCountryFromCoordinates(parseFloat(nft.latitude.toString()), parseFloat(nft.longitude.toString()));
+        }
+        
+        // Fallback to Unknown
+        if (!country) {
+          country = 'Unknown';
+        }
+        
         if (country !== 'Unknown') {
           uniqueCountries.add(country);
         }
