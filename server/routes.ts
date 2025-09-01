@@ -470,6 +470,7 @@ export async function registerRoutes(app: Express) {
         'Bodrum': 'Turkey',
         'Kadikoy': 'Turkey',
         'Osmangazi': 'Turkey',
+        'Didim': 'Turkey',
         // Canada
         'Vancouver': 'Canada',
         'Toronto': 'Canada',
@@ -480,6 +481,8 @@ export async function registerRoutes(app: Express) {
         'Cairo': 'Egypt',
         'Alexandria': 'Egypt',
         'Giza': 'Egypt',
+        // Montenegro
+        'Karadag Nature': 'Montenegro',
         // USA
         'New York': 'USA',
         'Los Angeles': 'USA',
