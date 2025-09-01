@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { MapPin, Share2 } from "lucide-react";
 import { useAccount } from "wagmi";
+import { useToast } from "@/hooks/use-toast";
 
 interface NFTCardProps {
   nft: {
@@ -19,10 +20,12 @@ interface NFTCardProps {
   onSelect?: () => void;
   onPurchase?: () => void;
   showPurchaseButton?: boolean;
+  showShareButton?: boolean;
 }
 
-export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
+export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true, showShareButton = false }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
+  const { toast } = useToast();
   
   const formatPrice = (price: string) => {
     return parseFloat(price).toFixed(0);
@@ -88,6 +91,40 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
               <span className="text-sm font-semibold text-primary" data-testid={`nft-price-${nft.id}`}>
                 {formatPrice(nft.price)} USDC
               </span>
+            )}
+            
+            {/* Share button for marketplace NFTs */}
+            {showShareButton && nft.isForSale === 1 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Create Farcaster share URL with buy button
+                  const shareText = `Check out this travel NFT "${nft.title}" from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC! 🌍 ✨`;
+                  const nftUrl = `${window.location.origin}/marketplace`;
+                  
+                  const params = new URLSearchParams();
+                  params.append('text', shareText);
+                  params.append('embeds[]', nftUrl);
+                  params.append('embeds[]', nft.imageUrl);
+                  
+                  const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
+                  
+                  // Open Farcaster
+                  window.open(warpcastUrl, '_blank');
+                  
+                  toast({
+                    title: "Opening Farcaster",
+                    description: "NFT ready to share with buy link!",
+                  });
+                }}
+                className="text-muted-foreground hover:text-foreground px-2 py-1"
+                data-testid={`share-button-${nft.id}`}
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
             )}
             
             {/* Show buy button only if not own NFT */}
