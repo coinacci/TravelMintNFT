@@ -206,8 +206,13 @@ export default function MyNFTs() {
     
     const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
     
-    // Always use same tab
-    window.location.href = warpcastUrl;
+    // Open Farcaster in new tab/window
+    window.open(warpcastUrl, '_blank');
+    
+    toast({
+      title: "Opening Farcaster",
+      description: "Your travel NFT is ready to share on Farcaster!",
+    });
   };
 
   const formatDate = (dateString: string) => {
