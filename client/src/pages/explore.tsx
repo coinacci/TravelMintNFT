@@ -42,6 +42,20 @@ export default function Explore() {
   const { toast } = useToast();
   const { address: walletAddress, isConnected } = useAccount();
 
+  // Fetch all NFTs for manual location section
+  const { data: allNfts = [] } = useQuery<NFT[]>({
+    queryKey: ["/api/nfts"],
+    staleTime: 10 * 1000,
+    gcTime: 30 * 1000,
+  });
+
+  // Separate manual location NFTs (coordinates 0,0)
+  const manualLocationNfts = allNfts.filter((nft) => {
+    const lat = parseFloat(nft.latitude);
+    const lng = parseFloat(nft.longitude);
+    return lat === 0 && lng === 0;
+  });
+
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
     queryKey: ["/api/nfts", selectedNFT?.id],
     enabled: !!selectedNFT?.id,
@@ -188,6 +202,54 @@ export default function Explore() {
   return (
     <div className={`${isMobile ? 'pb-16' : ''}`}>
       <MapView onNFTSelect={handleNFTSelect} />
+      
+      {/* Manual Location NFTs Section */}
+      {manualLocationNfts.length > 0 && (
+        <div className="bg-background border-t border-border p-6">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <MapPin className="w-5 h-5 mr-2" />
+              Location-Based NFTs
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              NFTs with text-based locations that can't be shown on the map
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {manualLocationNfts.map((nft) => (
+                <div
+                  key={nft.id}
+                  className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleNFTSelect(nft)}
+                  data-testid={`manual-nft-card-${nft.id}`}
+                >
+                  <img
+                    src={nft.imageUrl}
+                    alt={nft.title}
+                    className="w-full h-32 object-cover rounded-lg mb-3"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="128"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-family="Inter,sans-serif">Photo Unavailable</text></svg>';
+                    }}
+                  />
+                  <h3 className="font-semibold text-sm mb-1" data-testid={`manual-nft-title-${nft.id}`}>
+                    {nft.title}
+                  </h3>
+                  <div className="flex items-center text-xs text-muted-foreground mb-2">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    <span data-testid={`manual-nft-location-${nft.id}`}>{nft.location}</span>
+                  </div>
+                  {nft.isForSale === 1 && (
+                    <div className="text-sm font-medium text-primary" data-testid={`manual-nft-price-${nft.id}`}>
+                      {parseFloat(nft.price).toFixed(0)} USDC
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Upload Button */}
       <Link href="/mint">
