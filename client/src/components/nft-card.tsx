@@ -93,8 +93,8 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
               </span>
             )}
             
-            {/* Share button for marketplace NFTs */}
-            {showShareButton && nft.isForSale === 1 && (
+            {/* Share button for marketplace NFTs - only for own NFTs */}
+            {showShareButton && nft.isForSale === 1 && isOwnNFT && (
               <Button
                 size="sm"
                 variant="ghost"
