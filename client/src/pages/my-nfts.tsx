@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, User, Clock, Share2 } from "lucide-react";
+import { MapPin, User, Clock, Share2, Eye } from "lucide-react";
 
 interface NFT {
   id: string;
@@ -195,9 +195,9 @@ export default function MyNFTs() {
   const handleShareNFT = (nft: NFT, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Create Farcaster share URL with specific NFT details link
+    // Create Farcaster share URL
     const shareText = `Check out my travel NFT "${nft.title}" from ${nft.location}! 🌍 ✈️`;
-    const nftUrl = `${window.location.origin}/marketplace`; // Link to marketplace where NFT details can be viewed
+    const nftUrl = `${window.location.origin}/marketplace`;
     
     const params = new URLSearchParams();
     params.append('text', shareText);
@@ -206,21 +206,8 @@ export default function MyNFTs() {
     
     const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
     
-    // Check if we're in a Farcaster frame or Base App
-    const isInFrame = window.parent !== window || window.location !== window.parent.location;
-    
-    if (isInFrame) {
-      // Within Farcaster/Base App - use same window
-      window.location.href = warpcastUrl;
-    } else {
-      // Regular browser - open in new tab
-      window.open(warpcastUrl, '_blank');
-    }
-    
-    toast({
-      title: "Opening Farcaster",
-      description: "Your travel NFT is ready to share on Farcaster!",
-    });
+    // Always use same tab
+    window.location.href = warpcastUrl;
   };
 
   const formatDate = (dateString: string) => {
@@ -299,6 +286,15 @@ export default function MyNFTs() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
+                            data-testid={`open-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={(e) => handleShareNFT(nft, e)}
                             data-testid={`share-${nft.id}`}
                             className="text-muted-foreground hover:text-foreground"
@@ -327,6 +323,15 @@ export default function MyNFTs() {
                           id={`price-${nft.id}`}
                           data-testid={`price-input-${nft.id}`}
                         />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
+                          data-testid={`open-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
