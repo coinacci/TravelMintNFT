@@ -16,7 +16,7 @@ interface CacheEntry {
 }
 
 const nftCache: { [key: string]: CacheEntry } = {};
-const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes cache
+const CACHE_DURATION = 30 * 1000; // 30 seconds cache for better NFT sync
 
 function isCacheValid(key: string): boolean {
   const entry = nftCache[key];
@@ -31,11 +31,22 @@ function setCacheEntry(key: string, data: any[]): void {
   };
 }
 
+function clearAllCache(): void {
+  Object.keys(nftCache).forEach(key => delete nftCache[key]);
+  console.log("🗑️ All cache cleared for fresh sync");
+}
+
 export async function registerRoutes(app: Express) {
 
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
+  });
+
+  // Clear cache endpoint for immediate refresh
+  app.post("/api/cache/clear", (req, res) => {
+    clearAllCache();
+    res.json({ success: true, message: "Cache cleared successfully" });
   });
 
   // Get all NFTs - fast cached version
@@ -91,7 +102,7 @@ export async function registerRoutes(app: Express) {
       setCacheEntry('all-nfts', nftsWithOwners);
       console.log(`✅ Returning ${nftsWithOwners.length} total NFTs (cached for fast access)`);
       
-      // Background blockchain sync (non-blocking)
+      // Immediate cache clear and aggressive blockchain sync (non-blocking)
       setImmediate(async () => {
         try {
           console.log("🔄 Background blockchain sync starting...");
@@ -180,8 +191,7 @@ export async function registerRoutes(app: Express) {
           console.log("✅ Background blockchain sync completed");
           
           // Clear cache after background sync to show new/updated NFTs
-          delete nftCache['all-nfts'];
-          delete nftCache['for-sale'];
+          clearAllCache();
         } catch (error) {
           console.error("Background sync failed:", error);
         }
@@ -832,8 +842,7 @@ export async function registerRoutes(app: Express) {
       console.log("🔧 Manual blockchain sync requested...");
       
       // Clear cache first
-      delete nftCache['all-nfts'];
-      delete nftCache['for-sale'];
+      clearAllCache();
       
       // Get NFTs from blockchain
       const blockchainNFTs = await blockchainService.getAllNFTs();
