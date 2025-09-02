@@ -84,6 +84,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Add tile layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© OpenStreetMap contributors',
+      noWrap: true, // Prevents world map from repeating horizontally
     }).addTo(map);
 
     // Custom marker icon
