@@ -375,6 +375,126 @@ export default function Marketplace() {
     }
   };
 
+  // Country to continent mapping
+  const countryToContinent: Record<string, string> = {
+    // Europe
+    'Turkey': 'Europe',
+    'Montenegro': 'Europe',
+    'UK': 'Europe',
+    'France': 'Europe',
+    'Germany': 'Europe',
+    'Italy': 'Europe',
+    'Spain': 'Europe',
+    'Netherlands': 'Europe',
+    
+    // Asia  
+    'UAE': 'Asia',
+    'Japan': 'Asia',
+    'Singapore': 'Asia',
+    
+    // Americas
+    'Canada': 'Americas',
+    'USA': 'Americas',
+    
+    // Africa
+    'Egypt': 'Africa',
+    
+    // Oceania
+    'Australia': 'Oceania',
+  };
+
+  // Location to country mapping (from server)
+  const locationToCountry: Record<string, string> = {
+    // Turkey
+    'Tuzla': 'Turkey',
+    'Pendik': 'Turkey', 
+    'Istanbul': 'Turkey',
+    'Ankara': 'Turkey',
+    'Izmir': 'Turkey',
+    'Beyoglu': 'Turkey',
+    'Bodrum': 'Turkey',
+    'Kadikoy': 'Turkey',
+    'Osmangazi': 'Turkey',
+    'Didim': 'Turkey',
+    'Datça': 'Turkey',
+    'Maltepe': 'Turkey',
+    // Montenegro
+    'Karadağ': 'Montenegro',
+    'Karadag Nature': 'Montenegro',
+    // Canada
+    'Vancouver': 'Canada',
+    'Toronto': 'Canada',
+    'Montreal': 'Canada',
+    'Calgary': 'Canada',
+    // Egypt
+    'El Obour': 'Egypt',
+    'Cairo': 'Egypt',
+    'Alexandria': 'Egypt',
+    'Giza': 'Egypt',
+    // USA
+    'New York': 'USA',
+    'Los Angeles': 'USA',
+    'San Francisco': 'USA',
+    'Chicago': 'USA',
+    'Miami': 'USA',
+    // Other major cities
+    'London': 'UK',
+    'Paris': 'France',
+    'Tokyo': 'Japan',
+    'Sydney': 'Australia',
+    'Dubai': 'UAE',
+    'Singapore': 'Singapore',
+    'Amsterdam': 'Netherlands',
+    'Berlin': 'Germany',
+    'Rome': 'Italy',
+    'Barcelona': 'Spain'
+  };
+
+  const getCountryFromCoordinates = (lat: number, lng: number): string => {
+    // Montenegro borders: roughly 42-43.5°N, 18.5-20.5°E
+    if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
+      return 'Montenegro';
+    }
+    // Turkey borders: roughly 36-42°N, 26-45°E
+    if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) {
+      return 'Turkey';
+    }
+    // Egypt borders: roughly 22-32°N, 25-35°E  
+    if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
+      return 'Egypt';
+    }
+    // UAE borders: roughly 22-26°N, 51-56°E
+    if (lat >= 22 && lat <= 26 && lng >= 51 && lng <= 56) {
+      return 'UAE';
+    }
+    // Canada borders: roughly 42-75°N, -141 to -52°W
+    if (lat >= 42 && lat <= 75 && lng >= -141 && lng <= -52) {
+      return 'Canada';
+    }
+    return 'Unknown';
+  };
+
+  const getNFTContinent = (nft: NFT): string => {
+    // First try location-based mapping
+    let country = locationToCountry[nft.location];
+    
+    // If not found and it's a manual location with coordinates, use coordinates
+    if (!country && nft.location?.startsWith('Location at ') && nft.latitude && nft.longitude) {
+      const lat = parseFloat(nft.latitude);
+      const lng = parseFloat(nft.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+        country = getCountryFromCoordinates(lat, lng);
+      }
+    }
+    
+    // Map country to continent
+    if (country && countryToContinent[country]) {
+      return countryToContinent[country];
+    }
+    
+    return 'Unknown';
+  };
+
   // Filter and sort NFTs
   const filteredNFTs = nfts
     .filter(nft => {
@@ -382,10 +502,23 @@ export default function Marketplace() {
       const minPrice = priceMin ? parseFloat(priceMin) : 0;
       const maxPrice = priceMax ? parseFloat(priceMax) : Infinity;
       
+      // Filter out NFTs with invalid coordinates (0,0)
+      const lat = parseFloat(nft.latitude || '0');
+      const lng = parseFloat(nft.longitude || '0');
+      const hasValidCoordinates = !(lat === 0 && lng === 0);
+      
+      // Location filtering
+      let matchesLocation = selectedLocation === "all";
+      if (!matchesLocation && selectedLocation) {
+        const nftContinent = getNFTContinent(nft);
+        matchesLocation = nftContinent === selectedLocation;
+      }
+      
       return (
+        hasValidCoordinates &&
         price >= minPrice &&
         price <= maxPrice &&
-        (selectedLocation === "all" || nft.location.toLowerCase().includes(selectedLocation.toLowerCase()))
+        matchesLocation
       );
     })
     .sort((a, b) => {
