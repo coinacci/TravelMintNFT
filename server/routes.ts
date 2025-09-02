@@ -106,12 +106,74 @@ export async function registerRoutes(app: Express) {
               console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
               const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
               await storage.createNFT(dbFormat);
-            } else if (existsInDb.ownerAddress !== blockchainNFT.owner) {
-              // Update owner if it changed on blockchain
-              console.log(`🔄 Updating owner for NFT #${blockchainNFT.tokenId}`);
-              await storage.updateNFT(existsInDb.id, {
-                ownerAddress: blockchainNFT.owner
-              });
+            } else {
+              let needsUpdate = false;
+              const updateData: any = {};
+              
+              // Check if owner changed
+              if (existsInDb.ownerAddress !== blockchainNFT.owner) {
+                console.log(`🔄 Updating owner for NFT #${blockchainNFT.tokenId}`);
+                updateData.ownerAddress = blockchainNFT.owner;
+                needsUpdate = true;
+              }
+              
+              // Check if coordinates are missing (0,0) and metadata has coordinates
+              const currentLat = parseFloat(existsInDb.latitude);
+              const currentLng = parseFloat(existsInDb.longitude);
+              
+              if ((currentLat === 0 && currentLng === 0) && blockchainNFT.metadata) {
+                const metadata = blockchainNFT.metadata;
+                if (metadata.attributes) {
+                  const latAttr = metadata.attributes.find((attr: any) => 
+                    attr.trait_type?.toLowerCase().includes('latitude')
+                  );
+                  const lngAttr = metadata.attributes.find((attr: any) => 
+                    attr.trait_type?.toLowerCase().includes('longitude')
+                  );
+                  
+                  if (latAttr && lngAttr && latAttr.value !== "0" && lngAttr.value !== "0") {
+                    console.log(`🌍 Fixing coordinates for NFT #${blockchainNFT.tokenId}: ${latAttr.value}, ${lngAttr.value}`);
+                    updateData.latitude = latAttr.value;
+                    updateData.longitude = lngAttr.value;
+                    
+                    // Also update location and other metadata fields
+                    const locationAttr = metadata.attributes.find((attr: any) => 
+                      attr.trait_type?.toLowerCase().includes('location')
+                    );
+                    if (locationAttr && locationAttr.value) {
+                      updateData.location = locationAttr.value;
+                    }
+                    
+                    // Update name and image from metadata
+                    if (metadata.name && metadata.name !== `Travel NFT #${blockchainNFT.tokenId}`) {
+                      updateData.title = metadata.name;
+                    }
+                    if (metadata.image) {
+                      updateData.imageUrl = metadata.image;
+                    }
+                    if (metadata.description) {
+                      updateData.description = metadata.description;
+                    }
+                    
+                    // Update category from metadata
+                    const categoryAttr = metadata.attributes.find((attr: any) => 
+                      attr.trait_type?.toLowerCase().includes('category')
+                    );
+                    if (categoryAttr && categoryAttr.value) {
+                      updateData.category = categoryAttr.value.toLowerCase();
+                    }
+                    
+                    // Update full metadata
+                    updateData.metadata = JSON.stringify(metadata);
+                    
+                    needsUpdate = true;
+                  }
+                }
+              }
+              
+              if (needsUpdate) {
+                await storage.updateNFT(existsInDb.id, updateData);
+              }
             }
           }
           
@@ -761,6 +823,125 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  // Manual blockchain sync endpoint for debugging/maintenance
+  app.post("/api/sync/blockchain", async (req, res) => {
+    try {
+      console.log("🔧 Manual blockchain sync requested...");
+      
+      // Clear cache first
+      delete nftCache['all-nfts'];
+      delete nftCache['for-sale'];
+      
+      // Get NFTs from blockchain
+      const blockchainNFTs = await blockchainService.getAllNFTs();
+      console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
+      
+      // Get current database NFTs
+      const allDbNFTs = await storage.getAllNFTs();
+      const contractNFTs = allDbNFTs.filter(nft => 
+        !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
+      );
+      
+      let updatedCount = 0;
+      let addedCount = 0;
+      
+      // Sync each blockchain NFT
+      for (const blockchainNFT of blockchainNFTs) {
+        const existsInDb = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
+        
+        if (!existsInDb) {
+          console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
+          const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+          await storage.createNFT(dbFormat);
+          addedCount++;
+        } else {
+          let needsUpdate = false;
+          const updateData: any = {};
+          
+          // Check if owner changed
+          if (existsInDb.ownerAddress !== blockchainNFT.owner) {
+            console.log(`🔄 Updating owner for NFT #${blockchainNFT.tokenId}`);
+            updateData.ownerAddress = blockchainNFT.owner;
+            needsUpdate = true;
+          }
+          
+          // Force coordinate update if metadata has coordinates
+          if (blockchainNFT.metadata && blockchainNFT.metadata.attributes) {
+            const metadata = blockchainNFT.metadata;
+            const latAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type?.toLowerCase().includes('latitude')
+            );
+            const lngAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type?.toLowerCase().includes('longitude')
+            );
+            
+            if (latAttr && lngAttr && latAttr.value !== "0" && lngAttr.value !== "0") {
+              const currentLat = parseFloat(existsInDb.latitude);
+              const currentLng = parseFloat(existsInDb.longitude);
+              
+              // Update if coordinates are missing (0,0) or different from metadata
+              if ((currentLat === 0 && currentLng === 0) || 
+                  Math.abs(currentLat - parseFloat(latAttr.value)) > 0.0001 || 
+                  Math.abs(currentLng - parseFloat(lngAttr.value)) > 0.0001) {
+                
+                console.log(`🌍 Updating coordinates for NFT #${blockchainNFT.tokenId}: ${latAttr.value}, ${lngAttr.value}`);
+                updateData.latitude = latAttr.value;
+                updateData.longitude = lngAttr.value;
+                
+                // Also update other metadata fields
+                const locationAttr = metadata.attributes.find((attr: any) => 
+                  attr.trait_type?.toLowerCase().includes('location')
+                );
+                if (locationAttr && locationAttr.value) {
+                  updateData.location = locationAttr.value;
+                }
+                
+                if (metadata.name && metadata.name !== `Travel NFT #${blockchainNFT.tokenId}`) {
+                  updateData.title = metadata.name;
+                }
+                if (metadata.image) {
+                  updateData.imageUrl = metadata.image;
+                }
+                if (metadata.description) {
+                  updateData.description = metadata.description;
+                }
+                
+                const categoryAttr = metadata.attributes.find((attr: any) => 
+                  attr.trait_type?.toLowerCase().includes('category')
+                );
+                if (categoryAttr && categoryAttr.value) {
+                  updateData.category = categoryAttr.value.toLowerCase();
+                }
+                
+                updateData.metadata = JSON.stringify(metadata);
+                needsUpdate = true;
+              }
+            }
+          }
+          
+          if (needsUpdate) {
+            await storage.updateNFT(existsInDb.id, updateData);
+            updatedCount++;
+          }
+        }
+      }
+      
+      console.log(`✅ Manual blockchain sync completed: ${addedCount} added, ${updatedCount} updated`);
+      res.json({ 
+        success: true, 
+        message: `Sync completed: ${addedCount} NFTs added, ${updatedCount} NFTs updated`,
+        totalBlockchainNFTs: blockchainNFTs.length
+      });
+      
+    } catch (error) {
+      console.error("Manual blockchain sync failed:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
