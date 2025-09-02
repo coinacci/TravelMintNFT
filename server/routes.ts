@@ -484,76 +484,18 @@ export async function registerRoutes(app: Express) {
       const totalNFTs = allNFTs.length;
       const totalVolume = allNFTs.reduce((sum, nft) => sum + parseFloat(nft.price), 0);
 
-      // Calculate unique countries from NFT locations
-      const locationToCountry: Record<string, string> = {
-        // Turkey
-        'Tuzla': 'Turkey',
-        'Pendik': 'Turkey', 
-        'Istanbul': 'Turkey',
-        'Ankara': 'Turkey',
-        'Izmir': 'Turkey',
-        'Beyoglu': 'Turkey',
-        'Bodrum': 'Turkey',
-        'Kadikoy': 'Turkey',
-        'Osmangazi': 'Turkey',
-        'Didim': 'Turkey',
-        'Datça': 'Turkey',
-        'Maltepe': 'Turkey',
-        // Montenegro
-        'Karadağ': 'Montenegro',
-        'Karadag Nature': 'Montenegro',
-        // Canada
-        'Vancouver': 'Canada',
-        'Toronto': 'Canada',
-        'Montreal': 'Canada',
-        'Calgary': 'Canada',
-        // Egypt
-        'El Obour': 'Egypt',
-        'Cairo': 'Egypt',
-        'Alexandria': 'Egypt',
-        'Giza': 'Egypt',
-        // USA
-        'New York': 'USA',
-        'Los Angeles': 'USA',
-        'San Francisco': 'USA',
-        'Chicago': 'USA',
-        'Miami': 'USA',
-        // Other major cities
-        'London': 'UK',
-        'Paris': 'France',
-        'Tokyo': 'Japan',
-        'Sydney': 'Australia',
-        'Dubai': 'UAE',
-        'Singapore': 'Singapore',
-        'Amsterdam': 'Netherlands',
-        'Berlin': 'Germany',
-        'Rome': 'Italy',
-        'Barcelona': 'Spain'
-      };
-      
-      const uniqueCountries = new Set<string>();
+      // Calculate unique holders (distinct owner addresses)
+      const uniqueHolders = new Set<string>();
       allNFTs.forEach(nft => {
-        let country = locationToCountry[nft.location];
-        
-        // If not found in mapping and it's a manual location (has coordinates), use coordinates
-        if (!country && nft.location.startsWith('Location at ') && parseFloat(nft.latitude.toString()) !== 0 && parseFloat(nft.longitude.toString()) !== 0) {
-          country = getCountryFromCoordinates(parseFloat(nft.latitude.toString()), parseFloat(nft.longitude.toString()));
-        }
-        
-        // Fallback to Unknown
-        if (!country) {
-          country = 'Unknown';
-        }
-        
-        if (country !== 'Unknown') {
-          uniqueCountries.add(country);
+        if (nft.ownerAddress) {
+          uniqueHolders.add(nft.ownerAddress.toLowerCase());
         }
       });
       
       res.json({
         totalNFTs,
         totalVolume: totalVolume.toFixed(1),
-        totalCountries: uniqueCountries.size
+        totalHolders: uniqueHolders.size
       });
     } catch (error) {
       console.error('Stats endpoint error:', error);
