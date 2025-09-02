@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 
 interface NFT {
   id: string;
@@ -87,16 +88,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       noWrap: true, // Prevents world map from repeating horizontally
     }).addTo(map);
 
-    // Custom marker icon
-    const customIcon = L.divIcon({
-      className: "custom-marker",
-      html: `<div class="w-8 h-8 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center marker-pulse">
-               <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                 <path d="M10 2L3 7v11h14V7l-7-5z"/>
-               </svg>
-             </div>`,
+    // Custom camera marker icon
+    const customIcon = L.icon({
+      iconUrl: cameraMarkerImage,
       iconSize: [32, 32],
       iconAnchor: [16, 16],
+      popupAnchor: [0, -16],
     });
 
     return () => {
@@ -130,15 +127,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         return;
       }
 
-      const customIcon = L.divIcon({
-        className: "custom-marker",
-        html: `<div class="w-8 h-8 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center marker-pulse cursor-pointer">
-                 <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                   <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                 </svg>
-               </div>`,
+      const customIcon = L.icon({
+        iconUrl: cameraMarkerImage,
         iconSize: [32, 32],
         iconAnchor: [16, 16],
+        popupAnchor: [0, -16],
       });
 
       const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
