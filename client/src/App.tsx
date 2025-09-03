@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
-import { useEffect, Component, ReactNode } from "react";
+import { useEffect, useState, Component, ReactNode } from "react";
 import sdk from "@farcaster/frame-sdk";
 import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
@@ -77,8 +77,11 @@ function Router() {
 }
 
 function App() {
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [context, setContext] = useState(null);
+
   useEffect(() => {
-    // Initialize Farcaster SDK and notify ready
+    // Initialize Farcaster SDK properly - AFTER app is fully loaded
     const initFarcaster = async () => {
       try {
         console.log('🚀 Initializing Farcaster SDK...');
@@ -90,30 +93,40 @@ function App() {
                               typeof sdk.actions.ready === 'function';
         
         if (isInFarcaster) {
-          // Call ready() directly without timeout to avoid interruption
           try {
+            // CRITICAL: Get context first, then signal ready
+            console.log('🔄 Getting Farcaster context...');
+            const appContext = await sdk.context;
+            setContext(appContext);
+            console.log('✅ Farcaster context received:', appContext?.user?.displayName || 'Unknown');
+            
+            // Now that app is fully loaded and context received, signal ready
             await sdk.actions.ready();
-            console.log('✅ Farcaster SDK ready - app fully initialized');
+            console.log('✅ Farcaster SDK ready - app fully initialized and visible');
+            setIsAppReady(true);
           } catch (error) {
-            console.log('⚠️ Farcaster SDK ready() failed:', error);
-            // Still try to call it synchronously as fallback
+            console.log('⚠️ Farcaster SDK initialization failed:', error);
+            // Fallback - still signal ready to prevent infinite loading
             try {
-              sdk.actions.ready();
-              console.log('✅ Farcaster SDK ready (sync fallback)');
-            } catch (syncError) {
-              console.log('❌ Farcaster SDK ready() completely failed');
+              await sdk.actions.ready();
+              console.log('✅ Farcaster SDK ready (fallback mode)');
+              setIsAppReady(true);
+            } catch (readyError) {
+              console.log('❌ Farcaster SDK ready() completely failed:', readyError);
             }
           }
         } else {
           console.log('🌐 Running in browser mode (Farcaster SDK not available)');
+          setIsAppReady(true);
         }
       } catch (error) {
         console.log('❌ Farcaster SDK error, continuing as web app:', error);
+        setIsAppReady(true);
       }
     };
 
-    // Delay initialization to ensure DOM is ready
-    const timer = setTimeout(initFarcaster, 100);
+    // CRITICAL: Wait for initial render to complete before signaling ready
+    const timer = setTimeout(initFarcaster, 500);
     return () => clearTimeout(timer);
   }, []);
 
