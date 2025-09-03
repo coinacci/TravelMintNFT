@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +10,24 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
+
+// Enhanced IPFS gateway fallback system
+const IPFS_GATEWAYS = [
+  'https://gateway.pinata.cloud/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://cf-ipfs.com/ipfs/',
+  'https://gateway.ipfs.io/ipfs/',
+  'https://dweb.link/ipfs/'
+];
+
+const getOptimizedImageUrl = (originalUrl: string): string[] => {
+  if (!originalUrl.includes('/ipfs/')) return [originalUrl];
+  
+  const ipfsHash = originalUrl.split('/ipfs/')[1];
+  if (!ipfsHash) return [originalUrl];
+  
+  return IPFS_GATEWAYS.map(gateway => `${gateway}${ipfsHash}`);
+};
 
 interface NFT {
   id: string;
@@ -34,6 +52,78 @@ interface Transaction {
   fromUserId?: string;
   toUserId: string;
 }
+
+// Enhanced Image Component with IPFS Gateway Fallback
+const EnhancedImage = ({ nft, className, ...props }: { nft: { imageUrl: string; title: string }; className: string; [key: string]: any }) => {
+  const [currentImageUrl, setCurrentImageUrl] = useState(nft.imageUrl);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const tryNextGateway = () => {
+    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
+    if (retryCount < optimizedUrls.length - 1) {
+      const nextUrl = optimizedUrls[retryCount + 1];
+      console.log(`🔄 Modal trying alternative gateway ${retryCount + 1}:`, nextUrl);
+      setCurrentImageUrl(nextUrl);
+      setRetryCount(prev => prev + 1);
+      setImageLoading(true);
+    } else {
+      console.log('❌ Modal: All gateways failed, using fallback');
+      setImageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
+    const primaryUrl = optimizedUrls[0];
+    
+    if (primaryUrl !== nft.imageUrl) {
+      setCurrentImageUrl(primaryUrl);
+    }
+    
+    // Reset states when NFT changes
+    setRetryCount(0);
+    setImageLoading(true);
+  }, [nft.imageUrl]);
+
+  return (
+    <div className="relative">
+      {imageLoading && (
+        <div className="w-full h-64 md:h-80 bg-muted animate-pulse flex items-center justify-center rounded-lg">
+          <div className="text-sm text-muted-foreground">Loading image...</div>
+        </div>
+      )}
+      <img
+        src={currentImageUrl}
+        alt={nft.title}
+        className={`${className} ${imageLoading ? 'opacity-0 absolute' : 'opacity-100 relative'} transition-all duration-500`}
+        loading="eager"
+        decoding="async"
+        crossOrigin="anonymous"
+        referrerPolicy="no-referrer"
+        onLoad={() => {
+          console.log('✅ Modal image loaded successfully via:', currentImageUrl);
+          setImageLoading(false);
+        }}
+        onError={() => {
+          console.log('❌ Modal image failed from gateway:', currentImageUrl);
+          if (retryCount < IPFS_GATEWAYS.length - 1) {
+            tryNextGateway();
+          } else {
+            console.log('❌ Modal: All gateways exhausted, using fallback');
+            const fallbackSvg = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="120" cy="100" r="20" fill="%23fbbf24"/><path d="M60 250 L120 180 L180 220 L260 140 L340 190 L340 270 L60 270 Z" fill="%23a3a3a3"/><text x="200" y="300" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 ${nft.title}</text></svg>`;
+            const imgElement = document.querySelector(`img[src="${currentImageUrl}"]`) as HTMLImageElement;
+            if (imgElement) {
+              imgElement.src = fallbackSvg;
+            }
+            setImageLoading(false);
+          }
+        }}
+        {...props}
+      />
+    </div>
+  );
+};
 
 export default function Explore() {
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
@@ -216,19 +306,10 @@ export default function Explore() {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Image */}
                 <div className="space-y-4">
-                  <img
-                    src={nftDetails.imageUrl}
-                    alt={nftDetails.title}
+                  <EnhancedImage 
+                    nft={nftDetails} 
                     className="w-full h-64 md:h-80 object-cover rounded-lg"
                     data-testid="modal-nft-image"
-                    loading="eager"
-                    decoding="async"
-                    onLoad={() => console.log('✅ Image loaded successfully:', nftDetails.imageUrl)}
-                    onError={(e) => {
-                      console.error('❌ Image failed to load:', nftDetails.imageUrl);
-                      const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="320"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-family="Inter,sans-serif">Travel Photo Loading...</text></svg>';
-                      e.currentTarget.src = fallbackSvg;
-                    }}
                   />
                   
                   {/* Price and Action */}
