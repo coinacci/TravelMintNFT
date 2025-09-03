@@ -52,6 +52,13 @@ export function createNFTMetadata(params: {
 }
 
 export function createIPFSUrl(hash: string): string {
+  // Try to use dedicated gateway if available, fallback to public
+  const gateway = process.env.PINATA_GATEWAY;
+  if (gateway && typeof window === 'undefined') {
+    // Server-side: use dedicated gateway if configured
+    return `https://${gateway}/ipfs/${hash}`;
+  }
+  // Client-side or no dedicated gateway: use public gateway
   return `https://gateway.pinata.cloud/ipfs/${hash}`;
 }
 

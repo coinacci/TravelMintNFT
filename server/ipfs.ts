@@ -1,132 +1,97 @@
-// Server-side IPFS utilities using Pinata
+// Server-side IPFS utilities using new Pinata SDK
+import { PinataSDK } from 'pinata';
 import { IPFSUploadResponse, NFTMetadata } from '@shared/ipfs';
 
-const PINATA_API_URL = 'https://api.pinata.cloud';
-
 export class PinataService {
-  private jwt: string;
+  private pinata: PinataSDK;
+  private gateway: string | null;
 
   constructor() {
     if (!process.env.PINATA_JWT) {
       throw new Error('PINATA_JWT environment variable is required');
     }
-    this.jwt = process.env.PINATA_JWT;
+    
+    // Initialize with new SDK
+    this.pinata = new PinataSDK({
+      pinataJwt: process.env.PINATA_JWT,
+      pinataGateway: process.env.PINATA_GATEWAY || undefined
+    });
+    
+    this.gateway = process.env.PINATA_GATEWAY || null;
+    
+    console.log('🔗 Pinata SDK initialized with', this.gateway ? 'dedicated gateway' : 'public gateway');
   }
 
-  // Upload file buffer to IPFS via Pinata
+  // Upload file buffer to IPFS via Pinata SDK
   async uploadFile(fileBuffer: Buffer, fileName: string, mimeType: string): Promise<IPFSUploadResponse> {
     try {
-      const formData = new FormData();
+      // Create File object from buffer
+      const file = new File([fileBuffer], fileName, { type: mimeType });
       
-      // Create blob from buffer
-      const blob = new Blob([fileBuffer], { type: mimeType });
-      formData.append('file', blob, fileName);
+      // Upload with metadata using correct API
+      const upload = await this.pinata.upload.public.file(file);
       
-      // Optional: Add metadata
-      const metadata = JSON.stringify({
-        name: fileName,
-        keyvalues: {
-          uploaded_by: 'TravelMint',
-          file_type: 'travel_photo'
-        }
-      });
-      formData.append('pinataMetadata', metadata);
+      console.log('✅ File uploaded to IPFS via new SDK:', upload.IpfsHash);
       
-      const response = await fetch(`${PINATA_API_URL}/pinning/pinFileToIPFS`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.jwt}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Pinata upload failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ File uploaded to IPFS:', result.IpfsHash);
-      
-      return result;
+      // Return in expected format
+      return {
+        IpfsHash: upload.cid,
+        PinSize: upload.size,
+        Timestamp: upload.created_at
+      };
     } catch (error) {
       console.error('❌ Error uploading file to IPFS:', error);
       throw error;
     }
   }
 
-  // Upload JSON metadata to IPFS via Pinata
+  // Upload JSON metadata to IPFS via Pinata SDK
   async uploadJSON(data: NFTMetadata, name: string): Promise<IPFSUploadResponse> {
     try {
-      const pinataContent = {
-        pinataContent: data,
-        pinataMetadata: {
-          name: name,
-          keyvalues: {
-            uploaded_by: 'TravelMint',
-            content_type: 'nft_metadata',
-            nft_name: data.name
-          }
-        }
-      };
-
-      const response = await fetch(`${PINATA_API_URL}/pinning/pinJSONToIPFS`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.jwt}`
-        },
-        body: JSON.stringify(pinataContent)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Pinata JSON upload failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Metadata uploaded to IPFS:', result.IpfsHash);
+      // Upload JSON with metadata using correct API
+      const upload = await this.pinata.upload.public.json(data);
       
-      return result;
+      console.log('✅ Metadata uploaded to IPFS via new SDK:', upload.IpfsHash);
+      
+      // Return in expected format  
+      return {
+        IpfsHash: upload.cid,
+        PinSize: upload.size,
+        Timestamp: upload.created_at
+      };
     } catch (error) {
       console.error('❌ Error uploading JSON to IPFS:', error);
       throw error;
     }
   }
 
-  // Get file info from IPFS hash
-  async getFileInfo(ipfsHash: string) {
+  // Get optimized URL for IPFS content
+  async getOptimizedUrl(ipfsHash: string): Promise<string> {
     try {
-      const response = await fetch(`${PINATA_API_URL}/data/pinList?hashContains=${ipfsHash}`, {
-        headers: {
-          'Authorization': `Bearer ${this.jwt}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get file info: ${response.status}`);
+      if (this.gateway) {
+        // Use dedicated gateway for faster access
+        const url = `https://${this.gateway}/ipfs/${ipfsHash}`;
+        console.log('🚀 Using dedicated gateway URL:', url);
+        return url;
+      } else {
+        // Fallback to public gateway
+        const url = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+        console.log('🌐 Using public gateway URL:', url);
+        return url;
       }
-
-      const result = await response.json();
-      return result.rows[0] || null;
     } catch (error) {
-      console.error('❌ Error getting file info:', error);
-      throw error;
+      console.error('❌ Error getting optimized URL:', error);
+      // Fallback to public gateway
+      return `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
     }
   }
 
-  // Test Pinata connection
+  // Test Pinata connection using new SDK
   async testConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${PINATA_API_URL}/data/testAuthentication`, {
-        headers: {
-          'Authorization': `Bearer ${this.jwt}`
-        }
-      });
-
-      const result = await response.json();
-      console.log('🔗 Pinata connection test:', result.message);
-      return response.ok;
+      const result = await this.pinata.testAuthentication();
+      console.log('🔗 Pinata connection test:', result);
+      return true;
     } catch (error) {
       console.error('❌ Pinata connection test failed:', error);
       return false;
