@@ -96,9 +96,9 @@ export default function Mint() {
   const [approvalHash, setApprovalHash] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string>('');
   // Force GPS only mode - manual location disabled
-  const [useManualLocation] = useState(false); // Force GPS only
-  const [manualLocation] = useState('');
-  const [selectedCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [useManualLocation, setUseManualLocation] = useState(false); // Force GPS only
+  const [manualLocation, setManualLocation] = useState('');
+  const [selectedCoords, setSelectedCoords] = useState<{lat: number, lng: number} | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -219,55 +219,7 @@ export default function Mint() {
     }
   }, [sendCallsData, mintingStep, title, description, imageIpfsUrl, location, category, enableListing, salePrice, address, queryClient, toast, useManualLocation, manualLocation]);
 
-  // Initialize mini map for manual location selection
-  useEffect(() => {
-    if (!useManualLocation || !mapRef.current || mapInstanceRef.current) return;
-
-    // Initialize map
-    const map = L.map(mapRef.current, {
-      zoomControl: true,
-      scrollWheelZoom: true
-    }).setView([39.9334, 32.8597], 6); // Turkey center
-    mapInstanceRef.current = map;
-
-    // Add tile layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(map);
-
-    // Handle map clicks
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-      
-      // Remove existing marker
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-      }
-      
-      // Add new marker
-      const marker = L.marker([lat, lng]).addTo(map);
-      markerRef.current = marker;
-      
-      // Update state
-      setSelectedCoords({ lat, lng });
-      
-      // Optional: Set a generic location name based on coordinates
-      setManualLocation(`Location at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      
-      toast({
-        title: "Location Selected",
-        description: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-      });
-    });
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-        markerRef.current = null;
-      }
-    };
-  }, [useManualLocation, toast]);
+  // Manual location map disabled - GPS only mode
 
   // Handle successful individual transaction (writeContract) - backup method
   useEffect(() => {
@@ -584,7 +536,7 @@ export default function Mint() {
       const metadata = createNFTMetadata({
         title,
         description: description || "Travel NFT",
-        imageIpfsUrl,
+        imageIpfsUrl: imageIpfsUrl || "",
         category,
         location: {
           city: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
