@@ -111,21 +111,21 @@ function App() {
               console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
             }
             
-            // CRITICAL: Always signal ready IMMEDIATELY to prevent splash screen hang
-            console.log('⚡ Calling sdk.actions.ready() IMMEDIATELY...');
+            // CRITICAL: Always signal ready with timeout to prevent splash screen hang
+            console.log('⚡ Calling sdk.actions.ready() with timeout...');
+            
+            const readyPromise = sdk.actions.ready();
+            const readyTimeout = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Ready timeout')), 3000)
+            );
+            
             try {
-              // IMMEDIATE ready() call - no timeout, no Promise.race
-              await sdk.actions.ready();
+              await Promise.race([readyPromise, readyTimeout]);
               console.log('✅ Farcaster SDK ready - app fully initialized and visible');
             } catch (readyError: any) {
-              console.log('❌ ready() failed, trying sync fallback:', readyError?.message || readyError);
-              // Immediate sync fallback
-              try {
-                sdk.actions.ready(); // Sync call without await
-                console.log('✅ Farcaster SDK ready (sync fallback)');
-              } catch (syncError) {
-                console.log('❌ Sync ready() also failed:', syncError);
-              }
+              console.log('❌ ready() timeout/failed (normal in web browser):', readyError?.message || readyError);
+              console.log('✅ Farcaster SDK continuing without ready signal');
+              // Continue without waiting - this prevents hanging
             }
             setIsAppReady(true);
           } catch (error) {
