@@ -11,24 +11,21 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 
-// Enhanced IPFS gateway fallback system
+// Comprehensive IPFS gateway fallback system for maximum availability
 const IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://ipfs.io/ipfs/',
   'https://cloudflare-ipfs.com/ipfs/',
+  'https://cf-ipfs.com/ipfs/',
   'https://gateway.ipfs.io/ipfs/',
   'https://dweb.link/ipfs/',
+  'https://ipfs.4everland.io/ipfs/',
+  'https://w3s.link/ipfs/',
   'https://nftstorage.link/ipfs/'
 ];
 
-// Known working and reliable image URLs as final fallbacks
-const RELIABLE_FALLBACKS = {
-  'landscape': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&q=80',
-  'architecture': 'https://images.unsplash.com/photo-1586365024756-5795e1ef9e4a?w=400&h=300&fit=crop&q=80',
-  'cultural': 'https://images.unsplash.com/photo-1699097088036-f334b41dd9a8?w=400&h=300&fit=crop&q=80',
-  'adventure': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop&q=80',
-  'default': 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=300&fit=crop&q=80'
-};
+// Temporary placeholder for original user images that are temporarily unavailable
+const TEMP_UNAVAILABLE_IMAGE = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading original image...</text></svg>`;
 
 // Cache for failed IPFS hashes to avoid repeated attempts
 const failedHashes = new Set<string>();
@@ -146,29 +143,19 @@ const EnhancedImage = ({ nft, className, ...props }: { nft: { imageUrl: string; 
           } else {
             console.log('❌ Modal: All gateways exhausted, using fallback');
             
-            // Add to failed cache
+            // Add to failed cache temporarily
             if (ipfsHash) {
               failedHashes.add(ipfsHash);
-              console.log('📝 Added hash to failed cache:', ipfsHash);
+              console.log('⏰ Temporarily cached failed hash:', ipfsHash, '- will retry on next page load');
             }
             
-            // Use a reliable fallback image based on NFT title or description
-            let fallbackUrl = RELIABLE_FALLBACKS.default;
-            const titleLower = nft.title.toLowerCase();
+            console.log('❌ All gateways exhausted, showing temporary placeholder');
+            console.log('💡 Original user image temporarily unavailable - will retry on next page load');
             
-            if (titleLower.includes('church') || titleLower.includes('architecture') || titleLower.includes('building')) {
-              fallbackUrl = RELIABLE_FALLBACKS.architecture;
-            } else if (titleLower.includes('landscape') || titleLower.includes('mountain') || titleLower.includes('sea') || titleLower.includes('coast')) {
-              fallbackUrl = RELIABLE_FALLBACKS.landscape;
-            } else if (titleLower.includes('culture') || titleLower.includes('heritage') || titleLower.includes('historic')) {
-              fallbackUrl = RELIABLE_FALLBACKS.cultural;
-            } else if (titleLower.includes('adventure') || titleLower.includes('travel') || titleLower.includes('explore')) {
-              fallbackUrl = RELIABLE_FALLBACKS.adventure;
-            }
-            
+            // Show temporary placeholder preserving expectation for original user image
             const imgElement = document.querySelector(`img[src="${currentImageUrl}"]`) as HTMLImageElement;
             if (imgElement) {
-              imgElement.src = fallbackUrl;
+              imgElement.src = TEMP_UNAVAILABLE_IMAGE;
             }
             setImageLoading(false);
           }

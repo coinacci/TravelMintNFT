@@ -24,24 +24,21 @@ interface NFTCardProps {
   showShareButton?: boolean;
 }
 
-// Fast IPFS gateway alternatives for performance (ordered by reliability)
+// Comprehensive IPFS gateway list for maximum availability
 const IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://ipfs.io/ipfs/',
   'https://cloudflare-ipfs.com/ipfs/',
+  'https://cf-ipfs.com/ipfs/',
   'https://gateway.ipfs.io/ipfs/',
   'https://dweb.link/ipfs/',
+  'https://ipfs.4everland.io/ipfs/',
+  'https://w3s.link/ipfs/',
   'https://nftstorage.link/ipfs/'
 ];
 
-// Known working and reliable image URLs as final fallbacks
-const RELIABLE_FALLBACKS = {
-  'landscape': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&q=80',
-  'architecture': 'https://images.unsplash.com/photo-1586365024756-5795e1ef9e4a?w=400&h=300&fit=crop&q=80',
-  'cultural': 'https://images.unsplash.com/photo-1699097088036-f334b41dd9a8?w=400&h=300&fit=crop&q=80',
-  'adventure': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop&q=80',
-  'default': 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=300&fit=crop&q=80'
-};
+// Original user image placeholder for when IPFS is temporarily unavailable
+const TEMP_UNAVAILABLE_IMAGE = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading original image...</text></svg>`;
 
 // Cache for failed IPFS hashes to avoid repeated attempts
 const failedHashes = new Set<string>();
@@ -166,24 +163,19 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
             if (retryCount < IPFS_GATEWAYS.length - 1) {
               tryNextGateway();
             } else {
-              console.log('❌ All gateways exhausted, using reliable fallback image');
+              console.log('❌ All gateways exhausted, showing temporary placeholder');
+              console.log('💡 Original user image temporarily unavailable - will retry on next page load');
               
-              // Use a reliable fallback image based on NFT title or description
-              let fallbackUrl = RELIABLE_FALLBACKS.default;
-              const titleLower = nft.title.toLowerCase();
-              
-              if (titleLower.includes('church') || titleLower.includes('architecture') || titleLower.includes('building')) {
-                fallbackUrl = RELIABLE_FALLBACKS.architecture;
-              } else if (titleLower.includes('landscape') || titleLower.includes('mountain') || titleLower.includes('sea') || titleLower.includes('coast')) {
-                fallbackUrl = RELIABLE_FALLBACKS.landscape;
-              } else if (titleLower.includes('culture') || titleLower.includes('heritage') || titleLower.includes('historic')) {
-                fallbackUrl = RELIABLE_FALLBACKS.cultural;
-              } else if (titleLower.includes('adventure') || titleLower.includes('travel') || titleLower.includes('explore')) {
-                fallbackUrl = RELIABLE_FALLBACKS.adventure;
-              }
-              
-              e.currentTarget.src = fallbackUrl;
+              // Show a temporary placeholder indicating the original image is unavailable
+              // This preserves the user's expectation to see their actual photo
+              e.currentTarget.src = TEMP_UNAVAILABLE_IMAGE;
               setImageLoading(false);
+              
+              // Add failed hash to cache temporarily (will retry on page refresh)
+              if (ipfsHash) {
+                failedHashes.add(ipfsHash);
+                console.log('⏰ Temporarily cached failed hash:', ipfsHash, '- will retry later');
+              }
             }
           }}
           onLoadStart={() => {
