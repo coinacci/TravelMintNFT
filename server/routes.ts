@@ -155,9 +155,9 @@ export async function registerRoutes(app: Express) {
 
           return {
             ...nft,
-            // Use metadata name and image if available, fallback to NFT fields
+            // Use metadata name but prioritize database image URL (actual uploaded images)
             title: parsedMetadata?.name || nft.title,
-            imageUrl: parsedMetadata?.image || nft.imageUrl,
+            imageUrl: nft.imageUrl || parsedMetadata?.image,
             owner: { 
               id: nft.ownerAddress, 
               username: nft.ownerAddress.slice(0, 8) + '...', 
@@ -301,9 +301,9 @@ export async function registerRoutes(app: Express) {
 
           return {
             ...nft,
-            // Use metadata name and image if available, fallback to NFT fields
+            // Use metadata name but prioritize database image URL (actual uploaded images)
             title: parsedMetadata?.name || nft.title,
-            imageUrl: parsedMetadata?.image || nft.imageUrl,
+            imageUrl: nft.imageUrl || parsedMetadata?.image,
             ownerAddress: nft.ownerAddress, // Include raw owner address for purchases
             owner: { 
               id: nft.ownerAddress, 
@@ -347,7 +347,7 @@ export async function registerRoutes(app: Express) {
         ...nft,
         // Use metadata name and image if available, fallback to NFT fields
         title: parsedMetadata?.name || nft.title,
-        imageUrl: parsedMetadata?.image || nft.imageUrl,
+        imageUrl: nft.imageUrl || parsedMetadata?.image,
         owner: { 
           id: nft.ownerAddress, 
           username: nft.ownerAddress.slice(0, 8) + '...', 
