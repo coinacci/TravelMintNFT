@@ -95,9 +95,10 @@ export default function Mint() {
   const [mintingStep, setMintingStep] = useState<'idle' | 'uploading-image' | 'uploading-metadata' | 'approving' | 'minting'>('idle');
   const [approvalHash, setApprovalHash] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string>('');
-  const [useManualLocation, setUseManualLocation] = useState(false);
-  const [manualLocation, setManualLocation] = useState('');
-  const [selectedCoords, setSelectedCoords] = useState<{lat: number, lng: number} | null>(null);
+  // Force GPS only mode - manual location disabled
+  const [useManualLocation] = useState(false); // Force GPS only
+  const [manualLocation] = useState('');
+  const [selectedCoords] = useState<{lat: number, lng: number} | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -774,90 +775,33 @@ export default function Mint() {
 
               {/* Location Info */}
               <div className="space-y-4">
-                {/* Manual Location Toggle */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="manual-location"
-                    checked={useManualLocation}
-                    onCheckedChange={(checked) => setUseManualLocation(!!checked)}
-                    data-testid="manual-location-checkbox"
-                  />
-                  <Label htmlFor="manual-location" className="text-sm">Enter location manually (for privacy)</Label>
+                {/* GPS Location Only */}
+                <div className="bg-muted p-4 rounded-lg">
+                  <div className="mb-2">
+                    <span className="text-sm font-medium">Current Location (GPS)</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span data-testid="detected-location">
+                      {locationLoading ? "Getting your location..." :
+                       location ? (location.city || "Unknown City") : 
+                       locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
+                    </span>
+                  </div>
+                  {location && (
+                    <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
+                      City-based location for privacy
+                    </div>
+                  )}
+                  {locationError && (
+                    <div className="text-xs text-destructive mt-1">
+                      📍 Location permission needed for NFT minting
+                    </div>
+                  )}
+                  <div className="text-xs text-blue-600 mt-2">
+                    🛡️ GPS coordinates are automatically detected for authenticity
+                  </div>
                 </div>
-                
-                {useManualLocation ? (
-                  /* Manual Location Input */
-                  <div className="bg-muted p-4 rounded-lg">
-                    <div className="mb-3">
-                      <span className="text-sm font-medium">Manual Location</span>
-                    </div>
-                    <Input
-                      type="text"
-                      placeholder="Enter city name (e.g., Paris, Tokyo, New York)"
-                      value={manualLocation}
-                      onChange={(e) => setManualLocation(e.target.value)}
-                      className="bg-background mb-3"
-                      data-testid="manual-location-input"
-                    />
-                    
-                    {/* Interactive Mini Map */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-foreground">📍 Click on map to set coordinates</p>
-                        {!selectedCoords && (
-                          <span className="text-xs text-destructive">Required</span>
-                        )}
-                      </div>
-                      <div 
-                        ref={mapRef}
-                        className={`w-full h-48 rounded-lg border-2 ${
-                          selectedCoords ? 'border-primary/50 bg-primary/5' : 'border-destructive/50 bg-background'
-                        } transition-colors`}
-                        data-testid="mint-mini-map"
-                      ></div>
-                      {selectedCoords ? (
-                        <div className="flex items-center gap-1 text-xs text-primary font-medium">
-                          <MapPin className="w-3 h-3" />
-                          ✅ Selected: {selectedCoords.lat.toFixed(4)}, {selectedCoords.lng.toFixed(4)}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-destructive">
-                          <MapPin className="w-3 h-3" />
-                          ⚠️ Click on map to select location coordinates
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="text-xs text-muted-foreground mt-3">
-                      💡 Manual location protects your privacy
-                    </div>
-                  </div>
-                ) : (
-                  /* Automatic GPS Location */
-                  <div className="bg-muted p-4 rounded-lg">
-                    <div className="mb-2">
-                      <span className="text-sm font-medium">Current Location</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      <span data-testid="detected-location">
-                        {locationLoading ? "Getting your location..." :
-                         location ? (location.city || "Unknown City") : 
-                         locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
-                      </span>
-                    </div>
-                    {location && (
-                      <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
-                        City-based location for privacy
-                      </div>
-                    )}
-                    {locationError && (
-                      <div className="text-xs text-destructive mt-1">
-                        Location permission needed for NFT minting
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Pricing */}
                 <div className="bg-primary/10 p-4 rounded-lg">
