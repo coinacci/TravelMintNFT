@@ -24,11 +24,12 @@ interface NFTCardProps {
   showShareButton?: boolean;
 }
 
-// Fast IPFS gateway alternatives for performance
+// Fast IPFS gateway alternatives for performance (ordered by reliability)
 const IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
+  'https://cf-ipfs.com/ipfs/',
+  'https://gateway.ipfs.io/ipfs/',
   'https://dweb.link/ipfs/'
 ];
 
@@ -116,7 +117,6 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           decoding="async"
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
-          fetchPriority="high"
           onLoad={(e) => {
             console.log('✅ Image loaded successfully via:', currentImageUrl);
             setImageLoading(false);
@@ -127,8 +127,8 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
             if (retryCount < IPFS_GATEWAYS.length - 1) {
               tryNextGateway();
             } else {
-              console.log('❌ All gateways exhausted, using fallback');
-              const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="192"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-size="14" font-family="Inter,sans-serif">Travel Photo</text></svg>';
+              console.log('❌ All gateways exhausted, using high-quality fallback');
+              const fallbackSvg = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="80" cy="70" r="12" fill="%23fbbf24"/><path d="M50 130 L90 100 L130 120 L200 80 L270 110 L270 150 L50 150 Z" fill="%23a3a3a3"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 ${nft.title}</text></svg>`;
               e.currentTarget.src = fallbackSvg;
               setImageLoading(false);
             }
