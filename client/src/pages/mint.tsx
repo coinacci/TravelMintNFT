@@ -144,8 +144,8 @@ export default function Mint() {
             description: description || "Travel NFT minted on TravelMint",
             imageUrl: imageIpfsUrl, // Use IPFS URL, not base64 preview
             location: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
-            latitude: useManualLocation ? "0" : (location?.latitude.toString() || "0"),
-            longitude: useManualLocation ? "0" : (location?.longitude.toString() || "0"),
+            latitude: useManualLocation ? (selectedCoords?.lat.toString() || "0") : (location?.latitude.toString() || "0"),
+            longitude: useManualLocation ? (selectedCoords?.lng.toString() || "0") : (location?.longitude.toString() || "0"),
             category,
             price: enableListing ? (salePrice || "1") : "1",
             isForSale: enableListing ? 1 : 0,
@@ -160,8 +160,8 @@ export default function Mint() {
               attributes: [
                 { trait_type: "Category", value: category },
                 { trait_type: "Location", value: useManualLocation ? manualLocation : (location?.city || "Unknown City") },
-                { trait_type: "Latitude", value: useManualLocation ? "0" : (location?.latitude.toString() || "0") },
-                { trait_type: "Longitude", value: useManualLocation ? "0" : (location?.longitude.toString() || "0") },
+                { trait_type: "Latitude", value: useManualLocation ? (selectedCoords?.lat.toString() || "0") : (location?.latitude.toString() || "0") },
+                { trait_type: "Longitude", value: useManualLocation ? (selectedCoords?.lng.toString() || "0") : (location?.longitude.toString() || "0") },
                 { trait_type: "Minted Date", value: new Date().toISOString() },
                 { trait_type: "Platform", value: "TravelMint" }
               ]
@@ -277,9 +277,9 @@ export default function Mint() {
             title,
             description: description || "Travel NFT minted on TravelMint",
             imageUrl: imageIpfsUrl,
-            location: location?.city || "Unknown City",
-            latitude: location?.latitude.toString() || "0",
-            longitude: location?.longitude.toString() || "0",
+            location: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
+            latitude: useManualLocation ? (selectedCoords?.lat.toString() || "0") : (location?.latitude.toString() || "0"),
+            longitude: useManualLocation ? (selectedCoords?.lng.toString() || "0") : (location?.longitude.toString() || "0"),
             category,
             price: enableListing ? (salePrice || "1") : "1",
             isForSale: enableListing ? 1 : 0,
@@ -294,8 +294,8 @@ export default function Mint() {
               attributes: [
                 { trait_type: "Category", value: category },
                 { trait_type: "Location", value: useManualLocation ? manualLocation : (location?.city || "Unknown City") },
-                { trait_type: "Latitude", value: useManualLocation ? "0" : (location?.latitude.toString() || "0") },
-                { trait_type: "Longitude", value: useManualLocation ? "0" : (location?.longitude.toString() || "0") },
+                { trait_type: "Latitude", value: useManualLocation ? (selectedCoords?.lat.toString() || "0") : (location?.latitude.toString() || "0") },
+                { trait_type: "Longitude", value: useManualLocation ? (selectedCoords?.lng.toString() || "0") : (location?.longitude.toString() || "0") },
                 { trait_type: "Minted Date", value: new Date().toISOString() },
                 { trait_type: "Platform", value: "TravelMint" }
               ]
@@ -500,8 +500,29 @@ export default function Mint() {
   const handleMint = async () => {
     console.log('🔥 IPFS MINT STARTING!');
     
-    if (!isConnected || !address || !location) {
-      console.log('❌ Missing requirements');
+    // Validate connection and location
+    if (!isConnected || !address) {
+      console.log('❌ Missing wallet connection');
+      return;
+    }
+
+    // Validate location - either GPS or manual with coordinates
+    if (!useManualLocation && !location) {
+      toast({
+        title: "Location Required", 
+        description: "Please enable location access or use manual location",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Critical: Manual location MUST have map coordinates selected
+    if (useManualLocation && (!selectedCoords || !manualLocation.trim())) {
+      toast({
+        title: "Manual Location Incomplete", 
+        description: "Please click on the map to select coordinates and enter a location name",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -513,6 +534,25 @@ export default function Mint() {
       });
       return;
     }
+
+    // Final coordinate validation
+    const finalLat = useManualLocation ? selectedCoords?.lat : location?.latitude;
+    const finalLng = useManualLocation ? selectedCoords?.lng : location?.longitude;
+    
+    if (!finalLat || !finalLng || finalLat === 0 && finalLng === 0) {
+      toast({
+        title: "Invalid Coordinates", 
+        description: "Cannot mint NFT without valid location coordinates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('✅ Location validation passed:', {
+      manual: useManualLocation,
+      coords: { lat: finalLat, lng: finalLng },
+      location: useManualLocation ? manualLocation : location?.city
+    });
     
     try {
       // Step 1: Upload metadata to IPFS
@@ -742,16 +782,28 @@ export default function Mint() {
                     
                     {/* Interactive Mini Map */}
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Or click on map to set location:</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">📍 Click on map to set coordinates</p>
+                        {!selectedCoords && (
+                          <span className="text-xs text-destructive">Required</span>
+                        )}
+                      </div>
                       <div 
                         ref={mapRef}
-                        className="w-full h-48 rounded-lg border border-border bg-background"
+                        className={`w-full h-48 rounded-lg border-2 ${
+                          selectedCoords ? 'border-primary/50 bg-primary/5' : 'border-destructive/50 bg-background'
+                        } transition-colors`}
                         data-testid="mint-mini-map"
                       ></div>
-                      {selectedCoords && (
+                      {selectedCoords ? (
                         <div className="flex items-center gap-1 text-xs text-primary font-medium">
                           <MapPin className="w-3 h-3" />
-                          Selected: {selectedCoords.lat.toFixed(4)}, {selectedCoords.lng.toFixed(4)}
+                          ✅ Selected: {selectedCoords.lat.toFixed(4)}, {selectedCoords.lng.toFixed(4)}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-xs text-destructive">
+                          <MapPin className="w-3 h-3" />
+                          ⚠️ Click on map to select location coordinates
                         </div>
                       )}
                     </div>
