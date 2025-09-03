@@ -52,14 +52,14 @@ export function createNFTMetadata(params: {
 }
 
 export function createIPFSUrl(hash: string): string {
-  // Try to use dedicated gateway if available, fallback to public
+  // Try to use dedicated gateway if available, fallback to faster alternatives
   const gateway = process.env.PINATA_GATEWAY;
   if (gateway && typeof window === 'undefined') {
     // Server-side: use dedicated gateway if configured
     return `https://${gateway}/ipfs/${hash}`;
   }
-  // Client-side or no dedicated gateway: use public gateway
-  return `https://gateway.pinata.cloud/ipfs/${hash}`;
+  // Use alternative fast gateway instead of rate-limited Pinata public gateway
+  return `https://ipfs.io/ipfs/${hash}`;
 }
 
 export function extractIPFSHash(ipfsUrl: string): string {

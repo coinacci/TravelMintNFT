@@ -31,7 +31,7 @@ export class PinataService {
       // Upload with metadata using correct API
       const upload = await this.pinata.upload.public.file(file);
       
-      console.log('✅ File uploaded to IPFS via new SDK:', upload.IpfsHash);
+      console.log('✅ File uploaded to IPFS via new SDK:', upload.cid);
       
       // Return in expected format
       return {
@@ -51,7 +51,7 @@ export class PinataService {
       // Upload JSON with metadata using correct API
       const upload = await this.pinata.upload.public.json(data);
       
-      console.log('✅ Metadata uploaded to IPFS via new SDK:', upload.IpfsHash);
+      console.log('✅ Metadata uploaded to IPFS via new SDK:', upload.cid);
       
       // Return in expected format  
       return {
@@ -69,18 +69,18 @@ export class PinataService {
   async getOptimizedUrl(ipfsHash: string): Promise<string> {
     try {
       if (this.gateway) {
-        // Use dedicated gateway for faster access
-        const url = `https://${this.gateway}/ipfs/${ipfsHash}`;
+        // Use dedicated gateway
+        const url = await this.pinata.gateways.public.convert(ipfsHash);
         console.log('🚀 Using dedicated gateway URL:', url);
         return url;
       } else {
-        // Fallback to public gateway
-        const url = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
-        console.log('🌐 Using public gateway URL:', url);
+        // Use alternative gateway to avoid Pinata rate limits
+        const url = `https://ipfs.io/ipfs/${ipfsHash}`;
+        console.log('🌐 Using alternative gateway URL:', url);
         return url;
       }
     } catch (error) {
-      console.error('❌ Error getting optimized URL:', error);
+      console.error('❌ Error getting optimized URL, using fallback:', error);
       // Fallback to public gateway
       return `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
     }

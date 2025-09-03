@@ -37,14 +37,19 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Simple image loading - use original IPFS URL from mint
+  // Simple image loading with optimized gateway
   useEffect(() => {
-    console.log('🖼️ Loading NFT image:', nft.imageUrl);
+    // Transform Pinata URL to alternative gateway to avoid rate limits
+    const optimizedUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+      ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+      : nft.imageUrl;
+      
+    console.log('🖼️ Loading NFT image:', optimizedUrl);
     
     const img = new Image();
     img.onload = () => {
       console.log('✅ Image loaded successfully');
-      setImageSrc(nft.imageUrl);
+      setImageSrc(optimizedUrl);
       setImageLoading(false);
     };
     img.onerror = () => {
@@ -52,7 +57,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       setImageLoading(false);
       // Keep loading placeholder if original fails
     };
-    img.src = nft.imageUrl;
+    img.src = optimizedUrl;
   }, [nft.imageUrl]);
   
   // Check if the connected wallet owns this NFT

@@ -45,14 +45,19 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ti
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    console.log('🖼️ Loading modal image:', nft.imageUrl);
+    // Transform Pinata URL to alternative gateway to avoid rate limits
+    const optimizedUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+      ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+      : nft.imageUrl;
+      
+    console.log('🖼️ Loading modal image:', optimizedUrl);
     setImageLoading(true);
     setImageSrc(MODAL_PLACEHOLDER);
     
     const img = new Image();
     img.onload = () => {
       console.log('✅ Modal image loaded successfully');
-      setImageSrc(nft.imageUrl);
+      setImageSrc(optimizedUrl);
       setImageLoading(false);
     };
     img.onerror = () => {
@@ -60,7 +65,7 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ti
       setImageLoading(false);
       // Keep placeholder if image fails
     };
-    img.src = nft.imageUrl;
+    img.src = optimizedUrl;
   }, [nft.imageUrl]);
 
   return (
