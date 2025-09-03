@@ -11,18 +11,17 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 
-// Comprehensive IPFS gateway fallback system for maximum availability
+// Optimized IPFS gateway list - fastest first based on testing
 const IPFS_GATEWAYS = [
+  'https://nftstorage.link/ipfs/',
   'https://gateway.pinata.cloud/ipfs/',
-  'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
-  'https://cf-ipfs.com/ipfs/',
-  'https://gateway.ipfs.io/ipfs/',
   'https://dweb.link/ipfs/',
-  'https://ipfs.4everland.io/ipfs/',
-  'https://w3s.link/ipfs/',
-  'https://nftstorage.link/ipfs/'
+  'https://ipfs.io/ipfs/',
+  'https://gateway.ipfs.io/ipfs/'
 ];
+
+// Fast timeout for quick gateway switching  
+const GATEWAY_TIMEOUT = 3000; // 3 seconds per gateway
 
 // Temporary placeholder for original user images that are temporarily unavailable
 const TEMP_UNAVAILABLE_IMAGE = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading original image...</text></svg>`;

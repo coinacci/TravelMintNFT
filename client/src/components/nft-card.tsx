@@ -24,18 +24,17 @@ interface NFTCardProps {
   showShareButton?: boolean;
 }
 
-// Comprehensive IPFS gateway list for maximum availability
+// Optimized IPFS gateway list - fastest first based on testing
 const IPFS_GATEWAYS = [
+  'https://nftstorage.link/ipfs/',
   'https://gateway.pinata.cloud/ipfs/',
-  'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
-  'https://cf-ipfs.com/ipfs/',
-  'https://gateway.ipfs.io/ipfs/',
   'https://dweb.link/ipfs/',
-  'https://ipfs.4everland.io/ipfs/',
-  'https://w3s.link/ipfs/',
-  'https://nftstorage.link/ipfs/'
+  'https://ipfs.io/ipfs/',
+  'https://gateway.ipfs.io/ipfs/'
 ];
+
+// Fast timeout for quick gateway switching
+const GATEWAY_TIMEOUT = 3000; // 3 seconds per gateway
 
 // Original user image placeholder for when IPFS is temporarily unavailable
 const TEMP_UNAVAILABLE_IMAGE = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading original image...</text></svg>`;
@@ -106,20 +105,27 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       setCurrentImageUrl(primaryUrl);
     }
     
-    // Aggressive preloading with timeout
+    // Fast preloading with optimized timeout
     const preloadImg = new Image();
     const timeout = setTimeout(() => {
-      console.log('⏰ Preload timeout, trying alternatives');
+      console.log('⏰ Gateway timeout, switching...');
       preloadImg.src = ''; // Cancel loading
-    }, 8000);
+      if (retryCount < optimizedUrls.length - 1) {
+        tryNextGateway();
+      }
+    }, GATEWAY_TIMEOUT);
     
     preloadImg.onload = () => {
       clearTimeout(timeout);
-      console.log('✅ Image preloaded:', primaryUrl);
+      console.log('✅ Image preloaded successfully:', primaryUrl);
+      setImageLoading(false);
     };
     preloadImg.onerror = () => {
       clearTimeout(timeout);
-      console.log('⚠️ Primary gateway failed, will try alternatives');
+      console.log('❌ Gateway failed, trying next...');
+      if (retryCount < optimizedUrls.length - 1) {
+        tryNextGateway();
+      }
     };
     preloadImg.src = primaryUrl;
     
