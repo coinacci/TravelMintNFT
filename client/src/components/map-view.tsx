@@ -162,10 +162,23 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
+        // Smart image URL selection: Object Storage first, then IPFS fallback
+        const imageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
+          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+          : nft.imageUrl);
+        
+        const fallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+          : nft.imageUrl;
+
         const popupContent = `
           <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
-            <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
-                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
+            <img src="${imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
+                 onerror="
+                   this.onerror=null;
+                   this.src='${fallbackUrl}';
+                   this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
+                 " />
             <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
             <p class="text-xs text-gray-600 mb-2">${nft.location}</p>
             ${nft.isForSale === 1 ? `
@@ -203,10 +216,23 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
             <div class="text-sm font-semibold mb-3 text-center" style="color: hsl(33, 100%, 50%)">
               ${locationNFTs.length} NFTs at ${locationNFTs[0].location}
             </div>
-            ${locationNFTs.map(nft => `
+            ${locationNFTs.map(nft => {
+              const clusterImageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
+                ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+                : nft.imageUrl);
+              
+              const clusterFallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+                ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+                : nft.imageUrl;
+                
+              return `
               <div class="border rounded mb-2 p-2 bg-gray-50">
-                <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-16 object-cover rounded mb-1" 
-                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2264%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
+                <img src="${clusterImageUrl}" alt="${nft.title}" class="w-full h-16 object-cover rounded mb-1" 
+                     onerror="
+                       this.onerror=null;
+                       this.src='${clusterFallbackUrl}';
+                       this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2264%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
+                     " />
                 <h4 class="font-medium text-xs mb-1">${nft.title}</h4>
                 ${nft.isForSale === 1 ? `
                 <div class="flex justify-between items-center mb-1">
@@ -222,7 +248,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                   View Details
                 </button>
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         `;
 
