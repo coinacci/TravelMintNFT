@@ -81,16 +81,21 @@ function App() {
     // Initialize Farcaster SDK and notify ready
     const initFarcaster = async () => {
       try {
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+        console.log('🚀 Initializing Farcaster SDK...');
+        if (typeof window !== 'undefined' && sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
           await sdk.actions.ready();
-          console.log('Farcaster SDK ready');
+          console.log('✅ Farcaster SDK ready');
+        } else {
+          console.log('⚠️ Farcaster SDK not available in this environment');
         }
       } catch (error) {
-        console.log('Farcaster SDK not available or error:', error);
+        console.log('❌ Farcaster SDK error:', error);
       }
     };
 
-    initFarcaster();
+    // Delay initialization to ensure DOM is ready
+    const timer = setTimeout(initFarcaster, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
