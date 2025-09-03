@@ -544,9 +544,40 @@ export async function registerRoutes(app: Express) {
 
           // 🛠️ METADATA VALIDATION & AUTO-FIX SYSTEM
           let needsMetadataFix = false;
+          let shouldPreventBadOverwrite = false;
           const fixes = [];
+          const protections = [];
           
-          // Check for broken coordinates (0,0)
+          // ✅ UPGRADE: Prevent good data from being overwritten with bad data
+          
+          // PROTECT: Don't overwrite good coordinates with (0,0)
+          if (existing.latitude !== "0" && existing.longitude !== "0" && 
+              dbFormat.latitude === "0" && dbFormat.longitude === "0") {
+            shouldPreventBadOverwrite = true;
+            updateData.latitude = existing.latitude; // Keep existing good data
+            updateData.longitude = existing.longitude;
+            protections.push(`coordinates: keeping (${existing.latitude}, ${existing.longitude}) vs bad (0,0)`);
+          }
+          
+          // PROTECT: Don't overwrite real titles with generic ones  
+          if (!existing.title?.startsWith("Travel NFT #") && 
+              dbFormat.title?.startsWith("Travel NFT #")) {
+            shouldPreventBadOverwrite = true;
+            updateData.title = existing.title; // Keep existing good title
+            protections.push(`title: keeping "${existing.title}" vs generic "${dbFormat.title}"`);
+          }
+          
+          // PROTECT: Don't overwrite real locations with "Unknown Location"
+          if (existing.location !== "Unknown Location" && 
+              dbFormat.location === "Unknown Location") {
+            shouldPreventBadOverwrite = true;
+            updateData.location = existing.location; // Keep existing good location
+            protections.push(`location: keeping "${existing.location}" vs "Unknown Location"`);
+          }
+          
+          // ✅ EXISTING: Fix bad data with good data
+          
+          // Check for broken coordinates (0,0) 
           if (existing.latitude === "0" && existing.longitude === "0" && 
               dbFormat.latitude !== "0" && dbFormat.longitude !== "0") {
             needsMetadataFix = true;
@@ -565,6 +596,11 @@ export async function registerRoutes(app: Express) {
               dbFormat.location && dbFormat.location !== "Unknown Location") {
             needsMetadataFix = true;
             fixes.push(`location: "${existing.location}" → "${dbFormat.location}"`);
+          }
+          
+          if (shouldPreventBadOverwrite) {
+            console.log(`🛡️ DATA-PROTECTION: Token #${existing.tokenId} protected from bad metadata overwrite:`);
+            protections.forEach(protection => console.log(`   - ${protection}`));
           }
           
           if (needsMetadataFix) {
