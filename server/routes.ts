@@ -541,6 +541,36 @@ export async function registerRoutes(app: Express) {
             description: dbFormat.description,
             imageUrl: dbFormat.imageUrl
           };
+
+          // 🛠️ METADATA VALIDATION & AUTO-FIX SYSTEM
+          let needsMetadataFix = false;
+          const fixes = [];
+          
+          // Check for broken coordinates (0,0)
+          if (existing.latitude === "0" && existing.longitude === "0" && 
+              dbFormat.latitude !== "0" && dbFormat.longitude !== "0") {
+            needsMetadataFix = true;
+            fixes.push(`coordinates: (0,0) → (${dbFormat.latitude}, ${dbFormat.longitude})`);
+          }
+          
+          // Check for generic titles
+          if (existing.title?.startsWith("Travel NFT #") && 
+              dbFormat.title && !dbFormat.title.startsWith("Travel NFT #")) {
+            needsMetadataFix = true;
+            fixes.push(`title: "${existing.title}" → "${dbFormat.title}"`);
+          }
+          
+          // Check for "Unknown Location"
+          if (existing.location === "Unknown Location" && 
+              dbFormat.location && dbFormat.location !== "Unknown Location") {
+            needsMetadataFix = true;
+            fixes.push(`location: "${existing.location}" → "${dbFormat.location}"`);
+          }
+          
+          if (needsMetadataFix) {
+            console.log(`🔧 AUTO-FIX: Token #${existing.tokenId} metadata issues detected:`);
+            fixes.forEach(fix => console.log(`   - ${fix}`));
+          }
           
           console.log(`🔄 Updating NFT ${dbFormat.id} with fresh blockchain data:`, updateData);
           
