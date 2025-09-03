@@ -78,7 +78,7 @@ function Router() {
 
 function App() {
   const [isAppReady, setIsAppReady] = useState(false);
-  const [context, setContext] = useState(null);
+  const [context, setContext] = useState<any>(null);
 
   useEffect(() => {
     // Initialize Farcaster SDK properly - AFTER app is fully loaded
@@ -94,25 +94,37 @@ function App() {
         
         if (isInFarcaster) {
           try {
-            // CRITICAL: Get context first, then signal ready
+            // CRITICAL: Get context with timeout for web browsers
             console.log('🔄 Getting Farcaster context...');
-            const appContext = await sdk.context;
-            setContext(appContext);
-            console.log('✅ Farcaster context received:', appContext?.user?.displayName || 'Unknown');
             
-            // Now that app is fully loaded and context received, signal ready
+            const contextPromise = sdk.context;
+            const contextTimeout = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Context timeout')), 2000)
+            );
+            
+            try {
+              const appContext = await Promise.race([contextPromise, contextTimeout]);
+              setContext(appContext);
+              console.log('✅ Farcaster context received:', (appContext as any)?.user?.displayName || 'Unknown');
+              console.log('📱 Full context object:', appContext);
+            } catch (contextError: any) {
+              console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
+            }
+            
+            // Always signal ready regardless of context success
             await sdk.actions.ready();
             console.log('✅ Farcaster SDK ready - app fully initialized and visible');
             setIsAppReady(true);
           } catch (error) {
             console.log('⚠️ Farcaster SDK initialization failed:', error);
-            // Fallback - still signal ready to prevent infinite loading
+            // Final fallback - signal ready anyway to prevent infinite loading
             try {
-              await sdk.actions.ready();
-              console.log('✅ Farcaster SDK ready (fallback mode)');
+              sdk.actions.ready(); // Sync call as last resort
+              console.log('✅ Farcaster SDK ready (sync fallback)');
               setIsAppReady(true);
             } catch (readyError) {
               console.log('❌ Farcaster SDK ready() completely failed:', readyError);
+              setIsAppReady(true); // Continue as web app
             }
           }
         } else {
