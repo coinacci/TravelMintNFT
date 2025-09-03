@@ -82,14 +82,30 @@ function App() {
     const initFarcaster = async () => {
       try {
         console.log('🚀 Initializing Farcaster SDK...');
-        if (typeof window !== 'undefined' && sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          await sdk.actions.ready();
-          console.log('✅ Farcaster SDK ready');
+        
+        // Check if we're in Farcaster environment
+        const isInFarcaster = typeof window !== 'undefined' && 
+                              sdk && 
+                              sdk.actions && 
+                              typeof sdk.actions.ready === 'function';
+        
+        if (isInFarcaster) {
+          // Set timeout for SDK initialization to avoid hanging
+          const sdkTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('SDK timeout')), 3000)
+          );
+          
+          try {
+            await Promise.race([sdk.actions.ready(), sdkTimeout]);
+            console.log('✅ Farcaster SDK ready');
+          } catch (error) {
+            console.log('⚠️ Farcaster SDK timeout, continuing as web app');
+          }
         } else {
-          console.log('⚠️ Farcaster SDK not available in this environment');
+          console.log('🌐 Running in browser mode (Farcaster SDK not available)');
         }
       } catch (error) {
-        console.log('❌ Farcaster SDK error:', error);
+        console.log('❌ Farcaster SDK error, continuing as web app:', error);
       }
     };
 
