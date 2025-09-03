@@ -20,6 +20,7 @@ interface NFT {
   title: string;
   description?: string;
   imageUrl: string;
+  objectStorageUrl?: string;
   location: string;
   latitude: string;
   longitude: string;
@@ -39,34 +40,63 @@ interface Transaction {
   toUserId: string;
 }
 
-// Simple Image Component - uses original IPFS URLs directly
-const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; title: string }; className: string; [key: string]: any }) => {
+// Smart Image Component - Object Storage priority with IPFS fallback
+const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; objectStorageUrl?: string; title: string }; className: string; [key: string]: any }) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    // Transform Pinata URL to alternative gateway to avoid rate limits
-    const optimizedUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+    // Priority: Object Storage first, then optimized IPFS gateway
+    const tryUrls: string[] = [];
+    
+    // 1. Object Storage URL (fastest, most reliable)
+    if (nft.objectStorageUrl) {
+      tryUrls.push(nft.objectStorageUrl);
+    }
+    
+    // 2. IPFS via alternative gateway (avoid Pinata rate limits)
+    const optimizedIpfsUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
       ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
       : nft.imageUrl;
+    tryUrls.push(optimizedIpfsUrl);
+    
+    // 3. Original IPFS URL as final fallback
+    if (!tryUrls.includes(nft.imageUrl)) {
+      tryUrls.push(nft.imageUrl);
+    }
       
-    console.log('🖼️ Loading modal image:', optimizedUrl);
+    console.log('🖼️ Loading modal image with fallback chain:', tryUrls);
     setImageLoading(true);
     setImageSrc(MODAL_PLACEHOLDER);
     
-    const img = new Image();
-    img.onload = () => {
-      console.log('✅ Modal image loaded successfully');
-      setImageSrc(optimizedUrl);
-      setImageLoading(false);
+    let currentIndex = 0;
+    
+    const tryNextUrl = () => {
+      if (currentIndex >= tryUrls.length) {
+        console.log('❌ All modal image URLs failed, keeping placeholder');
+        setImageLoading(false);
+        return;
+      }
+      
+      const currentUrl = tryUrls[currentIndex];
+      console.log(`🔄 Trying modal URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
+      
+      const img = new Image();
+      img.onload = () => {
+        console.log('✅ Modal image loaded successfully from:', currentUrl);
+        setImageSrc(currentUrl);
+        setImageLoading(false);
+      };
+      img.onerror = () => {
+        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      };
+      img.src = currentUrl;
     };
-    img.onerror = () => {
-      console.log('❌ Modal image failed to load');
-      setImageLoading(false);
-      // Keep placeholder if image fails
-    };
-    img.src = optimizedUrl;
-  }, [nft.imageUrl]);
+    
+    tryNextUrl();
+  }, [nft.imageUrl, nft.objectStorageUrl]);
 
   return (
     <div className="relative">

@@ -5,6 +5,8 @@ import { blockchainService } from "./blockchain";
 import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
+import { ObjectStorageService } from "./objectStorage";
+import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
@@ -1030,6 +1032,50 @@ export async function registerRoutes(app: Express) {
 
   // IPFS routes
   app.use("/api/ipfs", ipfsRoutes);
+
+  // Object Storage routes
+  const upload = multer({ storage: multer.memoryStorage() });
+  
+  // Public object serving endpoint
+  app.get("/public-objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Object Storage upload endpoint
+  app.post("/api/object-storage/upload", upload.single('file'), async (req, res) => {
+    try {
+      const file = req.file;
+      const { fileName, mimeType } = req.body;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const objectUrl = await objectStorageService.uploadFileBuffer(
+        file.buffer,
+        fileName || file.originalname,
+        mimeType || file.mimetype
+      );
+      
+      console.log('\u2705 Object uploaded successfully:', objectUrl);
+      res.json({ objectUrl });
+    } catch (error) {
+      console.error('\u274c Object upload failed:', error);
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
 
   return createServer(app);
 }

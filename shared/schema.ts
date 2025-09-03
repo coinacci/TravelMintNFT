@@ -17,6 +17,7 @@ export const nfts = pgTable("nfts", {
   title: text("title").notNull(),
   description: text("description"),
   imageUrl: text("image_url").notNull(),
+  objectStorageUrl: text("object_storage_url"), // Object storage backup URL
   location: text("location").notNull(),
   latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
   longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),

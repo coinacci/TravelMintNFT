@@ -11,6 +11,7 @@ interface NFTCardProps {
     title: string;
     description?: string;
     imageUrl: string;
+    objectStorageUrl?: string;
     location: string;
     price: string;
     isForSale: number;
@@ -37,28 +38,57 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Simple image loading with optimized gateway
+  // Smart image loading with Object Storage priority and IPFS fallback
   useEffect(() => {
-    // Transform Pinata URL to alternative gateway to avoid rate limits
-    const optimizedUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+    // Priority: Object Storage first, then optimized IPFS gateway
+    const tryUrls: string[] = [];
+    
+    // 1. Object Storage URL (fastest, most reliable)
+    if (nft.objectStorageUrl) {
+      tryUrls.push(nft.objectStorageUrl);
+    }
+    
+    // 2. IPFS via alternative gateway (avoid Pinata rate limits)
+    const optimizedIpfsUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
       ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
       : nft.imageUrl;
-      
-    console.log('🖼️ Loading NFT image:', optimizedUrl);
+    tryUrls.push(optimizedIpfsUrl);
     
-    const img = new Image();
-    img.onload = () => {
-      console.log('✅ Image loaded successfully');
-      setImageSrc(optimizedUrl);
-      setImageLoading(false);
+    // 3. Original IPFS URL as final fallback
+    if (!tryUrls.includes(nft.imageUrl)) {
+      tryUrls.push(nft.imageUrl);
+    }
+    
+    console.log('🖼️ Loading NFT image with fallback chain:', tryUrls);
+    
+    let currentIndex = 0;
+    
+    const tryNextUrl = () => {
+      if (currentIndex >= tryUrls.length) {
+        console.log('❌ All image URLs failed, keeping placeholder');
+        setImageLoading(false);
+        return;
+      }
+      
+      const currentUrl = tryUrls[currentIndex];
+      console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
+      
+      const img = new Image();
+      img.onload = () => {
+        console.log('✅ Image loaded successfully from:', currentUrl);
+        setImageSrc(currentUrl);
+        setImageLoading(false);
+      };
+      img.onerror = () => {
+        console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      };
+      img.src = currentUrl;
     };
-    img.onerror = () => {
-      console.log('❌ Image failed to load, keeping placeholder');
-      setImageLoading(false);
-      // Keep loading placeholder if original fails
-    };
-    img.src = optimizedUrl;
-  }, [nft.imageUrl]);
+    
+    tryNextUrl();
+  }, [nft.imageUrl, nft.objectStorageUrl]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (

@@ -86,6 +86,7 @@ export default function Mint() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageIpfsUrl, setImageIpfsUrl] = useState<string | null>(null);
+  const [imageObjectStorageUrl, setImageObjectStorageUrl] = useState<string | null>(null);
   const [metadataIpfsUrl, setMetadataIpfsUrl] = useState<string | null>(null);
   const [enableListing, setEnableListing] = useState(false);
   const [salePrice, setSalePrice] = useState("");
@@ -142,7 +143,8 @@ export default function Mint() {
           const nftData = {
             title,
             description: description || "Travel NFT minted on TravelMint",
-            imageUrl: imageIpfsUrl, // Use IPFS URL, not base64 preview
+            imageUrl: imageIpfsUrl || imageObjectStorageUrl, // Use IPFS URL or Object Storage as fallback
+            objectStorageUrl: imageObjectStorageUrl, // Always save object storage URL if available
             location: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
             latitude: useManualLocation ? (selectedCoords?.lat.toString() || "0") : (location?.latitude.toString() || "0"),
             longitude: useManualLocation ? (selectedCoords?.lng.toString() || "0") : (location?.longitude.toString() || "0"),
@@ -437,19 +439,37 @@ export default function Mint() {
     };
     reader.readAsDataURL(file);
 
-    // Upload to IPFS immediately
+    // Upload to both IPFS and Object Storage simultaneously
     try {
       setMintingStep('uploading-image');
-      setUploadProgress('Uploading image to IPFS...');
+      setUploadProgress('Uploading image to IPFS and Object Storage...');
       
-      console.log('📤 Starting IPFS image upload...');
-      const ipfsUrl = await ipfsClient.uploadImage(file);
+      console.log('📤 Starting dual upload (IPFS + Object Storage)...');
+      
+      // Prepare form data for Object Storage
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', file.name);
+      formData.append('mimeType', file.type);
+      
+      // Upload to both services in parallel
+      const [ipfsUrl, objectStorageResult] = await Promise.all([
+        ipfsClient.uploadImage(file),
+        fetch('/api/object-storage/upload', {
+          method: 'POST',
+          body: formData
+        }).then(res => res.json())
+      ]);
+      
       setImageIpfsUrl(ipfsUrl);
+      setImageObjectStorageUrl(objectStorageResult.objectUrl);
       
       console.log('✅ Image uploaded to IPFS:', ipfsUrl);
+      console.log('✅ Image uploaded to Object Storage:', objectStorageResult.objectUrl);
+      
       toast({
         title: "✅ Image Uploaded",
-        description: "Your image has been uploaded to IPFS successfully!",
+        description: "Your image has been uploaded to IPFS and Object Storage successfully!",
         variant: "default",
       });
       
@@ -457,13 +477,13 @@ export default function Mint() {
       setUploadProgress('');
       
     } catch (error) {
-      console.error('❌ IPFS upload failed:', error);
+      console.error('❌ Upload failed:', error);
       setMintingStep('idle');
       setUploadProgress('');
       
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload image to IPFS",
+        description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
       });
     }
@@ -526,10 +546,10 @@ export default function Mint() {
       return;
     }
     
-    if (!title || !category || !imageFile || !imageIpfsUrl) {
+    if (!title || !category || !imageFile || (!imageIpfsUrl && !imageObjectStorageUrl)) {
       toast({
         title: "Missing Information", 
-        description: !imageIpfsUrl ? "Please wait for image to upload to IPFS" : "Please fill in all required fields",
+        description: (!imageIpfsUrl && !imageObjectStorageUrl) ? "Please wait for image to upload" : "Please fill in all required fields",
         variant: "destructive",
       });
       return;
