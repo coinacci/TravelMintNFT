@@ -19,6 +19,7 @@ export interface IStorage {
   createNFT(nft: InsertNFT): Promise<NFT>;
   updateNFT(id: string, updates: Partial<NFT>): Promise<NFT | undefined>;
   updateNFTCoordinates(tokenId: string, latitude: number, longitude: number): Promise<NFT | undefined>;
+  getNFTByTokenId(tokenId: string): Promise<NFT | undefined>;
 
   // Transaction operations
   getTransaction(id: string): Promise<Transaction | undefined>;
@@ -127,6 +128,11 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(nfts.tokenId, tokenId))
       .returning();
+    return nft || undefined;
+  }
+
+  async getNFTByTokenId(tokenId: string): Promise<NFT | undefined> {
+    const [nft] = await db.select().from(nfts).where(eq(nfts.tokenId, tokenId));
     return nft || undefined;
   }
 

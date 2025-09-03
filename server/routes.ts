@@ -1077,5 +1077,59 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Token image upload endpoint for fixing specific tokens
+  app.post("/api/fix-token-images", async (req, res) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const objectStorageService = new ObjectStorageService();
+      
+      // Token image files mapping
+      const tokenImages = {
+        '29': 'attached_assets/29_1756885009207.jpeg',
+        '30': 'attached_assets/30_1756885009203.jpeg', 
+        '31': 'attached_assets/31_1756885009206.jpeg'
+      };
+      
+      const results = [];
+      
+      for (const [tokenId, filePath] of Object.entries(tokenImages)) {
+        try {
+          // Read the image file
+          const imageBuffer = fs.readFileSync(filePath);
+          const fileName = path.basename(filePath);
+          
+          // Upload to Object Storage
+          const objectUrl = await objectStorageService.uploadFileBuffer(
+            imageBuffer,
+            fileName,
+            'image/jpeg'
+          );
+          
+          // Update database
+          const existingNFT = await storage.getNFTByTokenId(tokenId);
+          if (existingNFT) {
+            await storage.updateNFT(existingNFT.id, {
+              objectStorageUrl: objectUrl
+            });
+            
+            console.log(`✅ Updated Token ${tokenId} with Object Storage URL:`, objectUrl);
+            results.push({ tokenId, objectUrl, status: 'success' });
+          } else {
+            results.push({ tokenId, status: 'not_found' });
+          }
+        } catch (error) {
+          console.error(`❌ Failed to process Token ${tokenId}:`, error);
+          results.push({ tokenId, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+      
+      res.json({ success: true, results });
+    } catch (error) {
+      console.error('❌ Fix token images failed:', error);
+      res.status(500).json({ error: "Failed to fix token images" });
+    }
+  });
+
   return createServer(app);
 }
