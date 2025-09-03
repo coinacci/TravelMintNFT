@@ -1054,6 +1054,23 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Object Storage serving endpoint - CRITICAL for image display  
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(
+        req.path,
+      );
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
   // Object Storage upload endpoint
   app.post("/api/object-storage/upload", upload.single('file'), async (req, res) => {
     try {
