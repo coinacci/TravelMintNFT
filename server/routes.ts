@@ -941,13 +941,13 @@ export async function registerRoutes(app: Express) {
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "miniapp": {
-        "version": "1",
+        "version": "2",
         "name": "TravelMint",
-        "iconUrl": `https://${req.get('host')}/icon.png`,
+        "iconUrl": `https://${req.get('host')}/icon.png?v=${Date.now()}`,
         "homeUrl": `https://${req.get('host')}`,
-        "imageUrl": `https://${req.get('host')}/image.png`,
+        "imageUrl": `https://${req.get('host')}/image.png?v=${Date.now()}`,
         "buttonTitle": "Open TravelMint",
-        "splashImageUrl": `https://${req.get('host')}/splash.png`,
+        "splashImageUrl": `https://${req.get('host')}/splash.png?v=${Date.now()}`,
         "splashBackgroundColor": "#0f172a",
         "webhookUrl": `https://${req.get('host')}/api/webhook`,
         "subtitle": "Travel Photo NFTs on Base",

@@ -81,7 +81,10 @@ function App() {
   const [context, setContext] = useState<any>(null);
 
   useEffect(() => {
-    // Initialize Farcaster SDK properly - AFTER app is fully loaded
+    // CRITICAL: Set app ready immediately, handle Farcaster in background
+    setIsAppReady(true);
+    
+    // Initialize Farcaster SDK in background without blocking UI
     const initFarcaster = async () => {
       try {
         console.log('🚀 Initializing Farcaster SDK...');
@@ -93,65 +96,45 @@ function App() {
                               typeof sdk.actions.ready === 'function';
         
         if (isInFarcaster) {
+          // Get context in background
+          console.log('🔄 Getting Farcaster context...');
           try {
-            // CRITICAL: Get context with timeout for web browsers
-            console.log('🔄 Getting Farcaster context...');
-            
             const contextPromise = sdk.context;
             const contextTimeout = new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Context timeout')), 2000)
             );
             
-            try {
-              const appContext = await Promise.race([contextPromise, contextTimeout]);
-              setContext(appContext);
-              console.log('✅ Farcaster context received:', (appContext as any)?.user?.displayName || 'Unknown');
-              console.log('📱 Full context object:', appContext);
-            } catch (contextError: any) {
-              console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
-            }
-            
-            // CRITICAL: Always signal ready with timeout to prevent splash screen hang
-            console.log('⚡ Calling sdk.actions.ready() with timeout...');
-            
+            const appContext = await Promise.race([contextPromise, contextTimeout]);
+            setContext(appContext);
+            console.log('✅ Farcaster context received:', (appContext as any)?.user?.displayName || 'Unknown');
+          } catch (contextError: any) {
+            console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
+          }
+          
+          // Signal ready in background with aggressive timeout
+          console.log('⚡ Calling sdk.actions.ready() in background...');
+          try {
             const readyPromise = sdk.actions.ready();
             const readyTimeout = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Ready timeout')), 3000)
+              setTimeout(() => reject(new Error('Ready timeout')), 1000)
             );
             
-            try {
-              await Promise.race([readyPromise, readyTimeout]);
-              console.log('✅ Farcaster SDK ready - app fully initialized and visible');
-            } catch (readyError: any) {
-              console.log('❌ ready() timeout/failed (normal in web browser):', readyError?.message || readyError);
-              console.log('✅ Farcaster SDK continuing without ready signal');
-              // Continue without waiting - this prevents hanging
-            }
-            setIsAppReady(true);
-          } catch (error) {
-            console.log('⚠️ Farcaster SDK initialization failed:', error);
-            // Final fallback - signal ready anyway to prevent infinite loading
-            try {
-              sdk.actions.ready(); // Sync call as last resort
-              console.log('✅ Farcaster SDK ready (sync fallback)');
-              setIsAppReady(true);
-            } catch (readyError) {
-              console.log('❌ Farcaster SDK ready() completely failed:', readyError);
-              setIsAppReady(true); // Continue as web app
-            }
+            await Promise.race([readyPromise, readyTimeout]);
+            console.log('✅ Farcaster SDK ready - background initialization complete');
+          } catch (readyError: any) {
+            console.log('❌ ready() timeout/failed (normal in web browser):', readyError?.message || readyError);
+            console.log('✅ Farcaster SDK continuing without ready signal');
           }
         } else {
           console.log('🌐 Running in browser mode (Farcaster SDK not available)');
-          setIsAppReady(true);
         }
       } catch (error) {
         console.log('❌ Farcaster SDK error, continuing as web app:', error);
-        setIsAppReady(true);
       }
     };
 
-    // CRITICAL: Start immediately, no delay that could cause splash screen hang
-    initFarcaster();
+    // Start Farcaster init in background - don't block UI
+    setTimeout(() => initFarcaster(), 100);
   }, []);
 
   return (
