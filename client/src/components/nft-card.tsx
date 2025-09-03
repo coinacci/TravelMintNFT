@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Share2 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 interface NFTCardProps {
   nft: {
@@ -23,13 +24,70 @@ interface NFTCardProps {
   showShareButton?: boolean;
 }
 
+// Fast IPFS gateway alternatives for performance
+const IPFS_GATEWAYS = [
+  'https://gateway.pinata.cloud/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://dweb.link/ipfs/'
+];
+
+// Optimize image URL for faster loading
+const getOptimizedImageUrl = (originalUrl: string): string[] => {
+  if (!originalUrl.includes('/ipfs/')) return [originalUrl];
+  
+  const ipfsHash = originalUrl.split('/ipfs/')[1];
+  if (!ipfsHash) return [originalUrl];
+  
+  // Return multiple gateway URLs for fallback
+  return IPFS_GATEWAYS.map(gateway => `${gateway}${ipfsHash}`);
+};
+
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true, showShareButton = false }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
   const { toast } = useToast();
+  const [currentImageUrl, setCurrentImageUrl] = useState(nft.imageUrl);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   
   const formatPrice = (price: string) => {
     return parseFloat(price).toFixed(0);
   };
+  
+  // Preload next gateway URL if current fails
+  const tryNextGateway = () => {
+    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
+    if (retryCount < optimizedUrls.length - 1) {
+      const nextUrl = optimizedUrls[retryCount + 1];
+      console.log(`🔄 Trying alternative gateway ${retryCount + 1}:`, nextUrl);
+      setCurrentImageUrl(nextUrl);
+      setRetryCount(prev => prev + 1);
+      setImageLoading(true);
+    } else {
+      console.log('❌ All gateways failed, using fallback');
+      setImageLoading(false);
+    }
+  };
+  
+  // Preload image on component mount for faster display
+  useEffect(() => {
+    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
+    const primaryUrl = optimizedUrls[0];
+    
+    if (primaryUrl !== nft.imageUrl) {
+      setCurrentImageUrl(primaryUrl);
+    }
+    
+    // Aggressive preloading
+    const preloadImg = new Image();
+    preloadImg.onload = () => {
+      console.log('✅ Image preloaded:', primaryUrl);
+    };
+    preloadImg.onerror = () => {
+      console.log('⚠️ Primary gateway failed, will try alternatives');
+    };
+    preloadImg.src = primaryUrl;
+  }, [nft.imageUrl]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (
@@ -42,27 +100,41 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   return (
     <Card className="nft-card bg-card rounded-lg overflow-hidden cursor-pointer" onClick={onSelect} data-testid={`nft-card-${nft.id}`}>
       <div className="relative">
+        {imageLoading && (
+          <div className="w-full h-48 bg-muted animate-pulse flex items-center justify-center">
+            <div className="text-xs text-muted-foreground">Loading image...</div>
+          </div>
+        )}
         <img
-          src={nft.imageUrl}
+          src={currentImageUrl}
           alt={nft.title}
-          className="w-full h-48 object-cover transition-opacity duration-300"
+          className={`w-full h-48 object-cover transition-all duration-500 ${
+            imageLoading ? 'opacity-0 absolute' : 'opacity-100 relative'
+          }`}
           data-testid={`nft-image-${nft.id}`}
-          loading="lazy"
+          loading="eager"
           decoding="async"
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
-          style={{ opacity: 1 }}
+          fetchPriority="high"
           onLoad={(e) => {
-            console.log('✅ Image loaded successfully:', nft.imageUrl);
+            console.log('✅ Image loaded successfully via:', currentImageUrl);
+            setImageLoading(false);
             e.currentTarget.style.opacity = '1';
           }}
           onError={(e) => {
-            console.log('❌ Image failed to load:', nft.imageUrl);
-            const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="192"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-size="14" font-family="Inter,sans-serif">Travel Photo</text></svg>';
-            e.currentTarget.src = fallbackSvg;
+            console.log('❌ Image failed from gateway:', currentImageUrl);
+            if (retryCount < IPFS_GATEWAYS.length - 1) {
+              tryNextGateway();
+            } else {
+              console.log('❌ All gateways exhausted, using fallback');
+              const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="192"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-size="14" font-family="Inter,sans-serif">Travel Photo</text></svg>';
+              e.currentTarget.src = fallbackSvg;
+              setImageLoading(false);
+            }
           }}
-          onLoadStart={(e) => {
-            e.currentTarget.style.opacity = '0.7';
+          onLoadStart={() => {
+            console.log('🔄 Loading image from:', currentImageUrl);
           }}
         />
       </div>

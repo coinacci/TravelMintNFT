@@ -81,17 +81,17 @@ export async function registerRoutes(app: Express) {
   <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
   <meta name="fc:frame:button:1" content="💰 Buy ${parseFloat(nft.price).toFixed(0)} USDC" />
   <meta name="fc:frame:button:1:action" content="link" />
-  <meta name="fc:frame:button:1:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/marketplace" />
+  <meta name="fc:frame:button:1:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" />
   <meta name="fc:frame:button:2" content="🗺️ Explore More" />
   <meta name="fc:frame:button:2:action" content="link" />
-  <meta name="fc:frame:button:2:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/explore" />
+  <meta name="fc:frame:button:2:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/explore" />
   
   <!-- Open Graph for social sharing -->
   <meta property="og:title" content="${nft.title} - Travel NFT" />
   <meta property="og:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
   <meta property="og:image" content="${nft.imageUrl}" />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/marketplace" />
+  <meta property="og:url" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" />
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
@@ -106,7 +106,7 @@ export async function registerRoutes(app: Express) {
     <p>Price: ${parseFloat(nft.price).toFixed(2)} USDC</p>
     <img src="${nft.imageUrl}" alt="${nft.title}" style="max-width: 400px; height: auto; border-radius: 8px;" />
     <br /><br />
-    <a href="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/marketplace" 
+    <a href="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" 
        style="background: #007aff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
       View in Marketplace
     </a>
