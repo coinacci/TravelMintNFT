@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express) {
             
             if (!existsInDb) {
               console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
-              const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+              const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
               await storage.createNFT(dbFormat);
             } else {
               let needsUpdate = false;
@@ -508,7 +508,7 @@ export async function registerRoutes(app: Express) {
       
       // Store each blockchain NFT in database if not already exists
       for (const blockchainNFT of blockchainNFTs) {
-        const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+        const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
         
         // Check if this NFT already exists in database
         const existing = await storage.getNFT(dbFormat.id);
@@ -941,7 +941,7 @@ export async function registerRoutes(app: Express) {
         
         if (!existsInDb) {
           console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
-          const dbFormat = blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+          const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
           await storage.createNFT(dbFormat);
           addedCount++;
         } else {

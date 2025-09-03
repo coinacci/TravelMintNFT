@@ -287,7 +287,7 @@ export class BlockchainService {
   }
   
   // Convert blockchain NFT to database format
-  blockchainNFTToDBFormat(blockchainNFT: BlockchainNFT): any {
+  async blockchainNFTToDBFormat(blockchainNFT: BlockchainNFT): Promise<any> {
     const metadata = blockchainNFT.metadata;
     
     const location = this.extractLocationFromMetadata(metadata);
@@ -295,7 +295,7 @@ export class BlockchainService {
     const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
     
     // Always prioritize uploaded travel images over metadata placeholders
-    let imageUrl = metadata?.image || blockchainNFT.tokenURI;
+    let imageUrl = await this.extractImageUrl(metadata, blockchainNFT.tokenURI);
     
     // Map tokens to actual uploaded travel photos
     if (blockchainNFT.tokenId === "1") {
@@ -331,6 +331,50 @@ export class BlockchainService {
     };
   }
   
+  // Extract proper image URL from metadata or tokenURI
+  private async extractImageUrl(metadata: any, tokenURI: string): Promise<string> {
+    // First, try to get image from metadata
+    if (metadata?.image) {
+      return metadata.image;
+    }
+    
+    // If no image in metadata, check tokenURI
+    if (!tokenURI) {
+      return ""; // No URL available
+    }
+    
+    // If tokenURI looks like it might be a JSON metadata URL, try to fetch and extract image
+    try {
+      if (tokenURI.startsWith('http') && (
+        tokenURI.includes('ipfs') || 
+        tokenURI.includes('metadata') ||
+        tokenURI.includes('json') ||
+        tokenURI.startsWith('https://gateway.pinata.cloud/ipfs/bafkrei') // Common IPFS JSON pattern
+      )) {
+        console.log(`🔍 Checking if ${tokenURI} contains metadata with image URL...`);
+        
+        const response = await fetch(tokenURI);
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          
+          // If response is JSON, it's metadata - extract image from it
+          if (contentType && contentType.includes('application/json')) {
+            const fetchedMetadata = await response.json();
+            if (fetchedMetadata?.image) {
+              console.log(`✅ Found real image URL in metadata: ${fetchedMetadata.image}`);
+              return fetchedMetadata.image;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Failed to fetch potential metadata URL ${tokenURI}:`, error);
+    }
+    
+    // Fallback: use tokenURI as image URL (assuming it's a direct image link)
+    return tokenURI;
+  }
+
   private extractLocationFromMetadata(metadata: any): string {
     if (!metadata || !metadata.attributes) return "Unknown Location";
     
