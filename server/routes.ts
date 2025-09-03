@@ -160,6 +160,7 @@ export async function registerRoutes(app: Express) {
             // Use metadata name but prioritize database image URL (actual uploaded images)
             title: parsedMetadata?.name || nft.title,
             imageUrl: nft.imageUrl || parsedMetadata?.image,
+            objectStorageUrl: nft.objectStorageUrl, // Include Object Storage URL for frontend priority
             owner: { 
               id: nft.ownerAddress, 
               username: nft.ownerAddress.slice(0, 8) + '...', 
@@ -306,6 +307,7 @@ export async function registerRoutes(app: Express) {
             // Use metadata name but prioritize database image URL (actual uploaded images)
             title: parsedMetadata?.name || nft.title,
             imageUrl: nft.imageUrl || parsedMetadata?.image,
+            objectStorageUrl: nft.objectStorageUrl, // Include Object Storage URL for frontend priority
             ownerAddress: nft.ownerAddress, // Include raw owner address for purchases
             owner: { 
               id: nft.ownerAddress, 
