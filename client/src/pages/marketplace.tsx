@@ -12,7 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User, Clock, MapPin } from "lucide-react";
 
 interface NFT {
@@ -659,6 +659,9 @@ export default function Marketplace() {
             <DialogTitle className="flex items-center space-x-2">
               <span>{nftDetails?.title || selectedNFT?.title || 'NFT Details'}</span>
             </DialogTitle>
+            <DialogDescription>
+              Detailed information about this NFT including location, price, and ownership
+            </DialogDescription>
           </DialogHeader>
           
           {nftDetails && (

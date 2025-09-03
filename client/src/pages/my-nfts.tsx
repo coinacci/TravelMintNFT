@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, User, Clock, Eye } from "lucide-react";
 
 interface NFT {
@@ -343,6 +343,9 @@ export default function MyNFTs() {
             <DialogTitle className="flex items-center space-x-2">
               <span>{nftDetails?.title || selectedNFT?.title || 'NFT Details'}</span>
             </DialogTitle>
+            <DialogDescription>
+              View and manage your NFT details, including listing status and ownership information
+            </DialogDescription>
           </DialogHeader>
           
           {nftDetails && (

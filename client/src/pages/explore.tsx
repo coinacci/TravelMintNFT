@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MapPin, User, Clock } from "lucide-react";
 import { Link } from "wouter";
@@ -332,6 +332,9 @@ export default function Explore() {
                 <DialogTitle className="text-2xl font-bold" data-testid="modal-nft-title">
                   {nftDetails.title}
                 </DialogTitle>
+                <DialogDescription>
+                  NFT details and purchase information for {nftDetails.title}
+                </DialogDescription>
               </DialogHeader>
               
               <div className="grid md:grid-cols-2 gap-6">
