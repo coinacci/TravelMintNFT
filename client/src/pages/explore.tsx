@@ -11,38 +11,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 
-// Optimized IPFS gateway list - fastest first based on testing
-const IPFS_GATEWAYS = [
-  'https://nftstorage.link/ipfs/',
-  'https://gateway.pinata.cloud/ipfs/',
-  'https://dweb.link/ipfs/',
-  'https://ipfs.io/ipfs/',
-  'https://gateway.ipfs.io/ipfs/'
-];
+// Simple modal placeholder for loading
+const MODAL_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
-// Fast timeout for quick gateway switching  
-const GATEWAY_TIMEOUT = 3000; // 3 seconds per gateway
-
-// Temporary placeholder for original user images that are temporarily unavailable
-const TEMP_UNAVAILABLE_IMAGE = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading original image...</text></svg>`;
-
-// Cache for failed IPFS hashes to avoid repeated attempts
-const failedHashes = new Set<string>();
-
-// Extract IPFS hash from URL
-const getIpfsHash = (url: string): string | null => {
-  const match = url.match(/\/ipfs\/(\w+)/);
-  return match ? match[1] : null;
-};
-
-const getOptimizedImageUrl = (originalUrl: string): string[] => {
-  if (!originalUrl.includes('/ipfs/')) return [originalUrl];
-  
-  const ipfsHash = originalUrl.split('/ipfs/')[1];
-  if (!ipfsHash) return [originalUrl];
-  
-  return IPFS_GATEWAYS.map(gateway => `${gateway}${ipfsHash}`);
-};
 
 interface NFT {
   id: string;
@@ -68,97 +39,47 @@ interface Transaction {
   toUserId: string;
 }
 
-// Enhanced Image Component with IPFS Gateway Fallback
-const EnhancedImage = ({ nft, className, ...props }: { nft: { imageUrl: string; title: string }; className: string; [key: string]: any }) => {
-  const [currentImageUrl, setCurrentImageUrl] = useState(nft.imageUrl);
+// Simple Image Component - uses original IPFS URLs directly
+const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; title: string }; className: string; [key: string]: any }) => {
   const [imageLoading, setImageLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-
-  const tryNextGateway = () => {
-    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
-    if (retryCount < optimizedUrls.length - 1) {
-      const nextUrl = optimizedUrls[retryCount + 1];
-      console.log(`🔄 Modal trying alternative gateway ${retryCount + 1}:`, nextUrl);
-      setCurrentImageUrl(nextUrl);
-      setRetryCount(prev => prev + 1);
-      setImageLoading(true);
-    } else {
-      console.log('❌ Modal: All gateways failed, using fallback');
-      setImageLoading(false);
-    }
-  };
+  const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    const ipfsHash = getIpfsHash(nft.imageUrl);
-    
-    // Skip loading if hash is known to be failed
-    if (ipfsHash && failedHashes.has(ipfsHash)) {
-      console.log('🚫 Modal: Skipping known failed hash:', ipfsHash);
-      const fallbackSvg = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="120" cy="100" r="20" fill="%23fbbf24"/><path d="M60 250 L120 180 L180 220 L260 140 L340 190 L340 270 L60 270 Z" fill="%23a3a3a3"/><text x="200" y="300" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 ${nft.title}</text></svg>`;
-      setCurrentImageUrl(fallbackSvg);
-      setImageLoading(false);
-      return;
-    }
-    
-    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
-    const primaryUrl = optimizedUrls[0];
-    
-    if (primaryUrl !== nft.imageUrl) {
-      setCurrentImageUrl(primaryUrl);
-    }
-    
-    // Reset states when NFT changes
-    setRetryCount(0);
+    console.log('🖼️ Loading modal image:', nft.imageUrl);
     setImageLoading(true);
+    setImageSrc(MODAL_PLACEHOLDER);
+    
+    const img = new Image();
+    img.onload = () => {
+      console.log('✅ Modal image loaded successfully');
+      setImageSrc(nft.imageUrl);
+      setImageLoading(false);
+    };
+    img.onerror = () => {
+      console.log('❌ Modal image failed to load');
+      setImageLoading(false);
+      // Keep placeholder if image fails
+    };
+    img.src = nft.imageUrl;
   }, [nft.imageUrl]);
 
   return (
     <div className="relative">
       {imageLoading && (
-        <div className="w-full h-64 md:h-80 bg-muted animate-pulse flex items-center justify-center rounded-lg">
-          <div className="text-sm text-muted-foreground">Loading image...</div>
+        <div className="absolute inset-0 bg-muted rounded-lg flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
         </div>
       )}
       <img
-        src={currentImageUrl}
+        src={imageSrc}
         alt={nft.title}
-        className={`${className} ${imageLoading ? 'opacity-0 absolute' : 'opacity-100 relative'} transition-all duration-500`}
+        className={`${className} transition-opacity duration-300 ${
+          imageLoading ? 'opacity-0' : 'opacity-100'
+        }`}
         loading="eager"
-        decoding="async"
-        crossOrigin="anonymous"
-        referrerPolicy="no-referrer"
-        onLoad={() => {
-          console.log('✅ Modal image loaded successfully via:', currentImageUrl);
-          setImageLoading(false);
-        }}
-        onError={() => {
-          console.log('❌ Modal image failed from gateway:', currentImageUrl);
-          
-          // Mark hash as failed for future reference
-          const ipfsHash = getIpfsHash(nft.imageUrl);
-          
-          if (retryCount < IPFS_GATEWAYS.length - 1) {
-            tryNextGateway();
-          } else {
-            console.log('❌ Modal: All gateways exhausted, using fallback');
-            
-            // Add to failed cache temporarily
-            if (ipfsHash) {
-              failedHashes.add(ipfsHash);
-              console.log('⏰ Temporarily cached failed hash:', ipfsHash, '- will retry on next page load');
-            }
-            
-            console.log('❌ All gateways exhausted, showing temporary placeholder');
-            console.log('💡 Original user image temporarily unavailable - will retry on next page load');
-            
-            // Show temporary placeholder preserving expectation for original user image
-            const imgElement = document.querySelector(`img[src="${currentImageUrl}"]`) as HTMLImageElement;
-            if (imgElement) {
-              imgElement.src = TEMP_UNAVAILABLE_IMAGE;
-            }
-            setImageLoading(false);
-          }
-        }}
         {...props}
       />
     </div>
@@ -349,7 +270,7 @@ export default function Explore() {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Image */}
                 <div className="space-y-4">
-                  <EnhancedImage 
+                  <SimpleImage 
                     nft={nftDetails} 
                     className="w-full h-64 md:h-80 object-cover rounded-lg"
                     data-testid="modal-nft-image"

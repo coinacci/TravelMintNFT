@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Share2 } from "lucide-react";
+import { MapPin, ExternalLink, Share2 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -24,112 +24,35 @@ interface NFTCardProps {
   showShareButton?: boolean;
 }
 
-// Optimized IPFS gateway list - fastest first based on testing
-const IPFS_GATEWAYS = [
-  'https://nftstorage.link/ipfs/',
-  'https://gateway.pinata.cloud/ipfs/',
-  'https://dweb.link/ipfs/',
-  'https://ipfs.io/ipfs/',
-  'https://gateway.ipfs.io/ipfs/'
-];
-
-// Fast timeout for quick gateway switching
-const GATEWAY_TIMEOUT = 3000; // 3 seconds per gateway
-
-// Original user image placeholder for when IPFS is temporarily unavailable
-const TEMP_UNAVAILABLE_IMAGE = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading original image...</text></svg>`;
-
-// Cache for failed IPFS hashes to avoid repeated attempts
-const failedHashes = new Set<string>();
-
-// Extract IPFS hash from URL
-const getIpfsHash = (url: string): string | null => {
-  const match = url.match(/\/ipfs\/(\w+)/);
-  return match ? match[1] : null;
-};
-
-// Optimize image URL for faster loading
-const getOptimizedImageUrl = (originalUrl: string): string[] => {
-  if (!originalUrl.includes('/ipfs/')) return [originalUrl];
-  
-  const ipfsHash = originalUrl.split('/ipfs/')[1];
-  if (!ipfsHash) return [originalUrl];
-  
-  // Return multiple gateway URLs for fallback
-  return IPFS_GATEWAYS.map(gateway => `${gateway}${ipfsHash}`);
-};
+// Simple loading placeholder
+const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true, showShareButton = false }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
   const { toast } = useToast();
-  const [currentImageUrl, setCurrentImageUrl] = useState(nft.imageUrl);
   const [imageLoading, setImageLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const [imageSrc, setImageSrc] = useState(LOADING_PLACEHOLDER);
   
   const formatPrice = (price: string) => {
     return parseFloat(price).toFixed(0);
   };
   
-  // Preload next gateway URL if current fails
-  const tryNextGateway = () => {
-    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
-    if (retryCount < optimizedUrls.length - 1) {
-      const nextUrl = optimizedUrls[retryCount + 1];
-      console.log(`🔄 Trying alternative gateway ${retryCount + 1}:`, nextUrl);
-      setCurrentImageUrl(nextUrl);
-      setRetryCount(prev => prev + 1);
-      setImageLoading(true);
-    } else {
-      console.log('❌ All gateways failed, using fallback');
-      setImageLoading(false);
-    }
-  };
-  
-  // Preload image on component mount for faster display
+  // Simple image loading - use original IPFS URL from mint
   useEffect(() => {
-    const ipfsHash = getIpfsHash(nft.imageUrl);
+    console.log('🖼️ Loading NFT image:', nft.imageUrl);
     
-    // Skip preloading if hash is known to be failed
-    if (ipfsHash && failedHashes.has(ipfsHash)) {
-      console.log('🚫 Skipping known failed hash:', ipfsHash);
-      const fallbackSvg = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="80" cy="70" r="12" fill="%23fbbf24"/><path d="M50 130 L90 100 L130 120 L200 80 L270 110 L270 150 L50 150 Z" fill="%23a3a3a3"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 ${nft.title}</text></svg>`;
-      setCurrentImageUrl(fallbackSvg);
-      setImageLoading(false);
-      return;
-    }
-    
-    const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
-    const primaryUrl = optimizedUrls[0];
-    
-    if (primaryUrl !== nft.imageUrl) {
-      setCurrentImageUrl(primaryUrl);
-    }
-    
-    // Fast preloading with optimized timeout
-    const preloadImg = new Image();
-    const timeout = setTimeout(() => {
-      console.log('⏰ Gateway timeout, switching...');
-      preloadImg.src = ''; // Cancel loading
-      if (retryCount < optimizedUrls.length - 1) {
-        tryNextGateway();
-      }
-    }, GATEWAY_TIMEOUT);
-    
-    preloadImg.onload = () => {
-      clearTimeout(timeout);
-      console.log('✅ Image preloaded successfully:', primaryUrl);
+    const img = new Image();
+    img.onload = () => {
+      console.log('✅ Image loaded successfully');
+      setImageSrc(nft.imageUrl);
       setImageLoading(false);
     };
-    preloadImg.onerror = () => {
-      clearTimeout(timeout);
-      console.log('❌ Gateway failed, trying next...');
-      if (retryCount < optimizedUrls.length - 1) {
-        tryNextGateway();
-      }
+    img.onerror = () => {
+      console.log('❌ Image failed to load, keeping placeholder');
+      setImageLoading(false);
+      // Keep loading placeholder if original fails
     };
-    preloadImg.src = primaryUrl;
-    
-    return () => clearTimeout(timeout);
+    img.src = nft.imageUrl;
   }, [nft.imageUrl]);
   
   // Check if the connected wallet owns this NFT
@@ -138,55 +61,47 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     (nft.owner?.id && connectedWallet.toLowerCase() === nft.owner.id.toLowerCase())
   );
   
-  // Remove debug logging for production
+  const handleShare = async () => {
+    try {
+      await navigator.share({
+        title: `${nft.title} - TravelMint NFT`,
+        text: `Check out this travel NFT from ${nft.location}`,
+        url: window.location.href
+      });
+      toast({
+        title: "Shared successfully!",
+        description: "NFT shared via native sharing"
+      });
+    } catch (error) {
+      // Fallback to copying URL
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copied!",
+        description: "NFT link copied to clipboard"
+      });
+    }
+  };
 
   return (
-    <Card className="nft-card bg-card rounded-lg overflow-hidden cursor-pointer" onClick={onSelect} data-testid={`nft-card-${nft.id}`}>
-      <div className="relative">
+    <Card 
+      className="group cursor-pointer hover:shadow-lg transition-all duration-200 bg-card border-border/40 overflow-hidden"
+      onClick={onSelect}
+      data-testid={`nft-card-${nft.id}`}
+    >
+      <div className="relative h-48 overflow-hidden bg-muted">
         {imageLoading && (
-          <div className="w-full h-48 bg-muted animate-pulse flex items-center justify-center">
-            <div className="text-xs text-muted-foreground">Loading image...</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <div className="text-sm text-muted-foreground">Loading...</div>
           </div>
         )}
+        
         <img
-          src={currentImageUrl}
+          src={imageSrc}
           alt={nft.title}
-          className={`w-full h-48 object-cover transition-all duration-500 ${
-            imageLoading ? 'opacity-0 absolute' : 'opacity-100 relative'
+          className={`w-full h-48 object-cover transition-opacity duration-300 ${
+            imageLoading ? 'opacity-0' : 'opacity-100'
           }`}
           data-testid={`nft-image-${nft.id}`}
-          loading="eager"
-          decoding="async"
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-          onLoad={(e) => {
-            console.log('✅ Image loaded successfully via:', currentImageUrl);
-            setImageLoading(false);
-            e.currentTarget.style.opacity = '1';
-          }}
-          onError={(e) => {
-            console.log('❌ Image failed from gateway:', currentImageUrl);
-            if (retryCount < IPFS_GATEWAYS.length - 1) {
-              tryNextGateway();
-            } else {
-              console.log('❌ All gateways exhausted, showing temporary placeholder');
-              console.log('💡 Original user image temporarily unavailable - will retry on next page load');
-              
-              // Show a temporary placeholder indicating the original image is unavailable
-              // This preserves the user's expectation to see their actual photo
-              e.currentTarget.src = TEMP_UNAVAILABLE_IMAGE;
-              setImageLoading(false);
-              
-              // Add failed hash to cache temporarily (will retry on page refresh)
-              if (ipfsHash) {
-                failedHashes.add(ipfsHash);
-                console.log('⏰ Temporarily cached failed hash:', ipfsHash, '- will retry later');
-              }
-            }
-          }}
-          onLoadStart={() => {
-            console.log('🔄 Loading image from:', currentImageUrl);
-          }}
         />
       </div>
       
@@ -232,58 +147,15 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
                 variant="ghost"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  
-                  // Pre-load IPFS image for faster sharing
-                  const preloadImage = () => {
-                    return new Promise((resolve, reject) => {
-                      const img = new Image();
-                      img.onload = () => resolve(img.src);
-                      img.onerror = () => reject('Image failed to load');
-                      img.src = nft.imageUrl;
-                      
-                      // Timeout after 3 seconds
-                      setTimeout(() => reject('Image load timeout'), 3000);
-                    });
-                  };
-
-                  try {
-                    // Try to preload image
-                    await preloadImage();
-                    console.log('✅ Image preloaded for sharing:', nft.imageUrl);
-                  } catch (error) {
-                    console.warn('⚠️ Image preload failed, continuing with share:', error);
-                  }
-                  
-                  // Enhanced Farcaster share with Frame metadata
-                  const shareText = `🌍 Travel NFT: "${nft.title}" from ${nft.location}\n💰 ${parseFloat(nft.price).toFixed(2)} USDC\n✨ Discover more travel memories on TravelMint!`;
-                  
-                  // Create a better sharing frame URL
-                  const shareFrameUrl = `${window.location.origin}/api/share/frame/${nft.id}`;
-                  const marketplaceUrl = `${window.location.origin}/marketplace`;
-                  
-                  const params = new URLSearchParams();
-                  params.append('text', shareText);
-                  params.append('embeds[]', shareFrameUrl); // Use frame endpoint for better image handling
-                  params.append('embeds[]', marketplaceUrl);
-                  
-                  const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
-                  
-                  // Open Farcaster
-                  window.open(warpcastUrl, '_blank');
-                  
-                  toast({
-                    title: "🎯 Sharing NFT",
-                    description: "NFT image preloaded for faster sharing!",
-                  });
+                  handleShare();
                 }}
-                className="text-muted-foreground hover:text-foreground px-2 py-1"
                 data-testid={`share-button-${nft.id}`}
               >
                 <Share2 className="w-4 h-4" />
               </Button>
             )}
             
-            {/* Show buy button only if not own NFT */}
+            {/* Purchase button for NFTs owned by others */}
             {showPurchaseButton && nft.isForSale === 1 && !isOwnNFT && (
               <Button
                 size="sm"
@@ -291,8 +163,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
                   e.stopPropagation();
                   onPurchase?.();
                 }}
-                className="bg-primary text-primary-foreground px-3 py-1 text-xs font-medium hover:bg-primary/90 transition-colors"
-                data-testid={`buy-button-${nft.id}`}
+                data-testid={`purchase-button-${nft.id}`}
               >
                 Buy
               </Button>
