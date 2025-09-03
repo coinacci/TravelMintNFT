@@ -135,6 +135,15 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* Cluster marker styling for multiple NFTs at same location */
+.cluster-marker {
+  border: 3px solid hsl(33, 100%, 50%) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 8px rgba(255, 165, 0, 0.4) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
 .upload-dropzone {
   border: 2px dashed hsl(var(--border));
   transition: all 0.3s ease;

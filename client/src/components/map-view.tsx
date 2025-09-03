@@ -116,8 +116,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       }
     });
 
-    // Add NFT markers - even if empty array for proper cleanup
-    nfts.forEach((nft, index) => {
+    // Group NFTs by location for clustering support
+    const nftsByLocation = new Map<string, NFT[]>();
+    
+    nfts.forEach((nft) => {
       const lat = parseFloat(nft.latitude);
       const lng = parseFloat(nft.longitude);
 
@@ -127,38 +129,97 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         return;
       }
 
-      const customIcon = L.icon({
-        iconUrl: cameraMarkerImage,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16],
-      });
+      // Create location key (rounded to avoid floating point precision issues)
+      const locationKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      
+      if (!nftsByLocation.has(locationKey)) {
+        nftsByLocation.set(locationKey, []);
+      }
+      nftsByLocation.get(locationKey)!.push(nft);
+    });
 
-      const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+    // Add markers for each location group
+    nftsByLocation.forEach((locationNFTs, locationKey) => {
+      const [lat, lng] = locationKey.split(',').map(Number);
+      
+      if (locationNFTs.length === 1) {
+        // Single NFT - place normally
+        const nft = locationNFTs[0];
+        const customIcon = L.icon({
+          iconUrl: cameraMarkerImage,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16],
+        });
 
-      const popupContent = `
-        <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
-          <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
-               onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
-          <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
-          <p class="text-xs text-gray-600 mb-2">${nft.location}</p>
-          ${nft.isForSale === 1 ? `
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xs text-gray-500">Price:</span>
-            <span class="font-medium text-sm" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
+        const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+
+        const popupContent = `
+          <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
+            <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
+            <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
+            <p class="text-xs text-gray-600 mb-2">${nft.location}</p>
+            ${nft.isForSale === 1 ? `
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs text-gray-500">Price:</span>
+              <span class="font-medium text-sm" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
+            </div>
+            ` : ''}
+            <button 
+              onclick="window.selectNFT('${nft.id}')"
+              class="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+              style="background-color: hsl(199, 89%, 48%)"
+            >
+              View Details
+            </button>
           </div>
-          ` : ''}
-          <button 
-            onclick="window.selectNFT('${nft.id}')"
-            class="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
-            style="background-color: hsl(199, 89%, 48%)"
-          >
-            View Details
-          </button>
-        </div>
-      `;
+        `;
 
-      marker.bindPopup(popupContent);
+        marker.bindPopup(popupContent);
+      } else {
+        // Multiple NFTs at same location - create cluster marker with special popup
+        const clusterIcon = L.icon({
+          iconUrl: cameraMarkerImage,
+          iconSize: [40, 40], // Slightly larger for cluster
+          iconAnchor: [20, 20],
+          popupAnchor: [0, -20],
+          className: 'cluster-marker' // For special styling
+        });
+
+        const marker = L.marker([lat, lng], { icon: clusterIcon }).addTo(map);
+
+        // Create multi-NFT popup content
+        const multiPopupContent = `
+          <div class="text-center p-3 min-w-[240px]" style="font-family: Inter, system-ui, sans-serif;">
+            <div class="text-sm font-semibold mb-3 text-center" style="color: hsl(33, 100%, 50%)">
+              ${locationNFTs.length} NFTs at ${locationNFTs[0].location}
+            </div>
+            ${locationNFTs.map(nft => `
+              <div class="border rounded mb-2 p-2 bg-gray-50">
+                <img src="${nft.imageUrl}" alt="${nft.title}" class="w-full h-16 object-cover rounded mb-1" 
+                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2264%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'" />
+                <h4 class="font-medium text-xs mb-1">${nft.title}</h4>
+                ${nft.isForSale === 1 ? `
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-xs text-gray-500">Price:</span>
+                  <span class="font-medium text-xs" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
+                </div>
+                ` : ''}
+                <button 
+                  onclick="window.selectNFT('${nft.id}')"
+                  class="w-full bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+                  style="background-color: hsl(199, 89%, 48%)"
+                >
+                  View Details
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        marker.bindPopup(multiPopupContent);
+      }
     });
 
     // Global function to handle NFT selection from popup

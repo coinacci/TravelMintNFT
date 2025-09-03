@@ -18,6 +18,7 @@ export interface IStorage {
   getNFTsForSale(): Promise<NFT[]>;
   createNFT(nft: InsertNFT): Promise<NFT>;
   updateNFT(id: string, updates: Partial<NFT>): Promise<NFT | undefined>;
+  updateNFTCoordinates(tokenId: string, latitude: number, longitude: number): Promise<NFT | undefined>;
 
   // Transaction operations
   getTransaction(id: string): Promise<Transaction | undefined>;
@@ -112,6 +113,19 @@ export class DatabaseStorage implements IStorage {
       .update(nfts)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(nfts.id, id))
+      .returning();
+    return nft || undefined;
+  }
+
+  async updateNFTCoordinates(tokenId: string, latitude: number, longitude: number): Promise<NFT | undefined> {
+    const [nft] = await db
+      .update(nfts)
+      .set({ 
+        latitude: latitude.toFixed(8), 
+        longitude: longitude.toFixed(8),
+        updatedAt: new Date() 
+      })
+      .where(eq(nfts.tokenId, tokenId))
       .returning();
     return nft || undefined;
   }
