@@ -15,10 +15,19 @@ import { parseUnits } from "viem";
 const IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cf-ipfs.com/ipfs/',
   'https://gateway.ipfs.io/ipfs/',
-  'https://dweb.link/ipfs/'
+  'https://dweb.link/ipfs/',
+  'https://nftstorage.link/ipfs/'
 ];
+
+// Cache for failed IPFS hashes to avoid repeated attempts
+const failedHashes = new Set<string>();
+
+// Extract IPFS hash from URL
+const getIpfsHash = (url: string): string | null => {
+  const match = url.match(/\/ipfs\/(\w+)/);
+  return match ? match[1] : null;
+};
 
 const getOptimizedImageUrl = (originalUrl: string): string[] => {
   if (!originalUrl.includes('/ipfs/')) return [originalUrl];
@@ -74,6 +83,17 @@ const EnhancedImage = ({ nft, className, ...props }: { nft: { imageUrl: string; 
   };
 
   useEffect(() => {
+    const ipfsHash = getIpfsHash(nft.imageUrl);
+    
+    // Skip loading if hash is known to be failed
+    if (ipfsHash && failedHashes.has(ipfsHash)) {
+      console.log('🚫 Modal: Skipping known failed hash:', ipfsHash);
+      const fallbackSvg = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="120" cy="100" r="20" fill="%23fbbf24"/><path d="M60 250 L120 180 L180 220 L260 140 L340 190 L340 270 L60 270 Z" fill="%23a3a3a3"/><text x="200" y="300" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 ${nft.title}</text></svg>`;
+      setCurrentImageUrl(fallbackSvg);
+      setImageLoading(false);
+      return;
+    }
+    
     const optimizedUrls = getOptimizedImageUrl(nft.imageUrl);
     const primaryUrl = optimizedUrls[0];
     
@@ -107,10 +127,21 @@ const EnhancedImage = ({ nft, className, ...props }: { nft: { imageUrl: string; 
         }}
         onError={() => {
           console.log('❌ Modal image failed from gateway:', currentImageUrl);
+          
+          // Mark hash as failed for future reference
+          const ipfsHash = getIpfsHash(nft.imageUrl);
+          
           if (retryCount < IPFS_GATEWAYS.length - 1) {
             tryNextGateway();
           } else {
             console.log('❌ Modal: All gateways exhausted, using fallback');
+            
+            // Add to failed cache
+            if (ipfsHash) {
+              failedHashes.add(ipfsHash);
+              console.log('📝 Added hash to failed cache:', ipfsHash);
+            }
+            
             const fallbackSvg = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="120" cy="100" r="20" fill="%23fbbf24"/><path d="M60 250 L120 180 L180 220 L260 140 L340 190 L340 270 L60 270 Z" fill="%23a3a3a3"/><text x="200" y="300" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 ${nft.title}</text></svg>`;
             const imgElement = document.querySelector(`img[src="${currentImageUrl}"]`) as HTMLImageElement;
             if (imgElement) {
