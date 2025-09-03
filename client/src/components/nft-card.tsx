@@ -45,15 +45,24 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
         <img
           src={nft.imageUrl}
           alt={nft.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-48 object-cover transition-opacity duration-300"
           data-testid={`nft-image-${nft.id}`}
           loading="lazy"
           decoding="async"
-          onLoad={() => console.log('✅ Card image loaded:', nft.title, nft.imageUrl)}
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
+          style={{ opacity: 1 }}
+          onLoad={(e) => {
+            console.log('✅ Image loaded successfully:', nft.imageUrl);
+            e.currentTarget.style.opacity = '1';
+          }}
           onError={(e) => {
-            console.error('❌ Card image failed:', nft.imageUrl);
+            console.log('❌ Image failed to load:', nft.imageUrl);
             const fallbackSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="192"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23374151" font-size="14" font-family="Inter,sans-serif">Travel Photo</text></svg>';
             e.currentTarget.src = fallbackSvg;
+          }}
+          onLoadStart={(e) => {
+            e.currentTarget.style.opacity = '0.7';
           }}
         />
       </div>
@@ -98,17 +107,41 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
                   
-                  // Create Farcaster share URL with buy button
-                  const shareText = `Check out this travel NFT "${nft.title}" from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC! 🌍 ✨`;
-                  const nftUrl = `${window.location.origin}/marketplace`;
+                  // Pre-load IPFS image for faster sharing
+                  const preloadImage = () => {
+                    return new Promise((resolve, reject) => {
+                      const img = new Image();
+                      img.onload = () => resolve(img.src);
+                      img.onerror = () => reject('Image failed to load');
+                      img.src = nft.imageUrl;
+                      
+                      // Timeout after 3 seconds
+                      setTimeout(() => reject('Image load timeout'), 3000);
+                    });
+                  };
+
+                  try {
+                    // Try to preload image
+                    await preloadImage();
+                    console.log('✅ Image preloaded for sharing:', nft.imageUrl);
+                  } catch (error) {
+                    console.warn('⚠️ Image preload failed, continuing with share:', error);
+                  }
+                  
+                  // Enhanced Farcaster share with Frame metadata
+                  const shareText = `🌍 Travel NFT: "${nft.title}" from ${nft.location}\n💰 ${parseFloat(nft.price).toFixed(2)} USDC\n✨ Discover more travel memories on TravelMint!`;
+                  
+                  // Create a better sharing frame URL
+                  const shareFrameUrl = `${window.location.origin}/api/share/frame/${nft.id}`;
+                  const marketplaceUrl = `${window.location.origin}/marketplace`;
                   
                   const params = new URLSearchParams();
                   params.append('text', shareText);
-                  params.append('embeds[]', nftUrl);
-                  params.append('embeds[]', nft.imageUrl);
+                  params.append('embeds[]', shareFrameUrl); // Use frame endpoint for better image handling
+                  params.append('embeds[]', marketplaceUrl);
                   
                   const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
                   
@@ -116,8 +149,8 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
                   window.open(warpcastUrl, '_blank');
                   
                   toast({
-                    title: "Opening Farcaster",
-                    description: "NFT ready to share with buy link!",
+                    title: "🎯 Sharing NFT",
+                    description: "NFT image preloaded for faster sharing!",
                   });
                 }}
                 className="text-muted-foreground hover:text-foreground px-2 py-1"

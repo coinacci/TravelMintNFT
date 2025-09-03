@@ -49,6 +49,80 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, message: "Cache cleared successfully" });
   });
 
+  // Farcaster Frame endpoint for NFT sharing with optimized IPFS image loading
+  app.get("/api/share/frame/:nftId", async (req, res) => {
+    try {
+      const { nftId } = req.params;
+      const nft = await storage.getNFT(nftId);
+      
+      if (!nft) {
+        return res.status(404).send("NFT not found");
+      }
+
+      // Optimize IPFS URL for faster loading (use different gateways as fallback)
+      const optimizedImageUrl = nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io');
+      
+      // Add cache headers for better performance
+      res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+      res.setHeader('ETag', `"nft-${nft.id}-${nft.updatedAt?.getTime()}"`);
+
+      // Create Farcaster Frame HTML with optimized image loading
+      const frameHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${nft.title} - Travel NFT</title>
+  <meta name="description" content="Travel NFT from ${nft.location} - ${nft.description}" />
+  
+  <!-- Farcaster Frame Meta Tags -->
+  <meta name="fc:frame" content="vNext" />
+  <meta name="fc:frame:image" content="${nft.imageUrl}" />
+  <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+  <meta name="fc:frame:button:1" content="💰 Buy ${parseFloat(nft.price).toFixed(0)} USDC" />
+  <meta name="fc:frame:button:1:action" content="link" />
+  <meta name="fc:frame:button:1:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/marketplace" />
+  <meta name="fc:frame:button:2" content="🗺️ Explore More" />
+  <meta name="fc:frame:button:2:action" content="link" />
+  <meta name="fc:frame:button:2:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/explore" />
+  
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="${nft.title} - Travel NFT" />
+  <meta property="og:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
+  <meta property="og:image" content="${nft.imageUrl}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/marketplace" />
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${nft.title} - Travel NFT" />
+  <meta name="twitter:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
+  <meta name="twitter:image" content="${nft.imageUrl}" />
+</head>
+<body>
+  <div style="font-family: Inter, sans-serif; text-align: center; padding: 40px;">
+    <h1>${nft.title}</h1>
+    <p>Travel NFT from ${nft.location}</p>
+    <p>Price: ${parseFloat(nft.price).toFixed(2)} USDC</p>
+    <img src="${nft.imageUrl}" alt="${nft.title}" style="max-width: 400px; height: auto; border-radius: 8px;" />
+    <br /><br />
+    <a href="${process.env.REPLIT_DEV_DOMAIN || 'https://travelmint.app'}/marketplace" 
+       style="background: #007aff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+      View in Marketplace
+    </a>
+  </div>
+</body>
+</html>`;
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.send(frameHtml);
+      
+    } catch (error) {
+      console.error("Error creating share frame:", error);
+      res.status(500).send("Error creating share frame");
+    }
+  });
+
   // Get all NFTs - fast cached version
   app.get("/api/nfts", async (req, res) => {
     try {
