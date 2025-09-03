@@ -80,66 +80,87 @@ function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [context, setContext] = useState<any>(null);
 
+  // CRITICAL: Call sdk.actions.ready() IMMEDIATELY and SYNCHRONOUSLY
+  if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+    console.log('🚨 CRITICAL: Calling sdk.actions.ready() synchronously on render...');
+    try {
+      sdk.actions.ready();
+      console.log('✅ SYNCHRONOUS ready() call completed');
+    } catch (e) {
+      console.log('❌ Synchronous ready() failed:', e);
+    }
+  }
+
   useEffect(() => {
-    // Delay app ready to allow proper splash screen dismissal in Farcaster
-    const readyTimer = setTimeout(() => {
-      setIsAppReady(true);
-    }, 500); // Give splash screen time to show
+    console.log('🚀 App useEffect started');
     
-    // Initialize Farcaster SDK in background without blocking UI
-    const initFarcaster = async () => {
-      try {
-        console.log('🚀 Initializing Farcaster SDK...');
+    let mounted = true;
+    
+    // Multiple ready calls to ensure Farcaster gets the signal
+    const sendReadySignal = () => {
+      if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+        console.log('⚡ Sending ready signal (attempt)...');
         
-        // Check if we're in Farcaster environment
-        const isInFarcaster = typeof window !== 'undefined' && 
-                              sdk && 
-                              sdk.actions && 
-                              typeof sdk.actions.ready === 'function';
-        
-        if (isInFarcaster) {
-          // Get context in background
-          console.log('🔄 Getting Farcaster context...');
-          try {
-            const contextPromise = sdk.context;
-            const contextTimeout = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Context timeout')), 2000)
-            );
-            
-            const appContext = await Promise.race([contextPromise, contextTimeout]);
-            setContext(appContext);
-            console.log('✅ Farcaster context received:', (appContext as any)?.user?.displayName || 'Unknown');
-          } catch (contextError: any) {
-            console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
-          }
-          
-          // Signal ready in background with aggressive timeout
-          console.log('⚡ Calling sdk.actions.ready() in background...');
-          try {
-            const readyPromise = sdk.actions.ready();
-            const readyTimeout = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Ready timeout')), 1000)
-            );
-            
-            await Promise.race([readyPromise, readyTimeout]);
-            console.log('✅ Farcaster SDK ready - background initialization complete');
-          } catch (readyError: any) {
-            console.log('❌ ready() timeout/failed (normal in web browser):', readyError?.message || readyError);
-            console.log('✅ Farcaster SDK continuing without ready signal');
-          }
-        } else {
-          console.log('🌐 Running in browser mode (Farcaster SDK not available)');
+        // Method 1: Direct call
+        try {
+          sdk.actions.ready();
+          console.log('✅ Direct ready() call sent');
+        } catch (e) {
+          console.log('❌ Direct ready() failed:', e);
         }
-      } catch (error) {
-        console.log('❌ Farcaster SDK error, continuing as web app:', error);
+        
+        // Method 2: Promise wrapped
+        try {
+          Promise.resolve(sdk.actions.ready());
+          console.log('✅ Promise wrapped ready() call sent');
+        } catch (e) {
+          console.log('❌ Promise wrapped ready() failed:', e);
+        }
+        
+        // Method 3: Async wrapped
+        setTimeout(() => {
+          try {
+            sdk.actions.ready();
+            console.log('✅ Delayed ready() call sent');
+          } catch (e) {
+            console.log('❌ Delayed ready() failed:', e);
+          }
+        }, 10);
       }
     };
-
-    // Start Farcaster init in background
-    setTimeout(() => initFarcaster(), 100);
     
-    // Cleanup timer on unmount
+    // Send ready signal immediately and repeatedly
+    sendReadySignal();
+    setTimeout(sendReadySignal, 50);
+    setTimeout(sendReadySignal, 100);
+    setTimeout(sendReadySignal, 200);
+    
+    // Set app ready quickly
+    const readyTimer = setTimeout(() => {
+      if (mounted) {
+        console.log('✅ Setting app ready = true');
+        setIsAppReady(true);
+      }
+    }, 200);
+    
+    // Get context in background (optional)
+    if (typeof window !== 'undefined' && sdk?.context) {
+      Promise.race([
+        sdk.context,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Context timeout')), 500))
+      ]).then((appContext) => {
+        if (mounted) {
+          setContext(appContext);
+          console.log('✅ Context received:', (appContext as any)?.user?.displayName || 'Unknown');
+        }
+      }).catch((error: any) => {
+        console.log('⚠️ Context failed (normal in web browser):', error?.message || error);
+      });
+    }
+    
+    // Cleanup
     return () => {
+      mounted = false;
       clearTimeout(readyTimer);
     };
   }, []);
