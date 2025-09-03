@@ -90,16 +90,19 @@ function App() {
                               typeof sdk.actions.ready === 'function';
         
         if (isInFarcaster) {
-          // Set timeout for SDK initialization to avoid hanging
-          const sdkTimeout = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('SDK timeout')), 3000)
-          );
-          
+          // Call ready() directly without timeout to avoid interruption
           try {
-            await Promise.race([sdk.actions.ready(), sdkTimeout]);
-            console.log('✅ Farcaster SDK ready');
+            await sdk.actions.ready();
+            console.log('✅ Farcaster SDK ready - app fully initialized');
           } catch (error) {
-            console.log('⚠️ Farcaster SDK timeout, continuing as web app');
+            console.log('⚠️ Farcaster SDK ready() failed:', error);
+            // Still try to call it synchronously as fallback
+            try {
+              sdk.actions.ready();
+              console.log('✅ Farcaster SDK ready (sync fallback)');
+            } catch (syncError) {
+              console.log('❌ Farcaster SDK ready() completely failed');
+            }
           }
         } else {
           console.log('🌐 Running in browser mode (Farcaster SDK not available)');
