@@ -111,9 +111,19 @@ function App() {
               console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
             }
             
-            // Always signal ready regardless of context success
-            await sdk.actions.ready();
-            console.log('✅ Farcaster SDK ready - app fully initialized and visible');
+            // Always signal ready with timeout for web browsers
+            console.log('⚡ Calling sdk.actions.ready()...');
+            try {
+              const readyPromise = sdk.actions.ready();
+              const readyTimeout = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Ready timeout')), 3000)
+              );
+              await Promise.race([readyPromise, readyTimeout]);
+              console.log('✅ Farcaster SDK ready - app fully initialized and visible');
+            } catch (readyError: any) {
+              console.log('❌ ready() timeout/failed (normal in web browser):', readyError?.message || readyError);
+              console.log('✅ Farcaster SDK continuing without ready signal');
+            }
             setIsAppReady(true);
           } catch (error) {
             console.log('⚠️ Farcaster SDK initialization failed:', error);
