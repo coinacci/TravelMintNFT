@@ -10,7 +10,7 @@
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     
     <!-- Enhanced Content Security Policy for Wallet Extensions -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: chrome-extension: moz-extension:; connect-src 'self' https: wss: chrome-extension: moz-extension:; frame-src 'self' chrome-extension: moz-extension:; object-src 'none'; base-uri 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:; connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:; frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:;" />
     
     <!-- App Meta Tags -->
     <title>TravelMint - Travel Photo NFT Marketplace</title>
@@ -33,7 +33,7 @@
       "button": {
         "title": "Open TravelMint",
         "action": {
-          "type": "launch_frame",
+          "type": "link",
           "name": "TravelMint",
           "url": "https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev",
           "splashImageUrl": "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=400&fit=crop",
