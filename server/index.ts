@@ -3,6 +3,41 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Enhanced CORS setup for browser extension compatibility
+app.use((req, res, next) => {
+  // Allow all origins for development (browser extensions need this)
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+  res.header('Access-Control-Allow-Credentials', 'false'); // Set to false when using wildcard origin
+  
+  // Additional security headers for browser extension compatibility
+  res.header('X-Frame-Options', 'SAMEORIGIN');
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Content Security Policy - Allow browser extensions and external resources
+  res.header('Content-Security-Policy', [
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension:",
+    "style-src 'self' 'unsafe-inline' https:",
+    "img-src 'self' data: https: chrome-extension: moz-extension:",
+    "connect-src 'self' https: wss: chrome-extension: moz-extension:",
+    "frame-src 'self' chrome-extension: moz-extension:",
+    "object-src 'none'",
+    "base-uri 'self'"
+  ].join('; '));
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
+  next();
+});
+
 app.use(express.json({ limit: '50mb' })); // Increased limit for image uploads
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 

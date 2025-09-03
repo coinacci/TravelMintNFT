@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     
+    <!-- Security and Extension Compatibility Meta Tags -->
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    
+    <!-- Enhanced Content Security Policy for Wallet Extensions -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: chrome-extension: moz-extension:; connect-src 'self' https: wss: chrome-extension: moz-extension:; frame-src 'self' chrome-extension: moz-extension:; object-src 'none'; base-uri 'self';" />
+    
     <!-- App Meta Tags -->
     <title>TravelMint - Travel Photo NFT Marketplace</title>
     <meta name="description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates." />
