@@ -937,21 +937,19 @@ export async function registerRoutes(app: Express) {
     const manifest = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": req.get('host') === 'travelnft.replit.app' 
-          ? "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9"
-          : Buffer.from(JSON.stringify({"domain": req.get('host')})).toString('base64'),
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "miniapp": {
         "version": "2",
         "name": "TravelMint",
-        "iconUrl": `https://${req.get('host')}/icon.png?v=${Date.now()}`,
-        "homeUrl": `https://${req.get('host')}`,
-        "imageUrl": `https://${req.get('host')}/image.png?v=${Date.now()}`,
+        "iconUrl": "https://travelnft.replit.app/icon.png?v=" + Date.now(),
+        "homeUrl": "https://travelnft.replit.app",
+        "imageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now(),
         "buttonTitle": "Open TravelMint",
-        "splashImageUrl": `https://${req.get('host')}/splash.png?v=${Date.now()}`,
+        "splashImageUrl": "https://travelnft.replit.app/splash.png?v=" + Date.now(),
         "splashBackgroundColor": "#0f172a",
-        "webhookUrl": `https://${req.get('host')}/api/webhook`,
+        "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "subtitle": "Travel Photo NFTs on Base",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates.",
         "primaryCategory": "art-creativity",
