@@ -81,8 +81,10 @@ function App() {
   const [context, setContext] = useState<any>(null);
 
   useEffect(() => {
-    // CRITICAL: Set app ready immediately, handle Farcaster in background
-    setIsAppReady(true);
+    // Delay app ready to allow proper splash screen dismissal in Farcaster
+    const readyTimer = setTimeout(() => {
+      setIsAppReady(true);
+    }, 500); // Give splash screen time to show
     
     // Initialize Farcaster SDK in background without blocking UI
     const initFarcaster = async () => {
@@ -133,9 +135,26 @@ function App() {
       }
     };
 
-    // Start Farcaster init in background - don't block UI
+    // Start Farcaster init in background
     setTimeout(() => initFarcaster(), 100);
+    
+    // Cleanup timer on unmount
+    return () => {
+      clearTimeout(readyTimer);
+    };
   }, []);
+
+  // Show loading screen until app is ready
+  if (!isAppReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading TravelMint...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
