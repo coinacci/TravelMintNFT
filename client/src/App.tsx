@@ -111,18 +111,21 @@ function App() {
               console.log('⚠️ Context timeout/error (normal in web browser):', contextError?.message || contextError);
             }
             
-            // Always signal ready with timeout for web browsers
-            console.log('⚡ Calling sdk.actions.ready()...');
+            // CRITICAL: Always signal ready IMMEDIATELY to prevent splash screen hang
+            console.log('⚡ Calling sdk.actions.ready() IMMEDIATELY...');
             try {
-              const readyPromise = sdk.actions.ready();
-              const readyTimeout = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Ready timeout')), 3000)
-              );
-              await Promise.race([readyPromise, readyTimeout]);
+              // IMMEDIATE ready() call - no timeout, no Promise.race
+              await sdk.actions.ready();
               console.log('✅ Farcaster SDK ready - app fully initialized and visible');
             } catch (readyError: any) {
-              console.log('❌ ready() timeout/failed (normal in web browser):', readyError?.message || readyError);
-              console.log('✅ Farcaster SDK continuing without ready signal');
+              console.log('❌ ready() failed, trying sync fallback:', readyError?.message || readyError);
+              // Immediate sync fallback
+              try {
+                sdk.actions.ready(); // Sync call without await
+                console.log('✅ Farcaster SDK ready (sync fallback)');
+              } catch (syncError) {
+                console.log('❌ Sync ready() also failed:', syncError);
+              }
             }
             setIsAppReady(true);
           } catch (error) {
@@ -147,9 +150,8 @@ function App() {
       }
     };
 
-    // CRITICAL: Wait for initial render to complete before signaling ready
-    const timer = setTimeout(initFarcaster, 500);
-    return () => clearTimeout(timer);
+    // CRITICAL: Start immediately, no delay that could cause splash screen hang
+    initFarcaster();
   }, []);
 
   return (
