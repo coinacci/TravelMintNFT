@@ -122,13 +122,19 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     const nftsByLocation = new Map<string, NFT[]>();
     
     nfts.forEach((nft) => {
-      const lat = parseFloat(nft.latitude);
-      const lng = parseFloat(nft.longitude);
+      // Parse coordinates safely with fallbacks
+      const lat = typeof nft.latitude === 'string' ? parseFloat(nft.latitude) : (nft.latitude || 0);
+      const lng = typeof nft.longitude === 'string' ? parseFloat(nft.longitude) : (nft.longitude || 0);
 
-      // Skip NFTs with invalid coordinates (0,0 or NaN)
-      if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
-        console.warn('⚠️ Skipping NFT with invalid coordinates:', nft.title, lat, lng);
+      // Only skip NFTs with truly invalid coordinates
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn('⚠️ Skipping NFT with NaN coordinates:', nft.title, { lat: nft.latitude, lng: nft.longitude, parsed: { lat, lng } });
         return;
+      }
+      
+      // Allow (0,0) coordinates for now but log them for debugging
+      if (lat === 0 && lng === 0) {
+        console.warn('⚠️ NFT has (0,0) coordinates but showing anyway:', nft.title, { lat: nft.latitude, lng: nft.longitude });
       }
 
       // Create location key (rounded to avoid floating point precision issues)
