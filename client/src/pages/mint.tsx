@@ -794,14 +794,18 @@ export default function Mint() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          const shareText = `Just minted my travel NFT "${title}" from ${useManualLocation ? manualLocation : location?.city}! 🌍 ✨ #TravelMint #NFT`;
-                          const nftUrl = `${window.location.origin}/marketplace`;
+                          const shareText = `Just minted my travel NFT "${title}" from ${useManualLocation ? manualLocation : location?.city}! 🌍 ✨\n\nExplore all travel NFTs on TravelMint 👇 #TravelMint #NFT`;
+                          const nftUrl = `${window.location.origin}/explore`;
                           
                           const params = new URLSearchParams();
                           params.append('text', shareText);
                           params.append('embeds[]', nftUrl);
                           if (imageIpfsUrl) {
-                            params.append('embeds[]', imageIpfsUrl);
+                            // Use better IPFS gateway
+                            const optimizedImageUrl = imageIpfsUrl.includes('gateway.pinata.cloud') 
+                              ? imageIpfsUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+                              : imageIpfsUrl;
+                            params.append('embeds[]', optimizedImageUrl);
                           }
                           
                           const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;

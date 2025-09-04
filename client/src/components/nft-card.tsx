@@ -107,23 +107,58 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   );
   
   const handleShare = async () => {
+    // Create Farcaster share URL for automatic posting
+    const shareText = nft.isForSale === 1 
+      ? `I just listed my travel NFT "${nft.title}" from ${nft.location} on TravelMint! 🌍✨\n\nCheck it out on the marketplace 👇`
+      : `Check out this amazing travel NFT "${nft.title}" from ${nft.location} on TravelMint! 🌍✨`;
+    
+    const appUrl = window.location.origin;
+    const nftUrl = `${appUrl}/explore`; // Link to explore page where NFT can be found
+    
+    // Try to get actual image URL, fallback to placeholder if needed
+    const imageUrl = nft.objectStorageUrl || 
+                    (nft.imageUrl.includes('gateway.pinata.cloud') 
+                      ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+                      : nft.imageUrl) ||
+                    `${appUrl}/image.png`;
+    
+    // Create Warpcast compose URL
+    const params = new URLSearchParams();
+    params.append('text', shareText);
+    params.append('embeds[]', nftUrl);
+    params.append('embeds[]', imageUrl);
+    
+    const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
+    
     try {
-      await navigator.share({
-        title: `${nft.title} - TravelMint NFT`,
-        text: `Check out this travel NFT from ${nft.location}`,
-        url: window.location.href
-      });
-      toast({
-        title: "Shared successfully!",
-        description: "NFT shared via native sharing"
-      });
+      // Try native share first
+      if (navigator.share) {
+        await navigator.share({
+          title: `${nft.title} - TravelMint NFT`,
+          text: shareText,
+          url: nftUrl
+        });
+        toast({
+          title: "Shared successfully!",
+          description: "NFT shared via native sharing"
+        });
+      } else {
+        // Fallback to Farcaster direct post
+        window.open(warpcastUrl, '_blank');
+        toast({
+          title: "Opening Farcaster",
+          description: "Share your NFT with the community!"
+        });
+      }
     } catch (error) {
-      // Fallback to copying URL
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: "Link copied!",
-        description: "NFT link copied to clipboard"
-      });
+      // Final fallback: Open Farcaster or copy URL
+      if (error instanceof Error && error.name !== 'AbortError') { // User didn't cancel native share
+        window.open(warpcastUrl, '_blank');
+        toast({
+          title: "Opening Farcaster",
+          description: "Share your NFT with the community!"
+        });
+      }
     }
   };
 
