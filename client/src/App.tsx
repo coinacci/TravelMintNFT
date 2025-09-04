@@ -13,6 +13,17 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
+// CRITICAL: Call ready() IMMEDIATELY when module loads - before any components
+console.log('🔥 EMERGENCY: Calling ready() at module level...');
+if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+  try {
+    sdk.actions.ready();
+    console.log('🚨 MODULE LEVEL ready() called successfully');
+  } catch (e) {
+    console.log('❌ Module level ready() failed:', e);
+  }
+}
+
 interface ErrorBoundaryState {
   hasError: boolean;
 }
@@ -77,69 +88,59 @@ function Router() {
 }
 
 function App() {
-  const [isAppReady, setIsAppReady] = useState(false);
   const [context, setContext] = useState<any>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    
-    console.log('🚀 TravelMint App starting...');
-    
-    // IMMEDIATELY signal Farcaster that app is ready - this prevents white screen
-    if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-      console.log('⚡ Signaling Farcaster ready IMMEDIATELY...');
-      
-      // Call ready() synchronously first
-      try {
-        sdk.actions.ready();
-        console.log('✅ Synchronous ready() called');
-      } catch (e) {
-        console.log('❌ Sync ready() failed:', e);
-      }
-      
-      // Also call as Promise to ensure it's received
-      Promise.resolve().then(() => {
-        try {
-          sdk.actions.ready();
-          console.log('✅ Promise ready() called');
-        } catch (e) {
-          console.log('❌ Promise ready() failed:', e);
-        }
-      });
+  // Call ready() in constructor/render phase - even earlier than useEffect
+  console.log('⚡ App component render - calling ready() again...');
+  if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+    try {
+      sdk.actions.ready();
+      console.log('✅ Render phase ready() called');
+    } catch (e) {
+      console.log('❌ Render ready() failed:', e);
     }
+  }
+
+  useEffect(() => {
+    console.log('🚀 App useEffect running...');
     
-    // Set app ready immediately
-    setIsAppReady(true);
+    // Multiple ready() attempts with different timing
+    const multipleReadyCalls = () => {
+      if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+        console.log('🔄 Multiple ready() attempts starting...');
+        
+        // Immediate
+        try { sdk.actions.ready(); console.log('✅ Immediate ready()'); } catch (e) { console.log('❌ Immediate failed'); }
+        
+        // 10ms delay
+        setTimeout(() => {
+          try { sdk.actions.ready(); console.log('✅ 10ms delayed ready()'); } catch (e) { console.log('❌ 10ms failed'); }
+        }, 10);
+        
+        // 50ms delay
+        setTimeout(() => {
+          try { sdk.actions.ready(); console.log('✅ 50ms delayed ready()'); } catch (e) { console.log('❌ 50ms failed'); }
+        }, 50);
+        
+        // 100ms delay
+        setTimeout(() => {
+          try { sdk.actions.ready(); console.log('✅ 100ms delayed ready()'); } catch (e) { console.log('❌ 100ms failed'); }
+        }, 100);
+      }
+    };
     
-    // Get Farcaster context in background (optional)
+    multipleReadyCalls();
+    
+    // Get context
     if (typeof window !== 'undefined' && sdk?.context) {
       sdk.context.then((appContext: any) => {
-        if (mounted) {
-          setContext(appContext);
-          console.log('✅ Farcaster context received:', appContext?.user?.displayName || 'User');
-        }
-      }).catch((error: any) => {
-        console.log('⚠️ Context not available (normal in web browser)');
+        setContext(appContext);
+        console.log('✅ Context received:', appContext?.user?.displayName || 'User');
+      }).catch(() => {
+        console.log('⚠️ Context not available');
       });
     }
-    
-    // Cleanup
-    return () => {
-      mounted = false;
-    };
   }, []);
-
-  // Show loading screen until app is ready
-  if (!isAppReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading TravelMint...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
