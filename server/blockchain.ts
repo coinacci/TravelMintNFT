@@ -372,11 +372,46 @@ export class BlockchainService {
     };
   }
   
+  // URL validation helper to ensure image URLs point to actual images, not metadata
+  private async validateAndFixImageUrl(url: string): Promise<string> {
+    try {
+      console.log(`🔍 Validating image URL: ${url.substring(0, 50)}...`);
+      const response = await fetch(url, { method: 'HEAD' });
+      const contentType = response.headers.get('content-type');
+      
+      // If it's metadata JSON, extract the actual image URL
+      if (contentType?.includes('application/json')) {
+        console.log('📄 Detected metadata URL, extracting actual image...');
+        const metadataResponse = await fetch(url);
+        const metadata = await metadataResponse.json();
+        
+        if (metadata.image) {
+          console.log(`✅ Extracted image URL: ${metadata.image.substring(0, 50)}...`);
+          return metadata.image;
+        }
+      }
+      
+      // Check if it's actually an image
+      if (contentType?.startsWith('image/')) {
+        console.log('✅ Valid image URL confirmed');
+        return url;
+      }
+      
+      console.log(`⚠️ URL not an image (${contentType}), keeping original`);
+      return url;
+      
+    } catch (error) {
+      console.log('⚠️ Failed to validate URL, keeping original:', error);
+      return url;
+    }
+  }
+
   // Extract proper image URL from metadata or tokenURI
   private async extractImageUrl(metadata: any, tokenURI: string): Promise<string> {
     // First, try to get image from metadata
     if (metadata?.image) {
-      return metadata.image;
+      // Validate and fix the image URL to ensure it points to actual image
+      return await this.validateAndFixImageUrl(metadata.image);
     }
     
     // If no image in metadata, check tokenURI
