@@ -17,7 +17,7 @@ app.use((req, res, next) => {
   res.header('X-Content-Type-Options', 'nosniff');
   res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Content Security Policy - Allow Farcaster and browser extensions
+  // Content Security Policy - ALLOW ALL ORIGINS for Farcaster embedding
   res.header('Content-Security-Policy', [
     "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:",
@@ -25,7 +25,7 @@ app.use((req, res, next) => {
     "img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:",
     "connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:",
     "frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:",
-    "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.replit.dev https://replit.app",
+    "frame-ancestors *",
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
     "object-src 'none'",
