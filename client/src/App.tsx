@@ -83,53 +83,45 @@ function App() {
   useEffect(() => {
     let mounted = true;
     
-    // Initialize Farcaster SDK
-    const initFarcaster = async () => {
+    console.log('🚀 TravelMint App starting...');
+    
+    // IMMEDIATELY signal Farcaster that app is ready - this prevents white screen
+    if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+      console.log('⚡ Signaling Farcaster ready IMMEDIATELY...');
+      
+      // Call ready() synchronously first
       try {
-        console.log('🚀 Initializing Farcaster SDK (no splash screen)...');
-        
-        // Check if we're in Farcaster environment
-        const isInFarcaster = typeof window !== 'undefined' && 
-                              sdk && 
-                              sdk.actions && 
-                              typeof sdk.actions.ready === 'function';
-        
-        if (isInFarcaster) {
-          // Signal ready to Farcaster
-          console.log('⚡ Calling sdk.actions.ready()...');
-          try {
-            await sdk.actions.ready();
-            console.log('✅ Farcaster SDK ready signal sent');
-          } catch (readyError: any) {
-            console.log('❌ ready() failed:', readyError?.message || readyError);
-          }
-          
-          // Get context in background
-          try {
-            const appContext = await Promise.race([
-              sdk.context,
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Context timeout')), 1000))
-            ]);
-            if (mounted) {
-              setContext(appContext);
-              console.log('✅ Context received:', (appContext as any)?.user?.displayName || 'Unknown');
-            }
-          } catch (contextError: any) {
-            console.log('⚠️ Context failed (normal in web browser):', contextError?.message || contextError);
-          }
-        } else {
-          console.log('🌐 Running in browser mode');
-        }
-      } catch (error) {
-        console.log('❌ Farcaster SDK error, continuing as web app:', error);
+        sdk.actions.ready();
+        console.log('✅ Synchronous ready() called');
+      } catch (e) {
+        console.log('❌ Sync ready() failed:', e);
       }
-    };
-
-    // Set app ready immediately (no splash screen delay needed)
+      
+      // Also call as Promise to ensure it's received
+      Promise.resolve().then(() => {
+        try {
+          sdk.actions.ready();
+          console.log('✅ Promise ready() called');
+        } catch (e) {
+          console.log('❌ Promise ready() failed:', e);
+        }
+      });
+    }
+    
+    // Set app ready immediately
     setIsAppReady(true);
     
-    // Initialize Farcaster in background
-    initFarcaster();
+    // Get Farcaster context in background (optional)
+    if (typeof window !== 'undefined' && sdk?.context) {
+      sdk.context.then((appContext: any) => {
+        if (mounted) {
+          setContext(appContext);
+          console.log('✅ Farcaster context received:', appContext?.user?.displayName || 'User');
+        }
+      }).catch((error: any) => {
+        console.log('⚠️ Context not available (normal in web browser)');
+      });
+    }
     
     // Cleanup
     return () => {
