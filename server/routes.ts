@@ -51,6 +51,34 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, message: "Cache cleared successfully" });
   });
 
+  // Explicit route for farcaster.json to fix Vite static serving issue
+  app.get("/.well-known/farcaster.json", (req, res) => {
+    const farcasterConfig = {
+      "accountAssociation": {
+        "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+        "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
+      },
+      "frame": {
+        "version": "1",
+        "name": "TravelMint",
+        "iconUrl": "https://travelnft.replit.app/icon.png",
+        "homeUrl": "https://travelnft.replit.app",
+        "imageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
+        "buttonTitle": "Open TravelMint"
+      },
+      "baseBuilder": {
+        "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
+      }
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes cache
+    res.json(farcasterConfig);
+  });
+
   // Farcaster Frame endpoint for NFT sharing with optimized IPFS image loading
   app.get("/api/share/frame/:nftId", async (req, res) => {
     try {
