@@ -85,12 +85,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     const map = L.map(mapRef.current).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // PRIVACY-FOCUSED: Use CartoDB tiles instead of OpenStreetMap
-    // CartoDB doesn't have street view and focuses on geographic data only
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: '© OpenStreetMap contributors | © CARTO',
+    // MAXIMUM PRIVACY: Minimal terrain-only map without any building details
+    // Option 1: Natural Earth - Geographic boundaries only, no streets/buildings
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '© National Geographic | © Esri',
       noWrap: true, // Prevents world map from repeating horizontally
-      subdomains: 'abcd', // CartoDB subdomains
     }).addTo(map);
 
     console.log('🗺️ Privacy-focused map initialized (no street view)');
