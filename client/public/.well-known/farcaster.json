@@ -15,5 +15,6 @@
     "buttonTitle": "Open TravelMint"
   },
   "baseBuilder": {
-    "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"
+    "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
   }
+}
