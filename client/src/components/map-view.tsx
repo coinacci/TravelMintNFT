@@ -85,14 +85,14 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     const map = L.map(mapRef.current).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // MAXIMUM PRIVACY: Minimal terrain-only map without any building details
-    // Option 1: Natural Earth - Geographic boundaries only, no streets/buildings
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", {
-      attribution: '© National Geographic | © Esri',
+    // MINIMAL & RELAXING: Simple terrain map - only mountains, oceans, no building details
+    // Much easier on the eyes, minimal visual clutter
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '© Esri | © Natural Earth',
       noWrap: true, // Prevents world map from repeating horizontally
     }).addTo(map);
 
-    console.log('🗺️ Privacy-focused map initialized (no street view)');
+    console.log('🗺️ Minimal terrain map initialized (easy on the eyes)');
 
     return () => {
       if (mapInstanceRef.current) {
