@@ -934,6 +934,11 @@ export async function registerRoutes(app: Express) {
   // Farcaster manifest endpoint (CRITICAL for miniapp to work!)
   app.get("/.well-known/farcaster.json", (req, res) => {
     // This manifest is required for Farcaster debug tools to work
+    // Cache-busting headers to force refresh
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const manifest = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
