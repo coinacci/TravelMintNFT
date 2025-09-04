@@ -81,18 +81,27 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize Leaflet map
-    const map = L.map(mapRef.current).setView([20, 0], 2);
+    // Initialize Leaflet map without restrictions to prevent "data not available" 
+    const map = L.map(mapRef.current, {
+      // Remove maxBounds to prevent "map data not yet available"
+      worldCopyJump: false, // Cleaner alternative to noWrap
+    }).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // MINIMAL & RELAXING: Simple terrain map - only mountains, oceans, no building details
-    // Much easier on the eyes, minimal visual clutter
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}", {
-      attribution: '© Esri | © Natural Earth',
-      noWrap: true, // Prevents world map from repeating horizontally
+    // PERFECT BALANCE: CartoDB Positron - minimal with country labels, NO street details
+    // Shows country names but no buildings/streets, very clean look
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+      attribution: '© OpenStreetMap contributors | © CARTO',
+      subdomains: 'abcd',
+      // Remove bounds to fix "map data not yet available" message
+    }).addTo(map);
+    
+    // Add ONLY country labels (no street names) 
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
+      subdomains: 'abcd',
     }).addTo(map);
 
-    console.log('🗺️ Minimal terrain map initialized (easy on the eyes)');
+    console.log('🗺️ Clean map with country labels initialized (no street view)');
 
     return () => {
       if (mapInstanceRef.current) {
