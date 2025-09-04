@@ -42,21 +42,41 @@ class ErrorBoundary extends Component<{children: ReactNode}, ErrorBoundaryState>
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error('🚨 CRITICAL: Error caught by boundary:', error, errorInfo);
+    console.error('🚨 Component stack:', errorInfo.componentStack);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-center p-8">
-            <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-            <p className="text-muted-foreground mb-4">Please refresh the page to continue</p>
+        <div style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#0f172a',
+          color: 'white',
+          fontFamily: 'system-ui, sans-serif'
+        }}>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              TravelMint Error
+            </h1>
+            <p style={{ marginBottom: '1rem', opacity: 0.8 }}>
+              App crashed in Farcaster environment
+            </p>
             <button 
               onClick={() => window.location.reload()}
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.375rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
-              Refresh Page
+              Reload App
             </button>
           </div>
         </div>
@@ -92,26 +112,69 @@ function Router() {
 
 function App() {
   const [context, setContext] = useState<any>(null);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     console.log('🎯 TravelMint App starting...');
     
-    // Get Farcaster context if available (optional, non-blocking)
-    if (typeof window !== 'undefined' && sdk?.context) {
-      Promise.resolve(sdk.context)
-        .then((appContext: any) => {
-          setContext(appContext);
-          console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
-        })
-        .catch((error) => {
-          // Handle promise rejection properly to prevent unhandled rejection
-          console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
-          console.log('📋 Error details:', error?.message || 'No details available');
-        });
-    } else {
-      console.log('🌐 No Farcaster SDK available - running in standard web browser');
+    try {
+      // Get Farcaster context if available (optional, non-blocking)
+      if (typeof window !== 'undefined' && sdk?.context) {
+        Promise.resolve(sdk.context)
+          .then((appContext: any) => {
+            setContext(appContext);
+            console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
+          })
+          .catch((error) => {
+            // Handle promise rejection properly to prevent unhandled rejection
+            console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
+            console.log('📋 Error details:', error?.message || 'No details available');
+          });
+      } else {
+        console.log('🌐 No Farcaster SDK available - running in standard web browser');
+      }
+    } catch (error) {
+      console.error('🚨 CRITICAL: App initialization failed:', error);
+      setIsError(true);
     }
   }, []);
+
+  // Emergency fallback for Farcaster iframe issues
+  if (isError) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#0f172a',
+        color: 'white',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+            TravelMint Initialization Error
+          </h1>
+          <p style={{ marginBottom: '1rem', opacity: 0.8 }}>
+            Failed to start in current environment
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.375rem',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

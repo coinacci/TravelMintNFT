@@ -3,6 +3,12 @@ import { base, mainnet, baseSepolia } from 'wagmi/chains'
 import { coinbaseWallet } from 'wagmi/connectors'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 
+// Get the correct app URL for wallet authorization
+const getAppUrl = () => {
+  // Always use production domain for wallet authorization to prevent replit.dev issues
+  return 'https://travelnft.replit.app';
+};
+
 // Configure wagmi
 export const config = createConfig({
   chains: [base, mainnet, baseSepolia],
@@ -10,6 +16,7 @@ export const config = createConfig({
     miniAppConnector(), // Native Farcaster Mini App connector
     coinbaseWallet({
       appName: 'TravelMint',
+      appLogoUrl: `${getAppUrl()}/icon-192x192.png`,
       preference: 'all', // Support both smart wallet and EOA
       version: '4',
     }),

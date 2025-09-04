@@ -22,6 +22,11 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
     return false;
   }
+  
+  // Log unhandled rejections for debugging in Farcaster
+  console.error('🚨 Unhandled promise rejection:', event.reason);
+  
+  // Don't prevent default for now - we want to see these in Farcaster debug
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
