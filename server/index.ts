@@ -12,21 +12,25 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
   res.header('Access-Control-Allow-Credentials', 'false'); // Set to false when using wildcard origin
   
-  // Additional security headers for browser extension compatibility
-  res.header('X-Frame-Options', 'SAMEORIGIN');
+  // Security headers - Allow Farcaster embedding while maintaining security
+  // X-Frame-Options removed to allow Farcaster iframe embedding
   res.header('X-Content-Type-Options', 'nosniff');
   res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Content Security Policy - Allow browser extensions and external resources
+  // Content Security Policy - Allow Farcaster and browser extensions
   res.header('Content-Security-Policy', [
     "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension:",
-    "style-src 'self' 'unsafe-inline' https:",
-    "img-src 'self' data: https: chrome-extension: moz-extension:",
-    "connect-src 'self' https: wss: chrome-extension: moz-extension:",
-    "frame-src 'self' chrome-extension: moz-extension:",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:",
+    "style-src 'self' 'unsafe-inline' https: data:",
+    "img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:",
+    "connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:",
+    "frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:",
+    "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.replit.dev https://replit.app",
+    "worker-src 'self' blob:",
+    "child-src 'self' blob:",
     "object-src 'none'",
-    "base-uri 'self'"
+    "base-uri 'self'",
+    "form-action 'self' https:"
   ].join('; '));
   
   // Handle preflight requests

@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     
     <!-- Security and Extension Compatibility Meta Tags -->
-    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <!-- X-Frame-Options removed to allow Farcaster embedding -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     
-    <!-- Enhanced Content Security Policy for Wallet Extensions -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:; connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:; frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:;" />
+    <!-- Enhanced Content Security Policy for Wallet Extensions and Farcaster -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:; connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:; frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:; frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.replit.dev; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:;" />
     
     <!-- App Meta Tags -->
     <title>TravelMint - Travel Photo NFT Marketplace</title>
