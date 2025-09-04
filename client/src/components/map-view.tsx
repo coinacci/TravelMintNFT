@@ -86,19 +86,20 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       maxBounds: [[-89, -179.9], [89, 179.9]], // Single world only - strict bounds
       maxBoundsViscosity: 1.0, // Strong bounds enforcement  
       minZoom: 1, // Prevent zooming out too far
-      maxZoom: 18
+      maxZoom: 13 // Reduced to ensure tile availability
     }).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // COLORFUL BUT MINIMAL: Natural Earth with blue oceans - perfect balance
-    // Blue water, natural land colors, minimal details, no street view
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}", {
-      attribution: '© Esri | © Natural Earth',
+    // RELIABLE TILE SERVICE: OpenStreetMap with consistent availability
+    // Clean, reliable tiles with good zoom support up to level 19
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© OpenStreetMap contributors',
       noWrap: true, // PREVENT repetition
       bounds: [[-89, -179.9], [89, 179.9]], // Strict single world
+      maxZoom: 13 // Match map maxZoom to prevent missing tiles
     }).addTo(map);
 
-    console.log('🗺️ Colorful minimal map - blue oceans, no street details');
+    console.log('🗺️ Reliable OpenStreetMap tiles - no missing data at zoom levels');
 
     return () => {
       if (mapInstanceRef.current) {
