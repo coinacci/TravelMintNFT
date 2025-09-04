@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express) {
   
   <!-- Farcaster Frame Meta Tags -->
   <meta name="fc:frame" content="vNext" />
-  <meta name="fc:frame:image" content="${nft.imageUrl}" />
+  <meta name="fc:frame:image" content="${nft.objectStorageUrl || nft.imageUrl}" />
   <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
   <meta name="fc:frame:button:1" content="💰 Buy ${parseFloat(nft.price).toFixed(0)} USDC" />
   <meta name="fc:frame:button:1:action" content="link" />
@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express) {
   <!-- Open Graph for social sharing -->
   <meta property="og:title" content="${nft.title} - Travel NFT" />
   <meta property="og:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
-  <meta property="og:image" content="${nft.imageUrl}" />
+  <meta property="og:image" content="${nft.objectStorageUrl || nft.imageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" />
   
@@ -99,14 +99,14 @@ export async function registerRoutes(app: Express) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${nft.title} - Travel NFT" />
   <meta name="twitter:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
-  <meta name="twitter:image" content="${nft.imageUrl}" />
+  <meta name="twitter:image" content="${nft.objectStorageUrl || nft.imageUrl}" />
 </head>
 <body>
   <div style="font-family: Inter, sans-serif; text-align: center; padding: 40px;">
     <h1>${nft.title}</h1>
     <p>Travel NFT from ${nft.location}</p>
     <p>Price: ${parseFloat(nft.price).toFixed(2)} USDC</p>
-    <img src="${nft.imageUrl}" alt="${nft.title}" style="max-width: 400px; height: auto; border-radius: 8px;" />
+    <img src="${nft.objectStorageUrl || nft.imageUrl}" alt="${nft.title}" style="max-width: 400px; height: auto; border-radius: 8px;" />
     <br /><br />
     <a href="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" 
        style="background: #007aff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
