@@ -972,8 +972,8 @@ export async function registerRoutes(app: Express) {
         "primaryCategory": "art-creativity",
         "tags": ["travel", "nft", "base", "photos", "maps", "art", "creativity", "location"],
         "heroImageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now(),
-        "tagline": "Create unique travel memories on Base",
-        "ogTitle": "TravelMint - Travel Photo NFT Marketplace",
+        "tagline": "Travel NFTs on Base",
+        "ogTitle": "TravelMint NFT Marketplace",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
         "ogImageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now()
       }
