@@ -130,36 +130,12 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     
     const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
     
-    try {
-      // Try native share first
-      if (navigator.share) {
-        await navigator.share({
-          title: `${nft.title} - TravelMint NFT`,
-          text: shareText,
-          url: nftUrl
-        });
-        toast({
-          title: "Shared successfully!",
-          description: "NFT shared via native sharing"
-        });
-      } else {
-        // Fallback to Farcaster direct post
-        window.open(warpcastUrl, '_blank');
-        toast({
-          title: "Opening Farcaster",
-          description: "Share your NFT with the community!"
-        });
-      }
-    } catch (error) {
-      // Final fallback: Open Farcaster or copy URL
-      if (error instanceof Error && error.name !== 'AbortError') { // User didn't cancel native share
-        window.open(warpcastUrl, '_blank');
-        toast({
-          title: "Opening Farcaster",
-          description: "Share your NFT with the community!"
-        });
-      }
-    }
+    // Always open Farcaster for automatic post creation as requested
+    window.open(warpcastUrl, '_blank');
+    toast({
+      title: "Opening Farcaster",
+      description: "Share your NFT with the community!"
+    });
   };
 
   return (
