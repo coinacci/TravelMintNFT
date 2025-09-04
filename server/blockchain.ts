@@ -127,13 +127,34 @@ export class BlockchainService {
           const owner = await withRetry(() => nftContract.ownerOf(tokenId));
           const tokenURI = await withRetry(() => nftContract.tokenURI(tokenId));
           
-          // Fetch metadata if URI is available
+          // Fetch metadata if URI is available with multiple retries and gateways
           let metadata = null;
           if (tokenURI && tokenURI.startsWith('http')) {
             try {
-              const metadataResponse = await fetch(tokenURI);
-              if (metadataResponse.ok) {
-                metadata = await metadataResponse.json();
+              // Try multiple IPFS gateways for better reliability  
+              const gateways = [
+                tokenURI,
+                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io'),
+                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
+                tokenURI.replace('ipfs.io', 'gateway.pinata.cloud')
+              ];
+              
+              for (const gatewayUrl of gateways) {
+                try {
+                  const response = await withRetry(() => fetch(gatewayUrl));
+                  if (response.ok) {
+                    metadata = await response.json();
+                    console.log(`✅ Parsed IPFS metadata for token ${tokenId}:`, metadata);
+                    break; // Stop trying other gateways once we succeed
+                  }
+                } catch (gatewayError: any) {
+                  console.log(`⚠️ Failed gateway ${gatewayUrl} for token ${tokenId}:`, gatewayError.message);
+                  continue; // Try next gateway
+                }
+              }
+              
+              if (!metadata) {
+                console.log(`❌ All IPFS gateways failed for token ${tokenId}, metadata will be incomplete`);
               }
             } catch (e) {
               console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
@@ -177,15 +198,35 @@ export class BlockchainService {
         // Reset consecutive failures when we find a valid token
         consecutiveFailures = 0;
         
-        // Fetch metadata if URI is available
+        // Fetch metadata if URI is available with multiple retries and gateways
         let metadata = null;
         if (tokenURI) {
           try {
             if (tokenURI.startsWith('http')) {
-              const response = await fetch(tokenURI);
-              if (response.ok) {
-                metadata = await response.json();
-                console.log(`✅ Parsed IPFS metadata for token ${tokenId}:`, metadata);
+              // Try multiple IPFS gateways for better reliability  
+              const gateways = [
+                tokenURI,
+                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io'),
+                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
+                tokenURI.replace('ipfs.io', 'gateway.pinata.cloud')
+              ];
+              
+              for (const gatewayUrl of gateways) {
+                try {
+                  const response = await withRetry(() => fetch(gatewayUrl));
+                  if (response.ok) {
+                    metadata = await response.json();
+                    console.log(`✅ Parsed IPFS metadata for token ${tokenId}:`, metadata);
+                    break; // Stop trying other gateways once we succeed
+                  }
+                } catch (gatewayError: any) {
+                  console.log(`⚠️ Failed gateway ${gatewayUrl} for token ${tokenId}:`, gatewayError.message);
+                  continue; // Try next gateway
+                }
+              }
+              
+              if (!metadata) {
+                console.log(`❌ All IPFS gateways failed for token ${tokenId}, metadata will be incomplete`);
               }
             } else if (tokenURI.startsWith('data:application/json;base64,')) {
               // Handle base64 encoded JSON metadata
