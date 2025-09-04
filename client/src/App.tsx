@@ -13,14 +13,17 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
-// CRITICAL: Call ready() IMMEDIATELY when module loads - before any components
-console.log('🔥 EMERGENCY: Calling ready() at module level...');
+// Browser-safe Farcaster SDK initialization
+let farcasterReady = false;
 if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+  console.log('🚀 Initializing Farcaster SDK...');
   try {
+    // Call ready() without await to prevent blocking
     sdk.actions.ready();
-    console.log('🚨 MODULE LEVEL ready() called successfully');
+    farcasterReady = true;
+    console.log('✅ Farcaster ready signal sent');
   } catch (e) {
-    console.log('❌ Module level ready() failed:', e);
+    console.log('⚠️ Farcaster not available (running in web browser)');
   }
 }
 
@@ -90,55 +93,23 @@ function Router() {
 function App() {
   const [context, setContext] = useState<any>(null);
 
-  // Call ready() in constructor/render phase - even earlier than useEffect
-  console.log('⚡ App component render - calling ready() again...');
-  if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-    try {
-      sdk.actions.ready();
-      console.log('✅ Render phase ready() called');
-    } catch (e) {
-      console.log('❌ Render ready() failed:', e);
-    }
-  }
-
   useEffect(() => {
-    console.log('🚀 App useEffect running...');
+    console.log('🎯 TravelMint App starting...');
     
-    // Multiple ready() attempts with different timing
-    const multipleReadyCalls = () => {
-      if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-        console.log('🔄 Multiple ready() attempts starting...');
-        
-        // Immediate
-        try { sdk.actions.ready(); console.log('✅ Immediate ready()'); } catch (e) { console.log('❌ Immediate failed'); }
-        
-        // 10ms delay
-        setTimeout(() => {
-          try { sdk.actions.ready(); console.log('✅ 10ms delayed ready()'); } catch (e) { console.log('❌ 10ms failed'); }
-        }, 10);
-        
-        // 50ms delay
-        setTimeout(() => {
-          try { sdk.actions.ready(); console.log('✅ 50ms delayed ready()'); } catch (e) { console.log('❌ 50ms failed'); }
-        }, 50);
-        
-        // 100ms delay
-        setTimeout(() => {
-          try { sdk.actions.ready(); console.log('✅ 100ms delayed ready()'); } catch (e) { console.log('❌ 100ms failed'); }
-        }, 100);
-      }
-    };
-    
-    multipleReadyCalls();
-    
-    // Get context
+    // Get Farcaster context if available (optional, non-blocking)
     if (typeof window !== 'undefined' && sdk?.context) {
-      sdk.context.then((appContext: any) => {
-        setContext(appContext);
-        console.log('✅ Context received:', appContext?.user?.displayName || 'User');
-      }).catch(() => {
-        console.log('⚠️ Context not available');
-      });
+      Promise.resolve(sdk.context)
+        .then((appContext: any) => {
+          setContext(appContext);
+          console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
+        })
+        .catch((error) => {
+          // Handle promise rejection properly to prevent unhandled rejection
+          console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
+          console.log('📋 Error details:', error?.message || 'No details available');
+        });
+    } else {
+      console.log('🌐 No Farcaster SDK available - running in standard web browser');
     }
   }, []);
 
