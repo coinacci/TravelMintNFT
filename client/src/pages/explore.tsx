@@ -46,67 +46,37 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    // Priority: Object Storage first, then optimized IPFS gateway
-    const tryUrls: string[] = [];
-    
-    // 1. Object Storage URL (fastest, most reliable)
+    // Use only Object Storage URL from database
     if (nft.objectStorageUrl) {
-      tryUrls.push(nft.objectStorageUrl);
-    }
-    
-    // 2. IPFS via alternative gateway (avoid Pinata rate limits)
-    const optimizedIpfsUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
-      ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-      : nft.imageUrl;
-    tryUrls.push(optimizedIpfsUrl);
-    
-    // 3. Original IPFS URL as final fallback
-    if (!tryUrls.includes(nft.imageUrl)) {
-      tryUrls.push(nft.imageUrl);
-    }
-      
-    console.log('🖼️ Loading modal image with fallback chain:', tryUrls);
-    setImageLoading(true);
-    setImageSrc(MODAL_PLACEHOLDER);
-    
-    let currentIndex = 0;
-    
-    const tryNextUrl = () => {
-      if (currentIndex >= tryUrls.length) {
-        console.log('❌ All modal image URLs failed, keeping placeholder');
-        setImageLoading(false);
-        return;
-      }
-      
-      const currentUrl = tryUrls[currentIndex];
-      console.log(`🔄 Trying modal URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
+      console.log('🖼️ Loading modal image from database:', nft.objectStorageUrl);
+      setImageLoading(true);
+      setImageSrc(MODAL_PLACEHOLDER);
       
       const img = new Image();
       
-      // Set timeout for large images (15 seconds instead of browser default)
+      // Set timeout for large images
       const timeoutId = setTimeout(() => {
-        console.log(`⏰ Modal URL ${currentIndex + 1} timed out, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      }, 15000);
+        console.log('⏰ Database modal image timed out');
+        setImageLoading(false);
+      }, 10000);
       
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log('✅ Modal image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
+        console.log('✅ Database modal image loaded successfully');
+        setImageSrc(nft.objectStorageUrl!);
         setImageLoading(false);
       };
       img.onerror = () => {
         clearTimeout(timeoutId);
-        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
+        console.log('❌ Database modal image failed to load');
+        setImageLoading(false);
       };
-      img.src = currentUrl;
-    };
-    
-    tryNextUrl();
-  }, [nft.imageUrl, nft.objectStorageUrl]);
+      img.src = nft.objectStorageUrl;
+    } else {
+      console.log('❌ No database image URL available for modal');
+      setImageLoading(false);
+    }
+  }, [nft.objectStorageUrl]);
 
   return (
     <div className="relative">

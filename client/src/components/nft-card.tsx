@@ -38,67 +38,37 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Smart image loading with Object Storage priority and IPFS fallback
+  // Load images from database (Object Storage) only, no IPFS fallback
   useEffect(() => {
-    // Priority: Object Storage first, then optimized IPFS gateway
-    const tryUrls: string[] = [];
-    
-    // 1. Object Storage URL (fastest, most reliable)
+    // Use only Object Storage URL from database
     if (nft.objectStorageUrl) {
-      tryUrls.push(nft.objectStorageUrl);
-    }
-    
-    // 2. IPFS via alternative gateway (avoid Pinata rate limits)
-    const optimizedIpfsUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
-      ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-      : nft.imageUrl;
-    tryUrls.push(optimizedIpfsUrl);
-    
-    // 3. Original IPFS URL as final fallback
-    if (!tryUrls.includes(nft.imageUrl)) {
-      tryUrls.push(nft.imageUrl);
-    }
-    
-    console.log('🖼️ Loading NFT image with fallback chain:', tryUrls);
-    
-    let currentIndex = 0;
-    
-    const tryNextUrl = () => {
-      if (currentIndex >= tryUrls.length) {
-        console.log('❌ All image URLs failed, keeping placeholder');
-        setImageLoading(false);
-        return;
-      }
-      
-      const currentUrl = tryUrls[currentIndex];
-      console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
+      console.log('🖼️ Loading NFT image from database:', nft.objectStorageUrl);
       
       const img = new Image();
       
-      // Set timeout for large images (15 seconds instead of browser default)
+      // Set timeout for large images
       const timeoutId = setTimeout(() => {
-        console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      }, 15000);
+        console.log('⏰ Database image timed out');
+        setImageLoading(false);
+      }, 10000);
       
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log('✅ Image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
+        console.log('✅ Database image loaded successfully');
+        setImageSrc(nft.objectStorageUrl!);
         setImageLoading(false);
       };
       img.onerror = () => {
         clearTimeout(timeoutId);
-        console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
+        console.log('❌ Database image failed to load');
+        setImageLoading(false);
       };
-      img.src = currentUrl;
-    };
-    
-    tryNextUrl();
-  }, [nft.imageUrl, nft.objectStorageUrl]);
+      img.src = nft.objectStorageUrl;
+    } else {
+      console.log('❌ No database image URL available');
+      setImageLoading(false);
+    }
+  }, [nft.objectStorageUrl]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (
@@ -107,20 +77,23 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   );
   
   const handleShare = async () => {
+    // Create page minimize effect and smooth Farcaster sharing
+    
+    // Create visual feedback - page slide down effect
+    document.body.style.transform = 'translateY(20px)';
+    document.body.style.transition = 'transform 0.3s ease-out';
+    document.body.style.opacity = '0.7';
+    
     // Create Farcaster share URL for automatic posting
     const shareText = nft.isForSale === 1 
       ? `I just listed my travel NFT "${nft.title}" from ${nft.location} on TravelMint! 🌍✨\n\nCheck it out on the marketplace 👇`
       : `Check out this amazing travel NFT "${nft.title}" from ${nft.location} on TravelMint! 🌍✨`;
     
     const appUrl = window.location.origin;
-    const nftUrl = `${appUrl}/explore`; // Link to explore page where NFT can be found
+    const nftUrl = `${appUrl}/explore`;
     
-    // Try to get actual image URL, fallback to placeholder if needed
-    const imageUrl = nft.objectStorageUrl || 
-                    (nft.imageUrl.includes('gateway.pinata.cloud') 
-                      ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-                      : nft.imageUrl) ||
-                    `${appUrl}/image.png`;
+    // Use only database image URL (Object Storage)
+    const imageUrl = nft.objectStorageUrl || `${appUrl}/image.png`;
     
     // Create Warpcast compose URL
     const params = new URLSearchParams();
@@ -130,12 +103,21 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     
     const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
     
-    // Always open Farcaster for automatic post creation as requested
-    window.open(warpcastUrl, '_blank');
+    // Show toast immediately
     toast({
-      title: "Opening Farcaster",
-      description: "Share your NFT with the community!"
+      title: "Creating Farcaster Post",
+      description: "Opening compose window..."
     });
+    
+    // Delay opening to show effect
+    setTimeout(() => {
+      // Reset page effect
+      document.body.style.transform = 'translateY(0)';
+      document.body.style.opacity = '1';
+      
+      // Open Farcaster in same window (no new tab)
+      window.location.href = warpcastUrl;
+    }, 600);
   };
 
   return (
