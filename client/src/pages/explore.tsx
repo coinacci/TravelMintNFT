@@ -54,11 +54,11 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
       
       const img = new Image();
       
-      // Set timeout for large images
+      // Set timeout for large images (reduced for better performance)
       const timeoutId = setTimeout(() => {
         console.log('⏰ Database modal image timed out');
         setImageLoading(false);
-      }, 10000);
+      }, 5000);
       
       img.onload = () => {
         clearTimeout(timeoutId);

@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
-import { MapPin, Upload, Wallet, Eye, CheckCircle, Share2 } from "lucide-react";
+import { MapPin, Upload, Wallet, Eye, CheckCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
@@ -896,37 +896,6 @@ export default function Mint() {
                     )}
                   </Button>
                   
-                  {/* Share button when NFT is successfully minted */}
-                  {(isConfirmed || sendCallsData) && (
-                    <Button
-                      variant="secondary"
-                      className="w-full py-2 font-medium hover:bg-secondary/80 transition-colors bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                      onClick={() => {
-                        const shareText = `Just minted my travel NFT "${title}" from ${useManualLocation ? manualLocation : location?.city}! 🌍 ✨ Check it out on TravelMint! #TravelMint #NFT`;
-                        const nftUrl = `${window.location.origin}/marketplace`;
-                        
-                        const params = new URLSearchParams();
-                        params.append('text', shareText);
-                        params.append('embeds[]', nftUrl);
-                        if (imageIpfsUrl) {
-                          params.append('embeds[]', imageIpfsUrl);
-                        }
-                        
-                        const warpcastUrl = `https://warpcast.com/~/compose?${params.toString()}`;
-                        
-                        window.open(warpcastUrl, '_blank');
-                        
-                        toast({
-                          title: "Opening Farcaster",
-                          description: "Share your new NFT with the world!",
-                        });
-                      }}
-                      data-testid="share-mint-success"
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share Your New NFT
-                    </Button>
-                  )}
                   
                   <Button
                     variant="secondary"
