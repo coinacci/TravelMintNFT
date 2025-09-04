@@ -74,12 +74,22 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
       
       const img = new Image();
+      
+      // Set timeout for large images (15 seconds instead of browser default)
+      const timeoutId = setTimeout(() => {
+        console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      }, 15000);
+      
       img.onload = () => {
+        clearTimeout(timeoutId);
         console.log('✅ Image loaded successfully from:', currentUrl);
         setImageSrc(currentUrl);
         setImageLoading(false);
       };
       img.onerror = () => {
+        clearTimeout(timeoutId);
         console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
         currentIndex++;
         tryNextUrl();
