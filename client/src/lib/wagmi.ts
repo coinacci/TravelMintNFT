@@ -9,7 +9,7 @@ const getAppUrl = () => {
   return 'https://travelnft.replit.app';
 };
 
-// Standard config with all wallets for regular browsers
+// Manual connection config - no auto-connect to prevent Farcaster crashes
 export const config = createConfig({
   chains: [base, mainnet, baseSepolia],
   connectors: [
@@ -32,6 +32,9 @@ export const config = createConfig({
       timeout: 10000, // 10 second timeout
     }),
   },
+  // Disable auto-connect to prevent crashes in iframe environments
+  multiInjectedProviderDiscovery: false,
+  syncConnectedChain: false,
   ssr: false,
 })
 

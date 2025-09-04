@@ -118,18 +118,20 @@ function App() {
     console.log('🎯 TravelMint App starting...');
     
     try {
-      // Get Farcaster context if available (optional, non-blocking)
+      // Get Farcaster context if available (optional, non-blocking, safe)
       if (typeof window !== 'undefined' && sdk?.context) {
-        Promise.resolve(sdk.context)
-          .then((appContext: any) => {
-            setContext(appContext);
-            console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
-          })
-          .catch((error) => {
-            // Handle promise rejection properly to prevent unhandled rejection
-            console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
-            console.log('📋 Error details:', error?.message || 'No details available');
-          });
+        // Wrap in setTimeout to prevent blocking app initialization
+        setTimeout(() => {
+          Promise.resolve(sdk.context)
+            .then((appContext: any) => {
+              setContext(appContext);
+              console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
+            })
+            .catch((error) => {
+              // Silent fail - don't let Farcaster context issues crash app
+              console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
+            });
+        }, 100); // Small delay to prevent blocking
       } else {
         console.log('🌐 No Farcaster SDK available - running in standard web browser');
       }

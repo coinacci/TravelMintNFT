@@ -14,19 +14,39 @@ window.addEventListener('error', (event) => {
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-  // Suppress unhandled promise rejections from browser extensions
-  if (typeof event.reason === 'string' && 
-      (event.reason.includes('chrome-extension:') || 
-       event.reason.includes('moz-extension:'))) {
-    console.warn('🔌 Browser extension rejection (suppressed):', event.reason);
+  const reason = event.reason;
+  
+  // Suppress browser extension errors
+  if (typeof reason === 'string' && 
+      (reason.includes('chrome-extension:') || 
+       reason.includes('moz-extension:'))) {
+    console.warn('🔌 Browser extension rejection (suppressed):', reason);
     event.preventDefault();
     return false;
   }
   
-  // Log unhandled rejections for debugging in Farcaster
-  console.error('🚨 Unhandled promise rejection:', event.reason);
+  // CRITICAL: Prevent wallet authorization crashes that break Farcaster iframe
+  if (reason?.message?.includes('not been authorized yet') ||
+      reason?.message?.includes('replit.dev') ||
+      reason?.message?.includes('unauthorized') ||
+      reason?.code === -32603 ||
+      reason?.code === -32002 ||
+      reason?.errorClass === 'Transaction') {
+    console.warn('🔑 Wallet authorization error (app crash prevented):', reason.message || reason);
+    event.preventDefault(); // PREVENT APP CRASH
+    return false;
+  }
   
-  // Don't prevent default for now - we want to see these in Farcaster debug
+  // Handle other wallet-related errors
+  if (typeof reason === 'string' && 
+      (reason.includes('wallet') || reason.includes('connector'))) {
+    console.warn('🔌 Wallet connector error (handled):', reason);
+    event.preventDefault();
+    return false;
+  }
+  
+  // Log remaining errors for debugging
+  console.error('🚨 Unhandled promise rejection:', reason);
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
