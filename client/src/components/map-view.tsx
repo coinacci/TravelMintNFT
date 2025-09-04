@@ -81,27 +81,24 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize Leaflet map without restrictions to prevent "data not available" 
+    // Initialize Leaflet map with strict single-world enforcement
     const map = L.map(mapRef.current, {
-      // Remove maxBounds to prevent "map data not yet available"
-      worldCopyJump: false, // Cleaner alternative to noWrap
+      maxBounds: [[-89, -179.9], [89, 179.9]], // Single world only - strict bounds
+      maxBoundsViscosity: 1.0, // Strong bounds enforcement  
+      minZoom: 1, // Prevent zooming out too far
+      maxZoom: 18
     }).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // PERFECT BALANCE: CartoDB Positron - minimal with country labels, NO street details
-    // Shows country names but no buildings/streets, very clean look
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
-      attribution: '© OpenStreetMap contributors | © CARTO',
-      subdomains: 'abcd',
-      // Remove bounds to fix "map data not yet available" message
-    }).addTo(map);
-    
-    // Add ONLY country labels (no street names) 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
-      subdomains: 'abcd',
+    // ABSOLUTELY MINIMAL: Natural Earth style - ZERO street details, only country borders
+    // Most basic geographic visualization possible
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '© Esri | © Natural Earth',
+      noWrap: true, // PREVENT repetition
+      bounds: [[-89, -179.9], [89, 179.9]], // Strict single world
     }).addTo(map);
 
-    console.log('🗺️ Clean map with country labels initialized (no street view)');
+    console.log('🗺️ Ultra minimal map - single world, no street details');
 
     return () => {
       if (mapInstanceRef.current) {
