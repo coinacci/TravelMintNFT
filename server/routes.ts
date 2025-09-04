@@ -945,6 +945,17 @@ export async function registerRoutes(app: Express) {
         "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
+      "miniapp": {
+        "version": "1",
+        "name": "TravelMint",
+        "iconUrl": "https://travelnft.replit.app/icon.png?v=" + Date.now(),
+        "homeUrl": "https://travelnft.replit.app",
+        "imageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now(),
+        "buttonTitle": "Open TravelMint",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png?v=" + Date.now(),
+        "splashBackgroundColor": "#0f172a",
+        "webhookUrl": "https://travelnft.replit.app/api/webhook"
+      },
       "frame": {
         "version": "1",
         "name": "TravelMint",
