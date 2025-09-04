@@ -46,37 +46,67 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    // Use only Object Storage URL from database
+    // Smart image loading - Object Storage first, IPFS fallback when needed
+    const tryUrls: string[] = [];
+    
+    // 1. Object Storage URL (preferred)
     if (nft.objectStorageUrl) {
-      console.log('🖼️ Loading modal image from database:', nft.objectStorageUrl);
-      setImageLoading(true);
-      setImageSrc(MODAL_PLACEHOLDER);
+      tryUrls.push(nft.objectStorageUrl);
+    }
+    
+    // 2. IPFS URL as fallback
+    if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
+      tryUrls.push(nft.imageUrl);
+    }
+    
+    if (tryUrls.length === 0) {
+      console.log('❌ No image URLs available for modal');
+      setImageLoading(false);
+      return;
+    }
+    
+    console.log('🖼️ Loading modal image with URLs:', tryUrls);
+    setImageLoading(true);
+    setImageSrc(MODAL_PLACEHOLDER);
+    
+    let currentIndex = 0;
+    
+    const tryNextUrl = () => {
+      if (currentIndex >= tryUrls.length) {
+        console.log('❌ All modal image URLs failed');
+        setImageLoading(false);
+        return;
+      }
+      
+      const currentUrl = tryUrls[currentIndex];
+      console.log(`🔄 Trying modal URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
       
       const img = new Image();
       
-      // Set timeout for large images (reduced for better performance)
+      // Faster timeout for better UX
       const timeoutId = setTimeout(() => {
-        console.log('⏰ Database modal image timed out');
-        setImageLoading(false);
-      }, 5000);
+        console.log(`⏰ Modal URL ${currentIndex + 1} timed out, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      }, 3000);
       
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log('✅ Database modal image loaded successfully');
-        setImageSrc(nft.objectStorageUrl!);
+        console.log('✅ Modal image loaded successfully from:', currentUrl);
+        setImageSrc(currentUrl);
         setImageLoading(false);
       };
       img.onerror = () => {
         clearTimeout(timeoutId);
-        console.log('❌ Database modal image failed to load');
-        setImageLoading(false);
+        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
+        currentIndex++;
+        tryNextUrl();
       };
-      img.src = nft.objectStorageUrl;
-    } else {
-      console.log('❌ No database image URL available for modal');
-      setImageLoading(false);
-    }
-  }, [nft.objectStorageUrl]);
+      img.src = currentUrl;
+    };
+    
+    tryNextUrl();
+  }, [nft.objectStorageUrl, nft.imageUrl]);
 
   return (
     <div className="relative">

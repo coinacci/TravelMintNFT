@@ -37,37 +37,67 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Load images from database (Object Storage) only, no IPFS fallback
+  // Smart image loading - Object Storage first, IPFS fallback when needed
   useEffect(() => {
-    // Use only Object Storage URL from database
+    // Priority order: Object Storage -> IPFS
+    const tryUrls: string[] = [];
+    
+    // 1. Object Storage URL (preferred)
     if (nft.objectStorageUrl) {
-      console.log('🖼️ Loading NFT image from database:', nft.objectStorageUrl);
+      tryUrls.push(nft.objectStorageUrl);
+    }
+    
+    // 2. IPFS URL as fallback
+    if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
+      tryUrls.push(nft.imageUrl);
+    }
+    
+    if (tryUrls.length === 0) {
+      console.log('❌ No image URLs available');
+      setImageLoading(false);
+      return;
+    }
+    
+    console.log('🖼️ Loading NFT image with URLs:', tryUrls);
+    
+    let currentIndex = 0;
+    
+    const tryNextUrl = () => {
+      if (currentIndex >= tryUrls.length) {
+        console.log('❌ All image URLs failed');
+        setImageLoading(false);
+        return;
+      }
+      
+      const currentUrl = tryUrls[currentIndex];
+      console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
       
       const img = new Image();
       
-      // Set timeout for large images (reduced for better performance)
+      // Faster timeout for better UX
       const timeoutId = setTimeout(() => {
-        console.log('⏰ Database image timed out');
-        setImageLoading(false);
-      }, 5000);
+        console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      }, 3000);
       
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log('✅ Database image loaded successfully');
-        setImageSrc(nft.objectStorageUrl!);
+        console.log('✅ Image loaded successfully from:', currentUrl);
+        setImageSrc(currentUrl);
         setImageLoading(false);
       };
       img.onerror = () => {
         clearTimeout(timeoutId);
-        console.log('❌ Database image failed to load');
-        setImageLoading(false);
+        console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
+        currentIndex++;
+        tryNextUrl();
       };
-      img.src = nft.objectStorageUrl;
-    } else {
-      console.log('❌ No database image URL available');
-      setImageLoading(false);
-    }
-  }, [nft.objectStorageUrl]);
+      img.src = currentUrl;
+    };
+    
+    tryNextUrl();
+  }, [nft.objectStorageUrl, nft.imageUrl]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (
