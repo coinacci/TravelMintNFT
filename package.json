@@ -68,6 +68,7 @@
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.453.0",
+    "maplibre-gl": "^5.7.0",
     "memorystore": "^1.6.7",
     "multer": "^2.0.2",
     "nanoid": "^5.1.5",

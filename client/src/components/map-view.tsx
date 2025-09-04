@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 
@@ -80,23 +81,19 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize map
+    // Initialize Leaflet map
     const map = L.map(mapRef.current).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // Add tile layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© OpenStreetMap contributors',
+    // PRIVACY-FOCUSED: Use CartoDB tiles instead of OpenStreetMap
+    // CartoDB doesn't have street view and focuses on geographic data only
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: '© OpenStreetMap contributors | © CARTO',
       noWrap: true, // Prevents world map from repeating horizontally
+      subdomains: 'abcd', // CartoDB subdomains
     }).addTo(map);
 
-    // Custom camera marker icon
-    const customIcon = L.icon({
-      iconUrl: cameraMarkerImage,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-      popupAnchor: [0, -16],
-    });
+    console.log('🗺️ Privacy-focused map initialized (no street view)');
 
     return () => {
       if (mapInstanceRef.current) {
@@ -111,7 +108,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     const map = mapInstanceRef.current;
 
-    // Clear existing markers
+    // Clear existing markers (Leaflet style)
     map.eachLayer((layer: any) => {
       if (layer instanceof L.Marker) {
         map.removeLayer(layer);
@@ -151,8 +148,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       const [lat, lng] = locationKey.split(',').map(Number);
       
       if (locationNFTs.length === 1) {
-        // Single NFT - place normally
+        // Single NFT - create Leaflet marker with custom icon  
         const nft = locationNFTs[0];
+        
         const customIcon = L.icon({
           iconUrl: cameraMarkerImage,
           iconSize: [32, 32],
