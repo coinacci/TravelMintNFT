@@ -970,7 +970,7 @@ export async function registerRoutes(app: Express) {
         "homeUrl": "https://travelnft.replit.app",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "primaryCategory": "art-creativity",
-        "tags": ["travel", "nft", "base", "photos", "art", "creativity", "location"],
+        "tags": ["travel", "nft", "base", "photos", "art"],
         "heroImageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now(),
         "tagline": "Travel NFTs on Base",
         "ogTitle": "TravelMint NFT Marketplace",
