@@ -90,15 +90,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     }).setView([20, 0], 2);
     mapInstanceRef.current = map;
 
-    // COLORFUL BUT MINIMAL: Natural Earth with blue oceans - perfect balance
-    // Blue water, natural land colors, minimal details, no street view
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}", {
+    // ABSOLUTELY MINIMAL: Natural Earth style - ZERO street details, only country borders
+    // Most basic geographic visualization possible
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
       attribution: '© Esri | © Natural Earth',
       noWrap: true, // PREVENT repetition
       bounds: [[-89, -179.9], [89, 179.9]], // Strict single world
     }).addTo(map);
 
-    console.log('🗺️ Colorful minimal map - blue oceans, no street details');
+    console.log('🗺️ Ultra minimal map - single world, no street details');
 
     return () => {
       if (mapInstanceRef.current) {
