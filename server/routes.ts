@@ -945,22 +945,26 @@ export async function registerRoutes(app: Express) {
         "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
-      "miniapp": {
+      "frame": {
         "version": "1",
         "name": "TravelMint",
-        "iconUrl": "https://travelnft.replit.app/icon.png?v=" + Date.now(),
-        "homeUrl": "https://travelnft.replit.app",
-        "imageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now(),
-        "buttonTitle": "Open TravelMint",
-        "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "subtitle": "Travel Photo NFTs on Base",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates.",
+        "screenshotUrls": [
+          "https://travelnft.replit.app/image.png?v=" + Date.now()
+        ],
+        "iconUrl": "https://travelnft.replit.app/icon.png?v=" + Date.now(),
+        "splashImageUrl": "https://travelnft.replit.app/splash.png?v=" + Date.now(),
+        "splashBackgroundColor": "#0f172a",
+        "homeUrl": "https://travelnft.replit.app",
+        "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "primaryCategory": "art-creativity",
-        "tags": ["travel", "nft", "base", "photos", "maps"],
-        "requiredChains": ["eip155:8453"] // Base mainnet
-      },
-      "baseBuilder": {
-        "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
+        "tags": ["travel", "nft", "base", "photos", "maps", "art", "creativity", "location"],
+        "heroImageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now(),
+        "tagline": "Create unique travel memories on Base",
+        "ogTitle": "TravelMint - Travel Photo NFT Marketplace",
+        "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+        "ogImageUrl": "https://travelnft.replit.app/image.png?v=" + Date.now()
       }
     };
     
