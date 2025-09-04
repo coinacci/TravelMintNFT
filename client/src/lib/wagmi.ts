@@ -9,7 +9,7 @@ const getAppUrl = () => {
   return 'https://travelnft.replit.app';
 };
 
-// Configure wagmi
+// Standard config with all wallets for regular browsers
 export const config = createConfig({
   chains: [base, mainnet, baseSepolia],
   connectors: [
@@ -34,3 +34,4 @@ export const config = createConfig({
   },
   ssr: false,
 })
+
