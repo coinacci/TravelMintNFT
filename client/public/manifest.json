@@ -1,7 +1,7 @@
 {
   "name": "TravelMint - Travel Photo NFT Marketplace",
   "short_name": "TravelMint",
-  "description": "Mint, buy, and sell location-based travel photo NFTs",
+  "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

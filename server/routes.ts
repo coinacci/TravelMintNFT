@@ -51,6 +51,27 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, message: "Cache cleared successfully" });
   });
 
+  app.delete("/api/cache/clear", (req, res) => {
+    clearAllCache();
+    res.json({ success: true, message: "Cache cleared via DELETE" });
+  });
+
+  // Base App webhook endpoint
+  app.post("/api/webhook", (req, res) => {
+    console.log("🔔 Base App webhook received:", req.body);
+    res.json({ success: true, timestamp: new Date().toISOString() });
+  });
+
+  // Share endpoint for Farcaster casting
+  app.get("/share", (req, res) => {
+    const { nft } = req.query;
+    const shareUrl = nft 
+      ? `https://travelnft.replit.app/nft/${nft}` 
+      : "https://travelnft.replit.app";
+    
+    res.redirect(shareUrl);
+  });
+
   // Explicit route for farcaster.json to fix Vite static serving issue
   app.get("/.well-known/farcaster.json", (req, res) => {
     const farcasterConfig = {
@@ -62,12 +83,28 @@ export async function registerRoutes(app: Express) {
       "frame": {
         "version": "1",
         "name": "TravelMint",
+        "subtitle": "Travel Photo NFT Marketplace",
+        "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
         "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
+        "heroImageUrl": "https://travelnft.replit.app/image.png",
         "splashImageUrl": "https://travelnft.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
-        "buttonTitle": "Open TravelMint"
+        "buttonTitle": "Open TravelMint",
+        "webhookUrl": "https://travelnft.replit.app/api/webhook",
+        "tagline": "Turn your travel memories into NFTs",
+        "tags": ["travel", "nft", "blockchain", "photography", "base", "web3", "social", "map", "location"],
+        "screenshotUrls": [
+          "https://travelnft.replit.app/image.png",
+          "https://travelnft.replit.app/splash.png"
+        ],
+        "ogTitle": "TravelMint - Travel Photo NFT Marketplace",
+        "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+        "ogImageUrl": "https://travelnft.replit.app/image.png",
+        "castShareUrl": "https://travelnft.replit.app/share",
+        "noindex": false,
+        "primaryCategory": "social"
       },
       "baseBuilder": {
         "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
