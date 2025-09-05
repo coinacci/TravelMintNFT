@@ -7,6 +7,8 @@
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "portrait-primary",
+  "noindex": false,
+  "primaryCategory": "social",
   "icons": [
     {
       "src": "/icon.png?v=NEWICON2&bust=1757003000",

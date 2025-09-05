@@ -12,7 +12,9 @@
     "imageUrl": "https://travelnft.replit.app/image.png",
     "splashImageUrl": "https://travelnft.replit.app/splash.png",
     "splashBackgroundColor": "#0f172a",
-    "buttonTitle": "Open TravelMint"
+    "buttonTitle": "Open TravelMint",
+    "noindex": false,
+    "primaryCategory": "social"
   },
   "baseBuilder": {
     "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
