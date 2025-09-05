@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express) {
     res.setHeader('Expires', '0');
     res.setHeader('ETag', `"v${Date.now()}"`);
     res.setHeader('Last-Modified', new Date().toUTCString());
-    res.json(farcasterConfig);
+    res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 
   // Farcaster Frame endpoint for NFT sharing with optimized IPFS image loading
