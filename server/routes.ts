@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express) {
     };
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes cache
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // Force fresh
     res.json(farcasterConfig);
   });
 
