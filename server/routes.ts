@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express) {
     res.redirect(shareUrl);
   });
 
-  // Explicit route for farcaster.json to fix Vite static serving issue
+  // Versioned route for cache busting
   app.get("/.well-known/farcaster.json", (req, res) => {
     const farcasterConfig = {
       "accountAssociation": {
@@ -93,7 +93,7 @@ export async function registerRoutes(app: Express) {
         "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
-        "tagline": "Turn your travel memories into NFTs",
+        "tagline": "Turn your travel memories into unique NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base", "web3", "social", "map", "location"],
         "screenshotUrls": [
           "https://travelnft.replit.app/image.png",
@@ -112,7 +112,11 @@ export async function registerRoutes(app: Express) {
     };
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // Force fresh
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('ETag', `"v${Date.now()}"`);
+    res.setHeader('Last-Modified', new Date().toUTCString());
     res.json(farcasterConfig);
   });
 

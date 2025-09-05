@@ -17,7 +17,7 @@
     "splashBackgroundColor": "#0f172a",
     "buttonTitle": "Open TravelMint",
     "webhookUrl": "https://travelnft.replit.app/api/webhook",
-    "tagline": "Turn travel memories into NFTs",
+    "tagline": "Turn your travel memories into NFTs",
     "tags": ["travel", "nft", "blockchain", "photography", "base"],
     "screenshotUrls": [
       "https://travelnft.replit.app/image.png",
