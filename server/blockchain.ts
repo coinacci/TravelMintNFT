@@ -345,6 +345,12 @@ export class BlockchainService {
     } else if (blockchainNFT.tokenId === "2") {
       // Token #2: Tram photo (Kadıköy) - use actual uploaded image
       imageUrl = "/attached_assets/IMG_4086_1756446465520.jpeg";
+    } else if (blockchainNFT.tokenId === "37") {
+      // Token #37: Kapakli location - first photo
+      imageUrl = "/attached_assets/IMG_4202_1756888569757.jpeg";
+    } else if (blockchainNFT.tokenId === "38") {
+      // Token #38: Kapakli location - second photo  
+      imageUrl = "/attached_assets/IMG_4202_1756890858921.jpeg";
     }
     
     // For future tokens, always prefer uploaded images over placeholder metadata
