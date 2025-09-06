@@ -31,5 +31,9 @@
       "type": "image/png",
       "form_factor": "wide"
     }
-  ]
-}
+  ],
+  "frame": {
+      "url": "https://travelnft.replit.app",
+      "version": "vNext"
+    }
+  }
