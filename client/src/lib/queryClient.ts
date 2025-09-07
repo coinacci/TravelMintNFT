@@ -36,23 +36,35 @@ export async function apiRequest(
   }
 }
 
-// Get API base URL - works both locally and on Vercel
+// Get API base URL - works locally, Replit, and Vercel
 function getApiBaseUrl(): string {
   if (typeof window === 'undefined') return '';
   
-  const { hostname, protocol } = window.location;
+  const { hostname, protocol, port } = window.location;
+  
+  console.log('🔍 URL Debug:', { hostname, protocol, port });
   
   // Production Vercel domain
   if (hostname.includes('vercel.app')) {
     return `${protocol}//${hostname}`;
   }
   
-  // Local development
-  if (hostname === 'localhost' || hostname.startsWith('127.') || hostname.includes('replit')) {
+  // Replit development environment (any replit subdomain)
+  if (hostname.includes('replit') || 
+      hostname.includes('.dev') ||
+      hostname.match(/^[a-f0-9\-]+\..*\.replit/)) {
+    // Replit serves both frontend and backend on same port with proxy
+    const baseUrl = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+    console.log('🚀 Using Replit proxy URL:', baseUrl);
+    return baseUrl;
+  }
+  
+  // Local development (localhost, 127.x.x.x)
+  if (hostname === 'localhost' || hostname.startsWith('127.')) {
     return `${protocol}//${hostname}:5000`;
   }
   
-  // Default fallback
+  // Default fallback - assume same domain
   return `${protocol}//${hostname}`;
 }
 
@@ -74,6 +86,8 @@ export const getQueryFn: <T>(options: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(8000),
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -83,7 +97,15 @@ export const getQueryFn: <T>(options: {
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error) {
+      const baseUrl = getApiBaseUrl();
+      const failedUrl = `${baseUrl}${queryKey.join("/")}`;
       console.error('🚨 API Request failed:', error);
+      console.error('🚨 Failed URL was:', failedUrl);
+      console.error('🚨 Error details:', {
+        name: error.name,
+        message: error.message,
+        cause: error.cause
+      });
       // Return empty array for failed requests to prevent crashes
       return [];
     }
