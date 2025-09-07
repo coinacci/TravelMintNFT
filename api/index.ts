@@ -1,11 +1,7 @@
-import express from 'express';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // This will be the main entry point for Vercel serverless functions
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
