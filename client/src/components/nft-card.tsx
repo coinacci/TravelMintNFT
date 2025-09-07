@@ -74,12 +74,12 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       
       const img = new Image();
       
-      // Faster timeout for better UX
+      // Much faster timeout for better UX
       const timeoutId = setTimeout(() => {
         console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
         currentIndex++;
         tryNextUrl();
-      }, 3000);
+      }, 1500);
       
       img.onload = () => {
         clearTimeout(timeoutId);
