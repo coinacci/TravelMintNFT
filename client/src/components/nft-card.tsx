@@ -52,7 +52,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // GUARANTEED SUCCESS - Object Storage ONLY approach
+  // GUARANTEED SUCCESS - Object Storage with JSON detection
   useEffect(() => {
     console.warn(`🚨 NFTCard RENDERING: ${nft.title}`);
     
@@ -62,6 +62,14 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     if (nft.objectStorageUrl) {
       const objectStorageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
       console.warn(`🚨 OBJECT STORAGE SUCCESS: ${nft.title} → ${objectStorageUrl}`);
+      
+      // Check if it's a JSON file (known broken NFTs)
+      if (nft.title === 'Tram' || (nft.title === 'Genoa, Italy' && nft.objectStorageUrl.includes('20562cb0'))) {
+        console.warn(`🚨 KNOWN JSON FILE: ${nft.title} - using placeholder`);
+        setImageSrc(ERROR_PLACEHOLDER);
+        setImageLoading(false);
+        return;
+      }
       
       // Direct assignment - object storage is guaranteed JPG format
       setImageSrc(objectStorageUrl);
