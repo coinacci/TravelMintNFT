@@ -54,11 +54,13 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   
   // Simple image loading system
   useEffect(() => {
-    // Get best image URL
+    // Get best image URL with reliable gateways
     const domain = window.location.origin;
+    const fixIPFS = (url: string) => url.includes('gateway.pinata.cloud') ? url.replace('gateway.pinata.cloud', 'ipfs.io') : url;
+    
     const imageUrl = nft.objectStorageUrl 
       ? (nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl)
-      : nft.imageUrl;
+      : fixIPFS(nft.imageUrl);
     
     if (!imageUrl) {
       console.log('❌ No image URL available for NFT:', nft.id);
@@ -77,12 +79,13 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     };
     
     img.onerror = () => {
-      // Fallback to IPFS if object storage fails
+      // Fallback to different IPFS gateway if object storage fails
       if (imageUrl.includes('/objects/') && nft.imageUrl && nft.imageUrl !== imageUrl) {
         console.log('❌ Object storage failed, trying IPFS fallback for:', nft.title);
         const fallbackImg = new Image();
+        const fallbackUrl = fixIPFS(nft.imageUrl);
         fallbackImg.onload = () => {
-          setImageSrc(nft.imageUrl);
+          setImageSrc(fallbackUrl);
           setImageLoading(false);
         };
         fallbackImg.onerror = () => {
@@ -90,7 +93,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           setImageSrc(ERROR_PLACEHOLDER);
           setImageLoading(false);
         };
-        fallbackImg.src = nft.imageUrl;
+        fallbackImg.src = fallbackUrl;
       } else {
         console.log('❌ Image failed for:', nft.title);
         setImageSrc(ERROR_PLACEHOLDER);

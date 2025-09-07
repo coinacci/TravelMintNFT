@@ -2,6 +2,16 @@
 export const MODAL_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='40%25' text-anchor='middle' font-family='Arial' font-size='16' fill='%236b7280'%3ETravel Memory%3C/text%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='12' fill='%239ca3af'%3ELoading...%3C/text%3E%3Ctext x='50%25' y='70%25' text-anchor='middle' font-family='Arial' font-size='10' fill='%23d1d5db'%3E🌍 TravelMint%3C/text%3E%3C/svg%3E";
 
 /**
+ * Convert Pinata gateway URLs to ipfs.io (more reliable)
+ */
+function fixIPFSUrl(url: string): string {
+  if (url.includes('gateway.pinata.cloud')) {
+    return url.replace('gateway.pinata.cloud', 'ipfs.io');
+  }
+  return url;
+}
+
+/**
  * Get best image URL - simple priority: Object Storage first, then IPFS
  */
 export function getBestImageUrl(nft: { 
@@ -20,6 +30,6 @@ export function getBestImageUrl(nft: {
     return nft.objectStorageUrl;
   }
   
-  // 2. IPFS fallback
-  return nft.imageUrl || MODAL_PLACEHOLDER;
+  // 2. IPFS fallback with reliable gateway
+  return fixIPFSUrl(nft.imageUrl) || MODAL_PLACEHOLDER;
 }
