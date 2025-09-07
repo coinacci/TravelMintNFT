@@ -52,33 +52,22 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Smart fallback: Object Storage → IPFS → Error
+  // Simple & reliable: IPFS first, Object Storage as fallback
   useEffect(() => {
-    console.warn(`🚨 NFTCard RENDERING: ${nft.title}`);
-    
-    const domain = window.location.origin;
-    
-    // Try Object Storage first
-    if (nft.objectStorageUrl) {
-      const objectStorageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
-      console.warn(`🚨 TRYING OBJECT STORAGE: ${nft.title} → ${objectStorageUrl}`);
-      
-      // Try loading with fallback to IPFS
-      loadImage(objectStorageUrl, nft.imageUrl);
-      return;
-    }
-    
-    // No object storage, try IPFS directly (Georgia Moments case)
     if (nft.imageUrl) {
-      console.warn(`🚨 NO OBJECT STORAGE, TRYING IPFS: ${nft.title} → ${nft.imageUrl}`);
-      loadImage(nft.imageUrl);
-      return;
+      // Primary: Always try IPFS first (reliable!)
+      loadImage(nft.imageUrl, nft.objectStorageUrl ? 
+        (nft.objectStorageUrl.startsWith('/') ? `${window.location.origin}${nft.objectStorageUrl}` : nft.objectStorageUrl) 
+        : undefined);
+    } else if (nft.objectStorageUrl) {
+      // Fallback: Object Storage only if no IPFS
+      const objectStorageUrl = nft.objectStorageUrl.startsWith('/') ? `${window.location.origin}${nft.objectStorageUrl}` : nft.objectStorageUrl;
+      loadImage(objectStorageUrl);
+    } else {
+      // No image available
+      setImageSrc(ERROR_PLACEHOLDER);
+      setImageLoading(false);
     }
-    
-    // No URLs at all
-    console.warn(`🚨 NO URLS AVAILABLE: ${nft.title}`);
-    setImageSrc(ERROR_PLACEHOLDER);
-    setImageLoading(false);
     
   }, [nft.objectStorageUrl, nft.imageUrl, nft.title, nft.id]);
 
