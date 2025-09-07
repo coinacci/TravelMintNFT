@@ -354,25 +354,40 @@ export default function Mint() {
       return apiRequest("POST", "/api/nfts", nftData);
     },
     onSuccess: () => {
-      // NFT success toast removed for cleaner UX
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setCategory("");
-      setImageFile(null);
-      setImagePreview(null);
-      setEnableListing(false);
-      setSalePrice("");
-      setFeaturedPlacement(false);
+      try {
+        // SAFE: Batch cache invalidation with timeout to prevent conflicts
+        setTimeout(() => {
+          try {
+            queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+          } catch (cacheError) {
+            console.warn('🔄 Cache invalidation deferred:', cacheError);
+          }
+        }, 100);
+        
+        // Reset form safely
+        setTitle("");
+        setDescription("");
+        setCategory("");
+        setImageFile(null);
+        setImagePreview(null);
+        setEnableListing(false);
+        setSalePrice("");
+        setFeaturedPlacement(false);
+      } catch (resetError) {
+        console.warn('⚠️ Form reset error (non-critical):', resetError);
+      }
     },
     onError: (error: any) => {
-      toast({
-        title: "Minting Failed",
-        description: error.message || "Failed to mint NFT",
-        variant: "destructive",
-      });
+      try {
+        toast({
+          title: "Minting Failed",
+          description: error.message || "Failed to mint NFT",
+          variant: "destructive",
+        });
+      } catch (toastError) {
+        console.error('❌ Toast error:', toastError);
+      }
     },
   });
 
@@ -608,24 +623,39 @@ export default function Mint() {
       
     } catch (error) {
       console.error('❌ IPFS mint failed:', error);
-      setMintingStep('idle');
-      setUploadProgress('');
       
-      // Mobile-specific error handling
-      const isMobileError = error instanceof Error && 
-        (error.message.includes('User rejected') || 
-         error.message.includes('413') ||
-         error.message.includes('chain-proxy'));
-         
-      const errorMsg = isMobileError 
-        ? "Mobile wallet issue - please try connecting with Coinbase Wallet or check your connection"
-        : error instanceof Error ? error.message : "Minting failed";
+      // SAFE: Protected state reset to prevent crashes
+      try {
+        setMintingStep('idle');
+        setUploadProgress('');
+      } catch (stateError) {
+        console.warn('⚠️ State reset error (non-critical):', stateError);
+      }
       
-      toast({
-        title: "Transaction Failed",
-        description: errorMsg,
-        variant: "destructive",
-      });
+      // SAFE: Protected error handling with fallbacks
+      try {
+        // Mobile-specific error handling
+        const isMobileError = error instanceof Error && 
+          (error.message.includes('User rejected') || 
+           error.message.includes('413') ||
+           error.message.includes('chain-proxy'));
+           
+        const errorMsg = isMobileError 
+          ? "Mobile wallet issue - please try connecting with Coinbase Wallet or check your connection"
+          : error instanceof Error ? error.message : "Minting failed";
+        
+        toast({
+          title: "Transaction Failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      } catch (toastError) {
+        console.error('❌ Critical: Toast failed, logging error:', error);
+        // Last resort: Alert if all else fails
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert('Minting failed. Please try again.');
+        }
+      }
     }
   };
 
