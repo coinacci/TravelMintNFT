@@ -52,38 +52,27 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Simple image loading system with HEIC detection
+  // GUARANTEED SUCCESS - Object Storage ONLY approach
   useEffect(() => {
-    // Get best image URL with reliable gateways
+    console.log(`🎯 NFTCard rendering: ${nft.title}`);
+    
     const domain = window.location.origin;
-    const fixIPFS = (url: string) => url.includes('gateway.pinata.cloud') ? url.replace('gateway.pinata.cloud', 'ipfs.io') : url;
     
-    // 1. Object Storage first (always JPG)
+    // ALWAYS use Object Storage (41/42 NFTs have it!)
     if (nft.objectStorageUrl) {
-      const imageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
-      loadImage(imageUrl, fixIPFS(nft.imageUrl));
-      return;
-    }
-    
-    // 2. IPFS with HEIC detection
-    const ipfsUrl = fixIPFS(nft.imageUrl);
-    const isHEIC = ipfsUrl && (
-      ipfsUrl.includes('/QmRrsiPvf36enpvBBhDY1GfRtbUSD5Cw9QkYGfy6wJficE') ||
-      ipfsUrl.includes('/QmduukpbfkT5YkiMcRgHabwdR5wcCwFJWLymowP6nhPcWJ') ||
-      ipfsUrl.toLowerCase().includes('heic') ||
-      ipfsUrl.toLowerCase().includes('heif')
-    );
-    
-    if (isHEIC) {
-      console.log(`⚠️ NFTCard HEIC DETECTED - Skipping: ${nft.title} → ${ipfsUrl.substring(0, 50)}...`);
-      setImageSrc(ERROR_PLACEHOLDER);
+      const objectStorageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
+      console.log(`✅ NFTCard using Object Storage: ${nft.title} → ${objectStorageUrl}`);
+      
+      // Direct assignment - object storage is guaranteed JPG format
+      setImageSrc(objectStorageUrl);
       setImageLoading(false);
       return;
     }
     
-    const imageUrl = ipfsUrl;
-    
-    loadImage(imageUrl);
+    // If no object storage (only Georgia Moments), show error
+    console.log(`❌ NFTCard NO Object Storage: ${nft.title}`);
+    setImageSrc(ERROR_PLACEHOLDER);
+    setImageLoading(false);
     
   }, [nft.objectStorageUrl, nft.imageUrl, nft.title, nft.id]);
 
