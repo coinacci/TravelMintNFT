@@ -109,89 +109,19 @@ export default function Mint() {
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
 
-  // ⚡ INSTANT UX: Optimistic update for immediate display (5 second rule)
-  const addOptimisticNFT = useCallback((nftData: any, transactionHash?: string) => {
+  // ⚡ SIMPLE: Single safe cache refresh after successful mint
+
+  // ⚡ SIMPLE: Single cache refresh point
+  const refreshAfterMint = useCallback(() => {
     try {
-      console.log('🚀 Adding optimistic NFT for instant UX...', {
-        lat: nftData.latitude,
-        lng: nftData.longitude,
-        location: nftData.location
-      });
-      
-      // Get real coordinates from current location or manual selection
-      const realLat = useManualLocation ? 
-        (selectedCoords?.lat || 0) : 
-        (location?.latitude || parseFloat(nftData.latitude) || 0);
-      
-      const realLng = useManualLocation ? 
-        (selectedCoords?.lng || 0) : 
-        (location?.longitude || parseFloat(nftData.longitude) || 0);
-      
-      // Create optimistic NFT with temp ID and REAL coordinates
-      const optimisticNFT = {
-        id: `optimistic-${Date.now()}`,
-        title: nftData.title,
-        description: nftData.description || "Travel NFT",
-        imageUrl: nftData.imageUrl,
-        location: nftData.location,
-        latitude: realLat,
-        longitude: realLng,
-        category: nftData.category,
-        price: nftData.price || "1",
-        isForSale: nftData.isForSale || 0,
-        transactionHash: transactionHash || 'pending',
-        tokenId: 'pending',
-        walletAddress: address,
-        createdAt: new Date().toISOString(),
-        metadata: JSON.stringify(nftData.metadata || {}),
-        isOptimistic: true // Flag for UI styling
-      };
-
-      // Update cache with optimistic data
-      queryClient.setQueryData(['/api/nfts'], (oldData: any) => {
-        if (!oldData) return [optimisticNFT];
-        return [optimisticNFT, ...oldData];
-      });
-
-      // Update stats optimistically
-      queryClient.setQueryData(['/api/stats'], (oldStats: any) => {
-        if (!oldStats) return { totalNFTs: 1, totalVolume: "1.0", totalHolders: 1 };
-        return {
-          ...oldStats,
-          totalNFTs: oldStats.totalNFTs + 1,
-          totalVolume: (parseFloat(oldStats.totalVolume) + parseFloat(nftData.price || "1")).toString()
-        };
-      });
-
-      console.log('✅ Optimistic NFT added - user sees it instantly!');
+      console.log('🔄 Refreshing data after successful mint...');
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });  
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
     } catch (error) {
-      console.warn('⚠️ Optimistic update failed:', error);
+      console.warn('⚠️ Cache refresh failed:', error);
     }
   }, [queryClient, address]);
-
-  // ⚡ FARCASTER CRASH FIX: Centralized safe cache invalidation
-  const safeInvalidateCache = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Prevent multiple simultaneous invalidations
-    clearTimeout((window as any).__cacheInvalidationTimeout);
-    (window as any).__cacheInvalidationTimeout = setTimeout(() => {
-      try {
-        console.log('🔄 Safe cache invalidation starting...');
-        queryClient.invalidateQueries({ 
-          predicate: (query) => {
-            const key = query.queryKey[0] as string;
-            return key.includes('/api/nfts') || 
-                   key.includes('/api/stats') || 
-                   key.includes('/api/wallet');
-          }
-        });
-        console.log('✅ Cache invalidation completed safely');
-      } catch (error) {
-        console.warn('⚠️ Cache invalidation deferred:', error);
-      }
-    }, 200); // Single unified delay
-  }, [queryClient, useManualLocation, selectedCoords, location, address]);
   
   // ⚡ REAL BLOCKCHAIN TRANSACTIONS - Enabled for production
   const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
@@ -264,17 +194,14 @@ export default function Mint() {
           if (response.ok) {
             console.log('✅ NFT saved to marketplace with batch transaction!');
             
-            // 🚀 INSTANT UX: Add optimistic NFT for immediate display
-            addOptimisticNFT(nftData, sendCallsData?.[0]?.hash);
-            
             toast({
               title: "🎉 NFT Successfully Minted!",
               description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
             
-            // ⚡ FARCASTER SAFE: Delayed cache sync for blockchain confirmation
-            setTimeout(() => safeInvalidateCache(), 3000);
+            // ⚡ SIMPLE: Single refresh after success
+            setTimeout(() => refreshAfterMint(), 1000);
             
             // Reset form
             setTitle('');
@@ -351,17 +278,14 @@ export default function Mint() {
           if (response.ok) {
             console.log('✅ NFT saved to marketplace with individual transaction!');
             
-            // 🚀 INSTANT UX: Add optimistic NFT for immediate display
-            addOptimisticNFT(nftData, hash);
-            
             toast({
               title: "🎉 NFT Successfully Minted!",
               description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
             
-            // ⚡ FARCASTER SAFE: Delayed cache sync for blockchain confirmation
-            setTimeout(() => safeInvalidateCache(), 3000);
+            // ⚡ SIMPLE: Single refresh after success
+            setTimeout(() => refreshAfterMint(), 1000);
             
             // Reset form
             setTitle('');
@@ -431,11 +355,14 @@ export default function Mint() {
       try {
         console.log('✅ Database save confirmed!');
         
-        // 🚀 INSTANT UX: Add optimistic NFT for immediate display
-        addOptimisticNFT(nftData);
+        toast({
+          title: "🎉 NFT Minted Successfully!",
+          description: `"${nftData.title}" has been added to marketplace`,
+          variant: "default",
+        });
         
-        // ⚡ FARCASTER SAFE: Delayed cache sync for blockchain confirmation  
-        setTimeout(() => safeInvalidateCache(), 3000);
+        // ⚡ SIMPLE: Single refresh after success
+        setTimeout(() => refreshAfterMint(), 500);
         
         // Reset form safely
         setTitle("");
