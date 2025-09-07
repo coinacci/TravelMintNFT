@@ -94,21 +94,7 @@ export default function MyNFTs() {
     },
   });
 
-  // Only sync once per wallet connection and reset on disconnect
-  React.useEffect(() => {
-    if (address && isConnected && syncedAddressRef.current !== address) {
-      syncedAddressRef.current = address;
-      console.log('🔄 First-time sync for wallet:', address);
-      // Only sync if we don't have any NFTs cached, no aggressive invalidation
-      if (nfts.length === 0) {
-        syncMutation.mutate();
-      }
-    } else if (!isConnected) {
-      // Reset synced address when wallet is disconnected
-      syncedAddressRef.current = null;
-      console.log('❌ Wallet disconnected, clearing sync ref');
-    }
-  }, [address, isConnected]); // Remove nfts.length dependency to prevent loops
+  // ⚡ SIMPLE: Removed complex sync logic to prevent crashes
 
   // Log for troubleshooting
   if (isError) {
