@@ -24,8 +24,16 @@ interface NFTCardProps {
   showPurchaseButton?: boolean;
 }
 
-// Simple loading placeholder
-const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
+// Travel-themed placeholder with multiple IPFS gateways
+const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23fef3c7"/><stop offset="100%" stop-color="%23fed7aa"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23bg)"/><rect x="25" y="25" width="270" height="142" rx="12" fill="%23ffffff" fill-opacity="0.9" stroke="%23f59e0b" stroke-width="2"/><circle cx="160" cy="80" r="18" fill="%23f59e0b"/><path d="M150 75 L160 85 L170 75" stroke="%23ffffff" stroke-width="2" fill="none"/><text x="160" y="110" text-anchor="middle" fill="%23d97706" font-size="11" font-family="Inter,sans-serif" font-weight="600">✈️ Loading Travel Photo</text><text x="160" y="128" text-anchor="middle" fill="%23b45309" font-size="9" font-family="Inter,sans-serif">Connecting to IPFS...</text></svg>`;
+
+// Multiple IPFS gateways for reliability  
+const IPFS_GATEWAYS = [
+  'https://ipfs.io/ipfs/',
+  'https://gateway.pinata.cloud/ipfs/',  
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://dweb.link/ipfs/'
+];
 
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
@@ -37,67 +45,97 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Smart image loading - Object Storage first, IPFS fallback when needed
+  // Multi-gateway reliable image loading system
   useEffect(() => {
-    // Priority order: Object Storage -> IPFS
     const tryUrls: string[] = [];
     
-    // 1. Object Storage URL (preferred)
+    // 1. Object Storage URL (highest priority)
     if (nft.objectStorageUrl) {
       tryUrls.push(nft.objectStorageUrl);
     }
     
-    // 2. IPFS URL as fallback
-    if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
-      tryUrls.push(nft.imageUrl);
+    // 2. Multiple IPFS gateways for maximum reliability
+    if (nft.imageUrl) {
+      // Extract IPFS hash from any IPFS URL format
+      const ipfsHash = nft.imageUrl.match(/\/ipfs\/([a-zA-Z0-9]+)/)?.[1] || 
+                       nft.imageUrl.match(/^ipfs:\/\/([a-zA-Z0-9]+)/)?.[1];
+      
+      if (ipfsHash) {
+        // Add all gateway variants for this hash
+        IPFS_GATEWAYS.forEach(gateway => {
+          const gatewayUrl = gateway + ipfsHash;
+          if (!tryUrls.includes(gatewayUrl)) {
+            tryUrls.push(gatewayUrl);
+          }
+        });
+      } else if (!tryUrls.includes(nft.imageUrl)) {
+        // Direct URL fallback
+        tryUrls.push(nft.imageUrl);
+      }
     }
     
     if (tryUrls.length === 0) {
-      console.log('❌ No image URLs available');
+      console.log('❌ No image URLs available for NFT:', nft.id);
       setImageLoading(false);
       return;
     }
     
-    console.log('🖼️ Loading NFT image with URLs:', tryUrls);
+    console.log(`🖼️ Loading ${nft.title} image with ${tryUrls.length} URLs:`, tryUrls.slice(0, 3));
     
     let currentIndex = 0;
+    let isDestroyed = false;
     
     const tryNextUrl = () => {
-      if (currentIndex >= tryUrls.length) {
-        console.log('❌ All image URLs failed');
-        setImageLoading(false);
+      if (isDestroyed || currentIndex >= tryUrls.length) {
+        if (!isDestroyed) {
+          console.log(`❌ All ${tryUrls.length} image URLs failed for:`, nft.title);
+          setImageLoading(false);
+        }
         return;
       }
       
       const currentUrl = tryUrls[currentIndex];
-      console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
+      console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl.slice(0, 80) + '...');
       
       const img = new Image();
       
-      // Much faster timeout for better UX
+      // Optimized timeout - faster for better UX
       const timeoutId = setTimeout(() => {
-        console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      }, 1500);
+        if (!isDestroyed) {
+          console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        }
+      }, 1200); // Reduced from 1500ms to 1200ms
       
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log('✅ Image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
-        setImageLoading(false);
+        if (!isDestroyed) {
+          console.log('✅ Image loaded successfully from:', currentUrl.includes('ipfs') ? 'IPFS gateway' : 'storage');
+          setImageSrc(currentUrl);
+          setImageLoading(false);
+        }
       };
+      
       img.onerror = () => {
         clearTimeout(timeoutId);
-        console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
+        if (!isDestroyed) {
+          console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        }
       };
+      
       img.src = currentUrl;
     };
     
     tryNextUrl();
-  }, [nft.objectStorageUrl, nft.imageUrl]);
+    
+    // Cleanup function
+    return () => {
+      isDestroyed = true;
+    };
+  }, [nft.objectStorageUrl, nft.imageUrl, nft.id, nft.title]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (
