@@ -2,5 +2,14 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
-  "framework": null
+  "installCommand": "npm ci",
+  "framework": null,
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3.0.0"
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

@@ -8,3 +8,13 @@ node_modules
 .vscode
 .replit*
 replit.nix
+server
+contracts
+attached_assets
+*.md
+tsconfig.node.json
+vite.config.ts
+drizzle.config.ts
+postcss.config.js
+tailwind.config.ts
+README*
