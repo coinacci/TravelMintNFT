@@ -4,6 +4,7 @@ import { MapPin, ExternalLink } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import alohomoraCamera from "@assets/alohomora-camera.jpg";
 
 interface NFTCardProps {
   nft: {
@@ -54,6 +55,14 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   
   // Simple & reliable: IPFS first, Object Storage as fallback
   useEffect(() => {
+    // Special case: Alohomora59 NFTs (Token 37 & 38) use custom camera image
+    if (nft.title === 'Alohomora59' && (nft.id === 'blockchain-37' || nft.id === 'blockchain-38')) {
+      console.log(`🎯 Using custom camera image for ${nft.title} (${nft.id})`);
+      setImageSrc(alohomoraCamera);
+      setImageLoading(false);
+      return;
+    }
+    
     if (nft.imageUrl) {
       // Primary: Always try IPFS first (reliable!)
       loadImage(nft.imageUrl, nft.objectStorageUrl ? 
