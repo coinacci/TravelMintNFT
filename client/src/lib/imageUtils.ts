@@ -33,15 +33,25 @@ export function getBestImageUrl(nft: {
   // 2. IPFS fallback with reliable gateway
   const ipfsUrl = fixIPFSUrl(nft.imageUrl);
   
+  // Debug: Log all image URL processing
+  console.log(`🖼️ Image processing for NFT:`, {
+    title: (nft as any).title || 'Unknown',
+    objectStorageUrl: nft.objectStorageUrl,
+    originalImageUrl: nft.imageUrl,
+    processedIpfsUrl: ipfsUrl
+  });
+  
   // 3. If IPFS URL might be HEIC (unsupported), return placeholder directly
   // HEIC detection: Common IPFS hash patterns that typically contain HEIC
-  if (ipfsUrl && (
+  const isHEIC = ipfsUrl && (
     ipfsUrl.includes('/QmRrsiPvf36enpvBBhDY1GfRtbUSD5Cw9QkYGfy6wJficE') ||
     ipfsUrl.includes('/QmduukpbfkT5YkiMcRgHabwdR5wcCwFJWLymowP6nhPcWJ') ||
     ipfsUrl.toLowerCase().includes('heic') ||
     ipfsUrl.toLowerCase().includes('heif')
-  )) {
-    console.log(`⚠️ Skipping potentially HEIC image: ${ipfsUrl.substring(0, 50)}...`);
+  );
+  
+  if (isHEIC) {
+    console.log(`⚠️ HEIC DETECTED - Skipping potentially HEIC image: ${ipfsUrl.substring(0, 80)}...`);
     return MODAL_PLACEHOLDER;
   }
   
