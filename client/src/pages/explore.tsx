@@ -10,9 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
+import { MODAL_PLACEHOLDER, getImageUrls, getBestImageUrl } from "@/lib/imageUtils";
 
-// Simple modal placeholder for loading
-const MODAL_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
+// Modal placeholder imported from imageUtils
 
 
 interface NFT {
@@ -46,18 +46,8 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    // Smart image loading - Object Storage first, IPFS fallback when needed
-    const tryUrls: string[] = [];
-    
-    // 1. Object Storage URL (preferred)
-    if (nft.objectStorageUrl) {
-      tryUrls.push(nft.objectStorageUrl);
-    }
-    
-    // 2. IPFS URL as fallback
-    if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
-      tryUrls.push(nft.imageUrl);
-    }
+    // Smart image loading using prioritized URLs
+    const tryUrls = getImageUrls(nft);
     
     if (tryUrls.length === 0) {
       console.log('❌ No image URLs available for modal');
@@ -65,7 +55,7 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
       return;
     }
     
-    console.log('🖼️ Loading modal image with URLs:', tryUrls);
+    console.log('🖼️ Loading modal image with URLs:', tryUrls.map(url => url.length > 80 ? url.substring(0, 80) + '...' : url));
     setImageLoading(true);
     setImageSrc(MODAL_PLACEHOLDER);
     
