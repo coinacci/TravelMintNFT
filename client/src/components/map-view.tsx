@@ -166,14 +166,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
-        // Smart image URL selection: Object Storage first, then IPFS fallback
-        const imageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
-          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-          : nft.imageUrl);
-        
-        const fallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
-          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+        // Simple image URL using best available source
+        const domain = window.location.origin;
+        const imageUrl = (nft as any).objectStorageUrl 
+          ? ((nft as any).objectStorageUrl.startsWith('/') ? `${domain}${(nft as any).objectStorageUrl}` : (nft as any).objectStorageUrl)
           : nft.imageUrl;
+        
+        const fallbackUrl = nft.imageUrl;
 
         const popupContent = `
           <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">

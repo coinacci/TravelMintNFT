@@ -52,97 +52,53 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Multi-gateway reliable image loading system
+  // Simple image loading system
   useEffect(() => {
-    const tryUrls: string[] = [];
+    // Get best image URL
+    const domain = window.location.origin;
+    const imageUrl = nft.objectStorageUrl 
+      ? (nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl)
+      : nft.imageUrl;
     
-    // 1. Object Storage URL (highest priority)
-    if (nft.objectStorageUrl) {
-      tryUrls.push(nft.objectStorageUrl);
-    }
-    
-    // 2. Multiple IPFS gateways for maximum reliability
-    if (nft.imageUrl) {
-      // Extract IPFS hash from any IPFS URL format
-      const ipfsHash = nft.imageUrl.match(/\/ipfs\/([a-zA-Z0-9]+)/)?.[1] || 
-                       nft.imageUrl.match(/^ipfs:\/\/([a-zA-Z0-9]+)/)?.[1];
-      
-      if (ipfsHash) {
-        // Add all gateway variants for this hash
-        IPFS_GATEWAYS.forEach(gateway => {
-          const gatewayUrl = gateway + ipfsHash;
-          if (!tryUrls.includes(gatewayUrl)) {
-            tryUrls.push(gatewayUrl);
-          }
-        });
-      } else if (!tryUrls.includes(nft.imageUrl)) {
-        // Direct URL fallback
-        tryUrls.push(nft.imageUrl);
-      }
-    }
-    
-    if (tryUrls.length === 0) {
-      console.log('❌ No image URLs available for NFT:', nft.id);
+    if (!imageUrl) {
+      console.log('❌ No image URL available for NFT:', nft.id);
       setImageLoading(false);
       return;
     }
     
-    console.log(`🖼️ Loading ${nft.title} image with ${tryUrls.length} URLs:`, tryUrls.slice(0, 3));
+    console.log(`🖼️ Loading ${nft.title} image from:`, imageUrl.substring(0, 80) + '...');
     
-    let currentIndex = 0;
-    let isDestroyed = false;
+    const img = new Image();
     
-    const tryNextUrl = () => {
-      if (isDestroyed || currentIndex >= tryUrls.length) {
-        if (!isDestroyed) {
-          console.log(`❌ All ${tryUrls.length} image URLs failed for:`, nft.title);
-          setImageSrc(ERROR_PLACEHOLDER); // Show error placeholder
+    img.onload = () => {
+      console.log('✅ Image loaded successfully for:', nft.title);
+      setImageSrc(imageUrl);
+      setImageLoading(false);
+    };
+    
+    img.onerror = () => {
+      // Fallback to IPFS if object storage fails
+      if (imageUrl.includes('/objects/') && nft.imageUrl && nft.imageUrl !== imageUrl) {
+        console.log('❌ Object storage failed, trying IPFS fallback for:', nft.title);
+        const fallbackImg = new Image();
+        fallbackImg.onload = () => {
+          setImageSrc(nft.imageUrl);
           setImageLoading(false);
-        }
-        return;
+        };
+        fallbackImg.onerror = () => {
+          console.log('❌ Both URLs failed for:', nft.title);
+          setImageSrc(ERROR_PLACEHOLDER);
+          setImageLoading(false);
+        };
+        fallbackImg.src = nft.imageUrl;
+      } else {
+        console.log('❌ Image failed for:', nft.title);
+        setImageSrc(ERROR_PLACEHOLDER);
+        setImageLoading(false);
       }
-      
-      const currentUrl = tryUrls[currentIndex];
-      console.log(`🔄 Trying URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl.slice(0, 80) + '...');
-      
-      const img = new Image();
-      
-      // Optimized timeout - faster for better UX
-      const timeoutId = setTimeout(() => {
-        if (!isDestroyed) {
-          console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
-          currentIndex++;
-          tryNextUrl();
-        }
-      }, 1200); // Reduced from 1500ms to 1200ms
-      
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        if (!isDestroyed) {
-          console.log('✅ Image loaded successfully from:', currentUrl.includes('ipfs') ? 'IPFS gateway' : 'storage');
-          setImageSrc(currentUrl);
-          setImageLoading(false);
-        }
-      };
-      
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        if (!isDestroyed) {
-          console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
-          currentIndex++;
-          tryNextUrl();
-        }
-      };
-      
-      img.src = currentUrl;
     };
     
-    tryNextUrl();
-    
-    // Cleanup function
-    return () => {
-      isDestroyed = true;
-    };
+    img.src = imageUrl;
   }, [nft.objectStorageUrl, nft.imageUrl, nft.id, nft.title]);
   
   // Check if the connected wallet owns this NFT
