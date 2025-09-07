@@ -6,6 +6,7 @@ import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@sha
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { migrateNewNFT } from "./migrate-images.js";
 import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -447,6 +448,17 @@ export async function registerRoutes(app: Express) {
       console.log('🔄 New NFT created - invalidating cache for immediate visibility');
       delete nftCache['all-nfts'];
       delete nftCache['for-sale'];
+      
+      // 🖼️ Auto-migrate new NFT image to object storage for reliability
+      if (nft.imageUrl && !nft.objectStorageUrl) {
+        console.log(`🔄 Auto-migrating new NFT: ${nft.title} (${nft.id})`);
+        try {
+          await migrateNewNFT(nft.id, nft.imageUrl, nft.title || 'Untitled');
+          console.log(`✅ Auto-migration completed for: ${nft.title}`);
+        } catch (error) {
+          console.log(`⚠️ Auto-migration failed for ${nft.title}:`, error);
+        }
+      }
       
       res.status(201).json(nft);
     } catch (error) {
