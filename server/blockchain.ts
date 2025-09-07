@@ -351,9 +351,6 @@ export class BlockchainService {
     } else if (blockchainNFT.tokenId === "38") {
       // Token #38: Kapakli location - second photo  
       imageUrl = "/attached_assets/IMG_4202_1756890858921.jpeg";
-    } else if (blockchainNFT.tokenId === "41") {
-      // Token #41: Georgia Moments - Tbilisi travel photo
-      imageUrl = "/attached_assets/IMG_4237_1757189361019.jpeg";
     }
     
     // For future tokens, always prefer uploaded images over placeholder metadata
