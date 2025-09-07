@@ -52,33 +52,31 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // GUARANTEED SUCCESS - Object Storage with JSON detection
+  // Smart fallback: Object Storage → IPFS → Error
   useEffect(() => {
     console.warn(`🚨 NFTCard RENDERING: ${nft.title}`);
     
     const domain = window.location.origin;
     
-    // ALWAYS use Object Storage (41/42 NFTs have it!)
+    // Try Object Storage first
     if (nft.objectStorageUrl) {
       const objectStorageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
-      console.warn(`🚨 OBJECT STORAGE SUCCESS: ${nft.title} → ${objectStorageUrl}`);
+      console.warn(`🚨 TRYING OBJECT STORAGE: ${nft.title} → ${objectStorageUrl}`);
       
-      // Check if it's a JSON file (known broken NFTs)
-      if (nft.title === 'Tram' || (nft.title === 'Genoa, Italy' && nft.objectStorageUrl.includes('20562cb0'))) {
-        console.warn(`🚨 KNOWN JSON FILE: ${nft.title} - using placeholder`);
-        setImageSrc(ERROR_PLACEHOLDER);
-        setImageLoading(false);
-        return;
-      }
-      
-      // Direct assignment - object storage is guaranteed JPG format
-      setImageSrc(objectStorageUrl);
-      setImageLoading(false);
+      // Try loading with fallback to IPFS
+      loadImage(objectStorageUrl, nft.imageUrl);
       return;
     }
     
-    // If no object storage (only Georgia Moments), show error
-    console.warn(`🚨 NO OBJECT STORAGE: ${nft.title}`);
+    // No object storage, try IPFS directly (Georgia Moments case)
+    if (nft.imageUrl) {
+      console.warn(`🚨 NO OBJECT STORAGE, TRYING IPFS: ${nft.title} → ${nft.imageUrl}`);
+      loadImage(nft.imageUrl);
+      return;
+    }
+    
+    // No URLs at all
+    console.warn(`🚨 NO URLS AVAILABLE: ${nft.title}`);
     setImageSrc(ERROR_PLACEHOLDER);
     setImageLoading(false);
     
