@@ -185,11 +185,17 @@ export default function Mint() {
               variant: "default",
             });
             
-            // Refresh data and reset form
-            queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-            queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
+            // ⚡ CRASH FIX: Batch tx - optimized cache invalidation
+            setTimeout(() => {
+              queryClient.invalidateQueries({ 
+                predicate: (query) => {
+                  const key = query.queryKey[0] as string;
+                  return key.includes('/api/nfts') || 
+                         key.includes('/api/stats') || 
+                         key.includes('/api/wallet');
+                }
+              });
+            }, 100);
             
             // Reset form
             setTitle('');
@@ -271,11 +277,17 @@ export default function Mint() {
               variant: "default",
             });
             
-            // Refresh data and reset form
-            queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-            queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
+            // ⚡ CRASH FIX: Individual tx - batch cache invalidation
+            setTimeout(() => {
+              queryClient.invalidateQueries({ 
+                predicate: (query) => {
+                  const key = query.queryKey[0] as string;
+                  return key.includes('/api/nfts') || 
+                         key.includes('/api/stats') || 
+                         key.includes('/api/wallet');
+                }
+              });
+            }, 150);
             
             // Reset form
             setTitle('');
