@@ -13,17 +13,29 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
-// Browser-safe Farcaster SDK initialization
+// Ultra-safe Farcaster SDK initialization - prevent all crashes
 let farcasterReady = false;
-if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-  console.log('🚀 Initializing Farcaster SDK...');
+if (typeof window !== 'undefined') {
   try {
-    // Call ready() without await to prevent blocking
-    sdk.actions.ready();
-    farcasterReady = true;
-    console.log('✅ Farcaster ready signal sent');
+    console.log('🚀 Initializing Farcaster SDK...');
+    
+    // Check if we're in a Farcaster environment before calling SDK
+    if (window.parent !== window && sdk?.actions?.ready) {
+      // We're in an iframe, likely Farcaster
+      setTimeout(() => {
+        try {
+          sdk.actions.ready();
+          farcasterReady = true;
+          console.log('✅ Farcaster ready signal sent');
+        } catch (e) {
+          console.log('⚠️ Farcaster ready() failed, continuing anyway');
+        }
+      }, 50);
+    } else {
+      console.log('🌐 Running in standard web browser (not Farcaster iframe)');
+    }
   } catch (e) {
-    console.log('⚠️ Farcaster not available (running in web browser)');
+    console.log('⚠️ Farcaster SDK not available, running in web mode');
   }
 }
 
@@ -118,26 +130,32 @@ function App() {
     console.log('🎯 TravelMint App starting...');
     
     try {
-      // Get Farcaster context if available (optional, non-blocking, safe)
-      if (typeof window !== 'undefined' && sdk?.context) {
-        // Wrap in setTimeout to prevent blocking app initialization
+      // ULTRA-SAFE Farcaster context loading - never crash the app
+      if (typeof window !== 'undefined' && window.parent !== window && sdk?.context) {
+        // We're in an iframe, try to get Farcaster context
         setTimeout(() => {
-          Promise.resolve(sdk.context)
-            .then((appContext: any) => {
-              setContext(appContext);
-              console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
-            })
-            .catch((error) => {
-              // Silent fail - don't let Farcaster context issues crash app
-              console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
-            });
-        }, 100); // Small delay to prevent blocking
+          try {
+            Promise.resolve(sdk.context)
+              .then((appContext: any) => {
+                if (appContext && !appContext.error) {
+                  setContext(appContext);
+                  console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
+                }
+              })
+              .catch((error) => {
+                // Completely silent fail - just continue without context
+                console.log('ℹ️ Farcaster context not available, continuing in web mode');
+              });
+          } catch (syncError) {
+            console.log('ℹ️ Farcaster context sync error, continuing anyway');
+          }
+        }, 200); // Longer delay for stability
       } else {
-        console.log('🌐 No Farcaster SDK available - running in standard web browser');
+        console.log('🌐 Running in standard web browser mode');
       }
     } catch (error) {
-      console.error('🚨 CRITICAL: App initialization failed:', error);
-      setIsError(true);
+      // Don't set error state - just log and continue
+      console.warn('⚠️ Context initialization issue (non-critical):', error);
     }
   }, []);
 
