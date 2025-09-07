@@ -1231,6 +1231,22 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
+        // Handle placeholder requests for corrupted/missing images
+        if (req.path.includes('/placeholder/')) {
+          console.log('📦 Serving placeholder for:', req.path);
+          // Create a minimal placeholder image response
+          const placeholderSvg = `
+            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+              <rect width="400" height="300" fill="#f3f4f6"/>
+              <text x="50%" y="40%" text-anchor="middle" font-family="Arial" font-size="16" fill="#6b7280">Travel Memory</text>
+              <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="12" fill="#9ca3af">Original image unavailable</text>
+              <text x="50%" y="70%" text-anchor="middle" font-family="Arial" font-size="10" fill="#d1d5db">🌍 TravelMint NFT</text>
+            </svg>
+          `;
+          res.set('Content-Type', 'image/svg+xml');
+          res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+          return res.send(placeholderSvg);
+        }
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
