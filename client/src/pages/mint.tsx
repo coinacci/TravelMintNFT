@@ -106,6 +106,8 @@ export default function Mint() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
+  const { address, isConnected, connector } = useAccount();
 
   // ⚡ INSTANT UX: Optimistic update for immediate display (5 second rule)
   const addOptimisticNFT = useCallback((nftData: any, transactionHash?: string) => {
@@ -189,9 +191,7 @@ export default function Mint() {
         console.warn('⚠️ Cache invalidation deferred:', error);
       }
     }, 200); // Single unified delay
-  }, [queryClient]);
-  const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
-  const { address, isConnected, connector } = useAccount();
+  }, [queryClient, useManualLocation, selectedCoords, location, address]);
   
   // ⚡ REAL BLOCKCHAIN TRANSACTIONS - Enabled for production
   const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
@@ -265,7 +265,7 @@ export default function Mint() {
             console.log('✅ NFT saved to marketplace with batch transaction!');
             
             // 🚀 INSTANT UX: Add optimistic NFT for immediate display
-            addOptimisticNFT(nftData, sendCallsData?.at(0)?.hash);
+            addOptimisticNFT(nftData, sendCallsData?.[0]?.hash);
             
             toast({
               title: "🎉 NFT Successfully Minted!",
