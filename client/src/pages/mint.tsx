@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas, useSendCalls } from "wagmi";
 import { parseEther, formatGwei, encodeFunctionData } from "viem";
@@ -106,6 +106,30 @@ export default function Mint() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // ⚡ FARCASTER CRASH FIX: Centralized safe cache invalidation
+  const safeInvalidateCache = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Prevent multiple simultaneous invalidations
+    clearTimeout((window as any).__cacheInvalidationTimeout);
+    (window as any).__cacheInvalidationTimeout = setTimeout(() => {
+      try {
+        console.log('🔄 Safe cache invalidation starting...');
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key.includes('/api/nfts') || 
+                   key.includes('/api/stats') || 
+                   key.includes('/api/wallet');
+          }
+        });
+        console.log('✅ Cache invalidation completed safely');
+      } catch (error) {
+        console.warn('⚠️ Cache invalidation deferred:', error);
+      }
+    }, 200); // Single unified delay
+  }, [queryClient]);
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
   
@@ -185,17 +209,8 @@ export default function Mint() {
               variant: "default",
             });
             
-            // ⚡ CRASH FIX: Batch tx - optimized cache invalidation
-            setTimeout(() => {
-              queryClient.invalidateQueries({ 
-                predicate: (query) => {
-                  const key = query.queryKey[0] as string;
-                  return key.includes('/api/nfts') || 
-                         key.includes('/api/stats') || 
-                         key.includes('/api/wallet');
-                }
-              });
-            }, 100);
+            // ⚡ FARCASTER SAFE: Single centralized cache update
+            safeInvalidateCache();
             
             // Reset form
             setTitle('');
@@ -277,17 +292,8 @@ export default function Mint() {
               variant: "default",
             });
             
-            // ⚡ CRASH FIX: Individual tx - batch cache invalidation
-            setTimeout(() => {
-              queryClient.invalidateQueries({ 
-                predicate: (query) => {
-                  const key = query.queryKey[0] as string;
-                  return key.includes('/api/nfts') || 
-                         key.includes('/api/stats') || 
-                         key.includes('/api/wallet');
-                }
-              });
-            }, 150);
+            // ⚡ FARCASTER SAFE: Single centralized cache update
+            safeInvalidateCache();
             
             // Reset form
             setTitle('');
@@ -355,15 +361,8 @@ export default function Mint() {
     },
     onSuccess: () => {
       try {
-        // SAFE: Batch cache invalidation with timeout to prevent conflicts
-        setTimeout(() => {
-          try {
-            queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
-            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-          } catch (cacheError) {
-            console.warn('🔄 Cache invalidation deferred:', cacheError);
-          }
-        }, 100);
+        // ⚡ FARCASTER SAFE: Single centralized cache update
+        safeInvalidateCache();
         
         // Reset form safely
         setTitle("");
@@ -602,7 +601,7 @@ export default function Mint() {
           abi: NFT_ABI,
           functionName: 'mintTravelNFT',
           args: [
-            address!,
+            address as `0x${string}`,
             useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
             useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
             useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
