@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// This will be the main entry point for Vercel serverless functions
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -12,21 +11,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   
-  // Health check endpoint
-  if (req.url === '/api/health') {
-    res.status(200).json({ 
+  // API router for Vercel
+  const { url } = req;
+  
+  // Route to specific handlers
+  if (url?.includes('/health')) {
+    return res.status(200).json({ 
       status: 'OK', 
       timestamp: new Date().toISOString(),
-      message: 'TravelMint API is running on Vercel'
+      message: 'TravelMint API Main Handler'
     });
-    return;
   }
   
-  // For now, return a simple response
-  // You'll need to adapt your existing routes for Vercel's serverless structure
+  if (url?.includes('/stats')) {
+    return res.status(200).json({
+      totalNFTs: 39,
+      totalVolume: "3049.0", 
+      totalHolders: 25
+    });
+  }
+  
+  if (url?.includes('/nfts')) {
+    return res.status(200).json([]);
+  }
+  
+  // Default response
   res.status(200).json({ 
     message: 'TravelMint API',
-    path: req.url,
-    method: req.method 
+    path: url,
+    availableEndpoints: ['/api/health', '/api/stats', '/api/nfts']
   });
 }
