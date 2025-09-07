@@ -52,56 +52,25 @@ export default function MyNFTs() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { address, isConnected } = useAccount();
-  const syncedAddressRef = useRef<string | null>(null);
 
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
-    queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
+    queryKey: [`/api/wallet/${address}/nfts`],
     enabled: !!address && isConnected,
-    staleTime: 2_000, // 2 seconds for immediate updates after purchase
-    refetchOnMount: true, // Refetch when component mounts (new purchases)
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 30_000, // 30 seconds cache time for faster updates
-    refetchInterval: 5_000, // Auto-refetch every 5 seconds for real-time updates
+    staleTime: 5_000,
+    gcTime: 60_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Get detailed NFT data when one is selected
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
     queryKey: ["/api/nfts", selectedNFT?.id],
     enabled: !!selectedNFT?.id,
-    staleTime: 10 * 1000, // 10 seconds for faster updates
-    gcTime: 30 * 1000, // 30 seconds cache time
-  });
-
-  const { data: nftsQuery = [], isLoading: isLoadingQuery, isError: isErrorQuery, error: errorQuery } = useQuery<NFT[]>({
-    queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
-    enabled: !!address && isConnected,
-    staleTime: 2_000, // 2 seconds for immediate updates after purchase
-    refetchOnMount: true, // Refetch when component mounts (new purchases)
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 30_000, // 30 seconds cache time for faster updates
-    refetchInterval: 5_000, // Auto-refetch every 5 seconds for real-time updates
+    staleTime: 10 * 1000,
+    gcTime: 30 * 1000,
   });
   
-  // Automatic blockchain sync on wallet connection
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/sync/wallet/${address}`, {});
-    },
-    onSuccess: (data: any) => {
-      // Silent sync - no toast notifications
-      console.log('✅ Wallet sync successful:', data?.syncedNFTs || 0, 'new NFTs');
-      // Only invalidate if there were actually new NFTs synced
-      if (data?.syncedNFTs > 0) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-        }, 500); // Longer delay to prevent race conditions
-      }
-    },
-    onError: (error: any) => {
-      // Silent error handling for background sync
-      console.log('Background sync failed:', error.message);
-    },
-  });
+  // ⚡ SIMPLE: Background sync disabled to prevent crashes
 
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
