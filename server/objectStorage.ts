@@ -154,36 +154,6 @@ export class ObjectStorageService {
     });
   }
 
-  // Upload file buffer directly to object storage
-  async uploadFileBuffer(
-    fileBuffer: Buffer,
-    fileName: string,
-    mimeType: string
-  ): Promise<string> {
-    const privateObjectDir = this.getPrivateObjectDir();
-    const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-
-    const { bucketName, objectName } = parseObjectPath(fullPath);
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(objectName);
-
-    // Upload the file
-    await file.save(fileBuffer, {
-      metadata: {
-        contentType: mimeType,
-        metadata: {
-          originalName: fileName,
-          uploadedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    console.log('✅ File uploaded to Object Storage:', objectName);
-    
-    // Return object entity URL for private access
-    return `/objects/uploads/${objectId}`;
-  }
 
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
