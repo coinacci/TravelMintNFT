@@ -52,57 +52,71 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Simple image loading system
+  // Simple image loading system with HEIC detection
   useEffect(() => {
     // Get best image URL with reliable gateways
     const domain = window.location.origin;
     const fixIPFS = (url: string) => url.includes('gateway.pinata.cloud') ? url.replace('gateway.pinata.cloud', 'ipfs.io') : url;
     
-    const imageUrl = nft.objectStorageUrl 
-      ? (nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl)
-      : fixIPFS(nft.imageUrl);
+    // 1. Object Storage first (always JPG)
+    if (nft.objectStorageUrl) {
+      const imageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
+      loadImage(imageUrl, fixIPFS(nft.imageUrl));
+      return;
+    }
     
-    if (!imageUrl) {
-      console.log('❌ No image URL available for NFT:', nft.id);
+    // 2. IPFS with HEIC detection
+    const ipfsUrl = fixIPFS(nft.imageUrl);
+    const isHEIC = ipfsUrl && (
+      ipfsUrl.includes('/QmRrsiPvf36enpvBBhDY1GfRtbUSD5Cw9QkYGfy6wJficE') ||
+      ipfsUrl.includes('/QmduukpbfkT5YkiMcRgHabwdR5wcCwFJWLymowP6nhPcWJ') ||
+      ipfsUrl.toLowerCase().includes('heic') ||
+      ipfsUrl.toLowerCase().includes('heif')
+    );
+    
+    if (isHEIC) {
+      console.log(`⚠️ NFTCard HEIC DETECTED - Skipping: ${nft.title} → ${ipfsUrl.substring(0, 50)}...`);
+      setImageSrc(ERROR_PLACEHOLDER);
       setImageLoading(false);
       return;
     }
     
-    console.log(`🖼️ Loading ${nft.title} image from:`, imageUrl.substring(0, 80) + '...');
+    const imageUrl = ipfsUrl;
+    
+    loadImage(imageUrl);
+    
+  }, [nft.objectStorageUrl, nft.imageUrl, nft.title, nft.id]);
+
+  const loadImage = (primaryUrl: string, fallbackUrl?: string) => {
+    if (!primaryUrl) {
+      console.log('❌ No image URL available for NFT:', nft.id);
+      setImageSrc(ERROR_PLACEHOLDER);
+      setImageLoading(false);
+      return;
+    }
+    
+    console.log(`🖼️ NFTCard loading ${nft.title} from:`, primaryUrl.substring(0, 80) + '...');
     
     const img = new Image();
     
     img.onload = () => {
-      console.log('✅ Image loaded successfully for:', nft.title);
-      setImageSrc(imageUrl);
+      console.log(`✅ NFTCard loaded ${nft.title} successfully`);
+      setImageSrc(primaryUrl);
       setImageLoading(false);
     };
     
     img.onerror = () => {
-      // Fallback to different IPFS gateway if object storage fails
-      if (imageUrl.includes('/objects/') && nft.imageUrl && nft.imageUrl !== imageUrl) {
-        console.log('❌ Object storage failed, trying IPFS fallback for:', nft.title);
-        const fallbackImg = new Image();
-        const fallbackUrl = fixIPFS(nft.imageUrl);
-        fallbackImg.onload = () => {
-          setImageSrc(fallbackUrl);
-          setImageLoading(false);
-        };
-        fallbackImg.onerror = () => {
-          console.log('❌ Both URLs failed for:', nft.title);
-          setImageSrc(ERROR_PLACEHOLDER);
-          setImageLoading(false);
-        };
-        fallbackImg.src = fallbackUrl;
+      console.log(`❌ NFTCard failed ${nft.title}, trying fallback...`);
+      if (fallbackUrl && fallbackUrl !== primaryUrl) {
+        loadImage(fallbackUrl);
       } else {
-        console.log('❌ Image failed for:', nft.title);
         setImageSrc(ERROR_PLACEHOLDER);
         setImageLoading(false);
       }
     };
     
-    img.src = imageUrl;
-  }, [nft.objectStorageUrl, nft.imageUrl, nft.id, nft.title]);
+    img.src = primaryUrl;
+  };
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (
