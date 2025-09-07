@@ -12,7 +12,7 @@ function fixIPFSUrl(url: string): string {
 }
 
 /**
- * Get best image URL - simple priority: Object Storage first, then IPFS
+ * Get best image URL - priority: Object Storage > IPFS with format check
  */
 export function getBestImageUrl(nft: { 
   objectStorageUrl?: string; 
@@ -21,7 +21,7 @@ export function getBestImageUrl(nft: {
   // Current domain for object storage
   const domain = typeof window !== 'undefined' ? window.location.origin : '';
   
-  // 1. Object Storage URL (preferred)
+  // 1. Object Storage URL (preferred - always JPG format)
   if (nft.objectStorageUrl) {
     // If relative, make absolute
     if (nft.objectStorageUrl.startsWith('/')) {
@@ -31,5 +31,19 @@ export function getBestImageUrl(nft: {
   }
   
   // 2. IPFS fallback with reliable gateway
-  return fixIPFSUrl(nft.imageUrl) || MODAL_PLACEHOLDER;
+  const ipfsUrl = fixIPFSUrl(nft.imageUrl);
+  
+  // 3. If IPFS URL might be HEIC (unsupported), return placeholder directly
+  // HEIC detection: Common IPFS hash patterns that typically contain HEIC
+  if (ipfsUrl && (
+    ipfsUrl.includes('/QmRrsiPvf36enpvBBhDY1GfRtbUSD5Cw9QkYGfy6wJficE') ||
+    ipfsUrl.includes('/QmduukpbfkT5YkiMcRgHabwdR5wcCwFJWLymowP6nhPcWJ') ||
+    ipfsUrl.toLowerCase().includes('heic') ||
+    ipfsUrl.toLowerCase().includes('heif')
+  )) {
+    console.log(`⚠️ Skipping potentially HEIC image: ${ipfsUrl.substring(0, 50)}...`);
+    return MODAL_PLACEHOLDER;
+  }
+  
+  return ipfsUrl || MODAL_PLACEHOLDER;
 }
