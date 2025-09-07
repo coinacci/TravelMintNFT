@@ -1045,6 +1045,29 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Force sync specific token ID endpoint
+  app.post("/api/sync/token/:tokenId", async (req, res) => {
+    try {
+      const tokenId = req.params.tokenId;
+      console.log(`🎯 Force sync requested for Token ${tokenId}`);
+      
+      const nft = await blockchainService.getNFTByTokenId(tokenId);
+      if (!nft) {
+        return res.status(404).json({ success: false, message: `Token ${tokenId} not found on blockchain` });
+      }
+      
+      const dbFormat = await blockchainService.blockchainNFTToDBFormat(nft);
+      await storage.createNFT(dbFormat);
+      
+      clearAllCache();
+      console.log(`✅ Token ${tokenId} synced successfully`);
+      res.json({ success: true, message: `Token ${tokenId} synced`, nft: dbFormat });
+    } catch (error) {
+      console.error(`❌ Error syncing token ${req.params.tokenId}:`, error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Manual blockchain sync endpoint for debugging/maintenance
   app.post("/api/sync/blockchain", async (req, res) => {
     try {
