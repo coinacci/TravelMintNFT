@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
-import { MODAL_PLACEHOLDER, getImageUrls, getBestImageUrl } from "@/lib/imageUtils";
+import { getBestImageUrl } from "@/lib/imageUtils";
 
 // Modal placeholder imported from imageUtils
 
@@ -40,84 +40,23 @@ interface Transaction {
   toUserId: string;
 }
 
-// Smart Image Component - Object Storage priority with IPFS fallback
+// Simple Image Component - No complex loading, just use best URL
 const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; objectStorageUrl?: string; title: string }; className: string; [key: string]: any }) => {
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
-
-  useEffect(() => {
-    // Smart image loading using prioritized URLs
-    const tryUrls = getImageUrls(nft);
-    
-    if (tryUrls.length === 0) {
-      console.log('❌ No image URLs available for modal');
-      setImageLoading(false);
-      return;
-    }
-    
-    console.log('🖼️ Loading modal image with URLs:', tryUrls.map(url => url.length > 80 ? url.substring(0, 80) + '...' : url));
-    setImageLoading(true);
-    setImageSrc(MODAL_PLACEHOLDER);
-    
-    let currentIndex = 0;
-    
-    const tryNextUrl = () => {
-      if (currentIndex >= tryUrls.length) {
-        console.log('❌ All modal image URLs failed');
-        setImageLoading(false);
-        return;
-      }
-      
-      const currentUrl = tryUrls[currentIndex];
-      console.log(`🔄 Trying modal URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
-      
-      const img = new Image();
-      
-      // Faster timeout for better UX
-      const timeoutId = setTimeout(() => {
-        console.log(`⏰ Modal URL ${currentIndex + 1} timed out, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      }, 3000);
-      
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        console.log('✅ Modal image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
-        setImageLoading(false);
-      };
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      };
-      img.src = currentUrl;
-    };
-    
-    tryNextUrl();
-  }, [nft.objectStorageUrl, nft.imageUrl]);
-
+  const imageUrl = getBestImageUrl(nft);
+  
   return (
-    <div className="relative">
-      {imageLoading && (
-        <div className="absolute inset-0 bg-muted rounded-lg flex items-center justify-center z-10">
-          <div className="flex flex-col items-center gap-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-sm text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      )}
-      <img
-        src={imageSrc}
-        alt={nft.title}
-        className={`${className} transition-opacity duration-300 ${
-          imageLoading ? 'opacity-0' : 'opacity-100'
-        }`}
-        loading="eager"
-        {...props}
-      />
-    </div>
+    <img
+      src={imageUrl}
+      alt={nft.title}
+      className={className}
+      onError={(e) => {
+        // Fallback to IPFS if object storage fails
+        if (imageUrl.includes('/objects/') && nft.imageUrl) {
+          (e.target as HTMLImageElement).src = nft.imageUrl;
+        }
+      }}
+      {...props}
+    />
   );
 };
 
