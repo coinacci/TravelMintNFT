@@ -140,8 +140,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         console.warn('⚠️ NFT has (0,0) coordinates but showing anyway:', nft.title, { lat: nft.latitude, lng: nft.longitude });
       }
 
-      // Create location key (6 decimals for better precision - prevents false clustering)
-      const locationKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+      // Create location key (2 decimals for smart clustering - groups nearby NFTs ~1km apart)  
+      const locationKey = `${lat.toFixed(2)},${lng.toFixed(2)}`;
       
       if (!nftsByLocation.has(locationKey)) {
         nftsByLocation.set(locationKey, []);
