@@ -110,17 +110,30 @@ export default function Mint() {
   // ⚡ INSTANT UX: Optimistic update for immediate display (5 second rule)
   const addOptimisticNFT = useCallback((nftData: any, transactionHash?: string) => {
     try {
-      console.log('🚀 Adding optimistic NFT for instant UX...');
+      console.log('🚀 Adding optimistic NFT for instant UX...', {
+        lat: nftData.latitude,
+        lng: nftData.longitude,
+        location: nftData.location
+      });
       
-      // Create optimistic NFT with temp ID
+      // Get real coordinates from current location or manual selection
+      const realLat = useManualLocation ? 
+        (selectedCoords?.lat || 0) : 
+        (location?.latitude || parseFloat(nftData.latitude) || 0);
+      
+      const realLng = useManualLocation ? 
+        (selectedCoords?.lng || 0) : 
+        (location?.longitude || parseFloat(nftData.longitude) || 0);
+      
+      // Create optimistic NFT with temp ID and REAL coordinates
       const optimisticNFT = {
         id: `optimistic-${Date.now()}`,
         title: nftData.title,
         description: nftData.description || "Travel NFT",
         imageUrl: nftData.imageUrl,
         location: nftData.location,
-        latitude: parseFloat(nftData.latitude) || 0,
-        longitude: parseFloat(nftData.longitude) || 0,
+        latitude: realLat,
+        longitude: realLng,
         category: nftData.category,
         price: nftData.price || "1",
         isForSale: nftData.isForSale || 0,
