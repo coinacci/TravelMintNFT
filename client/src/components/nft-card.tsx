@@ -54,14 +54,14 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   
   // GUARANTEED SUCCESS - Object Storage ONLY approach
   useEffect(() => {
-    console.log(`🎯 NFTCard rendering: ${nft.title}`);
+    console.warn(`🚨 NFTCard RENDERING: ${nft.title}`);
     
     const domain = window.location.origin;
     
     // ALWAYS use Object Storage (41/42 NFTs have it!)
     if (nft.objectStorageUrl) {
       const objectStorageUrl = nft.objectStorageUrl.startsWith('/') ? `${domain}${nft.objectStorageUrl}` : nft.objectStorageUrl;
-      console.log(`✅ NFTCard using Object Storage: ${nft.title} → ${objectStorageUrl}`);
+      console.warn(`🚨 OBJECT STORAGE SUCCESS: ${nft.title} → ${objectStorageUrl}`);
       
       // Direct assignment - object storage is guaranteed JPG format
       setImageSrc(objectStorageUrl);
@@ -70,7 +70,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     }
     
     // If no object storage (only Georgia Moments), show error
-    console.log(`❌ NFTCard NO Object Storage: ${nft.title}`);
+    console.warn(`🚨 NO OBJECT STORAGE: ${nft.title}`);
     setImageSrc(ERROR_PLACEHOLDER);
     setImageLoading(false);
     
