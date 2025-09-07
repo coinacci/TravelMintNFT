@@ -230,16 +230,17 @@ export default function Explore() {
       {/* NFT Detail Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold" data-testid="modal-nft-title">
+              {nftDetails?.title || "Loading NFT..."}
+            </DialogTitle>
+            <DialogDescription>
+              {nftDetails ? `NFT details and purchase information for ${nftDetails.title}` : "Loading NFT details..."}
+            </DialogDescription>
+          </DialogHeader>
+          
           {nftDetails && (
             <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold" data-testid="modal-nft-title">
-                  {nftDetails.title}
-                </DialogTitle>
-                <DialogDescription>
-                  NFT details and purchase information for {nftDetails.title}
-                </DialogDescription>
-              </DialogHeader>
               
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Image */}
@@ -349,6 +350,12 @@ export default function Explore() {
                 </div>
               </div>
             </>
+          )}
+          
+          {!nftDetails && (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
