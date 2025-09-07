@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
-import { MapPin, Upload, Wallet, Eye, CheckCircle } from "lucide-react";
+import { MapPin, Upload, Wallet, Eye, CheckCircle, Share2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
@@ -571,34 +571,34 @@ export default function Mint() {
       // 🚀 REAL BLOCKCHAIN: Batch approve + mint in ONE Farcaster confirmation!
       console.log('⚡ STARTING REAL BLOCKCHAIN MINT WITH IPFS...');
       
+      // ⚡ TYPE FIX: Explicit call data to prevent deep type instantiation
+      const approveCall = {
+        to: USDC_CONTRACT_ADDRESS as `0x${string}`,
+        data: encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
+        })
+      };
+      
+      const mintCall = {
+        to: NFT_CONTRACT_ADDRESS as `0x${string}`,
+        data: encodeFunctionData({
+          abi: NFT_ABI,
+          functionName: 'mintTravelNFT',
+          args: [
+            address!,
+            useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
+            useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
+            useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
+            category,
+            metadataIpfsUrl
+          ]
+        })
+      };
+
       await sendCalls({
-        calls: [
-          // 1. Approve USDC spending first
-          {
-            to: USDC_CONTRACT_ADDRESS,
-            data: encodeFunctionData({
-              abi: USDC_ABI,
-              functionName: 'approve',
-              args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
-            })
-          },
-          // 2. Mint NFT with IPFS metadata URL
-          {
-            to: NFT_CONTRACT_ADDRESS,
-            data: encodeFunctionData({
-              abi: NFT_ABI,
-              functionName: 'mintTravelNFT',
-              args: [
-                address,
-                useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
-                useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
-                useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
-                category,
-                metadataIpfsUrl // IPFS metadata URL instead of base64
-              ]
-            })
-          }
-        ]
+        calls: [approveCall, mintCall]
       });
       
       console.log('✅ Blockchain transaction batch sent with IPFS metadata!');
