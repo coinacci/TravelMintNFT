@@ -80,20 +80,21 @@ export async function registerRoutes(app: Express) {
     const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
     const baseUrl = `${protocol}://${host}`;
     
-    // EMERGENCY: Force ALL requests to use mobile config (no splash)
+    // UNIVERSAL NO-SPLASH: All requests get splash-free config
     const userAgent = req.headers['user-agent'] || '';
     const hasTouch = req.headers['sec-ch-ua-mobile'] === '?1';
     
-    // FORCE mobile mode for ALL Farcaster requests - no exceptions
-    const isMobileFarcaster = true; // ← ALWAYS MOBILE CONFIG
-    const isLikelyMobile = true;   // ← ALWAYS MOBILE MODE
+    // UNIVERSAL: No splash for mobile OR desktop frames
+    const isMobileFarcaster = true; // Force no-splash config for ALL
+    const isLikelyMobile = true;   // Treat everything as mobile (safer)
     
-    console.log('🔧 Farcaster config (FORCE MOBILE):', { 
+    console.log('🔧 Farcaster config (UNIVERSAL NO-SPLASH):', { 
       host, 
       userAgent: userAgent.substring(0, 100), 
       isMobile: isMobileFarcaster,
       isLikelyMobile,
-      hasTouch 
+      hasTouch,
+      strategy: 'no-splash-all-frames'
     });
     
     const farcasterConfig = {
@@ -111,20 +112,13 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // MOBILE: NO splash screen at all - direct redirect
-        ...(isMobileFarcaster ? {
-          "loadingTimeout": 0,
-          "fastLoad": true,
-          "skipSplash": true,
-          "instantLoad": true,
-          "buttonTitle": "⚡ Open"
-        } : {
-          "splashImageUrl": `${baseUrl}/splash.png?v=desktop&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-          "splashBackgroundColor": "#0f172a",
-          "buttonTitle": "Open TravelMint",
-          "loadingTimeout": 3000,
-          "fastLoad": false
-        }),
+        // UNIVERSAL: NO splash screen for ANY frame environment
+        "loadingTimeout": 0,
+        "fastLoad": true,
+        "skipSplash": true,
+        "instantLoad": true,
+        "noSplash": true,
+        "buttonTitle": "⚡ Open",
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],

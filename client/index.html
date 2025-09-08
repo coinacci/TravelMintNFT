@@ -52,17 +52,24 @@
                         
         console.log('📱 HTML Detection - Frame:', isFrame, 'Mobile:', isMobile);
         
-        // EMERGENCY: If frame detected, bypass all splash logic
+        // UNIVERSAL: All frames get immediate bypass (no mobile/desktop distinction)
         if (isFrame) {
-          console.log('🚨 FRAME DETECTED: Emergency bypass mode activated');
+          console.log('🚨 UNIVERSAL FRAME BYPASS: No splash for any frame');
           
-          // Try immediate redirect without any splash
+          // INSTANT redirect without ANY splash screen logic
+          console.log('⚡ Universal frame redirect (0ms) - mobile AND desktop');
+          if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage({ 
+              type: 'FRAME_READY_UNIVERSAL', 
+              source: 'TravelMint',
+              strategy: 'no-splash-universal'
+            }, '*');
+          }
+          
+          // Also try immediate app load
           setTimeout(() => {
-            console.log('⚡ Emergency frame redirect (0ms)');
-            if (window.parent && window.parent.postMessage) {
-              window.parent.postMessage({ type: 'FRAME_READY' }, '*');
-            }
-          }, 0);
+            console.log('🚀 Force app ready state (universal)');
+          }, 10);
         }
         
         // Enhanced cache busting with random IDs
@@ -92,7 +99,7 @@
           "version": "1",
           "imageUrl": currentUrl + "/image.png" + cacheParam,
           "button": {
-            "title": isMobile ? "⚡ TravelMint" : "Open TravelMint",
+            "title": "⚡ Open",
             "action": {
               "type": "link",
               "name": "TravelMint",

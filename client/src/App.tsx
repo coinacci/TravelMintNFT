@@ -154,34 +154,28 @@ function App() {
   useEffect(() => {
     console.log('🎯 TravelMint starting...');
     
-    // EMERGENCY: Instant frame communication + NO SDK ever
+    // UNIVERSAL: NO SDK EVER in frame environments
     if (typeof window !== 'undefined') {
       if (isAnyMobile || isFarcasterFrame) {
-        // IMMEDIATE frame communication
-        console.log('🚀 EMERGENCY FRAME MODE: Zero-delay activation');
-        console.log('📱 App is ready for immediate interaction');
+        // UNIVERSAL frame strategy - no mobile/desktop distinction
+        console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
+        console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // Post ready message to parent frame immediately
+        // Universal frame communication
         if (window.parent && window.parent !== window) {
           setTimeout(() => {
-            console.log('📨 Posting READY to parent frame');
+            console.log('📨 Posting UNIVERSAL READY to parent frame');
             window.parent.postMessage({
-              type: 'FRAME_APP_READY',
+              type: 'FRAME_APP_READY_UNIVERSAL',
               source: 'TravelMint',
+              strategy: 'no-splash-universal',
               timestamp: Date.now()
             }, '*');
-          }, 10); // 10ms only
+          }, 5); // Even faster - 5ms
         }
-      } else if (sdk?.actions?.ready) {
-        // Only pure desktop web gets SDK
-        setTimeout(() => {
-          try {
-            sdk.actions.ready();
-            console.log('✅ Pure Desktop ready (1s delay)');
-          } catch (e) {
-            console.log('⚠️ SDK ready failed (desktop):', e);
-          }
-        }, 1000);
+      } else {
+        // Pure web (no frame) - but still NO SDK to be safe
+        console.log('🌐 Pure web mode - NO SDK calls for safety');
       }
     }
     
