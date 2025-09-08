@@ -9,6 +9,13 @@ export default function Navigation() {
   const isMobile = useIsMobile();
   const { address, isConnected } = useAccount();
   
+  // Debug logging for Frame issues
+  console.log('🧭 Navigation rendering:', { 
+    location, 
+    isMobile, 
+    isFrame: typeof window !== 'undefined' && window.parent !== window 
+  });
+  
   const { data: balance } = useBalance({
     address: address,
     token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
