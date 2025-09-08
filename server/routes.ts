@@ -112,8 +112,8 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // FARCASTER MANIFEST REQUIREMENTS (no splash image)  
-        "splashImageUrl": "",                     // Empty splash image to avoid stuck image
+        // FARCASTER MANIFEST REQUIREMENTS (NO SPLASH!)  
+        "splashImageUrl": null,                   // NULL to completely remove splash
         "splashBackgroundColor": "transparent",   // Transparent background
         "buttonTitle": "⚡ Open",
         
@@ -147,25 +147,22 @@ export async function registerRoutes(app: Express) {
       }
     };
 
-    // Ultra-aggressive cache prevention for mobile
+    // EXTREME cache prevention - force manifest refresh
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 12);
     
     res.setHeader('Content-Type', 'application/json');
-    if (isMobileFarcaster) {
-      // Mobile gets extreme cache prevention
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
-      res.setHeader('Surrogate-Control', 'no-store');
-    } else {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    }
+    // EXTREME cache prevention for ALL requests
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+    res.setHeader('Surrogate-Control', 'no-store');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.setHeader('ETag', `"fc-${isMobileFarcaster ? 'mob' : 'desk'}-${timestamp}-${randomId}"`);
+    res.setHeader('ETag', `"fc-splash-fix-${isMobileFarcaster ? 'mob' : 'desk'}-${timestamp}-${randomId}"`);
     res.setHeader('Last-Modified', new Date().toUTCString());
     res.setHeader('Vary', 'User-Agent, Accept-Encoding');
     res.setHeader('X-Farcaster-Mobile', isMobileFarcaster.toString());
-    res.setHeader('X-Load-Strategy', isMobileFarcaster ? 'instant' : 'normal');
+    res.setHeader('X-Load-Strategy', 'no-splash-instant');
+    res.setHeader('X-Splash-Fix', 'true');
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 
