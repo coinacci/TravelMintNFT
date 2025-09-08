@@ -203,28 +203,4 @@
   }
 }
 
-/* EMERGENCY: Ultra-aggressive mobile visibility fix */
-html, body, #root, div, main, section, header, nav {
-  background-color: #0f172a !important;
-  background: #0f172a !important;
-  color: white !important;
-}
-
-/* Nuclear option: Override EVERYTHING for mobile frames */
-* {
-  background-color: #0f172a !important;
-  color: white !important;
-}
-
-/* Text elements specific override */
-h1, h2, h3, h4, h5, h6, p, span, div, button, a {
-  color: white !important;
-  background: transparent !important;
-}
-
-/* Button visibility */
-button {
-  background-color: #3b82f6 !important;
-  color: white !important;
-  border: 1px solid #3b82f6 !important;
-}
+/* Mobile uses same theme as browser - no overrides */

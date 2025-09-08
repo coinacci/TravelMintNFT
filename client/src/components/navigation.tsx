@@ -36,11 +36,11 @@ export default function Navigation() {
     return (
       <>
         {/* Mobile Header */}
-        <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+        <header className="bg-card border-b border-border sticky top-0 z-50">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="text-xl font-bold text-blue-400">
+                <div className="text-xl font-bold travel-gradient bg-clip-text text-transparent">
                   <MapPin className="inline-block w-5 h-5 mr-2" />
                   TravelMint
                 </div>
