@@ -88,11 +88,9 @@
   }
 
   html, body {
-    @apply font-sans antialiased;
+    @apply font-sans antialiased bg-background text-foreground;
     min-height: 100vh;
     height: 100%;
-    background: hsl(222, 47%, 11%);
-    color: hsl(213, 31%, 91%);
   }
   
   /* Frame optimization - ensure content is visible */
@@ -100,6 +98,8 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 

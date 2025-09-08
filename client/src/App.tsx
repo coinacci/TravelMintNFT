@@ -40,19 +40,23 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    // Simple frame detection and SDK ready call
+    console.log('📱 HTML Detection - Frame:', window.parent !== window, 'Mobile:', window.innerWidth < 768);
+    
+    // Frame detection and instant loading
     if (typeof window !== 'undefined' && window.parent !== window) {
+      console.log('⚡ NO SPLASH: Instant frame loading');
       try {
-        // Call SDK ready for frame environments
+        // Post ready message immediately - no delays for frames
         sdk.actions?.ready();
+        console.log('🚀 Posting instant ready message (no splash delay)');
       } catch (error) {
-        // Silent error handling
+        console.error('SDK ready error:', error);
       }
     }
   }, []);
 
   return (
-    <div style={{backgroundColor: '#0f172a', color: 'white', minHeight: '100vh'}}>
+    <div className="min-h-screen bg-background text-foreground">
       <QueryClientProvider client={queryClient}>
         <WalletProvider>
           <TooltipProvider>
