@@ -55,8 +55,8 @@
         const mintTarget = document.getElementById('fc-mint-target');
         if (mintTarget) mintTarget.content = currentUrl + '/mint';
         
-        // Set mobile-specific splash background
-        const splashBg = isMobile ? '#1a202c' : '#0f172a';
+        // Mobile gets instant-load background
+        const splashBg = isMobile ? '#000014' : '#0f172a';
         
         // Create mini app meta tag with aggressive cache busting
         const miniappMeta = document.createElement('meta');
@@ -65,7 +65,7 @@
           "version": "1",
           "imageUrl": currentUrl + "/image.png" + cacheParam,
           "button": {
-            "title": isMobile ? "🚀 Open TravelMint" : "Open TravelMint",
+            "title": isMobile ? "⚡ TravelMint" : "Open TravelMint",
             "action": {
               "type": "link",
               "name": "TravelMint",

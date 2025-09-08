@@ -102,8 +102,10 @@ export async function registerRoutes(app: Express) {
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "splashImageUrl": `${baseUrl}/splash.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "splashBackgroundColor": isMobileFarcaster ? "#1a202c" : "#0f172a",
-        "buttonTitle": isMobileFarcaster ? "🚀 Open TravelMint" : "Open TravelMint",
+        "splashBackgroundColor": isMobileFarcaster ? "#000014" : "#0f172a",
+        "buttonTitle": isMobileFarcaster ? "⚡ TravelMint" : "Open TravelMint",
+        "loadingTimeout": isMobileFarcaster ? 100 : 3000,
+        "fastLoad": isMobileFarcaster
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
@@ -124,18 +126,25 @@ export async function registerRoutes(app: Express) {
       }
     };
 
-    // Aggressive cache busting for Farcaster
+    // Ultra-aggressive cache prevention for mobile
     const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substr(2, 9);
+    const randomId = Math.random().toString(36).substr(2, 12);
     
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    if (isMobileFarcaster) {
+      // Mobile gets extreme cache prevention
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+      res.setHeader('Surrogate-Control', 'no-store');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    }
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.setHeader('ETag', `"fc-config-${isMobileFarcaster ? 'mobile' : 'desktop'}-${timestamp}-${randomId}"`);
+    res.setHeader('ETag', `"fc-${isMobileFarcaster ? 'mob' : 'desk'}-${timestamp}-${randomId}"`);
     res.setHeader('Last-Modified', new Date().toUTCString());
-    res.setHeader('Vary', 'User-Agent');
+    res.setHeader('Vary', 'User-Agent, Accept-Encoding');
     res.setHeader('X-Farcaster-Mobile', isMobileFarcaster.toString());
+    res.setHeader('X-Load-Strategy', isMobileFarcaster ? 'instant' : 'normal');
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 

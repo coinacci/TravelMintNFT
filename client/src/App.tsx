@@ -13,30 +13,30 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
-// Enhanced Farcaster SDK with mobile detection
+// Mobile-first Farcaster detection with NO SDK calls
 let farcasterReady = false;
 let isMobileFarcaster = false;
+let isFarcasterFrame = false;
+
 if (typeof window !== 'undefined') {
   try {
-    console.log('🚀 Minimal Farcaster init...');
-    
-    // Detect mobile Farcaster specifically
     const userAgent = navigator.userAgent || '';
+    isFarcasterFrame = window.parent !== window;
     isMobileFarcaster = userAgent.includes('Farcaster') && 
                        (userAgent.includes('Mobile') || 
                         userAgent.includes('Android') || 
                         userAgent.includes('iPhone') ||
                         /Mobi|Android/i.test(userAgent));
     
-    // Only log detection, don't call any SDK methods immediately
-    if (window.parent !== window && sdk?.actions) {
-      console.log(`📱 Farcaster environment detected - Mobile: ${isMobileFarcaster}`);
-      // Don't call ready() immediately - let it happen async later
-    } else {
-      console.log('🌐 Standard web browser mode');
+    console.log('🚀 TravelMint Mobile-Optimized Start');
+    console.log(`📱 Frame: ${isFarcasterFrame}, Mobile: ${isMobileFarcaster}`);
+    
+    // CRITICAL: NO SDK CALLS ON MOBILE - prevents hanging
+    if (isMobileFarcaster) {
+      console.log('📱 Mobile Farcaster detected - SDK disabled for instant load');
     }
   } catch (e) {
-    console.log('⚠️ Farcaster detection failed, web mode');
+    console.log('⚠️ Detection failed - defaulting to web mode');
   }
 }
 
@@ -129,19 +129,22 @@ function App() {
   useEffect(() => {
     console.log('🎯 TravelMint starting...');
     
-    // Optional Farcaster SDK ready call - mobile-aware timing
-    if (typeof window !== 'undefined' && window.parent !== window && sdk?.actions?.ready) {
-      // Mobile Farcaster needs longer initialization time
-      const readyDelay = isMobileFarcaster ? 2500 : 1000;
-      
+    // Mobile-optimized SDK handling - NO delays on mobile
+    if (typeof window !== 'undefined' && isFarcasterFrame && !isMobileFarcaster && sdk?.actions?.ready) {
+      // Only desktop gets SDK calls
       setTimeout(() => {
         try {
           sdk.actions.ready();
-          console.log(`✅ Farcaster ready (delayed ${readyDelay}ms) - Mobile: ${isMobileFarcaster}`);
+          console.log('✅ Desktop Farcaster ready (1s delay)');
         } catch (e) {
-          console.log('⚠️ Farcaster ready call failed:', e);
+          console.log('⚠️ SDK ready failed (desktop):', e);
         }
-      }, readyDelay);
+      }, 1000);
+    }
+    
+    // Mobile gets immediate ready without SDK
+    if (isMobileFarcaster) {
+      console.log('🚀 Mobile Farcaster: Instant ready (no SDK)');
     }
     
     // No context loading - keep it simple for mobile
