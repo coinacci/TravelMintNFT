@@ -3,11 +3,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
-import token29Custom from "@assets/token-29-custom.jpg";
-import token30Custom from "@assets/token-30-custom.jpg";
-import token31Custom from "@assets/token-31-custom.jpg";
-import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
-import alohomora59Custom from "@assets/IMG_4179_1756807183245.png";
 
 interface NFT {
   id: string;
@@ -175,28 +170,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         const domain = window.location.origin;
         const fixIPFS = (url: string) => url.includes('gateway.pinata.cloud') ? url.replace('gateway.pinata.cloud', 'ipfs.io') : url;
         
-        // Special case: Genoa Italy NFTs (Token 29, 30, 31) use custom images
-        let imageUrl = '';
-        if (nft.id === 'blockchain-29') {
-          console.log(`🇮🇹 MapView: Using custom Genoa image for Token 29`);
-          imageUrl = token29Custom;
-        } else if (nft.id === 'blockchain-30') {
-          console.log(`🇮🇹 MapView: Using custom Genoa image for Token 30`);
-          imageUrl = token30Custom;
-        } else if (nft.id === 'blockchain-31') {
-          console.log(`🇮🇹 MapView: Using custom Genoa image for Token 31`);
-          imageUrl = token31Custom;
-        } else if (nft.id === 'blockchain-41') {
-          console.log(`🇬🇪 MapView: Using custom Georgia Moments image for Token 41`);
-          imageUrl = georgiaMomentsCustom;
-        } else if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
-          console.log(`📸 MapView: Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
-          imageUrl = alohomora59Custom;
-        } else {
-          imageUrl = (nft as any).objectStorageUrl 
-            ? ((nft as any).objectStorageUrl.startsWith('/') ? `${domain}${(nft as any).objectStorageUrl}` : (nft as any).objectStorageUrl)
-            : fixIPFS(nft.imageUrl);
-        }
+        const imageUrl = (nft as any).objectStorageUrl 
+          ? ((nft as any).objectStorageUrl.startsWith('/') ? `${domain}${(nft as any).objectStorageUrl}` : (nft as any).objectStorageUrl)
+          : fixIPFS(nft.imageUrl);
         
         const fallbackUrl = fixIPFS(nft.imageUrl);
 
@@ -246,28 +222,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               ${locationNFTs.length} NFTs at ${locationNFTs[0].location}
             </div>
             ${locationNFTs.map(nft => {
-              // Special case: Genoa Italy NFTs (Token 29, 30, 31) use custom images in cluster too
-              let clusterImageUrl = '';
-              if (nft.id === 'blockchain-29') {
-                console.log(`🇮🇹 MapView Cluster: Using custom Genoa image for Token 29`);
-                clusterImageUrl = token29Custom;
-              } else if (nft.id === 'blockchain-30') {
-                console.log(`🇮🇹 MapView Cluster: Using custom Genoa image for Token 30`);
-                clusterImageUrl = token30Custom;
-              } else if (nft.id === 'blockchain-31') {
-                console.log(`🇮🇹 MapView Cluster: Using custom Genoa image for Token 31`);
-                clusterImageUrl = token31Custom;
-              } else if (nft.id === 'blockchain-41') {
-                console.log(`🇬🇪 MapView Cluster: Using custom Georgia Moments image for Token 41`);
-                clusterImageUrl = georgiaMomentsCustom;
-              } else if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
-                console.log(`📸 MapView Cluster: Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
-                clusterImageUrl = alohomora59Custom;
-              } else {
-                clusterImageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
-                  ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-                  : nft.imageUrl);
-              }
+              const clusterImageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
+                ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+                : nft.imageUrl);
               
               const clusterFallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
                 ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')

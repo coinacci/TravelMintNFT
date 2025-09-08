@@ -4,11 +4,7 @@ import { MapPin, ExternalLink } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import alohomoraCamera from "@assets/IMG_4179_1756807183245.png";
-import token29Custom from "@assets/token-29-custom.jpg";
-import token30Custom from "@assets/token-30-custom.jpg";
-import token31Custom from "@assets/token-31-custom.jpg";
-import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
+import alohomoraCamera from "@assets/alohomora-camera.jpg";
 
 interface NFTCardProps {
   nft: {
@@ -56,37 +52,10 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     }
     
     // Special case: Alohomora59 NFTs (Token 37 & 38) use custom camera image
-    if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
-      console.log(`📸 Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
+    if (nft.title === 'Alohomora59' && (nft.id === 'blockchain-37' || nft.id === 'blockchain-38')) {
+      console.log(`🎯 Using custom camera image for ${nft.title} (${nft.id})`);
+      console.log(`📷 Camera image path:`, alohomoraCamera);
       setImageSrc(alohomoraCamera);
-      setImageLoading(false);
-      return;
-    }
-    
-    // Special case: Genoa Italy NFTs (Token 29, 30, 31) use custom images
-    if (nft.id === 'blockchain-29') {
-      console.log(`🇮🇹 Using custom Genoa image for Token 29`);
-      setImageSrc(token29Custom);
-      setImageLoading(false);
-      return;
-    }
-    if (nft.id === 'blockchain-30') {
-      console.log(`🇮🇹 Using custom Genoa image for Token 30`);
-      setImageSrc(token30Custom);
-      setImageLoading(false);
-      return;
-    }
-    if (nft.id === 'blockchain-31') {
-      console.log(`🇮🇹 Using custom Genoa image for Token 31`);
-      setImageSrc(token31Custom);
-      setImageLoading(false);
-      return;
-    }
-    
-    // Special case: Georgia Moments NFT (Token 41) uses custom image
-    if (nft.id === 'blockchain-41') {
-      console.log(`🇬🇪 Using custom Georgia Moments image for Token 41`);
-      setImageSrc(georgiaMomentsCustom);
       setImageLoading(false);
       return;
     }

@@ -8,14 +8,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface Stats {
   totalNFTs: number;
   totalVolume: string;
+  totalHolders: number;
 }
 
 export default function Landing() {
-  const isMobileHook = useIsMobile();
-  
-  // Force mobile layout for frames (consistent with Navigation)
-  const isFrame = typeof window !== 'undefined' && window.parent !== window;
-  const isMobile = isFrame || isMobileHook;
+  const isMobile = useIsMobile();
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/stats"],
@@ -28,11 +25,11 @@ export default function Landing() {
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-background">
-        <div className="absolute inset-0"></div>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background"></div>
         <div className="relative container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-foreground">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight" style={{ color: '#0000ff' }}>
               Travel NFT
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
@@ -66,7 +63,7 @@ export default function Landing() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How TravelNFT Works</h2>
@@ -76,7 +73,7 @@ export default function Landing() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center modern-card">
+            <Card className="text-center">
               <CardContent className="pt-8 pb-6">
                 <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
                   <Upload className="w-8 h-8 text-primary" />
@@ -88,7 +85,7 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card className="text-center modern-card">
+            <Card className="text-center">
               <CardContent className="pt-8 pb-6">
                 <div className="w-16 h-16 mx-auto mb-6 bg-accent/10 rounded-full flex items-center justify-center">
                   <DollarSign className="w-8 h-8 text-accent" />
@@ -100,7 +97,7 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card className="text-center modern-card">
+            <Card className="text-center">
               <CardContent className="pt-8 pb-6">
                 <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
                   <Globe className="w-8 h-8 text-primary" />
@@ -151,11 +148,20 @@ export default function Landing() {
       {/* Statistics Section */}
       <section className="py-16 bg-muted/50">
         <div className="container mx-auto px-4">
-          <div className="text-center max-w-md mx-auto">
-            <div className="text-3xl md:text-4xl font-bold text-primary mb-2" data-testid="stats-nfts">
-              {stats?.totalNFTs || 0}
+          <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-primary mb-2" data-testid="stats-nfts">
+                {stats?.totalNFTs || 0}
+              </div>
+              <div className="text-sm text-muted-foreground">NFTs Minted</div>
             </div>
-            <div className="text-sm text-muted-foreground">NFTs Minted</div>
+            
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-accent mb-2" data-testid="stats-holders">
+                {stats?.totalHolders || 0}
+              </div>
+              <div className="text-sm text-muted-foreground">Holders</div>
+            </div>
           </div>
         </div>
       </section>

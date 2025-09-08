@@ -2,7 +2,7 @@ import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService } from "./blockchain";
-import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "../shared/schema.js";
+import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -75,28 +75,6 @@ export async function registerRoutes(app: Express) {
 
   // Versioned route for cache busting
   app.get("/.well-known/farcaster.json", (req, res) => {
-    // Dynamic URL detection for different environments
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
-    const baseUrl = `${protocol}://${host}`;
-    
-    // UNIVERSAL NO-SPLASH: All requests get splash-free config
-    const userAgent = req.headers['user-agent'] || '';
-    const hasTouch = req.headers['sec-ch-ua-mobile'] === '?1';
-    
-    // UNIVERSAL: No splash for mobile OR desktop frames
-    const isMobileFarcaster = true; // Force no-splash config for ALL
-    const isLikelyMobile = true;   // Treat everything as mobile (safer)
-    
-    console.log('🔧 Farcaster config (NO SPLASH):', { 
-      host, 
-      userAgent: userAgent.substring(0, 100), 
-      isMobile: isMobileFarcaster,
-      isLikelyMobile,
-      hasTouch,
-      strategy: 'no-splash-instant'
-    });
-    
     const farcasterConfig = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
@@ -108,50 +86,38 @@ export async function registerRoutes(app: Express) {
         "name": "TravelMint",
         "subtitle": "Travel Photo NFT Marketplace",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-        "iconUrl": `${baseUrl}/icon.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "homeUrl": baseUrl,
-        "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "buttonTitle": "⚡ Open",
-        
-        // INSTANT MOBILE ACCESS - No splash, direct to app  
-        "loadingTimeout": 0,
-        "fastLoad": true,
-        "skipSplash": true,
-        "instantLoad": true,
-        "noSplash": true,
-        "disableSplash": true,
-        "autoStart": true,
-        "splashDuration": 0,
-        "hideSplash": true,                     // Force hide splash
-        "webhookUrl": `${baseUrl}/api/webhook`,
+        "iconUrl": "https://travelnft.replit.app/icon.png",
+        "homeUrl": "https://travelnft.replit.app",
+        "imageUrl": "https://travelnft.replit.app/image.png",
+        "heroImageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
+        "buttonTitle": "Open TravelMint",
+        "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`
+          "https://travelnft.replit.app/image.png",
+          "https://travelnft.replit.app/splash.png"
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-        "ogImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "castShareUrl": `${baseUrl}/share`,
+        "ogImageUrl": "https://travelnft.replit.app/image.png",
+        "castShareUrl": "https://travelnft.replit.app/share",
         "noindex": false,
-        "primaryCategory": "social",
-        "mobileOptimized": true,
-        "webViewCompatible": true,
-        "allowIframe": true
+        "primaryCategory": "social"
       },
       "baseBuilder": {
         "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
       }
     };
 
-    // Simple cache control
-    const timestamp = Date.now();
-    
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache, max-age=0');
-    res.setHeader('ETag', `"simple-${timestamp}"`);
-    res.setHeader('X-Farcaster-Mobile', isMobileFarcaster.toString());
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('ETag', `"v${Date.now()}"`);
+    res.setHeader('Last-Modified', new Date().toUTCString());
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 
@@ -1066,6 +1032,8 @@ export async function registerRoutes(app: Express) {
         "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint"
       }
     };

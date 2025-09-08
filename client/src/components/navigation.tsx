@@ -6,14 +6,8 @@ import { WalletConnect } from "@/components/wallet-connect";
 
 export default function Navigation() {
   const [location] = useLocation();
-  const isMobileHook = useIsMobile();
+  const isMobile = useIsMobile();
   const { address, isConnected } = useAccount();
-  
-  // Force mobile navigation for ALL frames (Farcaster constraint)
-  const isFrame = typeof window !== 'undefined' && window.parent !== window;
-  const isMobile = isFrame || isMobileHook; // Force mobile for frames
-  
-  // Force mobile navigation for frames (clean)
   
   const { data: balance } = useBalance({
     address: address,

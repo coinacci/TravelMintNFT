@@ -14,7 +14,6 @@
     "@coinbase/wallet-sdk": "^4.3.7",
     "@farcaster/frame-sdk": "^0.0.64",
     "@farcaster/frame-wagmi-connector": "^0.0.53",
-    "@farcaster/miniapp-sdk": "^0.1.10",
     "@farcaster/miniapp-wagmi-connector": "^1.0.0",
     "@google-cloud/storage": "^7.17.0",
     "@hookform/resolvers": "^3.10.0",
