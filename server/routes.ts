@@ -67,8 +67,8 @@ export async function registerRoutes(app: Express) {
   app.get("/share", (req, res) => {
     const { nft } = req.query;
     const shareUrl = nft 
-      ? `https://travelnft.replit.app/nft/${nft}` 
-      : "https://travelnft.replit.app";
+      ? `https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev/nft/${nft}` 
+      : "https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev";
     
     res.redirect(shareUrl);
   });
@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express) {
   app.get("/.well-known/farcaster.json", (req, res) => {
     // Dynamic URL detection for different environments
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
+    const host = req.headers.host || req.headers['x-forwarded-host'] || '9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev';
     const baseUrl = `${protocol}://${host}`;
     
     // UNIVERSAL NO-SPLASH: All requests get splash-free config
