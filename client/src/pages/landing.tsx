@@ -38,59 +38,51 @@ export default function Landing() {
     return parseFloat(volume).toFixed(1);
   };
 
-  // MAXIMUM VISIBILITY test - try different positioning
+  // NUCLEAR OPTION: Raw HTML injection bypass React completely
   if (isFrame) {
-    // Try to inject directly into document body as well
+    console.log('🚨 NUCLEAR TEST: Bypassing React completely');
+    
+    // Method 1: Direct DOM manipulation
     if (typeof document !== 'undefined') {
-      document.body.style.backgroundColor = '#ff0000';
-      document.body.style.color = 'white';
+      console.log('🔥 Direct DOM injection starting...');
+      
+      // Clear and inject into body directly
+      setTimeout(() => {
+        const testDiv = document.createElement('div');
+        testDiv.innerHTML = `
+          <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; color: white; font-size: 24px; z-index: 999999; padding: 20px;">
+            🚨 DIRECT DOM INJECTION TEST<br>
+            If you see this RED text, React bypass worked!<br>
+            Frame: YES<br>
+            Time: ${new Date().toLocaleTimeString()}
+          </div>
+        `;
+        document.body.appendChild(testDiv);
+        console.log('✅ Direct DOM element injected');
+      }, 100);
+      
+      // Method 2: Document write test  
+      setTimeout(() => {
+        document.body.style.backgroundColor = '#ff0000';
+        document.body.style.color = 'white';
+        document.body.style.fontSize = '20px';
+        console.log('✅ Body style modified directly');
+      }, 200);
     }
     
+    // Method 3: Still return React content as fallback
     return (
-      <>
-        {/* Method 1: Absolute positioning */}
-        <div style={{
-          position: 'absolute',
-          top: '0px',
-          left: '0px',
-          width: '100%',
-          height: '100%',
-          backgroundColor: '#ff0000',
-          color: 'white',
-          fontSize: '24px',
-          padding: '10px',
-          zIndex: 999999
-        }}>
-          ABSOLUTE: Frame Test - Red Background
-        </div>
-        
-        {/* Method 2: Static positioning */}
-        <div style={{
-          backgroundColor: '#00ff00', // Green
-          color: 'black',
-          fontSize: '20px',
-          padding: '20px',
-          height: '200px',
-          width: '100%'
-        }}>
-          STATIC: Green Block - Frame Test
-        </div>
-        
-        {/* Method 3: Fixed positioning */}
-        <div style={{
-          position: 'fixed',
-          top: '50px',
-          left: '10px',
-          backgroundColor: '#0000ff', // Blue
-          color: 'white',
-          fontSize: '18px',
-          padding: '15px',
-          zIndex: 888888,
-          border: '3px solid yellow'
-        }}>
-          FIXED: Blue Box - Frame Test
-        </div>
-      </>
+      <div 
+        dangerouslySetInnerHTML={{
+          __html: `
+            <div style="background: #00ff00; color: black; padding: 30px; font-size: 22px; border: 5px solid red;">
+              ⚡ REACT FALLBACK - Green Block<br>
+              Frame detected: YES<br>
+              If you see this, React is working but CSS might be blocked
+            </div>
+          `
+        }}
+      />
     );
   }
 
