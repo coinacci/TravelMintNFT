@@ -13,27 +13,21 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
-// Ultra-safe Farcaster SDK initialization - prevent all crashes
+// Minimal Farcaster SDK - no blocking calls for mobile stability
 let farcasterReady = false;
 if (typeof window !== 'undefined') {
   try {
-    console.log('🚀 Initializing Farcaster SDK...');
+    console.log('🚀 Minimal Farcaster init...');
     
-    // Check if we're in a Farcaster environment before calling SDK
-    if (window.parent !== window && sdk?.actions?.ready) {
-      // We're in an iframe, likely Farcaster - NO DELAY
-      try {
-        sdk.actions.ready();
-        farcasterReady = true;
-        console.log('✅ Farcaster ready signal sent');
-      } catch (e) {
-        console.log('⚠️ Farcaster ready() failed, continuing anyway');
-      }
+    // Only log detection, don't call any SDK methods immediately
+    if (window.parent !== window && sdk?.actions) {
+      console.log('📱 Farcaster environment detected');
+      // Don't call ready() immediately - let it happen async later
     } else {
-      console.log('🌐 Running in standard web browser (not Farcaster iframe)');
+      console.log('🌐 Standard web browser mode');
     }
   } catch (e) {
-    console.log('⚠️ Farcaster SDK not available, running in web mode');
+    console.log('⚠️ Farcaster detection failed, web mode');
   }
 }
 
@@ -121,38 +115,26 @@ function Router() {
 }
 
 function App() {
-  const [context, setContext] = useState<any>(null);
-  // Removed isError state to eliminate error splash screen
+  // Removed all state to minimize mobile issues
 
   useEffect(() => {
-    console.log('🎯 TravelMint App starting...');
+    console.log('🎯 TravelMint starting...');
     
-    try {
-      // FAST Farcaster context loading - NO DELAYS
-      if (typeof window !== 'undefined' && window.parent !== window && sdk?.context) {
-        // We're in an iframe, try to get Farcaster context immediately
+    // Optional Farcaster SDK ready call - completely async and non-blocking
+    if (typeof window !== 'undefined' && window.parent !== window && sdk?.actions?.ready) {
+      // Delayed, optional ready call - won't block app startup
+      setTimeout(() => {
         try {
-          Promise.resolve(sdk.context)
-            .then((appContext: any) => {
-              if (appContext && !appContext.error) {
-                setContext(appContext);
-                console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
-              }
-            })
-            .catch((error) => {
-              // Completely silent fail - just continue without context
-              console.log('ℹ️ Farcaster context not available, continuing in web mode');
-            });
-        } catch (syncError) {
-          console.log('ℹ️ Farcaster context sync error, continuing anyway');
+          sdk.actions.ready();
+          console.log('✅ Farcaster ready (delayed)');
+        } catch (e) {
+          // Silent fail
         }
-      } else {
-        console.log('🌐 Running in standard web browser mode');
-      }
-    } catch (error) {
-      // Don't set error state - just log and continue (removed isError)
-      console.warn('⚠️ Context initialization issue (non-critical):', error);
+      }, 1000); // Give app time to fully load first
     }
+    
+    // No context loading - keep it simple for mobile
+    console.log('📱 App ready for interaction');
   }, []);
 
   // Removed emergency fallback screen - no splash screens!
