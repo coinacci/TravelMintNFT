@@ -26,10 +26,10 @@ function Router() {
         <Route path="/my-nfts" component={MyNFTs} />
         <Route path="/mint" component={Mint} />
         <Route>
-          <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+          <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
             <div className="text-center">
               <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-              <p className="text-muted-foreground">The page you're looking for doesn't exist.</p>
+              <p>The page you're looking for doesn't exist.</p>
             </div>
           </div>
         </Route>
@@ -52,14 +52,16 @@ function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </WalletProvider>
-    </QueryClientProvider>
+    <div style={{backgroundColor: '#0f172a', color: 'white', minHeight: '100vh'}}>
+      <QueryClientProvider client={queryClient}>
+        <WalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </WalletProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 
