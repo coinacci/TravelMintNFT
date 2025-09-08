@@ -11,6 +11,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 import { getBestImageUrl } from "@/lib/imageUtils";
+import token29Custom from "@assets/token-29-custom.jpg";
+import token30Custom from "@assets/token-30-custom.jpg";
+import token31Custom from "@assets/token-31-custom.jpg";
 
 // Modal placeholder imported from imageUtils
 
@@ -40,8 +43,43 @@ interface Transaction {
   toUserId: string;
 }
 
-// Simple Image Component - No complex loading, just use best URL
-const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; objectStorageUrl?: string; title: string }; className: string; [key: string]: any }) => {
+// Simple Image Component with Custom Asset Support
+const SimpleImage = ({ nft, className, ...props }: { nft: { id?: string; imageUrl: string; objectStorageUrl?: string; title: string }; className: string; [key: string]: any }) => {
+  // Special case: Genoa Italy NFTs (Token 29, 30, 31) use custom images
+  if (nft.id === 'blockchain-29') {
+    console.log(`🇮🇹 Explore: Using custom Genoa image for Token 29`);
+    return (
+      <img
+        src={token29Custom}
+        alt={nft.title}
+        className={className}
+        {...props}
+      />
+    );
+  }
+  if (nft.id === 'blockchain-30') {
+    console.log(`🇮🇹 Explore: Using custom Genoa image for Token 30`);
+    return (
+      <img
+        src={token30Custom}
+        alt={nft.title}
+        className={className}
+        {...props}
+      />
+    );
+  }
+  if (nft.id === 'blockchain-31') {
+    console.log(`🇮🇹 Explore: Using custom Genoa image for Token 31`);
+    return (
+      <img
+        src={token31Custom}
+        alt={nft.title}
+        className={className}
+        {...props}
+      />
+    );
+  }
+  
   const imageUrl = getBestImageUrl(nft);
   
   return (
