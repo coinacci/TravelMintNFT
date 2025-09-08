@@ -36,7 +36,21 @@
       // Update Farcaster meta tags with current domain
       if (typeof window !== 'undefined') {
         const currentUrl = window.location.origin;
-        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        // FORCE mobile mode for ALL frames - ultra-safe approach
+        const userAgent = navigator.userAgent || '';
+        const isFrame = window.parent !== window;
+        
+        // If it's a frame OR any mobile indicators, treat as mobile
+        const isMobile = isFrame || 
+                        userAgent.includes('Farcaster') || 
+                        userAgent.includes('Mobile') || 
+                        userAgent.includes('Android') || 
+                        userAgent.includes('iPhone') ||
+                        userAgent.includes('iPad') ||
+                        /Mobi|Android|iPhone|iPad/i.test(userAgent) ||
+                        'ontouchstart' in window;
+                        
+        console.log('📱 HTML Detection - Frame:', isFrame, 'Mobile:', isMobile);
         
         // Enhanced cache busting with random IDs
         const timestamp = Date.now();

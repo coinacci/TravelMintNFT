@@ -13,30 +13,43 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
-// Mobile-first Farcaster detection with NO SDK calls
+// AGGRESSIVE mobile detection - treat ALL frames as mobile by default
 let farcasterReady = false;
 let isMobileFarcaster = false;
 let isFarcasterFrame = false;
+let isAnyMobile = false;
 
 if (typeof window !== 'undefined') {
   try {
     const userAgent = navigator.userAgent || '';
     isFarcasterFrame = window.parent !== window;
-    isMobileFarcaster = userAgent.includes('Farcaster') && 
-                       (userAgent.includes('Mobile') || 
-                        userAgent.includes('Android') || 
-                        userAgent.includes('iPhone') ||
-                        /Mobi|Android/i.test(userAgent));
     
-    console.log('🚀 TravelMint Mobile-Optimized Start');
-    console.log(`📱 Frame: ${isFarcasterFrame}, Mobile: ${isMobileFarcaster}`);
+    // EXPANDED mobile detection - much more aggressive
+    isMobileFarcaster = isFarcasterFrame && (
+      userAgent.includes('Farcaster') ||
+      userAgent.includes('Mobile') || 
+      userAgent.includes('Android') || 
+      userAgent.includes('iPhone') ||
+      userAgent.includes('iPad') ||
+      /Mobi|Android|iPhone|iPad/i.test(userAgent) ||
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0
+    );
     
-    // CRITICAL: NO SDK CALLS ON MOBILE - prevents hanging
-    if (isMobileFarcaster) {
-      console.log('📱 Mobile Farcaster detected - SDK disabled for instant load');
+    // If it's ANY frame, treat as mobile (safer approach)
+    isAnyMobile = isFarcasterFrame || isMobileFarcaster;
+    
+    console.log('🚀 TravelMint Ultra-Mobile Detection');
+    console.log(`📱 Frame: ${isFarcasterFrame}, Mobile: ${isMobileFarcaster}, AnyMobile: ${isAnyMobile}`);
+    console.log(`🔍 UserAgent: ${userAgent.substring(0, 100)}`);
+    
+    // CRITICAL: NO SDK CALLS IF ANY FRAME - prevents ALL hanging
+    if (isAnyMobile) {
+      console.log('📱 FRAME/MOBILE detected - SDK COMPLETELY DISABLED');
     }
   } catch (e) {
-    console.log('⚠️ Detection failed - defaulting to web mode');
+    console.log('⚠️ Detection failed - defaulting to mobile-safe mode');
+    isAnyMobile = true; // Default to safe mode
   }
 }
 
@@ -141,22 +154,23 @@ function App() {
   useEffect(() => {
     console.log('🎯 TravelMint starting...');
     
-    // Mobile-optimized SDK handling - NO delays on mobile
-    if (typeof window !== 'undefined' && isFarcasterFrame && !isMobileFarcaster && sdk?.actions?.ready) {
-      // Only desktop gets SDK calls
-      setTimeout(() => {
-        try {
-          sdk.actions.ready();
-          console.log('✅ Desktop Farcaster ready (1s delay)');
-        } catch (e) {
-          console.log('⚠️ SDK ready failed (desktop):', e);
-        }
-      }, 1000);
-    }
-    
-    // Mobile gets immediate ready without SDK
-    if (isMobileFarcaster) {
-      console.log('🚀 Mobile Farcaster: Instant ready (no SDK)');
+    // ZERO SDK calls in frame environments - instant ready
+    if (typeof window !== 'undefined') {
+      if (isAnyMobile || isFarcasterFrame) {
+        // ANY frame = instant ready, NO SDK
+        console.log('🚀 FRAME MODE: Instant ready (ZERO SDK calls)');
+        console.log('📱 App is ready for immediate interaction');
+      } else if (sdk?.actions?.ready) {
+        // Only pure desktop web gets SDK
+        setTimeout(() => {
+          try {
+            sdk.actions.ready();
+            console.log('✅ Pure Desktop ready (1s delay)');
+          } catch (e) {
+            console.log('⚠️ SDK ready failed (desktop):', e);
+          }
+        }, 1000);
+      }
     }
     
     // No context loading - keep it simple for mobile

@@ -80,11 +80,27 @@ export async function registerRoutes(app: Express) {
     const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
     const baseUrl = `${protocol}://${host}`;
     
-    // Detect mobile Farcaster client via User-Agent
+    // ULTRA-AGGRESSIVE mobile detection - safer approach
     const userAgent = req.headers['user-agent'] || '';
-    const isMobileFarcaster = userAgent.includes('Farcaster') && (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone'));
+    const hasTouch = req.headers['sec-ch-ua-mobile'] === '?1';
     
-    console.log('🔧 Farcaster config requested:', { host, userAgent: userAgent.substring(0, 100), isMobile: isMobileFarcaster });
+    // Treat ALL Farcaster requests as mobile by default (safer)
+    const isMobileFarcaster = true; // Force mobile optimizations
+    const isLikelyMobile = userAgent.includes('Farcaster') || 
+                          userAgent.includes('Mobile') || 
+                          userAgent.includes('Android') || 
+                          userAgent.includes('iPhone') ||
+                          userAgent.includes('iPad') ||
+                          hasTouch ||
+                          /Mobi|Android|iPhone|iPad/i.test(userAgent);
+    
+    console.log('🔧 Farcaster config (FORCE MOBILE):', { 
+      host, 
+      userAgent: userAgent.substring(0, 100), 
+      isMobile: isMobileFarcaster,
+      isLikelyMobile,
+      hasTouch 
+    });
     
     const farcasterConfig = {
       "accountAssociation": {
