@@ -87,8 +87,17 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply font-sans antialiased bg-background text-foreground;
+    min-height: 100vh;
+    height: 100%;
+  }
+  
+  /* Frame optimization - ensure content is visible */
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -98,6 +107,8 @@
 
 .map-container {
   height: calc(100vh - 4rem);
+  min-height: 400px; /* Frame fallback */
+  max-height: 800px; /* Frame constraint */
   position: relative;
 }
 
@@ -182,5 +193,12 @@
 @media (max-width: 768px) {
   .map-container {
     height: calc(100vh - 8rem);
+    min-height: 300px; /* Mobile frame fallback */
+    max-height: 600px; /* Mobile frame constraint */
+  }
+  
+  /* Frame-specific mobile adjustments */
+  .frame-mobile #root {
+    min-height: 400px !important;
   }
 }

@@ -12,15 +12,51 @@ interface Stats {
 }
 
 export default function Landing() {
-  const isMobile = useIsMobile();
+  const isMobileHook = useIsMobile();
+  
+  // Force mobile layout for frames (consistent with Navigation)
+  const isFrame = typeof window !== 'undefined' && window.parent !== window;
+  const isMobile = isFrame || isMobileHook;
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/stats"],
   });
 
+  // Debug logging for Landing page
+  console.log('🏠 Landing page rendering:', { 
+    isMobile, 
+    stats,
+    isFrame: typeof window !== 'undefined' && window.parent !== window 
+  });
+
+  // Force visible content for debugging in frames
+  if (isFrame) {
+    console.log('🎯 FRAME DETECTED: Rendering emergency visible content');
+  }
+
   const formatVolume = (volume: string) => {
     return parseFloat(volume).toFixed(1);
   };
+
+  // Emergency frame debug
+  if (isFrame) {
+    return (
+      <div className="min-h-screen bg-blue-50 p-4 text-black">
+        <div className="bg-white p-4 rounded shadow">
+          <h1 className="text-2xl font-bold mb-4" style={{color: '#0000ff'}}>🎯 TravelMint Debug</h1>
+          <p className="mb-2">✅ Frame detected: {isFrame ? 'YES' : 'NO'}</p>
+          <p className="mb-2">✅ Mobile mode: {isMobile ? 'YES' : 'NO'}</p>
+          <p className="mb-2">✅ Stats loaded: {stats ? 'YES' : 'NO'}</p>
+          <p className="mb-4">✅ Total NFTs: {stats?.totalNFTs || 'Loading...'}</p>
+          <div className="space-y-2">
+            <button className="bg-blue-500 text-white px-4 py-2 rounded w-full">🗺️ Explore Map</button>
+            <button className="bg-green-500 text-white px-4 py-2 rounded w-full">📸 Mint NFT</button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded w-full">💰 Marketplace</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
