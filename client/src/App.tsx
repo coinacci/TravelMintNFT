@@ -52,14 +52,16 @@ function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </WalletProvider>
-    </QueryClientProvider>
+    <div style={{backgroundColor: '#0f172a', color: 'white', minHeight: '100vh'}}>
+      <QueryClientProvider client={queryClient}>
+        <WalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </WalletProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 

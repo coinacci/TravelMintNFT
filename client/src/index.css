@@ -203,27 +203,28 @@
   }
 }
 
-/* CRITICAL: Mobile frame visibility fix - FORCE dark theme */
-html, body, #root {
+/* EMERGENCY: Ultra-aggressive mobile visibility fix */
+html, body, #root, div, main, section, header, nav {
+  background-color: #0f172a !important;
+  background: #0f172a !important;
+  color: white !important;
+}
+
+/* Nuclear option: Override EVERYTHING for mobile frames */
+* {
   background-color: #0f172a !important;
   color: white !important;
 }
 
-/* Mobile Farcaster frame emergency visibility */
-@media screen {
-  body, html {
-    background: #0f172a !important;
-    color: #ffffff !important;
-  }
-  
-  #root {
-    background: #0f172a !important;
-    color: #ffffff !important;
-    min-height: 100vh !important;
-  }
-  
-  /* Force all text to be visible on mobile */
-  * {
-    color: inherit !important;
-  }
+/* Text elements specific override */
+h1, h2, h3, h4, h5, h6, p, span, div, button, a {
+  color: white !important;
+  background: transparent !important;
+}
+
+/* Button visibility */
+button {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  border: 1px solid #3b82f6 !important;
 }
