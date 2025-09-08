@@ -90,20 +90,33 @@
                         
         console.log('📱 HTML Detection - Frame:', isFrame, 'Mobile:', isMobile);
         
-        // NO SPLASH: Instant frame loading
+        // ULTRA-AGGRESSIVE: Skip ALL splash screens instantly
         if (isFrame) {
           console.log('⚡ NO SPLASH: Instant frame loading');
           
-          // Immediate ready message since splash is disabled
+          // Hide any potential splash elements immediately
+          document.body.style.visibility = 'visible';
+          document.documentElement.style.visibility = 'visible';
+          
+          // Immediate ready message - multiple attempts
           console.log('🚀 Posting instant ready message (no splash delay)');
-          if (window.parent && window.parent.postMessage) {
-            window.parent.postMessage({ 
-              type: 'FRAME_READY_INSTANT', 
-              source: 'TravelMint',
-              strategy: 'no-splash-instant',
-              splashSkipped: true
-            }, '*');
-          }
+          const sendReady = () => {
+            if (window.parent && window.parent.postMessage) {
+              window.parent.postMessage({ 
+                type: 'FRAME_READY_INSTANT', 
+                source: 'TravelMint',
+                strategy: 'no-splash-instant',
+                splashSkipped: true,
+                autoReady: true
+              }, '*');
+            }
+          };
+          
+          // Send ready multiple times with different delays
+          sendReady();
+          setTimeout(sendReady, 0);
+          setTimeout(sendReady, 1);
+          setTimeout(sendReady, 10);
         }
         
         // Enhanced cache busting with random IDs
@@ -159,7 +172,9 @@
               "splashImageUrl": currentUrl + "/splash.png" + cacheParam,
               "splashBackgroundColor": "#0f172a",
               "skipSplash": true,
-              "loadingTimeout": 0
+              "loadingTimeout": 0,
+              "autoReady": true,
+              "disableSplash": true
             }
           },
           "tags": ["travel", "nft", "blockchain", "photography", "base"],
