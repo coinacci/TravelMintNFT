@@ -189,113 +189,34 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // CACHE-BUSTED TRANSITION - Clear cache + hide splash
-        console.log('💥 CACHE-BUSTED splash transition mode');
+        // SIMPLE SPLASH SOLUTION - Just SDK ready + dismiss message
+        console.log('✨ Simple splash solution');
         
-        // Strategy: SDK ready + progressive visibility enhancement
-        const timingBasedTransition = () => {
+        const simpleSplashFix = () => {
           try {
-            console.log('🎯 Calling SDK ready() for splash transition');
-            
-            // Strategy 1: Direct SDK ready call
+            // 1. Call SDK ready (the important part)
             if (typeof sdk !== 'undefined' && sdk.actions && sdk.actions.ready) {
               sdk.actions.ready();
-              console.log('✅ SDK ready() called - should transition from splash');
+              console.log('✅ SDK ready() called');
             }
             
-            // Strategy 2: HIDE SPLASH + Show app
-            const hideSplashShowApp = (attempt: number) => {
-              console.log(`🫥 HIDING splash screen (attempt ${attempt})`);
-              
-              // 1. FORCE HIDE ALL SPLASH ELEMENTS
-              const hideSplashElements = () => {
-                // Find and hide all potential splash elements
-                const splashSelectors = [
-                  '[class*="splash"]', '[id*="splash"]',
-                  '[class*="loading"]', '[id*="loading"]', 
-                  '[class*="farcaster"]', '[id*="farcaster"]',
-                  'img[src*="icon"]', 'img[src*="splash"]',
-                  'div[style*="position: fixed"]', 'div[style*="position: absolute"]'
-                ];
-                
-                splashSelectors.forEach(selector => {
-                  try {
-                    const elements = document.querySelectorAll(selector);
-                    elements.forEach(el => {
-                      const computedStyle = window.getComputedStyle(el);
-                      const zIndex = parseInt(computedStyle.zIndex || '0');
-                      
-                      // Hide high z-index elements (likely splash overlays)
-                      if (zIndex > 100) {
-                        console.log(`🗑️ Hiding splash element: ${el.tagName}`, selector);
-                        (el as HTMLElement).style.display = 'none !important';
-                        (el as HTMLElement).style.opacity = '0 !important';
-                        (el as HTMLElement).style.visibility = 'hidden !important';
-                        (el as HTMLElement).style.pointerEvents = 'none !important';
-                        // Completely remove from DOM
-                        el.remove();
-                      }
-                    });
-                  } catch (e) {
-                    console.log('⚠️ Could not hide selector:', selector);
-                  }
-                });
-                
-                console.log('✅ Splash elements hidden');
-              };
-              
-              // 2. SHOW APP CONTAINER
-              const appContainer = document.getElementById('root');
-              if (appContainer) {
-                appContainer.style.display = 'flex';
-                appContainer.style.opacity = '1';
-                appContainer.style.visibility = 'visible';
-                appContainer.style.position = 'relative';
-                appContainer.style.zIndex = '999999';
-                console.log(`📱 App container shown (attempt ${attempt})`);
-              }
-              
-              // 3. ENSURE BODY IS INTERACTIVE
-              document.body.style.display = 'block';
-              document.body.style.opacity = '1';
-              document.body.style.visibility = 'visible';
-              document.body.style.pointerEvents = 'auto';
-              
-              // 4. EXECUTE SPLASH HIDING
-              hideSplashElements();
-              
-              // 5. TELL PARENT FRAME SPLASH IS HIDDEN
+            // 2. Send clear dismiss message to parent
+            setTimeout(() => {
+              console.log('📤 Sending splash dismiss message');
               window.parent?.postMessage({ 
-                type: 'farcaster_frame_ready',
-                appReady: true,
-                splashHidden: true,
-                attempt: attempt,
-                timestamp: Date.now()
+                type: 'DISMISS_SPLASH',
+                action: 'hide_splash_now',
+                ready: true
               }, '*');
-              
-              window.parent?.postMessage({ type: 'HIDE_SPLASH_NOW' }, '*');
-              window.parent?.postMessage({ type: 'FRAME_READY' }, '*');
-              window.parent?.postMessage({ type: 'APP_VISIBLE' }, '*');
-              
-              console.log(`🎯 Splash hidden + App shown (attempt ${attempt})`);
-            };
-            
-            // Progressive splash hiding with increasing delays
-            hideSplashShowApp(1);
-            setTimeout(() => hideSplashShowApp(2), 300);
-            setTimeout(() => hideSplashShowApp(3), 800);
-            setTimeout(() => hideSplashShowApp(4), 1500);
-            setTimeout(() => hideSplashShowApp(5), 3000);
+            }, 100);
             
           } catch (error) {
-            console.log('⚠️ Timing transition error:', error);
+            console.log('⚠️ Simple splash error:', error);
           }
         };
         
-        // Call immediately and with strategic delays
-        timingBasedTransition();
-        setTimeout(timingBasedTransition, 100);
-        setTimeout(timingBasedTransition, 500);
+        // Call once, clean and simple
+        simpleSplashFix();
         
         // Universal frame communication
         if (window.parent && window.parent !== window) {

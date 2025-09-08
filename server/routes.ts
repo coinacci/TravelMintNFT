@@ -112,9 +112,9 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // FARCASTER MANIFEST REQUIREMENTS (MINIMAL SPLASH)  
-        "splashImageUrl": `${baseUrl}/icon.png`,  // Minimal splash for fast transition
-        "splashBackgroundColor": "transparent",   // Transparent for faster dismiss
+        // SIMPLE SPLASH CONFIG
+        "splashImageUrl": `${baseUrl}/icon.png`,
+        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "⚡ Open",
         
         // NO SPLASH CONFIG - Instant app access (MOBILE FOCUSED)
@@ -147,25 +147,13 @@ export async function registerRoutes(app: Express) {
       }
     };
 
-    // NUCLEAR CACHE BUSTING - Mobile app cache destroyer
+    // Simple cache control
     const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substr(2, 15);
-    const nanoTime = performance.now().toString().replace('.', '');
     
     res.setHeader('Content-Type', 'application/json');
-    // NUCLEAR cache prevention - destroy all mobile caches
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0, private, immutable');
-    res.setHeader('Surrogate-Control', 'no-store, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
-    res.setHeader('Last-Modified', new Date(timestamp).toUTCString());
-    res.setHeader('ETag', `"nuclear-cache-bust-${timestamp}-${randomId}-${nanoTime}"`);
-    res.setHeader('Vary', 'User-Agent, Accept-Encoding, Cache-Control');
+    res.setHeader('Cache-Control', 'no-cache, max-age=0');
+    res.setHeader('ETag', `"simple-${timestamp}"`);
     res.setHeader('X-Farcaster-Mobile', isMobileFarcaster.toString());
-    res.setHeader('X-Cache-Bust', `mobile-${timestamp}-${randomId}`);
-    res.setHeader('X-No-Cache', 'true');
-    res.setHeader('X-Frame-Options', 'ALLOWALL');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 
