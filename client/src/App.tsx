@@ -189,13 +189,13 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // PROPER SPLASH TRANSITION - Let splash show, then transition to app
-        console.log('✨ PROPER splash transition mode');
+        // LAYERING FIX - Bring app to front after SDK ready
+        console.log('🎯 Layer-based splash transition mode');
         
-        // Enhanced SDK ready call with multiple strategies
-        const properSplashTransition = () => {
+        // Enhanced SDK ready call with app layer management
+        const layerBasedTransition = () => {
           try {
-            console.log('🎯 Calling SDK ready() for proper splash transition');
+            console.log('🎯 Calling SDK ready() for splash transition');
             
             // Strategy 1: Direct SDK ready call
             if (typeof sdk !== 'undefined' && sdk.actions && sdk.actions.ready) {
@@ -203,29 +203,45 @@ function App() {
               console.log('✅ SDK ready() called - should transition from splash');
             }
             
-            // Strategy 2: Manual app state signaling (backup)
+            // Strategy 2: Force app to front after ready signal
             setTimeout(() => {
-              console.log('📋 App fully loaded - sending ready signals');
+              console.log('🔝 Bringing app to front (layering fix)');
+              
+              // Force app container to highest z-index
+              const appContainer = document.getElementById('root');
+              if (appContainer) {
+                appContainer.style.position = 'relative';
+                appContainer.style.zIndex = '999999';
+                appContainer.style.backgroundColor = 'transparent';
+                console.log('📱 App container z-index set to 999999');
+              }
+              
+              // Ensure body has high z-index too
+              document.body.style.position = 'relative';
+              document.body.style.zIndex = '999998';
+              
+              // Send ready signals to parent
               window.parent?.postMessage({ 
                 type: 'farcaster_frame_ready',
                 appReady: true,
+                layerFixed: true,
                 timestamp: Date.now()
               }, '*');
               
-              // Additional ready signals for mobile compatibility
               window.parent?.postMessage({ type: 'FRAME_READY' }, '*');
               window.parent?.postMessage({ type: 'APP_LOADED' }, '*');
-            }, 50);
+              
+            }, 100); // Slight delay for SDK processing
             
           } catch (error) {
-            console.log('⚠️ Proper splash transition error:', error);
+            console.log('⚠️ Layer transition error:', error);
           }
         };
         
         // Call immediately and with safe delays
-        properSplashTransition();
-        setTimeout(properSplashTransition, 100);
-        setTimeout(properSplashTransition, 300);
+        layerBasedTransition();
+        setTimeout(layerBasedTransition, 200);
+        setTimeout(layerBasedTransition, 500);
         
         // Universal frame communication
         if (window.parent && window.parent !== window) {
