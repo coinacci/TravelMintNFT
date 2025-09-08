@@ -203,11 +203,48 @@ function App() {
               console.log('✅ SDK ready() called - should transition from splash');
             }
             
-            // Strategy 2: Progressive visibility enhancement over time
-            const enhanceVisibility = (attempt: number) => {
-              console.log(`🔄 Visibility enhancement attempt ${attempt}`);
+            // Strategy 2: HIDE SPLASH + Show app
+            const hideSplashShowApp = (attempt: number) => {
+              console.log(`🫥 HIDING splash screen (attempt ${attempt})`);
               
-              // Ensure app is fully visible and interactive
+              // 1. FORCE HIDE ALL SPLASH ELEMENTS
+              const hideSplashElements = () => {
+                // Find and hide all potential splash elements
+                const splashSelectors = [
+                  '[class*="splash"]', '[id*="splash"]',
+                  '[class*="loading"]', '[id*="loading"]', 
+                  '[class*="farcaster"]', '[id*="farcaster"]',
+                  'img[src*="icon"]', 'img[src*="splash"]',
+                  'div[style*="position: fixed"]', 'div[style*="position: absolute"]'
+                ];
+                
+                splashSelectors.forEach(selector => {
+                  try {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                      const computedStyle = window.getComputedStyle(el);
+                      const zIndex = parseInt(computedStyle.zIndex || '0');
+                      
+                      // Hide high z-index elements (likely splash overlays)
+                      if (zIndex > 100) {
+                        console.log(`🗑️ Hiding splash element: ${el.tagName}`, selector);
+                        (el as HTMLElement).style.display = 'none !important';
+                        (el as HTMLElement).style.opacity = '0 !important';
+                        (el as HTMLElement).style.visibility = 'hidden !important';
+                        (el as HTMLElement).style.pointerEvents = 'none !important';
+                        // Completely remove from DOM
+                        el.remove();
+                      }
+                    });
+                  } catch (e) {
+                    console.log('⚠️ Could not hide selector:', selector);
+                  }
+                });
+                
+                console.log('✅ Splash elements hidden');
+              };
+              
+              // 2. SHOW APP CONTAINER
               const appContainer = document.getElementById('root');
               if (appContainer) {
                 appContainer.style.display = 'flex';
@@ -215,33 +252,40 @@ function App() {
                 appContainer.style.visibility = 'visible';
                 appContainer.style.position = 'relative';
                 appContainer.style.zIndex = '999999';
-                console.log(`📱 App visibility enhanced (attempt ${attempt})`);
+                console.log(`📱 App container shown (attempt ${attempt})`);
               }
               
-              // Force body to be interactive
+              // 3. ENSURE BODY IS INTERACTIVE
               document.body.style.display = 'block';
               document.body.style.opacity = '1';
               document.body.style.visibility = 'visible';
               document.body.style.pointerEvents = 'auto';
               
-              // Send ready signals to parent (multiple times for reliability)
+              // 4. EXECUTE SPLASH HIDING
+              hideSplashElements();
+              
+              // 5. TELL PARENT FRAME SPLASH IS HIDDEN
               window.parent?.postMessage({ 
                 type: 'farcaster_frame_ready',
                 appReady: true,
+                splashHidden: true,
                 attempt: attempt,
                 timestamp: Date.now()
               }, '*');
               
+              window.parent?.postMessage({ type: 'HIDE_SPLASH_NOW' }, '*');
               window.parent?.postMessage({ type: 'FRAME_READY' }, '*');
               window.parent?.postMessage({ type: 'APP_VISIBLE' }, '*');
+              
+              console.log(`🎯 Splash hidden + App shown (attempt ${attempt})`);
             };
             
-            // Progressive enhancement with increasing delays
-            enhanceVisibility(1);
-            setTimeout(() => enhanceVisibility(2), 300);
-            setTimeout(() => enhanceVisibility(3), 800);
-            setTimeout(() => enhanceVisibility(4), 1500);
-            setTimeout(() => enhanceVisibility(5), 3000);
+            // Progressive splash hiding with increasing delays
+            hideSplashShowApp(1);
+            setTimeout(() => hideSplashShowApp(2), 300);
+            setTimeout(() => hideSplashShowApp(3), 800);
+            setTimeout(() => hideSplashShowApp(4), 1500);
+            setTimeout(() => hideSplashShowApp(5), 3000);
             
           } catch (error) {
             console.log('⚠️ Timing transition error:', error);
