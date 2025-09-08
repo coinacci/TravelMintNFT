@@ -54,14 +54,31 @@ function App() {
       if (typeof window !== 'undefined' && window.parent !== window) {
         console.log('⚡ Initializing Farcaster MiniApp SDK...');
         try {
-          // Official Farcaster MiniApp SDK call - async/await pattern
-          await sdk.actions.ready();
+          console.log('🔄 Calling sdk.actions.ready()...');
+          // Add timeout to prevent infinite waiting
+          const readyPromise = sdk.actions.ready();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('SDK ready timeout')), 5000)
+          );
+          
+          await Promise.race([readyPromise, timeoutPromise]);
           console.log('✅ Farcaster SDK ready() called successfully - splash should be hidden');
         } catch (error) {
           console.error('❌ Farcaster SDK ready() error:', error);
-          // Fallback for manual visibility
-          document.body.style.visibility = 'visible';
-          document.body.style.opacity = '1';
+          console.error('❌ Error details:', error.message, error.stack);
+          
+          // Manual fallback - force visibility
+          console.log('🔧 Applying manual visibility fallback...');
+          document.body.style.visibility = 'visible !important';
+          document.body.style.opacity = '1 !important';
+          document.body.style.display = 'block !important';
+          
+          const root = document.getElementById('root');
+          if (root) {
+            root.style.visibility = 'visible !important';
+            root.style.opacity = '1 !important';
+            root.style.display = 'flex !important';
+          }
         }
       }
     };
