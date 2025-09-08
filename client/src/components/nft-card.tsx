@@ -31,17 +31,8 @@ const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/20
 // Error placeholder when all URLs fail
 const ERROR_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><defs><linearGradient id="errorBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23fee2e2"/><stop offset="100%" stop-color="%23fecaca"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23errorBg)"/><rect x="25" y="25" width="270" height="142" rx="12" fill="%23ffffff" fill-opacity="0.9" stroke="%23f87171" stroke-width="2" stroke-dasharray="5,5"/><circle cx="160" cy="75" r="20" fill="%23ef4444"/><text x="160" y="82" text-anchor="middle" fill="%23ffffff" font-size="20" font-family="Inter,sans-serif">!</text><text x="160" y="110" text-anchor="middle" fill="%23dc2626" font-size="11" font-family="Inter,sans-serif" font-weight="600">🌍 Image Not Found</text><text x="160" y="128" text-anchor="middle" fill="%23b91c1c" font-size="9" font-family="Inter,sans-serif">Photo temporarily unavailable</text><text x="160" y="145" text-anchor="middle" fill="%23b91c1c" font-size="8" font-family="Inter,sans-serif">Try refreshing the page</text></svg>`;
 
-// Multiple IPFS gateways for maximum reliability  
-const IPFS_GATEWAYS = [
-  'https://ipfs.io/ipfs/',
-  'https://gateway.pinata.cloud/ipfs/',  
-  'https://cloudflare-ipfs.com/ipfs/',
-  'https://dweb.link/ipfs/',
-  'https://4everland.io/ipfs/',
-  'https://cf-ipfs.com/ipfs/',
-  'https://w3s.link/ipfs/',
-  'https://nftstorage.link/ipfs/'
-];
+// Use only reliable Pinata gateway to prevent mobile app hanging
+const RELIABLE_IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs/';
 
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
@@ -106,6 +97,16 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     
     img.onerror = () => {
       console.log(`❌ NFTCard failed ${nft.title}, trying fallback...`);
+      
+      // If URL uses unreliable gateway, switch to Pinata
+      if (primaryUrl.includes('ipfs.io/ipfs/') || primaryUrl.includes('cloudflare-ipfs.com/ipfs/')) {
+        const ipfsHash = primaryUrl.split('/ipfs/')[1];
+        const pinataUrl = `${RELIABLE_IPFS_GATEWAY}${ipfsHash}`;
+        console.log(`🔄 Switching to reliable gateway: ${pinataUrl}`);
+        loadImage(pinataUrl, fallbackUrl);
+        return;
+      }
+      
       if (fallbackUrl && fallbackUrl !== primaryUrl) {
         loadImage(fallbackUrl);
       } else {
