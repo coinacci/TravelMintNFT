@@ -89,15 +89,23 @@
 
   html, body {
     @apply font-sans antialiased bg-background text-foreground;
-    min-height: 100vh;
+    /* Mobile-safe height without viewport units that cause issues */
+    min-height: 100%;
     height: 100%;
+    /* Prevent mobile scaling issues */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
   
-  /* Frame optimization - ensure content is visible */
+  /* Frame optimization - mobile WebView safe */
   #root {
-    min-height: 100vh;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
+    /* Ensure content stretches on short screens */
+    min-height: calc(100vh - env(keyboard-inset-height, 0px));
   }
 }
 
@@ -106,10 +114,13 @@
 }
 
 .map-container {
+  /* Mobile-safe height calculation */
   height: calc(100vh - 4rem);
-  min-height: 400px; /* Frame fallback */
-  max-height: 800px; /* Frame constraint */
+  min-height: 350px; /* Mobile-friendly minimum */
+  max-height: 70vh; /* Prevent too tall on mobile */
   position: relative;
+  /* Prevent map overflow issues on mobile */
+  overflow: hidden;
 }
 
 .floating-panel {
@@ -189,17 +200,41 @@
   background: hsl(var(--card));
 }
 
-/* Mobile responsive adjustments */
+/* Mobile responsive adjustments - WebView safe */
 @media (max-width: 768px) {
+  /* Fix viewport height issues on mobile */
+  html, body {
+    height: auto;
+    min-height: 100%;
+  }
+  
+  #root {
+    min-height: 100%;
+    /* Use safer height calculation for mobile WebView */
+    min-height: calc(100vh - 2rem);
+  }
+  
   .map-container {
-    height: calc(100vh - 8rem);
-    min-height: 300px; /* Mobile frame fallback */
-    max-height: 600px; /* Mobile frame constraint */
+    /* Mobile-friendly map height */
+    height: 50vh;
+    min-height: 280px;
+    max-height: 400px;
+    /* Fix mobile touch/scroll issues */
+    touch-action: pan-x pan-y;
   }
   
   /* Frame-specific mobile adjustments */
   .frame-mobile #root {
-    min-height: 400px !important;
+    min-height: 350px !important;
+    height: auto !important;
+  }
+  
+  /* Fix potential overflow issues on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 
