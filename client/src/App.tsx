@@ -189,77 +189,43 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // NUCLEAR SPLASH REMOVAL - Kill everything
-        const forcedHideSplash = () => {
+        // PROPER SPLASH TRANSITION - Let splash show, then transition to app
+        console.log('✨ PROPER splash transition mode');
+        
+        // Enhanced SDK ready call with multiple strategies
+        const properSplashTransition = () => {
           try {
-            console.log('🔥 NUCLEAR splash removal activated');
+            console.log('🎯 Calling SDK ready() for proper splash transition');
             
-            // 1. Hide ALL positioned elements with high z-index (nuclear approach)
-            const allElements = document.querySelectorAll('*');
-            allElements.forEach(element => {
-              const style = window.getComputedStyle(element);
-              const zIndex = parseInt(style.zIndex || '0');
+            // Strategy 1: Direct SDK ready call
+            if (typeof sdk !== 'undefined' && sdk.actions && sdk.actions.ready) {
+              sdk.actions.ready();
+              console.log('✅ SDK ready() called - should transition from splash');
+            }
+            
+            // Strategy 2: Manual app state signaling (backup)
+            setTimeout(() => {
+              console.log('📋 App fully loaded - sending ready signals');
+              window.parent?.postMessage({ 
+                type: 'farcaster_frame_ready',
+                appReady: true,
+                timestamp: Date.now()
+              }, '*');
               
-              if ((style.position === 'fixed' || style.position === 'absolute') && zIndex > 10) {
-                console.log('💀 KILLING overlay element:', element.tagName, zIndex);
-                (element as HTMLElement).style.display = 'none !important';
-                (element as HTMLElement).style.opacity = '0 !important';
-                (element as HTMLElement).style.visibility = 'hidden !important';
-                (element as HTMLElement).style.pointerEvents = 'none !important';
-                // Remove from DOM completely
-                element.remove();
-              }
-            });
-            
-            // 2. Force body/html to be visible and on top
-            document.body.style.zIndex = '999999';
-            document.body.style.position = 'relative';
-            document.body.style.display = 'block';
-            document.body.style.visibility = 'visible';
-            document.body.style.opacity = '1';
-            document.documentElement.style.display = 'block';
-            document.documentElement.style.visibility = 'visible';
-            
-            // 3. Add NUCLEAR CSS to kill all splash overlays
-            const nuclearStyle = document.createElement('style');
-            nuclearStyle.textContent = `
-              /* NUCLEAR SPLASH KILLER */
-              [style*="position: fixed"], [style*="position: absolute"] {
-                display: none !important;
-                opacity: 0 !important;
-                visibility: hidden !important;
-                z-index: -1 !important;
-              }
-              
-              /* Only allow our app content */
-              #root, body > div:first-child {
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                z-index: 999999 !important;
-                position: relative !important;
-              }
-              
-              /* Kill splash patterns */
-              div[style*="background"], img[src*="splash"], img[src*="icon"],
-              .splash, .loading, [class*="splash"], [id*="splash"] {
-                display: none !important;
-              }
-            `;
-            document.head.appendChild(nuclearStyle);
-            
-            console.log('☢️ Nuclear splash removal completed');
+              // Additional ready signals for mobile compatibility
+              window.parent?.postMessage({ type: 'FRAME_READY' }, '*');
+              window.parent?.postMessage({ type: 'APP_LOADED' }, '*');
+            }, 50);
             
           } catch (error) {
-            console.log('🔧 Nuclear splash error:', error);
+            console.log('⚠️ Proper splash transition error:', error);
           }
         };
         
-        // Run splash hiding multiple times
-        forcedHideSplash();
-        setTimeout(forcedHideSplash, 100);
-        setTimeout(forcedHideSplash, 300);
-        setTimeout(forcedHideSplash, 500);
+        // Call immediately and with safe delays
+        properSplashTransition();
+        setTimeout(properSplashTransition, 100);
+        setTimeout(properSplashTransition, 300);
         
         // Universal frame communication
         if (window.parent && window.parent !== window) {
