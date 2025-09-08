@@ -189,6 +189,48 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
+        // AGGRESSIVE splash hiding for stuck images
+        const forcedHideSplash = () => {
+          try {
+            // Hide any fixed positioned overlays that might be splash screens
+            const overlays = document.querySelectorAll('div, img, .splash, .loading');
+            overlays.forEach(element => {
+              const style = window.getComputedStyle(element);
+              if (style.position === 'fixed' || style.position === 'absolute') {
+                const zIndex = parseInt(style.zIndex || '0');
+                if (zIndex > 100) {
+                  console.log('🗑️ Hiding potential splash overlay:', element);
+                  (element as HTMLElement).style.display = 'none';
+                  (element as HTMLElement).style.opacity = '0';
+                  (element as HTMLElement).style.visibility = 'hidden';
+                }
+              }
+            });
+            
+            // Add global CSS to hide splash elements
+            const hideStyle = document.createElement('style');
+            hideStyle.textContent = `
+              .farcaster-splash, .frame-loading, .app-loading,
+              [class*="splash"], [id*="splash"],
+              div[style*="z-index: 999"], div[style*="z-index: 9999"] {
+                display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+              }
+            `;
+            document.head.appendChild(hideStyle);
+            
+          } catch (error) {
+            console.log('🔧 Splash hiding error:', error);
+          }
+        };
+        
+        // Run splash hiding multiple times
+        forcedHideSplash();
+        setTimeout(forcedHideSplash, 100);
+        setTimeout(forcedHideSplash, 300);
+        setTimeout(forcedHideSplash, 500);
+        
         // Universal frame communication
         if (window.parent && window.parent !== window) {
           setTimeout(() => {
@@ -199,6 +241,10 @@ function App() {
               strategy: 'no-splash-universal',
               timestamp: Date.now()
             }, '*');
+            
+            // Additional messages to force splash removal
+            window.parent.postMessage({ type: 'HIDE_SPLASH_OVERLAY' }, '*');
+            window.parent.postMessage({ type: 'farcaster_frame_loaded' }, '*');
           }, 5); // Even faster - 5ms
         }
       } else {

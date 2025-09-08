@@ -94,15 +94,51 @@
         if (isFrame) {
           console.log('⚡ NO SPLASH: Instant frame loading');
           
-          // Hide any potential splash elements immediately
-          document.body.style.visibility = 'visible';
-          document.documentElement.style.visibility = 'visible';
+          // Wait for DOM to be ready before manipulating
+          const hideSplash = () => {
+            try {
+              if (document.body) {
+                document.body.style.visibility = 'visible';
+                document.body.style.opacity = '1';
+              }
+              if (document.documentElement) {
+                document.documentElement.style.visibility = 'visible';
+                document.documentElement.style.opacity = '1';
+              }
+              
+              // Force hide splash overlay with CSS
+              const style = document.createElement('style');
+              style.textContent = `
+                [class*="splash"], [id*="splash"], 
+                [class*="loading"], [id*="loading"],
+                .farcaster-splash, .frame-splash,
+                div[style*="position: fixed"][style*="z-index"] {
+                  display: none !important;
+                  opacity: 0 !important;
+                  visibility: hidden !important;
+                  pointer-events: none !important;
+                }
+              `;
+              document.head.appendChild(style);
+              
+              // Remove splash elements from DOM
+              setTimeout(() => {
+                const splashElements = document.querySelectorAll('[class*="splash"], [id*="splash"], [class*="loading"], [id*="loading"]');
+                splashElements.forEach(el => el.remove());
+                
+                // Tell parent frame to hide splash
+                window.parent?.postMessage({ type: 'HIDE_SPLASH', action: 'force_hide' }, '*');
+                window.parent?.postMessage({ type: 'farcaster_frame_ready', ready: true }, '*');
+              }, 50);
+              
+            } catch (error) {
+              console.log('🔧 DOM not ready yet, retrying...');
+              setTimeout(hideSplash, 10);
+            }
+          };
           
-          // Remove any splash elements from DOM
-          setTimeout(() => {
-            const splashElements = document.querySelectorAll('[class*="splash"], [id*="splash"]');
-            splashElements.forEach(el => el.remove());
-          }, 100);
+          // Start immediately and retry if needed
+          hideSplash();
           
           // Immediate ready message - multiple attempts
           console.log('🚀 Posting instant ready message (no splash delay)');
