@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
 import { useEffect } from "react";
-import sdk from "@farcaster/frame-sdk";
+import { sdk } from '@farcaster/miniapp-sdk';
 import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
 import Marketplace from "@/pages/marketplace";
@@ -40,26 +40,33 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    console.log('📱 HTML Detection - Frame:', window.parent !== window, 'Mobile:', window.innerWidth < 768);
-    
-    // Hide HTML fallback when React loads
-    const fallback = document.getElementById('html-fallback');
-    if (fallback) {
-      fallback.style.display = 'none';
-      console.log('🚫 HTML fallback hidden - React loaded');
-    }
-    
-    // Frame detection and instant loading
-    if (typeof window !== 'undefined' && window.parent !== window) {
-      console.log('⚡ NO SPLASH: Instant frame loading');
-      try {
-        // Post ready message immediately - no delays for frames
-        sdk.actions?.ready();
-        console.log('🚀 Posting instant ready message (no splash delay)');
-      } catch (error) {
-        console.error('SDK ready error:', error);
+    const initializeFarcasterApp = async () => {
+      console.log('📱 HTML Detection - Frame:', window.parent !== window, 'Mobile:', window.innerWidth < 768);
+      
+      // Hide HTML fallback when React loads
+      const fallback = document.getElementById('html-fallback');
+      if (fallback) {
+        fallback.style.display = 'none';
+        console.log('🚫 HTML fallback hidden - React loaded');
       }
-    }
+      
+      // Frame detection and proper SDK initialization
+      if (typeof window !== 'undefined' && window.parent !== window) {
+        console.log('⚡ Initializing Farcaster MiniApp SDK...');
+        try {
+          // Official Farcaster MiniApp SDK call - async/await pattern
+          await sdk.actions.ready();
+          console.log('✅ Farcaster SDK ready() called successfully - splash should be hidden');
+        } catch (error) {
+          console.error('❌ Farcaster SDK ready() error:', error);
+          // Fallback for manual visibility
+          document.body.style.visibility = 'visible';
+          document.body.style.opacity = '1';
+        }
+      }
+    };
+
+    initializeFarcasterApp();
   }, []);
 
   return (
