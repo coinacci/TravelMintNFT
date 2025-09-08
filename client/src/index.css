@@ -202,3 +202,28 @@
     min-height: 400px !important;
   }
 }
+
+/* CRITICAL: Mobile frame visibility fix - FORCE dark theme */
+html, body, #root {
+  background-color: #0f172a !important;
+  color: white !important;
+}
+
+/* Mobile Farcaster frame emergency visibility */
+@media screen {
+  body, html {
+    background: #0f172a !important;
+    color: #ffffff !important;
+  }
+  
+  #root {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    min-height: 100vh !important;
+  }
+  
+  /* Force all text to be visible on mobile */
+  * {
+    color: inherit !important;
+  }
+}
