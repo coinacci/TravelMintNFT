@@ -28,14 +28,14 @@ export default function Landing() {
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       {/* Hero Section */}
-      <section className="relative overflow-hidden hero-gradient">
+      <section className="relative overflow-hidden bg-background">
         <div className="absolute inset-0"></div>
         <div className="relative container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-white">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-foreground">
               Travel NFT
             </h1>
-            <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers. Each photo tells a story, each location holds memories.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
