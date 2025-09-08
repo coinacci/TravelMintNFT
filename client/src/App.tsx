@@ -21,16 +21,14 @@ if (typeof window !== 'undefined') {
     
     // Check if we're in a Farcaster environment before calling SDK
     if (window.parent !== window && sdk?.actions?.ready) {
-      // We're in an iframe, likely Farcaster
-      setTimeout(() => {
-        try {
-          sdk.actions.ready();
-          farcasterReady = true;
-          console.log('✅ Farcaster ready signal sent');
-        } catch (e) {
-          console.log('⚠️ Farcaster ready() failed, continuing anyway');
-        }
-      }, 50);
+      // We're in an iframe, likely Farcaster - NO DELAY
+      try {
+        sdk.actions.ready();
+        farcasterReady = true;
+        console.log('✅ Farcaster ready signal sent');
+      } catch (e) {
+        console.log('⚠️ Farcaster ready() failed, continuing anyway');
+      }
     } else {
       console.log('🌐 Running in standard web browser (not Farcaster iframe)');
     }
@@ -124,77 +122,40 @@ function Router() {
 
 function App() {
   const [context, setContext] = useState<any>(null);
-  const [isError, setIsError] = useState(false);
+  // Removed isError state to eliminate error splash screen
 
   useEffect(() => {
     console.log('🎯 TravelMint App starting...');
     
     try {
-      // ULTRA-SAFE Farcaster context loading - never crash the app
+      // FAST Farcaster context loading - NO DELAYS
       if (typeof window !== 'undefined' && window.parent !== window && sdk?.context) {
-        // We're in an iframe, try to get Farcaster context
-        setTimeout(() => {
-          try {
-            Promise.resolve(sdk.context)
-              .then((appContext: any) => {
-                if (appContext && !appContext.error) {
-                  setContext(appContext);
-                  console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
-                }
-              })
-              .catch((error) => {
-                // Completely silent fail - just continue without context
-                console.log('ℹ️ Farcaster context not available, continuing in web mode');
-              });
-          } catch (syncError) {
-            console.log('ℹ️ Farcaster context sync error, continuing anyway');
-          }
-        }, 200); // Longer delay for stability
+        // We're in an iframe, try to get Farcaster context immediately
+        try {
+          Promise.resolve(sdk.context)
+            .then((appContext: any) => {
+              if (appContext && !appContext.error) {
+                setContext(appContext);
+                console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
+              }
+            })
+            .catch((error) => {
+              // Completely silent fail - just continue without context
+              console.log('ℹ️ Farcaster context not available, continuing in web mode');
+            });
+        } catch (syncError) {
+          console.log('ℹ️ Farcaster context sync error, continuing anyway');
+        }
       } else {
         console.log('🌐 Running in standard web browser mode');
       }
     } catch (error) {
-      // Don't set error state - just log and continue
+      // Don't set error state - just log and continue (removed isError)
       console.warn('⚠️ Context initialization issue (non-critical):', error);
     }
   }, []);
 
-  // Emergency fallback for Farcaster iframe issues
-  if (isError) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#0f172a',
-        color: 'white',
-        fontFamily: 'system-ui, sans-serif'
-      }}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-            TravelMint Initialization Error
-          </h1>
-          <p style={{ marginBottom: '1rem', opacity: 0.8 }}>
-            Failed to start in current environment
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              borderRadius: '0.375rem',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Removed emergency fallback screen - no splash screens!
 
   return (
     <QueryClientProvider client={queryClient}>
