@@ -238,4 +238,54 @@
   }
 }
 
+/* Mobile WebView compatibility fixes */
+@media (max-width: 768px) and (pointer: coarse) {
+  /* Fix WebView touch issues */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Re-enable selection for text inputs */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+  
+  /* Fix common WebView rendering issues */
+  body {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000;
+  }
+  
+  /* Prevent zoom on double tap */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* Frame-specific fixes for mobile WebView environments */
+@media screen and (max-device-width: 768px) {
+  /* Ensure content is visible in frames */
+  .min-h-screen {
+    min-height: 100% !important;
+  }
+  
+  /* Fix potential blank screen issues */
+  #root > * {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
 /* Mobile uses same theme as browser - no overrides */
