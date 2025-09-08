@@ -112,9 +112,9 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // FARCASTER MANIFEST REQUIREMENTS (no splash)  
-        "splashImageUrl": `${baseUrl}/icon.png`,
-        "splashBackgroundColor": "#0f172a",       // App theme background
+        // FARCASTER MANIFEST REQUIREMENTS (no splash image)  
+        "splashImageUrl": "",                     // Empty splash image to avoid stuck image
+        "splashBackgroundColor": "transparent",   // Transparent background
         "buttonTitle": "⚡ Open",
         
         // NO SPLASH CONFIG - Instant app access (MOBILE FOCUSED)

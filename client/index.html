@@ -98,6 +98,12 @@
           document.body.style.visibility = 'visible';
           document.documentElement.style.visibility = 'visible';
           
+          // Remove any splash elements from DOM
+          setTimeout(() => {
+            const splashElements = document.querySelectorAll('[class*="splash"], [id*="splash"]');
+            splashElements.forEach(el => el.remove());
+          }, 100);
+          
           // Immediate ready message - multiple attempts
           console.log('🚀 Posting instant ready message (no splash delay)');
           const sendReady = () => {
@@ -169,8 +175,8 @@
               "type": "link",
               "name": "TravelMint",
               "url": currentUrl,
-              "splashImageUrl": currentUrl + "/splash.png" + cacheParam,
-              "splashBackgroundColor": "#0f172a",
+              "splashImageUrl": "",
+              "splashBackgroundColor": "transparent",
               "skipSplash": true,
               "loadingTimeout": 0,
               "autoReady": true,
