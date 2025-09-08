@@ -189,39 +189,69 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // AGGRESSIVE splash hiding for stuck images
+        // NUCLEAR SPLASH REMOVAL - Kill everything
         const forcedHideSplash = () => {
           try {
-            // Hide any fixed positioned overlays that might be splash screens
-            const overlays = document.querySelectorAll('div, img, .splash, .loading');
-            overlays.forEach(element => {
+            console.log('🔥 NUCLEAR splash removal activated');
+            
+            // 1. Hide ALL positioned elements with high z-index (nuclear approach)
+            const allElements = document.querySelectorAll('*');
+            allElements.forEach(element => {
               const style = window.getComputedStyle(element);
-              if (style.position === 'fixed' || style.position === 'absolute') {
-                const zIndex = parseInt(style.zIndex || '0');
-                if (zIndex > 100) {
-                  console.log('🗑️ Hiding potential splash overlay:', element);
-                  (element as HTMLElement).style.display = 'none';
-                  (element as HTMLElement).style.opacity = '0';
-                  (element as HTMLElement).style.visibility = 'hidden';
-                }
+              const zIndex = parseInt(style.zIndex || '0');
+              
+              if ((style.position === 'fixed' || style.position === 'absolute') && zIndex > 10) {
+                console.log('💀 KILLING overlay element:', element.tagName, zIndex);
+                (element as HTMLElement).style.display = 'none !important';
+                (element as HTMLElement).style.opacity = '0 !important';
+                (element as HTMLElement).style.visibility = 'hidden !important';
+                (element as HTMLElement).style.pointerEvents = 'none !important';
+                // Remove from DOM completely
+                element.remove();
               }
             });
             
-            // Add global CSS to hide splash elements
-            const hideStyle = document.createElement('style');
-            hideStyle.textContent = `
-              .farcaster-splash, .frame-loading, .app-loading,
-              [class*="splash"], [id*="splash"],
-              div[style*="z-index: 999"], div[style*="z-index: 9999"] {
+            // 2. Force body/html to be visible and on top
+            document.body.style.zIndex = '999999';
+            document.body.style.position = 'relative';
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            document.documentElement.style.display = 'block';
+            document.documentElement.style.visibility = 'visible';
+            
+            // 3. Add NUCLEAR CSS to kill all splash overlays
+            const nuclearStyle = document.createElement('style');
+            nuclearStyle.textContent = `
+              /* NUCLEAR SPLASH KILLER */
+              [style*="position: fixed"], [style*="position: absolute"] {
                 display: none !important;
                 opacity: 0 !important;
                 visibility: hidden !important;
+                z-index: -1 !important;
+              }
+              
+              /* Only allow our app content */
+              #root, body > div:first-child {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                z-index: 999999 !important;
+                position: relative !important;
+              }
+              
+              /* Kill splash patterns */
+              div[style*="background"], img[src*="splash"], img[src*="icon"],
+              .splash, .loading, [class*="splash"], [id*="splash"] {
+                display: none !important;
               }
             `;
-            document.head.appendChild(hideStyle);
+            document.head.appendChild(nuclearStyle);
+            
+            console.log('☢️ Nuclear splash removal completed');
             
           } catch (error) {
-            console.log('🔧 Splash hiding error:', error);
+            console.log('🔧 Nuclear splash error:', error);
           }
         };
         
