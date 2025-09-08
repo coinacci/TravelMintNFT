@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(29.88, 100%, 50%);
+  --background: hsl(0, 0%, 100%);
   --foreground: hsl(222.86, 84%, 4.9%);
   --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(222, 84%, 4.9%);
@@ -16,8 +16,8 @@
   --secondary-foreground: hsl(222, 84%, 4.9%);
   --muted: hsl(210, 40%, 96%);
   --muted-foreground: hsl(215.68, 15.74%, 46.08%);
-  --accent: hsl(33, 100%, 50%);
-  --accent-foreground: hsl(222, 84%, 4.9%);
+  --accent: hsl(240, 100%, 50%);
+  --accent-foreground: hsl(0, 0%, 100%);
   --destructive: hsl(0, 84%, 60%);
   --destructive-foreground: hsl(210, 40%, 98%);
   --border: hsl(214, 32%, 91%);
@@ -25,7 +25,7 @@
   --ring: hsl(199, 89%, 48%);
   --chart-1: hsl(199, 89%, 48%);
   --chart-2: hsl(159, 100%, 36%);
-  --chart-3: hsl(33, 100%, 50%);
+  --chart-3: hsl(240, 100%, 50%);
   --chart-4: hsl(147, 78%, 42%);
   --chart-5: hsl(341, 75%, 51%);
   --sidebar: hsl(210, 40%, 96%);
@@ -65,7 +65,7 @@
   --secondary-foreground: hsl(210, 40%, 98%);
   --muted: hsl(217, 32%, 17%);
   --muted-foreground: hsl(215, 20%, 65%);
-  --accent: hsl(33, 100%, 50%);
+  --accent: hsl(199, 89%, 48%);
   --accent-foreground: hsl(222, 84%, 4.9%);
   --destructive: hsl(0, 62%, 30%);
   --destructive-foreground: hsl(210, 40%, 98%);
@@ -102,7 +102,7 @@
 }
 
 .travel-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(0, 0%, 100%) 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
 }
 
 .map-container {
