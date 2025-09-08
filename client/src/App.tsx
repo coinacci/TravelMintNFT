@@ -57,6 +57,18 @@ class ErrorBoundary extends Component<{children: ReactNode}, ErrorBoundaryState>
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('🚨 CRITICAL: Error caught by boundary:', error, errorInfo);
     console.error('🚨 Component stack:', errorInfo.componentStack);
+    
+    // Mobile Farcaster specific error handling
+    if (typeof window !== 'undefined') {
+      const userAgent = navigator.userAgent || '';
+      const isMobile = userAgent.includes('Farcaster') && /Mobi|Android|iPhone/i.test(userAgent);
+      
+      if (isMobile) {
+        console.error('📱 MOBILE FARCASTER ERROR - attempting instant recovery');
+        // Force reload on mobile error
+        setTimeout(() => window.location.reload(), 100);
+      }
+    }
   }
 
   render() {
