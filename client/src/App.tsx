@@ -126,6 +126,8 @@ class ErrorBoundary extends Component<{children: ReactNode}, ErrorBoundaryState>
 }
 
 function Router() {
+  console.log('🔀 Router rendering');
+  
   return (
     <>
       <Navigation />
@@ -136,10 +138,17 @@ function Router() {
         <Route path="/my-nfts" component={MyNFTs} />
         <Route path="/mint" component={Mint} />
         <Route>
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-              <p className="text-muted-foreground">The page you're looking for doesn't exist.</p>
+          <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ff00ff', // Magenta for 404
+            color: 'white'
+          }}>
+            <div style={{textAlign: 'center'}}>
+              <h1 style={{fontSize: '24px', fontWeight: 'bold', marginBottom: '16px'}}>Page Not Found</h1>
+              <p>The page you're looking for doesn't exist.</p>
             </div>
           </div>
         </Route>
@@ -185,6 +194,8 @@ function App() {
 
   // Removed emergency fallback screen - no splash screens!
 
+  console.log('🚀 App main render - about to return JSX');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <WalletProvider>

@@ -38,23 +38,59 @@ export default function Landing() {
     return parseFloat(volume).toFixed(1);
   };
 
-  // Emergency frame debug
+  // MAXIMUM VISIBILITY test - try different positioning
   if (isFrame) {
+    // Try to inject directly into document body as well
+    if (typeof document !== 'undefined') {
+      document.body.style.backgroundColor = '#ff0000';
+      document.body.style.color = 'white';
+    }
+    
     return (
-      <div className="min-h-screen bg-blue-50 p-4 text-black">
-        <div className="bg-white p-4 rounded shadow">
-          <h1 className="text-2xl font-bold mb-4" style={{color: '#0000ff'}}>🎯 TravelMint Debug</h1>
-          <p className="mb-2">✅ Frame detected: {isFrame ? 'YES' : 'NO'}</p>
-          <p className="mb-2">✅ Mobile mode: {isMobile ? 'YES' : 'NO'}</p>
-          <p className="mb-2">✅ Stats loaded: {stats ? 'YES' : 'NO'}</p>
-          <p className="mb-4">✅ Total NFTs: {stats?.totalNFTs || 'Loading...'}</p>
-          <div className="space-y-2">
-            <button className="bg-blue-500 text-white px-4 py-2 rounded w-full">🗺️ Explore Map</button>
-            <button className="bg-green-500 text-white px-4 py-2 rounded w-full">📸 Mint NFT</button>
-            <button className="bg-purple-500 text-white px-4 py-2 rounded w-full">💰 Marketplace</button>
-          </div>
+      <>
+        {/* Method 1: Absolute positioning */}
+        <div style={{
+          position: 'absolute',
+          top: '0px',
+          left: '0px',
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#ff0000',
+          color: 'white',
+          fontSize: '24px',
+          padding: '10px',
+          zIndex: 999999
+        }}>
+          ABSOLUTE: Frame Test - Red Background
         </div>
-      </div>
+        
+        {/* Method 2: Static positioning */}
+        <div style={{
+          backgroundColor: '#00ff00', // Green
+          color: 'black',
+          fontSize: '20px',
+          padding: '20px',
+          height: '200px',
+          width: '100%'
+        }}>
+          STATIC: Green Block - Frame Test
+        </div>
+        
+        {/* Method 3: Fixed positioning */}
+        <div style={{
+          position: 'fixed',
+          top: '50px',
+          left: '10px',
+          backgroundColor: '#0000ff', // Blue
+          color: 'white',
+          fontSize: '18px',
+          padding: '15px',
+          zIndex: 888888,
+          border: '3px solid yellow'
+        }}>
+          FIXED: Blue Box - Frame Test
+        </div>
+      </>
     );
   }
 
