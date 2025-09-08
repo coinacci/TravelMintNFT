@@ -39,7 +39,8 @@ export default function Landing() {
   };
 
   // NUCLEAR OPTION: Raw HTML injection bypass React completely
-  if (isFrame) {
+  // TEMPORARILY disable frame check for testing
+  if (true) { // Always show debug content for testing
     console.log('🚨 NUCLEAR TEST: Bypassing React completely');
     
     // Method 1: Direct DOM manipulation
