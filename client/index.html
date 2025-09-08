@@ -324,7 +324,15 @@
       If you see this YELLOW background, HTML works but React doesn't
     </div>
     
-    <div id="root"></div>
+    <!-- EMERGENCY MOBILE DEBUG -->
+    <div id="mobile-test" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f172a; color: white; z-index: 999999; font-size: 20px; text-align: center; padding: 30px; box-sizing: border-box;">
+      <h1 style="color: #3b82f6; margin: 20px 0;">🚀 TravelMint Mobile Test</h1>
+      <p style="color: white; margin: 15px 0;">If you see this dark screen, HTML/CSS works!</p>
+      <p style="color: #22c55e; margin: 15px 0;">✅ Mobile frame is loading correctly</p>
+      <button onclick="document.getElementById('mobile-test').style.display='none';" style="background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; margin: 20px; cursor: pointer;">Hide This & Show App</button>
+    </div>
+    
+    <div id="root" style="background: #0f172a; color: white; min-height: 100vh;"></div>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Frame emergency script - removed for normal operation -->
