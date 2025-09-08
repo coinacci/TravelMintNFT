@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+    <!-- Mobile WebView Compatible Headers -->
+    <meta http-equiv="Referrer-Policy" content="no-referrer-when-downgrade" />
+
+    <!-- Content Security Policy - Farcaster için optimize edilmiş -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; style-src * data: blob: 'unsafe-inline'; img-src * data: blob:; connect-src * data: blob:; frame-src *; frame-ancestors *; child-src *; worker-src * data: blob:; object-src *;" />
+
+    <!-- TravelMint App Meta Tags -->
+    <title>TravelMint - Travel Photo NFT Marketplace</title>
+    <meta name="description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map." />
+    <meta name="keywords" content="travel, nft, blockchain, photography, base, travel photos, location nfts, gps coordinates, cryptocurrency, digital collectibles" />
+    <meta name="author" content="TravelMint" />
+    <meta name="subtitle" content="Travel Photo NFT Marketplace" />
+    <meta name="tagline" content="Turn travel into NFTs" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://travelmint.app" />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="TravelMint NFT App" />
+    <meta property="og:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://travelmint.app" />
+    <meta property="og:site_name" content="TravelMint" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TravelMint NFT App" />
+    <meta name="twitter:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
+    <meta name="twitter:site" content="@TravelMint" />
+    <meta name="twitter:creator" content="@TravelMint" />
+
+    <!-- Theme and App Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TravelMint" />
+
+    <!-- Base App Integration Meta Tags -->
+    <meta name="noindex" content="false" />
+    <meta name="robots" content="index, follow" />
+    <meta name="primaryCategory" content="social" />
+    <meta name="application-name" content="TravelMint" />
+
+    <!-- Farcaster Frame Meta Tags -->
+    <meta name="fc:frame" content="vNext" />
+    <meta name="fc:frame:image" id="fc-frame-image" content="/image.png" />
+    <meta name="fc:frame:button:1" content="🗺️ Explore NFTs" />
+    <meta name="fc:frame:button:1:action" content="link" />
+    <meta name="fc:frame:button:1:target" id="fc-explore-target" content="/explore" />
+    <meta name="fc:frame:button:2" content="📸 Mint Travel NFT" />
+    <meta name="fc:frame:button:2:action" content="link" />
+    <meta name="fc:frame:button:2:target" id="fc-mint-target" content="/mint" />
+
+    <!-- Farcaster App Discovery Meta Tags -->
+    <meta name="fc:app:name" content="TravelMint" />
+    <meta name="fc:app:description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map." />
+    <meta name="fc:app:tagline" content="Turn travel into NFTs" />
+    <meta name="fc:app:subtitle" content="Travel Photo NFT Marketplace" />
+    <meta name="fc:app:tags" content="travel,nft,blockchain,photography,base" />
+    <meta name="fc:app:category" content="social" />
+    <meta name="fc:app:version" content="1" />
+
+    <!-- Favicon and App Icons -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20250908" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=20250908" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=20250908" />
+    <link rel="apple-touch-icon" href="/icon.png?v=20250908" />
+    <link rel="manifest" href="/manifest.json?v=20250908" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+
+    <!-- Farcaster Mini App SDK (CDN for browser compatibility) -->
+    <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk/dist/index.min.js"></script>
+
+    <!-- Splash Screen Styles -->
+    <style>
+      /* Mobile splash screen optimization */
+      @media (max-width: 768px) {
+        .fc-splash-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: #0f172a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .fc-splash-image {
+          max-width: 90vw;
+          max-height: 90vh;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+        }
+      }
+
+      /* Desktop splash screen optimization */
+      @media (min-width: 769px) {
+        .fc-splash-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: #0f172a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .fc-splash-image {
+          max-width: 60vw;
+          max-height: 60vh;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+        }
+      }
+    </style>
+
+    <!-- Farcaster Frame and Mobile Optimization Script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+        const currentUrl = window.location.origin;
+        const isFrame = window.parent !== window;
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || 'ontouchstart' in window;
+        const cacheParam = `?v=20250908`; // Simplified cache busting
+
+        // Update Farcaster meta tags dynamically
+        const updateMetaTag = (property, content) => {
+          const meta = document.querySelector(`meta[property="${property}"], meta[name="${property}"]`);
+          if (meta) meta.content = content;
+        };
+
+        updateMetaTag('og:image', `${currentUrl}/image.png${cacheParam}`);
+        updateMetaTag('og:url', currentUrl);
+        updateMetaTag('twitter:image', `${currentUrl}/image.png${cacheParam}`);
+        updateMetaTag('twitter:url', currentUrl);
+        const frameImage = document.getElementById('fc-frame-image');
+        if (frameImage) frameImage.content = `${currentUrl}/image.png${cacheParam}`;
+        const exploreTarget = document.getElementById('fc-explore-target');
+        if (exploreTarget) exploreTarget.content = `${currentUrl}/explore`;
+        const mintTarget = document.getElementById('fc-mint-target');
+        if (mintTarget) mintTarget.content = `${currentUrl}/mint`;
+
+        // Farcaster Mini App Meta Tag
+        const miniappMeta = document.createElement('meta');
+        miniappMeta.name = 'fc:miniapp';
+        miniappMeta.content = JSON.stringify({
+          version: '1',
+          name: 'TravelMint',
+          subtitle: 'Travel Photo NFT Marketplace',
+          description: 'Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.',
+          tagline: 'Turn travel into NFTs',
+          imageUrl: `${currentUrl}/image.png${cacheParam}`,
+          iconUrl: `${currentUrl}/icon.png${cacheParam}`,
+          button: {
+            title: '⚡ Open',
+            action: {
+              type: 'link',
+              name: 'TravelMint',
+              url: currentUrl,
+              splashImageUrl: null,
+              splashBackgroundColor: null,
+              skipSplash: true,
+              loadingTimeout: 0,
+              autoReady: true,
+              disableSplash: true,
+              hideSplash: true,
+              autoStart: true
+            }
+          },
+          tags: ['travel', 'nft', 'blockchain', 'photography', 'base'],
+          category: 'social',
+          mobileOptimized: true
+        });
+        document.head.appendChild(miniappMeta);
+
+        // Handle splash screen for Farcaster frames/mini apps
+        if (isFrame) {
+          console.log('⚡ Frame detected, preparing to hide splash');
+
+          // Hide splash using Farcaster SDK
+          try {
+            await miniapp.sdk.actions.ready();
+            console.log('✅ Splash screen hidden via SDK');
+          } catch (error) {
+            console.error('❌ Error hiding splash screen:', error);
+          }
+
+          // Ensure body is visible as fallback
+          document.body.style.visibility = 'visible';
+          document.body.style.opacity = '1';
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <!-- Frame Debug Fallback -->
+    <div id="frame-debug" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffff00; color: black; font-size: 18px; padding: 20px; z-index: 10000; display: none;">
+      🟡 RAW HTML FALLBACK<br>
+      This is pure HTML - no React, no CSS classes<br>
+      If you see this YELLOW background, HTML works but React doesn't
+    </div>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Replit Dev Banner (for development mode) -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>
