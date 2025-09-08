@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express) {
         "splashBackgroundColor": isMobileFarcaster ? "#000014" : "#0f172a",
         "buttonTitle": isMobileFarcaster ? "⚡ TravelMint" : "Open TravelMint",
         "loadingTimeout": isMobileFarcaster ? 100 : 3000,
-        "fastLoad": isMobileFarcaster
+        "fastLoad": isMobileFarcaster,
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
