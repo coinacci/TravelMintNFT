@@ -86,27 +86,38 @@
     <!-- Farcaster Mini App SDK (CDN for browser compatibility) -->
     <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk/dist/index.min.js"></script>
 
-    <!-- Frame Visibility Optimization -->
+    <!-- FORCE VISIBILITY - Farcaster Mobile Critical Fix -->
     <style>
-      /* Ensure immediate visibility for frames */
-      body {
+      * {
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+      
+      html, body {
         visibility: visible !important;
         opacity: 1 !important;
         display: block !important;
-        background-color: #0f172a;
+        background-color: #0f172a !important;
+        color: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      #html-fallback {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
       }
       
       #root {
         visibility: visible !important;
         opacity: 1 !important;
-        display: flex !important;
-        min-height: 100vh;
-        background-color: #0f172a;
-      }
-      
-      /* No splash for frames - instant loading */
-      .fc-splash-container {
-        display: none !important;
       }
     </style>
 
@@ -190,25 +201,27 @@
       });
     </script>
   </head>
-  <body style="margin: 0; padding: 0; background-color: #0f172a; color: white; font-family: system-ui, sans-serif;">
-    <!-- HTML Fallback for Farcaster Mobile -->
+  <body style="margin: 0 !important; padding: 0 !important; background-color: #0f172a !important; color: white !important; font-family: system-ui, sans-serif !important; visibility: visible !important; opacity: 1 !important;">
+    <!-- EMERGENCY VISIBLE FALLBACK - Farcaster Mobile -->
     <div id="html-fallback" style="
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100vw; 
-      height: 100vh; 
-      background: #0f172a; 
-      color: #e2e8f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 1;
-      font-family: system-ui, sans-serif;
-      text-align: center;
-      padding: 20px;
-      box-sizing: border-box;
+      visibility: visible !important;
+      opacity: 1 !important;
+      display: flex !important;
+      position: fixed !important; 
+      top: 0 !important; 
+      left: 0 !important; 
+      width: 100vw !important; 
+      height: 100vh !important; 
+      background-color: #0f172a !important; 
+      color: white !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 99999 !important;
+      font-family: system-ui, sans-serif !important;
+      text-align: center !important;
+      padding: 20px !important;
+      box-sizing: border-box !important;
     ">
       <div style="max-width: 400px;">
         <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 16px; font-weight: bold;">🗺️ TravelMint</h1>
