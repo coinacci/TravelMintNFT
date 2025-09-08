@@ -112,9 +112,9 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // NO SPLASH FOR MOBILE - Direct app access
-        "splashImageUrl": null,
-        "splashBackgroundColor": null,
+        // TRANSPARENT SPLASH - Invisible 1px image for mobile
+        "splashImageUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        "splashBackgroundColor": "transparent",
         "buttonTitle": "⚡ Open",
         
         // INSTANT MOBILE ACCESS - No splash, direct to app  
