@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
 import { useEffect, Component, ReactNode } from "react";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
 import Marketplace from "@/pages/marketplace";
@@ -23,6 +23,7 @@ if (typeof window !== 'undefined') {
     const userAgent = navigator.userAgent || '';
     isFarcasterFrame = window.parent !== window;
     isMobileFarcaster = isFarcasterFrame && userAgent.includes('Farcaster');
+    console.log(`📱 Frame: ${isFarcasterFrame}, Mobile Farcaster: ${isMobileFarcaster}`);
   } catch (e) {
     console.error('⚠️ Frame detection failed - assuming frame environment:', e);
     isFarcasterFrame = true;
@@ -60,6 +61,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
             color: 'white',
             fontFamily: 'system-ui, sans-serif',
             padding: '1rem',
+            zIndex: 1000, // Ensure error screen is on top
           }}
         >
           <div style={{ textAlign: 'center', maxWidth: '90%' }}>
@@ -105,7 +107,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 
 function Router() {
   return (
-    <>
+    <div style={{ position: 'relative', zIndex: 1000, minHeight: '100vh' }}>
       <Navigation />
       <Switch>
         <Route path="/" component={Landing} />
@@ -122,6 +124,7 @@ function Router() {
               justifyContent: 'center',
               backgroundColor: '#ff00ff',
               color: 'white',
+              zIndex: 1000,
             }}
           >
             <div style={{ textAlign: 'center' }}>
@@ -133,33 +136,62 @@ function Router() {
           </div>
         </Route>
       </Switch>
-    </>
+    </div>
   );
 }
 
 function App() {
   useEffect(() => {
-    const initializeFrame = () => {
+    const initializeFrame = async () => {
       try {
-        // SDK hazır kontrolü ve tek çağrı
-        if (typeof sdk !== 'undefined' && sdk.actions && sdk.actions.ready && !farcasterReady) {
-          sdk.actions.ready();
-          farcasterReady = true;
-          console.log('✅ Farcaster SDK ready() called');
-        }
+        // SDK hazır kontrolü ve çağrı
+        const callReady = async () => {
+          if (typeof sdk !== 'undefined' && sdk.actions && sdk.actions.ready && !farcasterReady) {
+            await sdk.actions.ready();
+            farcasterReady = true;
+            console.log('✅ Farcaster SDK ready() called successfully');
+          } else {
+            console.log('⚠️ SDK not ready or already called');
+          }
+        };
 
         // Çerçeve ortamında mesaj gönderme
         if (isFarcasterFrame && window.parent && window.parent !== window) {
-          const targetOrigin = '*'; // Güvenli bir origin belirtmek için Farcaster dokümantasyonunu kontrol edin
-          window.parent.postMessage(
-            {
-              type: 'farcaster_frame_loaded',
-              source: 'TravelMint',
-              timestamp: Date.now(),
-            },
-            targetOrigin
-          );
-          console.log('📨 Sent farcaster_frame_loaded message');
+          const targetOrigin = '*'; // Replace with 'https://warpcast.com' or specific Farcaster origin if known
+          const messages = [
+            { type: 'farcaster_frame_loaded', source: 'TravelMint', timestamp: Date.now() },
+            { type: 'DISMISS_SPLASH', action: 'hide_splash_now', ready: true },
+            { type: 'HIDE_SPLASH_OVERLAY' },
+          ];
+
+          // Send messages immediately and with delays to ensure delivery
+          messages.forEach((message) => {
+            window.parent.postMessage(message, targetOrigin);
+            setTimeout(() => window.parent.postMessage(message, targetOrigin), 10);
+            setTimeout(() => window.parent.postMessage(message, targetOrigin), 50);
+            setTimeout(() => window.parent.postMessage(message, targetOrigin), 100);
+          });
+          console.log('📨 Sent postMessages to parent for splash dismissal');
+        }
+
+        // Call ready immediately and with delays for reliability
+        await callReady();
+        setTimeout(callReady, 0);
+        setTimeout(callReady, 10);
+        setTimeout(callReady, 50);
+        setTimeout(callReady, 100);
+
+        // Additional attempt to force splash dismissal via CSS (client-side fallback)
+        if (isFarcasterFrame) {
+          const hideSplash = () => {
+            const splash = document.querySelector('div[id*="splash"], div[class*="splash"]');
+            if (splash) {
+              (splash as HTMLElement).style.display = 'none';
+              console.log('🧹 Force-hid splash element via CSS');
+            }
+          };
+          setTimeout(hideSplash, 100);
+          setTimeout(hideSplash, 500);
         }
       } catch (error) {
         console.error('⚠️ Frame initialization error:', error);
@@ -172,16 +204,18 @@ function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <ErrorBoundary>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </ErrorBoundary>
-      </WalletProvider>
-    </QueryClientProvider>
+    <div style={{ position: 'relative', zIndex: 1000, minHeight: '100vh' }}>
+      <QueryClientProvider client={queryClient}>
+        <WalletProvider>
+          <ErrorBoundary>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ErrorBoundary>
+        </WalletProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 
