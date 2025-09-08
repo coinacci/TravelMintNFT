@@ -90,25 +90,20 @@
                         
         console.log('📱 HTML Detection - Frame:', isFrame, 'Mobile:', isMobile);
         
-        // OPTIMAL: Allow natural 1-second splash for branding
+        // NO SPLASH: Instant frame loading
         if (isFrame) {
-          console.log('🎆 NATURAL SPLASH: 1-second branding experience');
+          console.log('⚡ NO SPLASH: Instant frame loading');
           
-          // Let Farcaster handle splash naturally (1 second from manifest)
-          console.log('⏰ Allowing 1-second splash screen for branding');
-          
-          // Post ready message AFTER splash completes naturally
-          setTimeout(() => {
-            console.log('📨 Posting ready message after natural splash');
-            if (window.parent && window.parent.postMessage) {
-              window.parent.postMessage({ 
-                type: 'FRAME_READY_NATURAL', 
-                source: 'TravelMint',
-                strategy: '1-second-splash-natural',
-                splashComplete: true
-              }, '*');
-            }
-          }, 1100); // After 1 second + small buffer
+          // Immediate ready message since splash is disabled
+          console.log('🚀 Posting instant ready message (no splash delay)');
+          if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage({ 
+              type: 'FRAME_READY_INSTANT', 
+              source: 'TravelMint',
+              strategy: 'no-splash-instant',
+              splashSkipped: true
+            }, '*');
+          }
         }
         
         // Enhanced cache busting with random IDs
@@ -162,7 +157,9 @@
               "name": "TravelMint",
               "url": currentUrl,
               "splashImageUrl": currentUrl + "/splash.png" + cacheParam,
-              "splashBackgroundColor": "#0f172a"
+              "splashBackgroundColor": "#0f172a",
+              "skipSplash": true,
+              "loadingTimeout": 0
             }
           },
           "tags": ["travel", "nft", "blockchain", "photography", "base"],

@@ -88,13 +88,13 @@ export async function registerRoutes(app: Express) {
     const isMobileFarcaster = true; // Force no-splash config for ALL
     const isLikelyMobile = true;   // Treat everything as mobile (safer)
     
-    console.log('🔧 Farcaster config (1-SECOND SPLASH):', { 
+    console.log('🔧 Farcaster config (NO SPLASH):', { 
       host, 
       userAgent: userAgent.substring(0, 100), 
       isMobile: isMobileFarcaster,
       isLikelyMobile,
       hasTouch,
-      strategy: '1-second-splash-optimal'
+      strategy: 'no-splash-instant'
     });
     
     const farcasterConfig = {
@@ -112,17 +112,17 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // FARCASTER MANIFEST REQUIREMENTS (1 second splash)
+        // FARCASTER MANIFEST REQUIREMENTS (no splash)
         "splashImageUrl": `${baseUrl}/icon.png`,
         "splashBackgroundColor": "#0f172a",       // App theme background
-        "buttonTitle": "Open",
+        "buttonTitle": "Open TravelMint",
         
-        // OPTIMAL 1-SECOND SPLASH CONFIG
-        "loadingTimeout": 1000,                   // Exactly 1 second
+        // NO SPLASH CONFIG - Instant app access
+        "loadingTimeout": 0,                     // Zero delay
         "fastLoad": true,
-        "skipSplash": false,                      // Allow splash for 1 second
-        "instantLoad": false,
-        "splashDuration": 1000,
+        "skipSplash": true,                      // Skip splash completely
+        "instantLoad": true,
+        "splashDuration": 0,
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
