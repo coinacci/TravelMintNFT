@@ -22,70 +22,9 @@ export default function Landing() {
     queryKey: ["/api/stats"],
   });
 
-  // Debug logging for Landing page
-  console.log('🏠 Landing page rendering:', { 
-    isMobile, 
-    stats,
-    isFrame: typeof window !== 'undefined' && window.parent !== window 
-  });
-
-  // Force visible content for debugging in frames
-  if (isFrame) {
-    console.log('🎯 FRAME DETECTED: Rendering emergency visible content');
-  }
-
   const formatVolume = (volume: string) => {
     return parseFloat(volume).toFixed(1);
   };
-
-  // NUCLEAR OPTION: Raw HTML injection bypass React completely
-  // TEMPORARILY disable frame check for testing
-  if (true) { // Always show debug content for testing
-    console.log('🚨 NUCLEAR TEST: Bypassing React completely');
-    
-    // Method 1: Direct DOM manipulation
-    if (typeof document !== 'undefined') {
-      console.log('🔥 Direct DOM injection starting...');
-      
-      // Clear and inject into body directly
-      setTimeout(() => {
-        const testDiv = document.createElement('div');
-        testDiv.innerHTML = `
-          <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; color: white; font-size: 24px; z-index: 999999; padding: 20px;">
-            🚨 DIRECT DOM INJECTION TEST<br>
-            If you see this RED text, React bypass worked!<br>
-            Frame: YES<br>
-            Time: ${new Date().toLocaleTimeString()}
-          </div>
-        `;
-        document.body.appendChild(testDiv);
-        console.log('✅ Direct DOM element injected');
-      }, 100);
-      
-      // Method 2: Document write test  
-      setTimeout(() => {
-        document.body.style.backgroundColor = '#ff0000';
-        document.body.style.color = 'white';
-        document.body.style.fontSize = '20px';
-        console.log('✅ Body style modified directly');
-      }, 200);
-    }
-    
-    // Method 3: Still return React content as fallback
-    return (
-      <div 
-        dangerouslySetInnerHTML={{
-          __html: `
-            <div style="background: #00ff00; color: black; padding: 30px; font-size: 22px; border: 5px solid red;">
-              ⚡ REACT FALLBACK - Green Block<br>
-              Frame detected: YES<br>
-              If you see this, React is working but CSS might be blocked
-            </div>
-          `
-        }}
-      />
-    );
-  }
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>

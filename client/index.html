@@ -269,19 +269,7 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Frame emergency script -->
-    <script>
-      if (window.parent !== window) {
-        console.log('🚨 FRAME DETECTED: Activating emergency HTML');
-        const debugDiv = document.getElementById('frame-debug');
-        if (debugDiv) {
-          debugDiv.style.display = 'block';
-          setTimeout(() => {
-            debugDiv.style.display = 'none'; // Hide after 3 seconds
-          }, 3000);
-        }
-      }
-    </script>
+    <!-- Frame emergency script - removed for normal operation -->
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>

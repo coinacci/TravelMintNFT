@@ -13,14 +13,7 @@ export default function Navigation() {
   const isFrame = typeof window !== 'undefined' && window.parent !== window;
   const isMobile = isFrame || isMobileHook; // Force mobile for frames
   
-  // Debug logging for Frame issues
-  console.log('🧭 Navigation rendering:', { 
-    location, 
-    isMobileHook,
-    isFrame,
-    isMobile: isMobile,
-    forceFrameMobile: isFrame
-  });
+  // Force mobile navigation for frames (clean)
   
   const { data: balance } = useBalance({
     address: address,
@@ -39,9 +32,7 @@ export default function Navigation() {
     { path: "/my-nfts", label: "My NFTs", icon: User },
   ];
 
-  // ALWAYS use mobile navigation in frames
   if (isMobile) {
-    console.log('📱 Using MOBILE navigation (frame or mobile detected)');
     return (
       <>
         {/* Mobile Header */}
@@ -96,7 +87,6 @@ export default function Navigation() {
     );
   }
 
-  console.log('🖥️ Using DESKTOP navigation (not frame, not mobile)');
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">

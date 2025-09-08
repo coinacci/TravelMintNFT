@@ -43,9 +43,19 @@ if (typeof window !== 'undefined') {
     console.log(`📱 Frame: ${isFarcasterFrame}, Mobile: ${isMobileFarcaster}, AnyMobile: ${isAnyMobile}`);
     console.log(`🔍 UserAgent: ${userAgent.substring(0, 100)}`);
     
-    // CRITICAL: NO SDK CALLS IF ANY FRAME - prevents ALL hanging
-    if (isAnyMobile) {
-      console.log('📱 FRAME/MOBILE detected - SDK COMPLETELY DISABLED');
+    // CRITICAL: Call SDK ready() properly in frames
+    if (isAnyMobile || isFarcasterFrame) {
+      console.log('📱 FRAME/MOBILE detected - Calling SDK ready()');
+      
+      // Call Farcaster SDK ready() to fix "Ready not called" error
+      try {
+        if (typeof sdk !== 'undefined' && sdk.actions) {
+          sdk.actions.ready();
+          console.log('✅ Farcaster SDK ready() called successfully');
+        }
+      } catch (error) {
+        console.log('⚠️ SDK ready() call failed:', error);
+      }
     }
   } catch (e) {
     console.log('⚠️ Detection failed - defaulting to mobile-safe mode');
