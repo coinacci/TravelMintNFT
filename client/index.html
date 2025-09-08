@@ -86,52 +86,27 @@
     <!-- Farcaster Mini App SDK (CDN for browser compatibility) -->
     <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk/dist/index.min.js"></script>
 
-    <!-- Splash Screen Styles -->
+    <!-- Frame Visibility Optimization -->
     <style>
-      /* Mobile splash screen optimization */
-      @media (max-width: 768px) {
-        .fc-splash-container {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background-color: #0f172a;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-        .fc-splash-image {
-          max-width: 90vw;
-          max-height: 90vh;
-          width: auto;
-          height: auto;
-          object-fit: contain;
-        }
+      /* Ensure immediate visibility for frames */
+      body {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
+        background-color: #0f172a;
       }
-
-      /* Desktop splash screen optimization */
-      @media (min-width: 769px) {
-        .fc-splash-container {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background-color: #0f172a;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-        .fc-splash-image {
-          max-width: 60vw;
-          max-height: 60vh;
-          width: auto;
-          height: auto;
-          object-fit: contain;
-        }
+      
+      #root {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: flex !important;
+        min-height: 100vh;
+        background-color: #0f172a;
+      }
+      
+      /* No splash for frames - instant loading */
+      .fc-splash-container {
+        display: none !important;
       }
     </style>
 
@@ -197,17 +172,20 @@
         if (isFrame) {
           console.log('⚡ Frame detected, preparing to hide splash');
 
-          // Hide splash using Farcaster SDK
-          try {
-            await miniapp.sdk.actions.ready();
-            console.log('✅ Splash screen hidden via SDK');
-          } catch (error) {
-            console.error('❌ Error hiding splash screen:', error);
+          // Remove splash container immediately for frames
+          const splashContainer = document.querySelector('.fc-splash-container');
+          if (splashContainer) {
+            splashContainer.remove();
+            console.log('✅ Splash container removed for frame');
           }
 
-          // Ensure body is visible as fallback
+          // Ensure body is visible immediately
           document.body.style.visibility = 'visible';
           document.body.style.opacity = '1';
+          document.body.style.display = 'block';
+          
+          // Let App.tsx handle SDK ready call
+          console.log('🔄 Delegating SDK ready to App.tsx');
         }
       });
     </script>
