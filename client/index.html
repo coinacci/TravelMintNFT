@@ -90,24 +90,25 @@
                         
         console.log('📱 HTML Detection - Frame:', isFrame, 'Mobile:', isMobile);
         
-        // UNIVERSAL: All frames get immediate bypass (no mobile/desktop distinction)
+        // OPTIMAL: Allow natural 1-second splash for branding
         if (isFrame) {
-          console.log('🚨 UNIVERSAL FRAME BYPASS: No splash for any frame');
+          console.log('🎆 NATURAL SPLASH: 1-second branding experience');
           
-          // INSTANT redirect without ANY splash screen logic
-          console.log('⚡ Universal frame redirect (0ms) - mobile AND desktop');
-          if (window.parent && window.parent.postMessage) {
-            window.parent.postMessage({ 
-              type: 'FRAME_READY_UNIVERSAL', 
-              source: 'TravelMint',
-              strategy: 'no-splash-universal'
-            }, '*');
-          }
+          // Let Farcaster handle splash naturally (1 second from manifest)
+          console.log('⏰ Allowing 1-second splash screen for branding');
           
-          // Also try immediate app load
+          // Post ready message AFTER splash completes naturally
           setTimeout(() => {
-            console.log('🚀 Force app ready state (universal)');
-          }, 10);
+            console.log('📨 Posting ready message after natural splash');
+            if (window.parent && window.parent.postMessage) {
+              window.parent.postMessage({ 
+                type: 'FRAME_READY_NATURAL', 
+                source: 'TravelMint',
+                strategy: '1-second-splash-natural',
+                splashComplete: true
+              }, '*');
+            }
+          }, 1100); // After 1 second + small buffer
         }
         
         // Enhanced cache busting with random IDs
@@ -161,7 +162,7 @@
               "name": "TravelMint",
               "url": currentUrl,
               "splashImageUrl": currentUrl + "/splash.png" + cacheParam,
-              "splashBackgroundColor": splashBg
+              "splashBackgroundColor": "#0f172a"
             }
           },
           "tags": ["travel", "nft", "blockchain", "photography", "base"],
