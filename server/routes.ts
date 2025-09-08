@@ -2,7 +2,7 @@ import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService } from "./blockchain";
-import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
+import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "../shared/schema.js";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
