@@ -189,11 +189,11 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // LAYERING FIX - Bring app to front after SDK ready
-        console.log('🎯 Layer-based splash transition mode');
+        // TIMING-BASED TRANSITION - Wait for splash to naturally dismiss
+        console.log('⏰ Timing-based splash transition mode');
         
-        // Enhanced SDK ready call with app layer management
-        const layerBasedTransition = () => {
+        // Strategy: SDK ready + progressive visibility enhancement
+        const timingBasedTransition = () => {
           try {
             console.log('🎯 Calling SDK ready() for splash transition');
             
@@ -203,45 +203,55 @@ function App() {
               console.log('✅ SDK ready() called - should transition from splash');
             }
             
-            // Strategy 2: Force app to front after ready signal
-            setTimeout(() => {
-              console.log('🔝 Bringing app to front (layering fix)');
+            // Strategy 2: Progressive visibility enhancement over time
+            const enhanceVisibility = (attempt: number) => {
+              console.log(`🔄 Visibility enhancement attempt ${attempt}`);
               
-              // Force app container to highest z-index
+              // Ensure app is fully visible and interactive
               const appContainer = document.getElementById('root');
               if (appContainer) {
+                appContainer.style.display = 'flex';
+                appContainer.style.opacity = '1';
+                appContainer.style.visibility = 'visible';
                 appContainer.style.position = 'relative';
                 appContainer.style.zIndex = '999999';
-                appContainer.style.backgroundColor = 'transparent';
-                console.log('📱 App container z-index set to 999999');
+                console.log(`📱 App visibility enhanced (attempt ${attempt})`);
               }
               
-              // Ensure body has high z-index too
-              document.body.style.position = 'relative';
-              document.body.style.zIndex = '999998';
+              // Force body to be interactive
+              document.body.style.display = 'block';
+              document.body.style.opacity = '1';
+              document.body.style.visibility = 'visible';
+              document.body.style.pointerEvents = 'auto';
               
-              // Send ready signals to parent
+              // Send ready signals to parent (multiple times for reliability)
               window.parent?.postMessage({ 
                 type: 'farcaster_frame_ready',
                 appReady: true,
-                layerFixed: true,
+                attempt: attempt,
                 timestamp: Date.now()
               }, '*');
               
               window.parent?.postMessage({ type: 'FRAME_READY' }, '*');
-              window.parent?.postMessage({ type: 'APP_LOADED' }, '*');
-              
-            }, 100); // Slight delay for SDK processing
+              window.parent?.postMessage({ type: 'APP_VISIBLE' }, '*');
+            };
+            
+            // Progressive enhancement with increasing delays
+            enhanceVisibility(1);
+            setTimeout(() => enhanceVisibility(2), 300);
+            setTimeout(() => enhanceVisibility(3), 800);
+            setTimeout(() => enhanceVisibility(4), 1500);
+            setTimeout(() => enhanceVisibility(5), 3000);
             
           } catch (error) {
-            console.log('⚠️ Layer transition error:', error);
+            console.log('⚠️ Timing transition error:', error);
           }
         };
         
-        // Call immediately and with safe delays
-        layerBasedTransition();
-        setTimeout(layerBasedTransition, 200);
-        setTimeout(layerBasedTransition, 500);
+        // Call immediately and with strategic delays
+        timingBasedTransition();
+        setTimeout(timingBasedTransition, 100);
+        setTimeout(timingBasedTransition, 500);
         
         // Universal frame communication
         if (window.parent && window.parent !== window) {
