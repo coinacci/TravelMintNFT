@@ -15,6 +15,7 @@ import token29Custom from "@assets/token-29-custom.jpg";
 import token30Custom from "@assets/token-30-custom.jpg";
 import token31Custom from "@assets/token-31-custom.jpg";
 import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
+import alohomora59Custom from "@assets/IMG_4179_1756807183245.png";
 
 // Modal placeholder imported from imageUtils
 
@@ -85,6 +86,17 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { id?: string; imageUr
     return (
       <img
         src={georgiaMomentsCustom}
+        alt={nft.title}
+        className={className}
+        {...props}
+      />
+    );
+  }
+  if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
+    console.log(`📸 Explore: Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
+    return (
+      <img
+        src={alohomora59Custom}
         alt={nft.title}
         className={className}
         {...props}

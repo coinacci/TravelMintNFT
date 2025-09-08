@@ -7,6 +7,7 @@ import token29Custom from "@assets/token-29-custom.jpg";
 import token30Custom from "@assets/token-30-custom.jpg";
 import token31Custom from "@assets/token-31-custom.jpg";
 import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
+import alohomora59Custom from "@assets/IMG_4179_1756807183245.png";
 
 interface NFT {
   id: string;
@@ -188,6 +189,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         } else if (nft.id === 'blockchain-41') {
           console.log(`🇬🇪 MapView: Using custom Georgia Moments image for Token 41`);
           imageUrl = georgiaMomentsCustom;
+        } else if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
+          console.log(`📸 MapView: Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
+          imageUrl = alohomora59Custom;
         } else {
           imageUrl = (nft as any).objectStorageUrl 
             ? ((nft as any).objectStorageUrl.startsWith('/') ? `${domain}${(nft as any).objectStorageUrl}` : (nft as any).objectStorageUrl)
@@ -256,6 +260,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               } else if (nft.id === 'blockchain-41') {
                 console.log(`🇬🇪 MapView Cluster: Using custom Georgia Moments image for Token 41`);
                 clusterImageUrl = georgiaMomentsCustom;
+              } else if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
+                console.log(`📸 MapView Cluster: Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
+                clusterImageUrl = alohomora59Custom;
               } else {
                 clusterImageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
                   ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')

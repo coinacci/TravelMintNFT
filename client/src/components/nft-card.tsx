@@ -4,7 +4,7 @@ import { MapPin, ExternalLink } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import alohomoraCamera from "@assets/alohomora-camera.jpg";
+import alohomoraCamera from "@assets/IMG_4179_1756807183245.png";
 import token29Custom from "@assets/token-29-custom.jpg";
 import token30Custom from "@assets/token-30-custom.jpg";
 import token31Custom from "@assets/token-31-custom.jpg";
@@ -56,9 +56,8 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     }
     
     // Special case: Alohomora59 NFTs (Token 37 & 38) use custom camera image
-    if (nft.title === 'Alohomora59' && (nft.id === 'blockchain-37' || nft.id === 'blockchain-38')) {
-      console.log(`🎯 Using custom camera image for ${nft.title} (${nft.id})`);
-      console.log(`📷 Camera image path:`, alohomoraCamera);
+    if (nft.id === 'blockchain-37' || nft.id === 'blockchain-38') {
+      console.log(`📸 Using custom Alohomora59 image for ${nft.title} (${nft.id})`);
       setImageSrc(alohomoraCamera);
       setImageLoading(false);
       return;
