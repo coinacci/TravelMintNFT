@@ -67,8 +67,8 @@ export async function registerRoutes(app: Express) {
   app.get("/share", (req, res) => {
     const { nft } = req.query;
     const shareUrl = nft 
-      ? `https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev/nft/${nft}` 
-      : "https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev";
+      ? `https://travelnft.replit.app/nft/${nft}` 
+      : "https://travelnft.replit.app";
     
     res.redirect(shareUrl);
   });
@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express) {
   app.get("/.well-known/farcaster.json", (req, res) => {
     // Dynamic URL detection for different environments
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host || req.headers['x-forwarded-host'] || '9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev';
+    const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
     const baseUrl = `${protocol}://${host}`;
     
     // UNIVERSAL NO-SPLASH: All requests get splash-free config
@@ -100,8 +100,8 @@ export async function registerRoutes(app: Express) {
     const farcasterConfig = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": "eyJkb21haW4iOiI5Y2Q3NDdkYS1hZmJlLTRhOTEtOTk4YS1jNTMwODIzMjlhNzctMDAtMnNxeTlwc25wdHo1dC5raXJrLnJlcGxpdC5kZXYifQ",
-        "signature": "Oq6LXf2XyqQPVuIqvlYdI6mQHfdkkGmiZR4LLUJAtR8CbyjG1EwcNu/wrEhptypbaHa8cB8Drsclkr4z2aivKRw="
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+        "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "frame": {
         "version": "1",
@@ -1067,8 +1067,8 @@ export async function registerRoutes(app: Express) {
     const manifest = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": "eyJkb21haW4iOiI5Y2Q3NDdkYS1hZmJlLTRhOTEtOTk4YS1jNTMwODIzMjlhNzctMDAtMnNxeTlwc25wdHo1dC5raXJrLnJlcGxpdC5kZXYifQ",
-        "signature": "Oq6LXf2XyqQPVuIqvlYdI6mQHfdkkGmiZR4LLUJAtR8CbyjG1EwcNu/wrEhptypbaHa8cB8Drsclkr4z2aivKRw="
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+        "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "frame": {
         "version": "1",
