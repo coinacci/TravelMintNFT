@@ -112,9 +112,6 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // TRANSPARENT SPLASH - Invisible 1px image for mobile
-        "splashImageUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        "splashBackgroundColor": "transparent",
         "buttonTitle": "⚡ Open",
         
         // INSTANT MOBILE ACCESS - No splash, direct to app  
@@ -131,8 +128,7 @@ export async function registerRoutes(app: Express) {
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-          `${baseUrl}/splash.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`
+          `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
@@ -1068,8 +1064,6 @@ export async function registerRoutes(app: Express) {
         "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
-        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint"
       }
     };
