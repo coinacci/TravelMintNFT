@@ -4,13 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     
-    <!-- Security and Extension Compatibility Meta Tags -->
-    <!-- X-Frame-Options removed to allow Farcaster embedding -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <!-- Mobile WebView Compatible Headers - Minimal restrictions -->
+    <meta http-equiv="Referrer-Policy" content="no-referrer-when-downgrade" />
     
-    <!-- Enhanced Content Security Policy for Wallet Extensions and Farcaster - ALLOW ALL FRAME ANCESTORS -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:; connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:; frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:; frame-ancestors *; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:;" />
+    <!-- Mobile WebView Compatible CSP - Ultra permissive for Farcaster -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; style-src * data: blob: 'unsafe-inline'; img-src * data: blob:; connect-src * data: blob:; frame-src *; frame-ancestors *; child-src *; worker-src * data: blob:; object-src *; base-uri *; form-action *;" />
     
     <!-- App Meta Tags - Synchronized with farcaster.json -->
     <title>TravelMint - Travel Photo NFT Marketplace</title>

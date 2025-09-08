@@ -136,7 +136,9 @@ export async function registerRoutes(app: Express) {
         "castShareUrl": `${baseUrl}/share`,
         "noindex": false,
         "primaryCategory": "social",
-        "mobileOptimized": isMobileFarcaster
+        "mobileOptimized": true,
+        "webViewCompatible": true,
+        "allowIframe": true
       },
       "baseBuilder": {
         "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
