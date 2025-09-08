@@ -154,12 +154,24 @@ function App() {
   useEffect(() => {
     console.log('🎯 TravelMint starting...');
     
-    // ZERO SDK calls in frame environments - instant ready
+    // EMERGENCY: Instant frame communication + NO SDK ever
     if (typeof window !== 'undefined') {
       if (isAnyMobile || isFarcasterFrame) {
-        // ANY frame = instant ready, NO SDK
-        console.log('🚀 FRAME MODE: Instant ready (ZERO SDK calls)');
+        // IMMEDIATE frame communication
+        console.log('🚀 EMERGENCY FRAME MODE: Zero-delay activation');
         console.log('📱 App is ready for immediate interaction');
+        
+        // Post ready message to parent frame immediately
+        if (window.parent && window.parent !== window) {
+          setTimeout(() => {
+            console.log('📨 Posting READY to parent frame');
+            window.parent.postMessage({
+              type: 'FRAME_APP_READY',
+              source: 'TravelMint',
+              timestamp: Date.now()
+            }, '*');
+          }, 10); // 10ms only
+        }
       } else if (sdk?.actions?.ready) {
         // Only pure desktop web gets SDK
         setTimeout(() => {

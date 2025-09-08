@@ -52,6 +52,19 @@
                         
         console.log('📱 HTML Detection - Frame:', isFrame, 'Mobile:', isMobile);
         
+        // EMERGENCY: If frame detected, bypass all splash logic
+        if (isFrame) {
+          console.log('🚨 FRAME DETECTED: Emergency bypass mode activated');
+          
+          // Try immediate redirect without any splash
+          setTimeout(() => {
+            console.log('⚡ Emergency frame redirect (0ms)');
+            if (window.parent && window.parent.postMessage) {
+              window.parent.postMessage({ type: 'FRAME_READY' }, '*');
+            }
+          }, 0);
+        }
+        
         // Enhanced cache busting with random IDs
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substr(2, 9);

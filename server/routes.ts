@@ -80,19 +80,13 @@ export async function registerRoutes(app: Express) {
     const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
     const baseUrl = `${protocol}://${host}`;
     
-    // ULTRA-AGGRESSIVE mobile detection - safer approach
+    // EMERGENCY: Force ALL requests to use mobile config (no splash)
     const userAgent = req.headers['user-agent'] || '';
     const hasTouch = req.headers['sec-ch-ua-mobile'] === '?1';
     
-    // Treat ALL Farcaster requests as mobile by default (safer)
-    const isMobileFarcaster = true; // Force mobile optimizations
-    const isLikelyMobile = userAgent.includes('Farcaster') || 
-                          userAgent.includes('Mobile') || 
-                          userAgent.includes('Android') || 
-                          userAgent.includes('iPhone') ||
-                          userAgent.includes('iPad') ||
-                          hasTouch ||
-                          /Mobi|Android|iPhone|iPad/i.test(userAgent);
+    // FORCE mobile mode for ALL Farcaster requests - no exceptions
+    const isMobileFarcaster = true; // ← ALWAYS MOBILE CONFIG
+    const isLikelyMobile = true;   // ← ALWAYS MOBILE MODE
     
     console.log('🔧 Farcaster config (FORCE MOBILE):', { 
       host, 
@@ -117,11 +111,20 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "splashImageUrl": `${baseUrl}/splash.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        "splashBackgroundColor": isMobileFarcaster ? "#000014" : "#0f172a",
-        "buttonTitle": isMobileFarcaster ? "⚡ TravelMint" : "Open TravelMint",
-        "loadingTimeout": isMobileFarcaster ? 100 : 3000,
-        "fastLoad": isMobileFarcaster,
+        // MOBILE: NO splash screen at all - direct redirect
+        ...(isMobileFarcaster ? {
+          "loadingTimeout": 0,
+          "fastLoad": true,
+          "skipSplash": true,
+          "instantLoad": true,
+          "buttonTitle": "⚡ Open"
+        } : {
+          "splashImageUrl": `${baseUrl}/splash.png?v=desktop&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
+          "splashBackgroundColor": "#0f172a",
+          "buttonTitle": "Open TravelMint",
+          "loadingTimeout": 3000,
+          "fastLoad": false
+        }),
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
