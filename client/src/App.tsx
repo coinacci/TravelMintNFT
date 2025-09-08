@@ -42,6 +42,13 @@ function App() {
   useEffect(() => {
     console.log('📱 HTML Detection - Frame:', window.parent !== window, 'Mobile:', window.innerWidth < 768);
     
+    // Hide HTML fallback when React loads
+    const fallback = document.getElementById('html-fallback');
+    if (fallback) {
+      fallback.style.display = 'none';
+      console.log('🚫 HTML fallback hidden - React loaded');
+    }
+    
     // Frame detection and instant loading
     if (typeof window !== 'undefined' && window.parent !== window) {
       console.log('⚡ NO SPLASH: Instant frame loading');

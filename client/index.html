@@ -190,15 +190,54 @@
       });
     </script>
   </head>
-  <body>
-    <!-- Frame Debug Fallback -->
-    <div id="frame-debug" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffff00; color: black; font-size: 18px; padding: 20px; z-index: 10000; display: none;">
-      🟡 RAW HTML FALLBACK<br>
-      This is pure HTML - no React, no CSS classes<br>
-      If you see this YELLOW background, HTML works but React doesn't
+  <body style="margin: 0; padding: 0; background-color: #0f172a; color: white; font-family: system-ui, sans-serif;">
+    <!-- HTML Fallback for Farcaster Mobile -->
+    <div id="html-fallback" style="
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100vw; 
+      height: 100vh; 
+      background: #0f172a; 
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    ">
+      <div style="max-width: 400px;">
+        <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 16px; font-weight: bold;">🗺️ TravelMint</h1>
+        <p style="color: #94a3b8; font-size: 16px; margin-bottom: 24px; line-height: 1.5;">Travel Photo NFT Marketplace</p>
+        <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+          <p style="color: #e2e8f0; font-size: 14px; margin: 0;">🔄 Loading app...</p>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <a href="/explore" style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">🗺️ Explore</a>
+          <a href="/mint" style="background: #1e293b; color: #e2e8f0; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">📸 Mint</a>
+        </div>
+      </div>
     </div>
 
-    <div id="root"></div>
+    <div id="root" style="min-height: 100vh; background-color: #0f172a;"></div>
+    
+    <script>
+      // Hide HTML fallback when React loads
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const fallback = document.getElementById('html-fallback');
+          const root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            if (fallback) fallback.style.display = 'none';
+          }
+        }, 1000); // Give React 1 second to load
+      });
+    </script>
+    
     <script type="module" src="/src/main.tsx"></script>
 
     <!-- Replit Dev Banner (for development mode) -->
