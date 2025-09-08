@@ -5,6 +5,9 @@ import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import alohomoraCamera from "@assets/alohomora-camera.jpg";
+import token29Custom from "@assets/token-29-custom.jpg";
+import token30Custom from "@assets/token-30-custom.jpg";
+import token31Custom from "@assets/token-31-custom.jpg";
 
 interface NFTCardProps {
   nft: {
@@ -56,6 +59,26 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       console.log(`🎯 Using custom camera image for ${nft.title} (${nft.id})`);
       console.log(`📷 Camera image path:`, alohomoraCamera);
       setImageSrc(alohomoraCamera);
+      setImageLoading(false);
+      return;
+    }
+    
+    // Special case: Genoa Italy NFTs (Token 29, 30, 31) use custom images
+    if (nft.id === 'blockchain-29') {
+      console.log(`🇮🇹 Using custom Genoa image for Token 29`);
+      setImageSrc(token29Custom);
+      setImageLoading(false);
+      return;
+    }
+    if (nft.id === 'blockchain-30') {
+      console.log(`🇮🇹 Using custom Genoa image for Token 30`);
+      setImageSrc(token30Custom);
+      setImageLoading(false);
+      return;
+    }
+    if (nft.id === 'blockchain-31') {
+      console.log(`🇮🇹 Using custom Genoa image for Token 31`);
+      setImageSrc(token31Custom);
       setImageLoading(false);
       return;
     }
