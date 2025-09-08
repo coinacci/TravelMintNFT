@@ -88,13 +88,13 @@ export async function registerRoutes(app: Express) {
     const isMobileFarcaster = true; // Force no-splash config for ALL
     const isLikelyMobile = true;   // Treat everything as mobile (safer)
     
-    console.log('🔧 Farcaster config (UNIVERSAL NO-SPLASH):', { 
+    console.log('🔧 Farcaster config (1-SECOND SPLASH):', { 
       host, 
       userAgent: userAgent.substring(0, 100), 
       isMobile: isMobileFarcaster,
       isLikelyMobile,
       hasTouch,
-      strategy: 'no-splash-all-frames'
+      strategy: '1-second-splash-optimal'
     });
     
     const farcasterConfig = {
@@ -112,20 +112,17 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // FARCASTER MANIFEST REQUIREMENTS (visual only)
-        "splashImageUrl": `${baseUrl}/icon.png`,  // Use lighter icon instead of splash
-        "splashBackgroundColor": "transparent",   // Transparent for instant loading
-        "buttonTitle": "Open",                     // Simple text for speed
+        // FARCASTER MANIFEST REQUIREMENTS (1 second splash)
+        "splashImageUrl": `${baseUrl}/icon.png`,
+        "splashBackgroundColor": "#0f172a",       // App theme background
+        "buttonTitle": "Open",
         
-        // ULTRA-AGGRESSIVE NO-SPLASH CONFIG
-        "loadingTimeout": 0,
+        // OPTIMAL 1-SECOND SPLASH CONFIG
+        "loadingTimeout": 1000,                   // Exactly 1 second
         "fastLoad": true,
-        "skipSplash": true,
-        "instantLoad": true,
-        "noSplash": true,
-        "preloadSkip": true,
-        "immediateMode": true,
-        "bypassAll": true,
+        "skipSplash": false,                      // Allow splash for 1 second
+        "instantLoad": false,
+        "splashDuration": 1000,
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
