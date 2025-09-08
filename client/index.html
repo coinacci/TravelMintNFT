@@ -21,31 +21,57 @@
     <meta name="robots" content="index, follow" />
     <meta name="primaryCategory" content="social" />
     
-    <!-- Farcaster Frame Meta Tags for Discovery -->
+    <!-- Farcaster Frame Meta Tags for Discovery with Dynamic URLs -->
     <meta name="fc:frame" content="vNext" />
-    <meta name="fc:frame:image" content="https://travelnft.vercel.app/image.png" />
+    <meta name="fc:frame:image" id="fc-frame-image" content="/image.png" />
     <meta name="fc:frame:button:1" content="🗺️ Explore NFTs" />
     <meta name="fc:frame:button:1:action" content="link" />
-    <meta name="fc:frame:button:1:target" content="https://travelnft.vercel.app/explore" />
+    <meta name="fc:frame:button:1:target" id="fc-explore-target" content="/explore" />
     <meta name="fc:frame:button:2" content="📸 Mint Travel NFT" />
     <meta name="fc:frame:button:2:action" content="link" />
-    <meta name="fc:frame:button:2:target" content="https://travelnft.vercel.app/mint" />
+    <meta name="fc:frame:button:2:target" id="fc-mint-target" content="/mint" />
     
-    <!-- Farcaster Mini App Discovery Tags -->
-    <meta name="fc:miniapp" content='{
-      "version": "1",
-      "imageUrl": "https://travelnft.vercel.app/image.png",
-      "button": {
-        "title": "Open TravelMint",
-        "action": {
-          "type": "link",
-          "name": "TravelMint",
-          "url": "https://travelnft.vercel.app",
-          "splashImageUrl": "https://travelnft.vercel.app/splash.png",
-          "splashBackgroundColor": "#0f172a"
-        }
+    <!-- Farcaster Mini App Discovery Tags with Mobile Detection -->
+    <script>
+      // Update Farcaster meta tags with current domain
+      if (typeof window !== 'undefined') {
+        const currentUrl = window.location.origin;
+        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        
+        // Update frame image URLs
+        const frameImage = document.getElementById('fc-frame-image');
+        if (frameImage) frameImage.content = currentUrl + '/image.png?v=mobile&t=' + Date.now();
+        
+        // Update button targets
+        const exploreTarget = document.getElementById('fc-explore-target');
+        if (exploreTarget) exploreTarget.content = currentUrl + '/explore';
+        
+        const mintTarget = document.getElementById('fc-mint-target');
+        if (mintTarget) mintTarget.content = currentUrl + '/mint';
+        
+        // Set mobile-specific splash background
+        const splashBg = isMobile ? '#1a202c' : '#0f172a';
+        
+        // Create mini app meta tag
+        const miniappMeta = document.createElement('meta');
+        miniappMeta.name = 'fc:miniapp';
+        miniappMeta.content = JSON.stringify({
+          "version": "1",
+          "imageUrl": currentUrl + "/image.png?v=mobile&t=" + Date.now(),
+          "button": {
+            "title": isMobile ? "🚀 Open TravelMint" : "Open TravelMint",
+            "action": {
+              "type": "link",
+              "name": "TravelMint",
+              "url": currentUrl,
+              "splashImageUrl": currentUrl + "/splash.png?v=mobile&t=" + Date.now(),
+              "splashBackgroundColor": splashBg
+            }
+          }
+        });
+        document.head.appendChild(miniappMeta);
       }
-    }' />
+    </script>
     
     <!-- Add custom CSS for splash screen positioning -->
     <style>

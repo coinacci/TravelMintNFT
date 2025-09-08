@@ -13,15 +13,24 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Navigation from "@/components/navigation";
 
-// Minimal Farcaster SDK - no blocking calls for mobile stability
+// Enhanced Farcaster SDK with mobile detection
 let farcasterReady = false;
+let isMobileFarcaster = false;
 if (typeof window !== 'undefined') {
   try {
     console.log('🚀 Minimal Farcaster init...');
     
+    // Detect mobile Farcaster specifically
+    const userAgent = navigator.userAgent || '';
+    isMobileFarcaster = userAgent.includes('Farcaster') && 
+                       (userAgent.includes('Mobile') || 
+                        userAgent.includes('Android') || 
+                        userAgent.includes('iPhone') ||
+                        /Mobi|Android/i.test(userAgent));
+    
     // Only log detection, don't call any SDK methods immediately
     if (window.parent !== window && sdk?.actions) {
-      console.log('📱 Farcaster environment detected');
+      console.log(`📱 Farcaster environment detected - Mobile: ${isMobileFarcaster}`);
       // Don't call ready() immediately - let it happen async later
     } else {
       console.log('🌐 Standard web browser mode');
@@ -120,17 +129,19 @@ function App() {
   useEffect(() => {
     console.log('🎯 TravelMint starting...');
     
-    // Optional Farcaster SDK ready call - completely async and non-blocking
+    // Optional Farcaster SDK ready call - mobile-aware timing
     if (typeof window !== 'undefined' && window.parent !== window && sdk?.actions?.ready) {
-      // Delayed, optional ready call - won't block app startup
+      // Mobile Farcaster needs longer initialization time
+      const readyDelay = isMobileFarcaster ? 2500 : 1000;
+      
       setTimeout(() => {
         try {
           sdk.actions.ready();
-          console.log('✅ Farcaster ready (delayed)');
+          console.log(`✅ Farcaster ready (delayed ${readyDelay}ms) - Mobile: ${isMobileFarcaster}`);
         } catch (e) {
-          // Silent fail
+          console.log('⚠️ Farcaster ready call failed:', e);
         }
-      }, 1000); // Give app time to fully load first
+      }, readyDelay);
     }
     
     // No context loading - keep it simple for mobile

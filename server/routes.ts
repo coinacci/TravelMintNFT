@@ -75,6 +75,17 @@ export async function registerRoutes(app: Express) {
 
   // Versioned route for cache busting
   app.get("/.well-known/farcaster.json", (req, res) => {
+    // Dynamic URL detection for different environments
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host || req.headers['x-forwarded-host'] || 'travelnft.replit.app';
+    const baseUrl = `${protocol}://${host}`;
+    
+    // Detect mobile Farcaster client via User-Agent
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobileFarcaster = userAgent.includes('Farcaster') && (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone'));
+    
+    console.log('🔧 Farcaster config requested:', { host, userAgent: userAgent.substring(0, 100), isMobile: isMobileFarcaster });
+    
     const farcasterConfig = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
@@ -86,26 +97,27 @@ export async function registerRoutes(app: Express) {
         "name": "TravelMint",
         "subtitle": "Travel Photo NFT Marketplace",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-        "iconUrl": "https://travelnft.replit.app/icon.png",
-        "homeUrl": "https://travelnft.replit.app",
-        "imageUrl": "https://travelnft.replit.app/image.png",
-        "heroImageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
-        "splashBackgroundColor": "#0f172a",
-        "buttonTitle": "Open TravelMint",
-        "webhookUrl": "https://travelnft.replit.app/api/webhook",
+        "iconUrl": `${baseUrl}/icon.png?v=mobile&t=${Date.now()}`,
+        "homeUrl": baseUrl,
+        "imageUrl": `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
+        "heroImageUrl": `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
+        "splashImageUrl": `${baseUrl}/splash.png?v=mobile&t=${Date.now()}`,
+        "splashBackgroundColor": isMobileFarcaster ? "#1a202c" : "#0f172a",
+        "buttonTitle": isMobileFarcaster ? "🚀 Open TravelMint" : "Open TravelMint",
+        "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          "https://travelnft.replit.app/image.png",
-          "https://travelnft.replit.app/splash.png"
+          `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
+          `${baseUrl}/splash.png?v=mobile&t=${Date.now()}`
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-        "ogImageUrl": "https://travelnft.replit.app/image.png",
-        "castShareUrl": "https://travelnft.replit.app/share",
+        "ogImageUrl": `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
+        "castShareUrl": `${baseUrl}/share`,
         "noindex": false,
-        "primaryCategory": "social"
+        "primaryCategory": "social",
+        "mobileOptimized": isMobileFarcaster
       },
       "baseBuilder": {
         "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
