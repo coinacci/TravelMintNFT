@@ -117,13 +117,16 @@ export async function registerRoutes(app: Express) {
         "splashBackgroundColor": "#0f172a",       // App theme background
         "buttonTitle": "⚡ Open",
         
-        // NO SPLASH CONFIG - Instant app access
+        // NO SPLASH CONFIG - Instant app access (MOBILE FOCUSED)
         "loadingTimeout": 0,                     // Zero delay
         "fastLoad": true,
         "skipSplash": true,                      // Skip splash completely
         "instantLoad": true,
         "noSplash": true,                       // No splash screen
+        "disableSplash": true,                  // Mobile app splash disable
+        "autoStart": true,                      // Auto start app
         "splashDuration": 0,
+        "hideSplash": true,                     // Force hide splash
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
