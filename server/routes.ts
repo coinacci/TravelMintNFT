@@ -97,23 +97,23 @@ export async function registerRoutes(app: Express) {
         "name": "TravelMint",
         "subtitle": "Travel Photo NFT Marketplace",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-        "iconUrl": `${baseUrl}/icon.png?v=mobile&t=${Date.now()}`,
+        "iconUrl": `${baseUrl}/icon.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "homeUrl": baseUrl,
-        "imageUrl": `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
-        "heroImageUrl": `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
-        "splashImageUrl": `${baseUrl}/splash.png?v=mobile&t=${Date.now()}`,
+        "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
+        "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
+        "splashImageUrl": `${baseUrl}/splash.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "splashBackgroundColor": isMobileFarcaster ? "#1a202c" : "#0f172a",
         "buttonTitle": isMobileFarcaster ? "🚀 Open TravelMint" : "Open TravelMint",
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
-          `${baseUrl}/splash.png?v=mobile&t=${Date.now()}`
+          `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
+          `${baseUrl}/splash.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-        "ogImageUrl": `${baseUrl}/image.png?v=mobile&t=${Date.now()}`,
+        "ogImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "castShareUrl": `${baseUrl}/share`,
         "noindex": false,
         "primaryCategory": "social",
@@ -124,12 +124,18 @@ export async function registerRoutes(app: Express) {
       }
     };
 
+    // Aggressive cache busting for Farcaster
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.setHeader('ETag', `"v${Date.now()}"`);
+    res.setHeader('ETag', `"fc-config-${isMobileFarcaster ? 'mobile' : 'desktop'}-${timestamp}-${randomId}"`);
     res.setHeader('Last-Modified', new Date().toUTCString());
+    res.setHeader('Vary', 'User-Agent');
+    res.setHeader('X-Farcaster-Mobile', isMobileFarcaster.toString());
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 

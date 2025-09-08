@@ -38,9 +38,15 @@
         const currentUrl = window.location.origin;
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
         
+        // Enhanced cache busting with random IDs
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const version = isMobile ? 'mobile' : 'desktop';
+        const cacheParam = `?v=${version}&cb=${timestamp}&r=${randomId}`;
+        
         // Update frame image URLs
         const frameImage = document.getElementById('fc-frame-image');
-        if (frameImage) frameImage.content = currentUrl + '/image.png?v=mobile&t=' + Date.now();
+        if (frameImage) frameImage.content = currentUrl + '/image.png' + cacheParam;
         
         // Update button targets
         const exploreTarget = document.getElementById('fc-explore-target');
@@ -52,19 +58,19 @@
         // Set mobile-specific splash background
         const splashBg = isMobile ? '#1a202c' : '#0f172a';
         
-        // Create mini app meta tag
+        // Create mini app meta tag with aggressive cache busting
         const miniappMeta = document.createElement('meta');
         miniappMeta.name = 'fc:miniapp';
         miniappMeta.content = JSON.stringify({
           "version": "1",
-          "imageUrl": currentUrl + "/image.png?v=mobile&t=" + Date.now(),
+          "imageUrl": currentUrl + "/image.png" + cacheParam,
           "button": {
             "title": isMobile ? "🚀 Open TravelMint" : "Open TravelMint",
             "action": {
               "type": "link",
               "name": "TravelMint",
               "url": currentUrl,
-              "splashImageUrl": currentUrl + "/splash.png?v=mobile&t=" + Date.now(),
+              "splashImageUrl": currentUrl + "/splash.png" + cacheParam,
               "splashBackgroundColor": splashBg
             }
           }
