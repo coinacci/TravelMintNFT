@@ -8,6 +8,7 @@ import alohomoraCamera from "@assets/alohomora-camera.jpg";
 import token29Custom from "@assets/token-29-custom.jpg";
 import token30Custom from "@assets/token-30-custom.jpg";
 import token31Custom from "@assets/token-31-custom.jpg";
+import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
 
 interface NFTCardProps {
   nft: {
@@ -79,6 +80,14 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     if (nft.id === 'blockchain-31') {
       console.log(`🇮🇹 Using custom Genoa image for Token 31`);
       setImageSrc(token31Custom);
+      setImageLoading(false);
+      return;
+    }
+    
+    // Special case: Georgia Moments NFT (Token 41) uses custom image
+    if (nft.id === 'blockchain-41') {
+      console.log(`🇬🇪 Using custom Georgia Moments image for Token 41`);
+      setImageSrc(georgiaMomentsCustom);
       setImageLoading(false);
       return;
     }

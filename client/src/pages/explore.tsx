@@ -14,6 +14,7 @@ import { getBestImageUrl } from "@/lib/imageUtils";
 import token29Custom from "@assets/token-29-custom.jpg";
 import token30Custom from "@assets/token-30-custom.jpg";
 import token31Custom from "@assets/token-31-custom.jpg";
+import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
 
 // Modal placeholder imported from imageUtils
 
@@ -73,6 +74,17 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { id?: string; imageUr
     return (
       <img
         src={token31Custom}
+        alt={nft.title}
+        className={className}
+        {...props}
+      />
+    );
+  }
+  if (nft.id === 'blockchain-41') {
+    console.log(`🇬🇪 Explore: Using custom Georgia Moments image for Token 41`);
+    return (
+      <img
+        src={georgiaMomentsCustom}
         alt={nft.title}
         className={className}
         {...props}

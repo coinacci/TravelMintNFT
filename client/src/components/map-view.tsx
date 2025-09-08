@@ -6,6 +6,7 @@ import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 import token29Custom from "@assets/token-29-custom.jpg";
 import token30Custom from "@assets/token-30-custom.jpg";
 import token31Custom from "@assets/token-31-custom.jpg";
+import georgiaMomentsCustom from "@assets/georgia-moments-custom.jpg";
 
 interface NFT {
   id: string;
@@ -184,6 +185,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         } else if (nft.id === 'blockchain-31') {
           console.log(`🇮🇹 MapView: Using custom Genoa image for Token 31`);
           imageUrl = token31Custom;
+        } else if (nft.id === 'blockchain-41') {
+          console.log(`🇬🇪 MapView: Using custom Georgia Moments image for Token 41`);
+          imageUrl = georgiaMomentsCustom;
         } else {
           imageUrl = (nft as any).objectStorageUrl 
             ? ((nft as any).objectStorageUrl.startsWith('/') ? `${domain}${(nft as any).objectStorageUrl}` : (nft as any).objectStorageUrl)
@@ -249,6 +253,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               } else if (nft.id === 'blockchain-31') {
                 console.log(`🇮🇹 MapView Cluster: Using custom Genoa image for Token 31`);
                 clusterImageUrl = token31Custom;
+              } else if (nft.id === 'blockchain-41') {
+                console.log(`🇬🇪 MapView Cluster: Using custom Georgia Moments image for Token 41`);
+                clusterImageUrl = georgiaMomentsCustom;
               } else {
                 clusterImageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
                   ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
