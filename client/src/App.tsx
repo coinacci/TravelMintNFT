@@ -189,8 +189,8 @@ function App() {
         console.log('🚀 UNIVERSAL FRAME MODE: Zero-delay for ALL frames');
         console.log('📱 App ready for immediate interaction (mobile AND desktop)');
         
-        // TIMING-BASED TRANSITION - Wait for splash to naturally dismiss
-        console.log('⏰ Timing-based splash transition mode');
+        // CACHE-BUSTED TRANSITION - Clear cache + hide splash
+        console.log('💥 CACHE-BUSTED splash transition mode');
         
         // Strategy: SDK ready + progressive visibility enhancement
         const timingBasedTransition = () => {

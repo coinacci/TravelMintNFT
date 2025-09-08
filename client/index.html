@@ -161,11 +161,13 @@
           setTimeout(sendReady, 10);
         }
         
-        // Enhanced cache busting with random IDs
+        // NUCLEAR CACHE BUSTING - Mobile app cache destroyer
         const timestamp = Date.now();
-        const randomId = Math.random().toString(36).substr(2, 9);
+        const randomId = Math.random().toString(36).substr(2, 15);
+        const nanoTime = performance.now().toString().replace('.', '');
+        const sessionId = Math.random().toString(36).substr(2, 10);
         const version = isMobile ? 'mobile' : 'desktop';
-        const cacheParam = `?v=${version}&cb=${timestamp}&r=${randomId}`;
+        const cacheParam = `?v=${version}&cb=${timestamp}&r=${randomId}&nano=${nanoTime}&session=${sessionId}&mobile=1&bust=${Date.now()}`;
         
         // Update frame image URLs
         const frameImage = document.getElementById('fc-frame-image');

@@ -147,22 +147,25 @@ export async function registerRoutes(app: Express) {
       }
     };
 
-    // EXTREME cache prevention - force manifest refresh
+    // NUCLEAR CACHE BUSTING - Mobile app cache destroyer
     const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substr(2, 12);
+    const randomId = Math.random().toString(36).substr(2, 15);
+    const nanoTime = performance.now().toString().replace('.', '');
     
     res.setHeader('Content-Type', 'application/json');
-    // EXTREME cache prevention for ALL requests
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
-    res.setHeader('Surrogate-Control', 'no-store');
+    // NUCLEAR cache prevention - destroy all mobile caches
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0, private, immutable');
+    res.setHeader('Surrogate-Control', 'no-store, max-age=0');
     res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('ETag', `"fc-splash-fix-${isMobileFarcaster ? 'mob' : 'desk'}-${timestamp}-${randomId}"`);
-    res.setHeader('Last-Modified', new Date().toUTCString());
-    res.setHeader('Vary', 'User-Agent, Accept-Encoding');
+    res.setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+    res.setHeader('Last-Modified', new Date(timestamp).toUTCString());
+    res.setHeader('ETag', `"nuclear-cache-bust-${timestamp}-${randomId}-${nanoTime}"`);
+    res.setHeader('Vary', 'User-Agent, Accept-Encoding, Cache-Control');
     res.setHeader('X-Farcaster-Mobile', isMobileFarcaster.toString());
-    res.setHeader('X-Load-Strategy', 'no-splash-instant');
-    res.setHeader('X-Splash-Fix', 'true');
+    res.setHeader('X-Cache-Bust', `mobile-${timestamp}-${randomId}`);
+    res.setHeader('X-No-Cache', 'true');
+    res.setHeader('X-Frame-Options', 'ALLOWALL');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 
