@@ -12,16 +12,45 @@
     <!-- Enhanced Content Security Policy for Wallet Extensions and Farcaster - ALLOW ALL FRAME ANCESTORS -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:; connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:; frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:; frame-ancestors *; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https:;" />
     
-    <!-- App Meta Tags -->
+    <!-- App Meta Tags - Synchronized with farcaster.json -->
     <title>TravelMint - Travel Photo NFT Marketplace</title>
-    <meta name="description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates." />
+    <meta name="description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map." />
+    <meta name="keywords" content="travel, nft, blockchain, photography, base, travel photos, location nfts, gps coordinates, cryptocurrency, digital collectibles" />
+    <meta name="author" content="TravelMint" />
+    <meta name="subtitle" content="Travel Photo NFT Marketplace" />
+    <meta name="tagline" content="Turn travel into NFTs" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://travelmint.app" />
+    
+    <!-- Open Graph Meta Tags - Synchronized with farcaster.json -->
+    <meta property="og:title" content="TravelMint NFT App" />
+    <meta property="og:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://travelmint.app" />
+    <meta property="og:site_name" content="TravelMint" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TravelMint NFT App" />
+    <meta name="twitter:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
+    <meta name="twitter:site" content="@TravelMint" />
+    <meta name="twitter:creator" content="@TravelMint" />
+    
+    <!-- Theme and App Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TravelMint" />
     
     <!-- Base App Integration Meta Tags -->
     <meta name="noindex" content="false" />
     <meta name="robots" content="index, follow" />
     <meta name="primaryCategory" content="social" />
     
-    <!-- Farcaster Frame Meta Tags for Discovery with Dynamic URLs -->
+    <!-- Enhanced Farcaster Frame Meta Tags - Synchronized with farcaster.json -->
     <meta name="fc:frame" content="vNext" />
     <meta name="fc:frame:image" id="fc-frame-image" content="/image.png" />
     <meta name="fc:frame:button:1" content="🗺️ Explore NFTs" />
@@ -30,6 +59,15 @@
     <meta name="fc:frame:button:2" content="📸 Mint Travel NFT" />
     <meta name="fc:frame:button:2:action" content="link" />
     <meta name="fc:frame:button:2:target" id="fc-mint-target" content="/mint" />
+    
+    <!-- Additional Farcaster Discovery Meta Tags -->
+    <meta name="fc:app:name" content="TravelMint" />
+    <meta name="fc:app:description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map." />
+    <meta name="fc:app:tagline" content="Turn travel into NFTs" />
+    <meta name="fc:app:subtitle" content="Travel Photo NFT Marketplace" />
+    <meta name="fc:app:tags" content="travel,nft,blockchain,photography,base" />
+    <meta name="fc:app:category" content="social" />
+    <meta name="fc:app:version" content="1" />
     
     <!-- Farcaster Mini App Discovery Tags with Mobile Detection -->
     <script>
@@ -92,12 +130,30 @@
         // Mobile gets instant-load background
         const splashBg = isMobile ? '#000014' : '#0f172a';
         
-        // Create mini app meta tag with aggressive cache busting
+        // Update dynamic OG and Twitter meta tags
+        const updateMetaTag = (property, content) => {
+          let meta = document.querySelector(`meta[property="${property}"], meta[name="${property}"]`);
+          if (meta) {
+            meta.content = content;
+          }
+        };
+        
+        updateMetaTag('og:image', currentUrl + '/image.png' + cacheParam);
+        updateMetaTag('og:url', currentUrl);
+        updateMetaTag('twitter:image', currentUrl + '/image.png' + cacheParam);
+        updateMetaTag('twitter:url', currentUrl);
+        
+        // Create enhanced mini app meta tag with all farcaster.json data
         const miniappMeta = document.createElement('meta');
         miniappMeta.name = 'fc:miniapp';
         miniappMeta.content = JSON.stringify({
           "version": "1",
+          "name": "TravelMint",
+          "subtitle": "Travel Photo NFT Marketplace",
+          "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
+          "tagline": "Turn travel into NFTs",
           "imageUrl": currentUrl + "/image.png" + cacheParam,
+          "iconUrl": currentUrl + "/icon.png" + cacheParam,
           "button": {
             "title": "⚡ Open",
             "action": {
@@ -107,7 +163,10 @@
               "splashImageUrl": currentUrl + "/splash.png" + cacheParam,
               "splashBackgroundColor": splashBg
             }
-          }
+          },
+          "tags": ["travel", "nft", "blockchain", "photography", "base"],
+          "category": "social",
+          "mobileOptimized": true
         });
         document.head.appendChild(miniappMeta);
       }
