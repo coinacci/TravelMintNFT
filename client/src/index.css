@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(210, 20%, 98.04%);
+  --background: hsl(29.88, 100%, 50%);
   --foreground: hsl(222.86, 84%, 4.9%);
   --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(222, 84%, 4.9%);
