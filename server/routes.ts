@@ -112,16 +112,17 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // FARCASTER MANIFEST REQUIREMENTS (no splash)
+        // FARCASTER MANIFEST REQUIREMENTS (no splash)  
         "splashImageUrl": `${baseUrl}/icon.png`,
         "splashBackgroundColor": "#0f172a",       // App theme background
-        "buttonTitle": "Open TravelMint",
+        "buttonTitle": "⚡ Open",
         
         // NO SPLASH CONFIG - Instant app access
         "loadingTimeout": 0,                     // Zero delay
         "fastLoad": true,
         "skipSplash": true,                      // Skip splash completely
         "instantLoad": true,
+        "noSplash": true,                       // No splash screen
         "splashDuration": 0,
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
