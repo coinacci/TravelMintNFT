@@ -112,13 +112,17 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // UNIVERSAL: NO splash screen for ANY frame environment
+        // Manifest fields required for Farcaster discovery
+        "splashImageUrl": `${baseUrl}/splash.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
+        "splashBackgroundColor": "#0f172a",
+        "buttonTitle": "⚡ Open",
+        
+        // Performance optimizations (internal use)
         "loadingTimeout": 0,
         "fastLoad": true,
         "skipSplash": true,
         "instantLoad": true,
         "noSplash": true,
-        "buttonTitle": "⚡ Open",
         "webhookUrl": `${baseUrl}/api/webhook`,
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
