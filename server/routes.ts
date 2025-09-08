@@ -112,19 +112,19 @@ export async function registerRoutes(app: Express) {
         "homeUrl": baseUrl,
         "imageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
         "heroImageUrl": `${baseUrl}/image.png?v=${isMobileFarcaster ? 'mobile' : 'desktop'}&cb=${Date.now()}&r=${Math.random().toString(36).substr(2, 9)}`,
-        // SIMPLE SPLASH CONFIG
-        "splashImageUrl": `${baseUrl}/icon.png`,
-        "splashBackgroundColor": "#0f172a",
+        // NO SPLASH FOR MOBILE - Direct app access
+        "splashImageUrl": null,
+        "splashBackgroundColor": null,
         "buttonTitle": "⚡ Open",
         
-        // NO SPLASH CONFIG - Instant app access (MOBILE FOCUSED)
-        "loadingTimeout": 0,                     // Zero delay
+        // INSTANT MOBILE ACCESS - No splash, direct to app  
+        "loadingTimeout": 0,
         "fastLoad": true,
-        "skipSplash": true,                      // Skip splash completely
+        "skipSplash": true,
         "instantLoad": true,
-        "noSplash": true,                       // No splash screen
-        "disableSplash": true,                  // Mobile app splash disable
-        "autoStart": true,                      // Auto start app
+        "noSplash": true,
+        "disableSplash": true,
+        "autoStart": true,
         "splashDuration": 0,
         "hideSplash": true,                     // Force hide splash
         "webhookUrl": `${baseUrl}/api/webhook`,
