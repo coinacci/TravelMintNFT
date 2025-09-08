@@ -4,50 +4,50 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(216, 13%, 15%);
+  --background: hsl(220, 70%, 95%);
+  --foreground: hsl(224, 71%, 4%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(216, 13%, 15%);
+  --card-foreground: hsl(224, 71%, 4%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(216, 13%, 15%);
-  --primary: hsl(228, 100%, 50%);
+  --popover-foreground: hsl(224, 71%, 4%);
+  --primary: hsl(262, 83%, 58%);
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(220, 14%, 96%);
-  --secondary-foreground: hsl(216, 13%, 15%);
+  --secondary-foreground: hsl(224, 71%, 4%);
   --muted: hsl(220, 14%, 96%);
   --muted-foreground: hsl(215, 16%, 47%);
-  --accent: hsl(230, 91%, 52%);
+  --accent: hsl(262, 83%, 58%);
   --accent-foreground: hsl(0, 0%, 100%);
   --destructive: hsl(0, 84%, 60%);
   --destructive-foreground: hsl(210, 40%, 98%);
   --border: hsl(220, 13%, 91%);
   --input: hsl(220, 13%, 91%);
-  --ring: hsl(228, 100%, 50%);
-  --chart-1: hsl(228, 100%, 50%);
-  --chart-2: hsl(230, 91%, 52%);
-  --chart-3: hsl(225, 71%, 77%);
+  --ring: hsl(262, 83%, 58%);
+  --chart-1: hsl(262, 83%, 58%);
+  --chart-2: hsl(250, 84%, 60%);
+  --chart-3: hsl(240, 65%, 70%);
   --chart-4: hsl(220, 39%, 65%);
-  --chart-5: hsl(215, 28%, 17%);
+  --chart-5: hsl(200, 98%, 39%);
   --sidebar: hsl(220, 14%, 96%);
-  --sidebar-foreground: hsl(216, 13%, 15%);
-  --sidebar-primary: hsl(228, 100%, 50%);
+  --sidebar-foreground: hsl(224, 71%, 4%);
+  --sidebar-primary: hsl(262, 83%, 58%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
   --sidebar-accent: hsl(220, 14%, 96%);
-  --sidebar-accent-foreground: hsl(228, 100%, 50%);
+  --sidebar-accent-foreground: hsl(262, 83%, 58%);
   --sidebar-border: hsl(220, 13%, 91%);
-  --sidebar-ring: hsl(228, 100%, 50%);
+  --sidebar-ring: hsl(262, 83%, 58%);
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: 0.75rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00), 0px 1px 2px -1px hsl(228, 100%, 50%, 0.00);
-  --shadow: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00), 0px 1px 2px -1px hsl(228, 100%, 50%, 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00), 0px 2px 4px -1px hsl(228, 100%, 50%, 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00), 0px 4px 6px -1px hsl(228, 100%, 50%, 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00), 0px 8px 10px -1px hsl(228, 100%, 50%, 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(228, 100%, 50%, 0.00);
+  --shadow-2xs: 0px 1px 3px 0px hsl(262, 83%, 58%, 0.1);
+  --shadow-xs: 0px 1px 3px 0px hsl(262, 83%, 58%, 0.1), 0px 1px 2px -1px hsl(262, 83%, 58%, 0.1);
+  --shadow-sm: 0px 4px 6px -1px hsl(262, 83%, 58%, 0.1), 0px 2px 4px -2px hsl(262, 83%, 58%, 0.1);
+  --shadow: 0px 10px 15px -3px hsl(262, 83%, 58%, 0.1), 0px 4px 6px -4px hsl(262, 83%, 58%, 0.1);
+  --shadow-md: 0px 10px 15px -3px hsl(262, 83%, 58%, 0.1), 0px 4px 6px -4px hsl(262, 83%, 58%, 0.1);
+  --shadow-lg: 0px 20px 25px -5px hsl(262, 83%, 58%, 0.1), 0px 8px 10px -6px hsl(262, 83%, 58%, 0.1);
+  --shadow-xl: 0px 25px 50px -12px hsl(262, 83%, 58%, 0.25);
+  --shadow-2xl: 0px 25px 50px -12px hsl(262, 83%, 58%, 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
@@ -88,9 +88,10 @@
   }
 
   html, body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
     min-height: 100vh;
     height: 100%;
+    background: linear-gradient(135deg, hsl(220, 70%, 95%) 0%, hsl(0, 0%, 100%) 100%);
   }
   
   /* Frame optimization - ensure content is visible */
@@ -102,7 +103,7 @@
 }
 
 .travel-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  background: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(250, 84%, 60%) 50%, hsl(200, 98%, 39%) 100%);
 }
 
 .map-container {
@@ -148,9 +149,9 @@
 
 /* Cluster marker styling for multiple NFTs at same location */
 .cluster-marker {
-  border: 3px solid hsl(33, 100%, 50%) !important;
+  border: 3px solid hsl(262, 83%, 58%) !important;
   border-radius: 50% !important;
-  box-shadow: 0 2px 8px rgba(255, 165, 0, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.4) !important;
   background-color: rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(2px) !important;
 }
@@ -203,28 +204,35 @@
   }
 }
 
-/* EMERGENCY: Ultra-aggressive mobile visibility fix */
-html, body, #root, div, main, section, header, nav {
-  background-color: #0f172a !important;
-  background: #0f172a !important;
-  color: white !important;
+/* Modern gradient backgrounds */
+.hero-gradient {
+  background: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(250, 84%, 60%) 30%, hsl(200, 98%, 39%) 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
 }
 
-/* Nuclear option: Override EVERYTHING for mobile frames */
-* {
-  background-color: #0f172a !important;
-  color: white !important;
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* Text elements specific override */
-h1, h2, h3, h4, h5, h6, p, span, div, button, a {
-  color: white !important;
-  background: transparent !important;
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(147, 51, 234, 0.37);
 }
 
-/* Button visibility */
-button {
-  background-color: #3b82f6 !important;
-  color: white !important;
-  border: 1px solid #3b82f6 !important;
+.modern-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(147, 51, 234, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(147, 51, 234, 0.1);
+  transition: all 0.3s ease;
+}
+
+.modern-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px 0 rgba(147, 51, 234, 0.3);
 }

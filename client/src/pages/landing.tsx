@@ -28,14 +28,14 @@ export default function Landing() {
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background"></div>
+      <section className="relative overflow-hidden hero-gradient">
+        <div className="absolute inset-0"></div>
         <div className="relative container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-primary">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-white">
               Travel NFT
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
               Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers. Each photo tells a story, each location holds memories.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -66,7 +66,7 @@ export default function Landing() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-16 md:py-24 bg-muted/50">
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How TravelNFT Works</h2>
@@ -76,7 +76,7 @@ export default function Landing() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center">
+            <Card className="text-center modern-card">
               <CardContent className="pt-8 pb-6">
                 <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
                   <Upload className="w-8 h-8 text-primary" />
@@ -88,7 +88,7 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card className="text-center">
+            <Card className="text-center modern-card">
               <CardContent className="pt-8 pb-6">
                 <div className="w-16 h-16 mx-auto mb-6 bg-accent/10 rounded-full flex items-center justify-center">
                   <DollarSign className="w-8 h-8 text-accent" />
@@ -100,7 +100,7 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card className="text-center">
+            <Card className="text-center modern-card">
               <CardContent className="pt-8 pb-6">
                 <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
                   <Globe className="w-8 h-8 text-primary" />
