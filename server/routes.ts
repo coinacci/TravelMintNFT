@@ -6,7 +6,6 @@ import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@sha
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { migrateNewNFT } from "./migrate-images.js";
 import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -90,12 +89,15 @@ export async function registerRoutes(app: Express) {
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
         "heroImageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          "https://travelnft.replit.app/image.png"
+          "https://travelnft.replit.app/image.png",
+          "https://travelnft.replit.app/splash.png"
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
@@ -445,17 +447,6 @@ export async function registerRoutes(app: Express) {
       console.log('🔄 New NFT created - invalidating cache for immediate visibility');
       delete nftCache['all-nfts'];
       delete nftCache['for-sale'];
-      
-      // 🖼️ Auto-migrate new NFT image to object storage for reliability
-      if (nft.imageUrl && !nft.objectStorageUrl) {
-        console.log(`🔄 Auto-migrating new NFT: ${nft.title} (${nft.id})`);
-        try {
-          await migrateNewNFT(nft.id, nft.imageUrl, nft.title || 'Untitled');
-          console.log(`✅ Auto-migration completed for: ${nft.title}`);
-        } catch (error) {
-          console.log(`⚠️ Auto-migration failed for ${nft.title}:`, error);
-        }
-      }
       
       res.status(201).json(nft);
     } catch (error) {
@@ -1029,6 +1020,8 @@ export async function registerRoutes(app: Express) {
         "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint"
       }
     };
@@ -1049,29 +1042,6 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       res.status(500).json({ message: "Webhook processing failed" });
-    }
-  });
-
-  // Force sync specific token ID endpoint
-  app.post("/api/sync/token/:tokenId", async (req, res) => {
-    try {
-      const tokenId = req.params.tokenId;
-      console.log(`🎯 Force sync requested for Token ${tokenId}`);
-      
-      const nft = await blockchainService.getNFTByTokenId(tokenId);
-      if (!nft) {
-        return res.status(404).json({ success: false, message: `Token ${tokenId} not found on blockchain` });
-      }
-      
-      const dbFormat = await blockchainService.blockchainNFTToDBFormat(nft);
-      await storage.createNFT(dbFormat);
-      
-      clearAllCache();
-      console.log(`✅ Token ${tokenId} synced successfully`);
-      res.json({ success: true, message: `Token ${tokenId} synced`, nft: dbFormat });
-    } catch (error) {
-      console.error(`❌ Error syncing token ${req.params.tokenId}:`, error);
-      res.status(500).json({ success: false, error: error.message });
     }
   });
 
@@ -1226,22 +1196,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
-        // Handle placeholder requests for corrupted/missing images
-        if (req.path.includes('/placeholder/')) {
-          console.log('📦 Serving placeholder for:', req.path);
-          // Create a minimal placeholder image response
-          const placeholderSvg = `
-            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-              <rect width="400" height="300" fill="#f3f4f6"/>
-              <text x="50%" y="40%" text-anchor="middle" font-family="Arial" font-size="16" fill="#6b7280">Travel Memory</text>
-              <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="12" fill="#9ca3af">Original image unavailable</text>
-              <text x="50%" y="70%" text-anchor="middle" font-family="Arial" font-size="10" fill="#d1d5db">🌍 TravelMint NFT</text>
-            </svg>
-          `;
-          res.set('Content-Type', 'image/svg+xml');
-          res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
-          return res.send(placeholderSvg);
-        }
         return res.sendStatus(404);
       }
       return res.sendStatus(500);

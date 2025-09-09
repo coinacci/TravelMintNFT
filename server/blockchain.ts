@@ -412,28 +412,12 @@ export class BlockchainService {
     }
   }
 
-  // Normalize gateway URLs to use reliable gateway instead of rate-limited ones
-  private normalizeGatewayUrl(url: string): string {
-    if (!url) return url;
-    
-    // Replace rate-limited Pinata gateway with reliable ipfs.io gateway
-    if (url.includes('gateway.pinata.cloud')) {
-      const normalizedUrl = url.replace('gateway.pinata.cloud', 'ipfs.io');
-      console.log(`🔄 Normalized Pinata gateway URL: ${url.substring(0, 50)}... → ipfs.io`);
-      return normalizedUrl;
-    }
-    
-    return url;
-  }
-
   // Extract proper image URL from metadata or tokenURI
   private async extractImageUrl(metadata: any, tokenURI: string): Promise<string> {
     // First, try to get image from metadata
     if (metadata?.image) {
-      // Normalize the gateway URL to avoid rate limits
-      const normalizedUrl = this.normalizeGatewayUrl(metadata.image);
       // Validate and fix the image URL to ensure it points to actual image
-      return await this.validateAndFixImageUrl(normalizedUrl);
+      return await this.validateAndFixImageUrl(metadata.image);
     }
     
     // If no image in metadata, check tokenURI
@@ -470,7 +454,7 @@ export class BlockchainService {
     }
     
     // Fallback: use tokenURI as image URL (assuming it's a direct image link)
-    return this.normalizeGatewayUrl(tokenURI);
+    return tokenURI;
   }
 
   private extractLocationFromMetadata(metadata: any): string {

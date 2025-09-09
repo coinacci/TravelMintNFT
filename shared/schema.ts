@@ -48,20 +48,20 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users, {
-  id: z.never().optional(),
-  createdAt: z.never().optional(),
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
 });
 
-export const insertNFTSchema = createInsertSchema(nfts, {
-  id: z.never().optional(),
-  createdAt: z.never().optional(),
-  updatedAt: z.never().optional(),
+export const insertNFTSchema = createInsertSchema(nfts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions, {
-  id: z.never().optional(),
-  createdAt: z.never().optional(),
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

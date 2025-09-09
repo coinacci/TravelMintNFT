@@ -23,28 +23,80 @@
     
     <!-- Farcaster Frame Meta Tags for Discovery -->
     <meta name="fc:frame" content="vNext" />
-    <meta name="fc:frame:image" content="https://travelnft.vercel.app/image.png" />
+    <meta name="fc:frame:image" content="https://travelnft.replit.app/image.png" />
     <meta name="fc:frame:button:1" content="🗺️ Explore NFTs" />
     <meta name="fc:frame:button:1:action" content="link" />
-    <meta name="fc:frame:button:1:target" content="https://travelnft.vercel.app/explore" />
+    <meta name="fc:frame:button:1:target" content="https://travelnft.replit.app/explore" />
     <meta name="fc:frame:button:2" content="📸 Mint Travel NFT" />
     <meta name="fc:frame:button:2:action" content="link" />
-    <meta name="fc:frame:button:2:target" content="https://travelnft.vercel.app/mint" />
+    <meta name="fc:frame:button:2:target" content="https://travelnft.replit.app/mint" />
     
     <!-- Farcaster Mini App Discovery Tags -->
     <meta name="fc:miniapp" content='{
       "version": "1",
-      "imageUrl": "https://travelnft.vercel.app/image.png",
+      "imageUrl": "https://travelnft.replit.app/image.png",
       "button": {
         "title": "Open TravelMint",
         "action": {
           "type": "link",
           "name": "TravelMint",
-          "url": "https://travelnft.vercel.app"
+          "url": "https://travelnft.replit.app",
+          "splashImageUrl": "https://travelnft.replit.app/splash.png",
+          "splashBackgroundColor": "#0f172a"
         }
       }
     }' />
     
+    <!-- Add custom CSS for splash screen positioning -->
+    <style>
+      /* Custom splash screen styles for full-screen optimization */
+      @media (max-width: 768px) {
+        .fc-splash-container {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background-color: #0f172a !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          z-index: 9999 !important;
+        }
+        
+        .fc-splash-image {
+          max-width: 90vw !important;
+          max-height: 90vh !important;
+          width: auto !important;
+          height: auto !important;
+          object-fit: contain !important;
+        }
+      }
+      
+      /* Desktop splash screen optimization */
+      @media (min-width: 769px) {
+        .fc-splash-container {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background-color: #0f172a !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          z-index: 9999 !important;
+        }
+        
+        .fc-splash-image {
+          max-width: 60vw !important;
+          max-height: 60vh !important;
+          width: auto !important;
+          height: auto !important;
+          object-fit: contain !important;
+        }
+      }
+    </style>
     
     <!-- Favicon and App Icons with ULTRA Aggressive Cache Busting -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -60,16 +112,16 @@
     <!-- Open Graph Tags -->
     <meta property="og:title" content="TravelMint - Travel Photo NFT Marketplace" />
     <meta property="og:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
-    <meta property="og:image" content="https://travelnft.vercel.app/image.png" />
+    <meta property="og:image" content="https://travelnft.replit.app/image.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://travelnft.vercel.app" />
+    <meta property="og:url" content="https://travelnft.replit.app" />
     <meta property="og:site_name" content="TravelMint" />
     
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TravelMint - Travel Photo NFT Marketplace" />
     <meta name="twitter:description" content="Turn your travel memories into NFTs" />
-    <meta name="twitter:image" content="https://travelnft.vercel.app/image.png" />
+    <meta name="twitter:image" content="https://travelnft.replit.app/image.png" />
     
     <!-- Additional Base App Meta Tags -->
     <meta name="keywords" content="travel, nft, blockchain, photography, base, web3, social, map, location" />

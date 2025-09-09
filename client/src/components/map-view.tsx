@@ -140,8 +140,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         console.warn('⚠️ NFT has (0,0) coordinates but showing anyway:', nft.title, { lat: nft.latitude, lng: nft.longitude });
       }
 
-      // Create location key (2 decimals for smart clustering - groups nearby NFTs ~1km apart)  
-      const locationKey = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+      // Create location key (rounded to avoid floating point precision issues)
+      const locationKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
       
       if (!nftsByLocation.has(locationKey)) {
         nftsByLocation.set(locationKey, []);
@@ -166,15 +166,14 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
-        // Simple image URL using reliable gateways
-        const domain = window.location.origin;
-        const fixIPFS = (url: string) => url.includes('gateway.pinata.cloud') ? url.replace('gateway.pinata.cloud', 'ipfs.io') : url;
+        // Smart image URL selection: Object Storage first, then IPFS fallback
+        const imageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
+          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+          : nft.imageUrl);
         
-        const imageUrl = (nft as any).objectStorageUrl 
-          ? ((nft as any).objectStorageUrl.startsWith('/') ? `${domain}${(nft as any).objectStorageUrl}` : (nft as any).objectStorageUrl)
-          : fixIPFS(nft.imageUrl);
-        
-        const fallbackUrl = fixIPFS(nft.imageUrl);
+        const fallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+          : nft.imageUrl;
 
         const popupContent = `
           <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">

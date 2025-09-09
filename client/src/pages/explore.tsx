@@ -10,9 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
-import { getBestImageUrl } from "@/lib/imageUtils";
 
-// Modal placeholder imported from imageUtils
+// Simple modal placeholder for loading
+const MODAL_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
 
 interface NFT {
@@ -40,23 +40,94 @@ interface Transaction {
   toUserId: string;
 }
 
-// Simple Image Component - No complex loading, just use best URL
+// Smart Image Component - Object Storage priority with IPFS fallback
 const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; objectStorageUrl?: string; title: string }; className: string; [key: string]: any }) => {
-  const imageUrl = getBestImageUrl(nft);
-  
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
+
+  useEffect(() => {
+    // Smart image loading - Object Storage first, IPFS fallback when needed
+    const tryUrls: string[] = [];
+    
+    // 1. Object Storage URL (preferred)
+    if (nft.objectStorageUrl) {
+      tryUrls.push(nft.objectStorageUrl);
+    }
+    
+    // 2. IPFS URL as fallback
+    if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
+      tryUrls.push(nft.imageUrl);
+    }
+    
+    if (tryUrls.length === 0) {
+      console.log('❌ No image URLs available for modal');
+      setImageLoading(false);
+      return;
+    }
+    
+    console.log('🖼️ Loading modal image with URLs:', tryUrls);
+    setImageLoading(true);
+    setImageSrc(MODAL_PLACEHOLDER);
+    
+    let currentIndex = 0;
+    
+    const tryNextUrl = () => {
+      if (currentIndex >= tryUrls.length) {
+        console.log('❌ All modal image URLs failed');
+        setImageLoading(false);
+        return;
+      }
+      
+      const currentUrl = tryUrls[currentIndex];
+      console.log(`🔄 Trying modal URL ${currentIndex + 1}/${tryUrls.length}:`, currentUrl);
+      
+      const img = new Image();
+      
+      // Faster timeout for better UX
+      const timeoutId = setTimeout(() => {
+        console.log(`⏰ Modal URL ${currentIndex + 1} timed out, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      }, 3000);
+      
+      img.onload = () => {
+        clearTimeout(timeoutId);
+        console.log('✅ Modal image loaded successfully from:', currentUrl);
+        setImageSrc(currentUrl);
+        setImageLoading(false);
+      };
+      img.onerror = () => {
+        clearTimeout(timeoutId);
+        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
+        currentIndex++;
+        tryNextUrl();
+      };
+      img.src = currentUrl;
+    };
+    
+    tryNextUrl();
+  }, [nft.objectStorageUrl, nft.imageUrl]);
+
   return (
-    <img
-      src={imageUrl}
-      alt={nft.title}
-      className={className}
-      onError={(e) => {
-        // Fallback to IPFS if object storage fails
-        if (imageUrl.includes('/objects/') && nft.imageUrl) {
-          (e.target as HTMLImageElement).src = nft.imageUrl;
-        }
-      }}
-      {...props}
-    />
+    <div className="relative">
+      {imageLoading && (
+        <div className="absolute inset-0 bg-muted rounded-lg flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      )}
+      <img
+        src={imageSrc}
+        alt={nft.title}
+        className={`${className} transition-opacity duration-300 ${
+          imageLoading ? 'opacity-0' : 'opacity-100'
+        }`}
+        loading="eager"
+        {...props}
+      />
+    </div>
   );
 };
 
@@ -230,17 +301,16 @@ export default function Explore() {
       {/* NFT Detail Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold" data-testid="modal-nft-title">
-              {nftDetails?.title || "Loading NFT..."}
-            </DialogTitle>
-            <DialogDescription>
-              {nftDetails ? `NFT details and purchase information for ${nftDetails.title}` : "Loading NFT details..."}
-            </DialogDescription>
-          </DialogHeader>
-          
           {nftDetails && (
             <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold" data-testid="modal-nft-title">
+                  {nftDetails.title}
+                </DialogTitle>
+                <DialogDescription>
+                  NFT details and purchase information for {nftDetails.title}
+                </DialogDescription>
+              </DialogHeader>
               
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Image */}
@@ -350,12 +420,6 @@ export default function Explore() {
                 </div>
               </div>
             </>
-          )}
-          
-          {!nftDetails && (
-            <div className="flex items-center justify-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
           )}
         </DialogContent>
       </Dialog>

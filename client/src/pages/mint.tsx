@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas, useSendCalls } from "wagmi";
 import { parseEther, formatGwei, encodeFunctionData } from "viem";
@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
-import { MapPin, Upload, Wallet, Eye, CheckCircle, Share2 } from "lucide-react";
+import { MapPin, Upload, Wallet, Eye, CheckCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
@@ -108,20 +108,6 @@ export default function Mint() {
   const queryClient = useQueryClient();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
-
-  // ⚡ SIMPLE: Single safe cache refresh after successful mint
-
-  // ⚡ SIMPLE: Single cache refresh point
-  const refreshAfterMint = useCallback(() => {
-    try {
-      console.log('🔄 Refreshing data after successful mint...');
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });  
-      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
-    } catch (error) {
-      console.warn('⚠️ Cache refresh failed:', error);
-    }
-  }, [queryClient, address]);
   
   // ⚡ REAL BLOCKCHAIN TRANSACTIONS - Enabled for production
   const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
@@ -193,15 +179,17 @@ export default function Mint() {
 
           if (response.ok) {
             console.log('✅ NFT saved to marketplace with batch transaction!');
-            
             toast({
               title: "🎉 NFT Successfully Minted!",
               description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
             
-            // ⚡ SIMPLE: Single refresh after success
-            setTimeout(() => refreshAfterMint(), 1000);
+            // Refresh data and reset form
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
             
             // Reset form
             setTitle('');
@@ -277,15 +265,17 @@ export default function Mint() {
 
           if (response.ok) {
             console.log('✅ NFT saved to marketplace with individual transaction!');
-            
             toast({
               title: "🎉 NFT Successfully Minted!",
               description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
             
-            // ⚡ SIMPLE: Single refresh after success
-            setTimeout(() => refreshAfterMint(), 1000);
+            // Refresh data and reset form
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+            queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+            queryClient.invalidateQueries({ queryKey: ['/api/nfts/for-sale'] });
             
             // Reset form
             setTitle('');
@@ -351,42 +341,26 @@ export default function Mint() {
     mutationFn: async (nftData: any) => {
       return apiRequest("POST", "/api/nfts", nftData);
     },
-    onSuccess: (responseData, nftData) => {
-      try {
-        console.log('✅ Database save confirmed!');
-        
-        toast({
-          title: "🎉 NFT Minted Successfully!",
-          description: `"${nftData.title}" has been added to marketplace`,
-          variant: "default",
-        });
-        
-        // ⚡ SIMPLE: Single refresh after success
-        setTimeout(() => refreshAfterMint(), 500);
-        
-        // Reset form safely
-        setTitle("");
-        setDescription("");
-        setCategory("");
-        setImageFile(null);
-        setImagePreview(null);
-        setEnableListing(false);
-        setSalePrice("");
-        setFeaturedPlacement(false);
-      } catch (resetError) {
-        console.warn('⚠️ Form reset error (non-critical):', resetError);
-      }
+    onSuccess: () => {
+      // NFT success toast removed for cleaner UX
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setCategory("");
+      setImageFile(null);
+      setImagePreview(null);
+      setEnableListing(false);
+      setSalePrice("");
+      setFeaturedPlacement(false);
     },
     onError: (error: any) => {
-      try {
-        toast({
-          title: "Minting Failed",
-          description: error.message || "Failed to mint NFT",
-          variant: "destructive",
-        });
-      } catch (toastError) {
-        console.error('❌ Toast error:', toastError);
-      }
+      toast({
+        title: "Minting Failed",
+        description: error.message || "Failed to mint NFT",
+        variant: "destructive",
+      });
     },
   });
 
@@ -585,34 +559,34 @@ export default function Mint() {
       // 🚀 REAL BLOCKCHAIN: Batch approve + mint in ONE Farcaster confirmation!
       console.log('⚡ STARTING REAL BLOCKCHAIN MINT WITH IPFS...');
       
-      // ⚡ TYPE FIX: Explicit call data to prevent deep type instantiation
-      const approveCall = {
-        to: USDC_CONTRACT_ADDRESS as `0x${string}`,
-        data: encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'approve',
-          args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
-        })
-      };
-      
-      const mintCall = {
-        to: NFT_CONTRACT_ADDRESS as `0x${string}`,
-        data: encodeFunctionData({
-          abi: NFT_ABI,
-          functionName: 'mintTravelNFT',
-          args: [
-            address as `0x${string}`,
-            useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
-            useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
-            useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
-            category,
-            metadataIpfsUrl
-          ]
-        })
-      };
-
       await sendCalls({
-        calls: [approveCall, mintCall]
+        calls: [
+          // 1. Approve USDC spending first
+          {
+            to: USDC_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: USDC_ABI,
+              functionName: 'approve',
+              args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
+            })
+          },
+          // 2. Mint NFT with IPFS metadata URL
+          {
+            to: NFT_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: NFT_ABI,
+              functionName: 'mintTravelNFT',
+              args: [
+                address,
+                useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
+                useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
+                useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
+                category,
+                metadataIpfsUrl // IPFS metadata URL instead of base64
+              ]
+            })
+          }
+        ]
       });
       
       console.log('✅ Blockchain transaction batch sent with IPFS metadata!');
@@ -622,39 +596,24 @@ export default function Mint() {
       
     } catch (error) {
       console.error('❌ IPFS mint failed:', error);
+      setMintingStep('idle');
+      setUploadProgress('');
       
-      // SAFE: Protected state reset to prevent crashes
-      try {
-        setMintingStep('idle');
-        setUploadProgress('');
-      } catch (stateError) {
-        console.warn('⚠️ State reset error (non-critical):', stateError);
-      }
+      // Mobile-specific error handling
+      const isMobileError = error instanceof Error && 
+        (error.message.includes('User rejected') || 
+         error.message.includes('413') ||
+         error.message.includes('chain-proxy'));
+         
+      const errorMsg = isMobileError 
+        ? "Mobile wallet issue - please try connecting with Coinbase Wallet or check your connection"
+        : error instanceof Error ? error.message : "Minting failed";
       
-      // SAFE: Protected error handling with fallbacks
-      try {
-        // Mobile-specific error handling
-        const isMobileError = error instanceof Error && 
-          (error.message.includes('User rejected') || 
-           error.message.includes('413') ||
-           error.message.includes('chain-proxy'));
-           
-        const errorMsg = isMobileError 
-          ? "Mobile wallet issue - please try connecting with Coinbase Wallet or check your connection"
-          : error instanceof Error ? error.message : "Minting failed";
-        
-        toast({
-          title: "Transaction Failed",
-          description: errorMsg,
-          variant: "destructive",
-        });
-      } catch (toastError) {
-        console.error('❌ Critical: Toast failed, logging error:', error);
-        // Last resort: Alert if all else fails
-        if (typeof window !== 'undefined' && window.alert) {
-          window.alert('Minting failed. Please try again.');
-        }
-      }
+      toast({
+        title: "Transaction Failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   };
 
