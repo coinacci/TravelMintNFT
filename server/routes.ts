@@ -90,15 +90,12 @@ export async function registerRoutes(app: Express) {
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
         "heroImageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
-        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          "https://travelnft.replit.app/image.png",
-          "https://travelnft.replit.app/splash.png"
+          "https://travelnft.replit.app/image.png"
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
@@ -1032,8 +1029,6 @@ export async function registerRoutes(app: Express) {
         "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app",
         "imageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
-        "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint"
       }
     };
