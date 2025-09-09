@@ -57,8 +57,8 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
         if (info?.error?.code === -32016 || info?.error?.message?.includes('rate limit')) {
           console.log(`⚠️ Rate limit hit (attempt ${i + 1}/${maxRetries}), waiting...`);
           
-          // Wait longer on rate limit
-          await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+          // Wait much longer on rate limit for new mints (progressive backoff)
+          await new Promise(resolve => setTimeout(resolve, 5000 * (i + 1))); // 5s, 10s, 15s
           continue;
         }
       }

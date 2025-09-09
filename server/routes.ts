@@ -1045,6 +1045,70 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Post-mint quick sync - checks only latest tokens  
+  app.post("/api/sync/post-mint", async (req, res) => {
+    try {
+      console.log("⚡ Post-mint quick sync initiated...");
+      
+      // Clear cache first
+      clearAllCache();
+      
+      // Get current max token ID from database
+      const allDbNFTs = await storage.getAllNFTs();
+      const maxTokenId = Math.max(...allDbNFTs.map(nft => parseInt(nft.tokenId) || 0), 0);
+      
+      console.log(`🎯 Checking tokens after ${maxTokenId} (post-mint optimization)`);
+      
+      let newNFTsAdded = 0;
+      let checkedTokens = 0;
+      
+      // Check next 10 token IDs after current max (for new mints)
+      for (let tokenId = maxTokenId + 1; tokenId <= maxTokenId + 10; tokenId++) {
+        try {
+          checkedTokens++;
+          
+          // Try to get specific token (checking if exists)
+          const blockchainNFTs = await blockchainService.tryKnownTokenIds([tokenId.toString()]);
+          const blockchainNFT = blockchainNFTs.find(nft => nft.tokenId === tokenId.toString());
+          
+          if (blockchainNFT) {
+            console.log(`🆕 Found new token ${tokenId} owned by ${blockchainNFT.owner}`);
+            
+            const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
+            await storage.createNFT(dbFormat);
+            newNFTsAdded++;
+            
+            console.log(`✅ Added fresh minted NFT #${tokenId} to database`);
+          }
+        } catch (error) {
+          // Token doesn't exist or rate limit - that's expected
+          console.log(`⏹️ Token ${tokenId} not found, continuing...`);
+          
+          // If we hit 3 consecutive non-existent tokens, stop
+          if (checkedTokens >= 3 && newNFTsAdded === 0) {
+            console.log(`🛑 No new tokens found after checking ${checkedTokens} slots`);
+            break;
+          }
+        }
+        
+        // Small delay to avoid overwhelming the RPC
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      console.log(`⚡ Post-mint sync completed: ${newNFTsAdded} new NFTs added (checked ${checkedTokens} slots)`);
+      res.json({ 
+        success: true, 
+        message: `Post-mint sync: ${newNFTsAdded} new NFTs added`,
+        newNFTs: newNFTsAdded,
+        checkedTokens
+      });
+      
+    } catch (error) {
+      console.error("Error in post-mint sync:", error);
+      res.status(500).json({ success: false, message: "Post-mint sync failed" });
+    }
+  });
+
   // Manual blockchain sync endpoint for debugging/maintenance
   app.post("/api/sync/blockchain", async (req, res) => {
     try {
