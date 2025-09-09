@@ -131,12 +131,14 @@ export class BlockchainService {
           let metadata = null;
           if (tokenURI && tokenURI.startsWith('http')) {
             try {
-              // Try multiple IPFS gateways for better reliability  
+              // Try multiple IPFS gateways - prioritize ipfs.io for reliability  
               const gateways = [
+                // Primary: ipfs.io (most reliable, no Cloudflare blocks)
+                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io').replace('cloudflare-ipfs.com', 'ipfs.io'),
+                // Secondary: original URL (keep as backup)
                 tokenURI,
-                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io'),
-                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
-                tokenURI.replace('ipfs.io', 'gateway.pinata.cloud')
+                // Tertiary: cloudflare (has blocking issues sometimes) 
+                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com').replace('ipfs.io', 'cloudflare-ipfs.com')
               ];
               
               for (const gatewayUrl of gateways) {
@@ -203,12 +205,14 @@ export class BlockchainService {
         if (tokenURI) {
           try {
             if (tokenURI.startsWith('http')) {
-              // Try multiple IPFS gateways for better reliability  
+              // Try multiple IPFS gateways - prioritize ipfs.io for reliability  
               const gateways = [
+                // Primary: ipfs.io (most reliable, no Cloudflare blocks)
+                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io').replace('cloudflare-ipfs.com', 'ipfs.io'),
+                // Secondary: original URL (keep as backup)
                 tokenURI,
-                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io'),
-                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
-                tokenURI.replace('ipfs.io', 'gateway.pinata.cloud')
+                // Tertiary: cloudflare (has blocking issues sometimes)
+                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com').replace('ipfs.io', 'cloudflare-ipfs.com')
               ];
               
               for (const gatewayUrl of gateways) {
