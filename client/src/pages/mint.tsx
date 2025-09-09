@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
-import { MapPin, Upload, Wallet, Eye, CheckCircle } from "lucide-react";
+import { MapPin, Upload, Wallet, Eye, CheckCircle, Share2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
