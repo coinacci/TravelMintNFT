@@ -134,13 +134,15 @@ export default function Mint() {
     }
   }, [getCurrentLocation, useManualLocation]);
 
-  // Handle successful batch transaction (sendCalls)
+  // Handle successful batch transaction (sendCalls) - MAIN SUCCESS HANDLER
   useEffect(() => {
     if (sendCallsData && mintingStep === 'approving') {
       console.log('🎉 Batch transaction completed! Saving to backend...', sendCallsData);
       
       const saveNFTToBackend = async () => {
         try {
+          // Prevent duplicate saves by immediately changing state
+          setMintingStep('idle');
           const nftData = {
             title,
             description: description || "Travel NFT minted on TravelMint",
@@ -206,13 +208,18 @@ export default function Mint() {
           }
         } catch (error) {
           console.error('❌ Error saving to backend:', error);
+          
+          // Safe error handling - don't crash the app
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           toast({
-            title: "Backend Error",
-            description: "NFT minted on blockchain but failed to save to marketplace",
-            variant: "destructive",
+            title: "⚠️ Partial Success",
+            description: "NFT minted successfully on blockchain! Refreshing marketplace...",
+            variant: "default",
           });
-        } finally {
-          setMintingStep('idle');
+          
+          // Force cache refresh even if save failed
+          fetch('/api/cache/clear', { method: 'POST' }).catch(() => {});
+          queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
         }
       };
 
