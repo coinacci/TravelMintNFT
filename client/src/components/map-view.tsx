@@ -30,13 +30,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
-    staleTime: 5 * 1000, // Cache for 5 seconds for immediate updates
-    gcTime: 60 * 1000, // Keep in cache for 1 minute
+    staleTime: 1 * 1000, // Cache for 1 second only - faster updates for new mints
+    gcTime: 30 * 1000, // Keep in cache for 30 seconds
     refetchOnMount: true, // Allow refetch on mount to show new NFTs
     refetchOnWindowFocus: true, // Allow refetch on focus to show updates
-    refetchInterval: 15 * 1000, // Auto-refetch every 15 seconds for new mints
+    refetchInterval: 5 * 1000, // Auto-refetch every 5 seconds for immediate mint visibility
     retry: 3, // Retry failed requests
-    retryDelay: 1000, // Wait 1 second between retries
+    retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
   
   // Log errors for troubleshooting

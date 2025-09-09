@@ -185,7 +185,8 @@ export default function Mint() {
               variant: "default",
             });
             
-            // Refresh data and reset form
+            // Refresh data and reset form - clear both client and server cache
+            await fetch('/api/cache/clear', { method: 'POST' }).catch(console.warn); // Force server cache refresh
             queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
             queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
