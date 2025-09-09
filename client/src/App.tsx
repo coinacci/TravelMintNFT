@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from "react";
 import sdk from "@farcaster/frame-sdk";
 
+// Simple API helper
+async function fetchAPI(endpoint: string) {
+  const baseUrl = window.location.origin;
+  const url = `${baseUrl}${endpoint}`;
+  console.log('📡 API call:', url);
+  const response = await fetch(url);
+  return response.json();
+}
+
 // Minimal TravelMint App - Stability First
 function App() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [nfts, setNfts] = useState<any[]>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -28,6 +39,19 @@ function App() {
         
         setIsReady(true);
         console.log('✅ TravelMint ready!');
+        
+        // Load basic data
+        try {
+          const statsData = await fetchAPI('/api/stats');
+          setStats(statsData);
+          console.log('📊 Stats loaded:', statsData);
+          
+          const nftsData = await fetchAPI('/api/nfts');
+          setNfts(nftsData.slice(0, 6)); // Show first 6 NFTs
+          console.log('🖼️ NFTs loaded:', nftsData.length, 'total');
+        } catch (e) {
+          console.log('⚠️ Data loading failed:', e);
+        }
         
         // Signal to parent frame
         if (window.parent !== window) {
@@ -112,35 +136,99 @@ function App() {
         maxWidth: '600px', 
         margin: '0 auto'
       }}>
-        {/* Feature cards */}
+        {/* Stats */}
+        {stats && (
+          <div style={{
+            backgroundColor: '#1e293b',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            border: '1px solid #334155',
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '0.9rem' }}>
+              <div>
+                <div style={{ fontWeight: '600', color: '#3b82f6' }}>{stats.totalNFTs}</div>
+                <div style={{ opacity: '0.7' }}>NFTs</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: '600', color: '#10b981' }}>${stats.totalVolume}</div>
+                <div style={{ opacity: '0.7' }}>Volume</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: '600', color: '#8b5cf6' }}>{stats.totalHolders}</div>
+                <div style={{ opacity: '0.7' }}>Holders</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Featured NFTs */}
+        {nfts.length > 0 && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
+              🖼️ Featured NFTs
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '0.75rem'
+            }}>
+              {nfts.map((nft, i) => (
+                <NFTCard key={nft.id || i} nft={nft} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
         <div style={{
           display: 'grid',
-          gap: '1rem',
-          marginBottom: '2rem'
+          gap: '0.75rem',
+          marginBottom: '1.5rem'
         }}>
-          <FeatureCard
-            icon="🖼️"
-            title="Browse NFTs"
-            description="Discover travel photos from around the world"
-            buttonText="Explore Gallery"
-            buttonColor="#3b82f6"
-          />
-          
-          <FeatureCard
-            icon="📸"
-            title="Mint NFT"
-            description="Turn your travel photos into NFTs"
-            buttonText="Start Minting"
-            buttonColor="#10b981"
-          />
-          
-          <FeatureCard
-            icon="💰"
-            title="Marketplace"
-            description="Buy and sell travel NFTs with USDC"
-            buttonText="View Market"
-            buttonColor="#8b5cf6"
-          />
+          <button 
+            style={{
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1rem',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              width: '100%',
+              fontWeight: '500',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+            onClick={() => console.log('Mint clicked')}
+          >
+            <span>📸</span>
+            <span>Mint Travel NFT</span>
+          </button>
+          <button 
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1rem',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              width: '100%',
+              fontWeight: '500',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+            onClick={() => console.log('Marketplace clicked')}
+          >
+            <span>💰</span>
+            <span>Browse Marketplace</span>
+          </button>
         </div>
         
         {/* Contract info */}
@@ -165,45 +253,80 @@ function App() {
   );
 }
 
-// Feature card component
-interface FeatureCardProps {
-  icon: string;
-  title: string;
-  description: string;
-  buttonText: string;
-  buttonColor: string;
-}
-
-function FeatureCard({ icon, title, description, buttonText, buttonColor }: FeatureCardProps) {
+// NFT Card component
+function NFTCard({ nft }: { nft: any }) {
+  const imageUrl = nft.objectStorageUrl || nft.imageUrl || '';
+  const price = nft.price ? `${parseFloat(nft.price).toFixed(0)} USDC` : 'Not for sale';
+  
   return (
     <div style={{
       backgroundColor: '#1e293b',
-      padding: '1.25rem',
       borderRadius: '0.5rem',
-      border: '1px solid #334155'
+      border: '1px solid #334155',
+      overflow: 'hidden',
+      cursor: 'pointer'
     }}>
-      <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>{icon}</div>
-      <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: '600' }}>{title}</h3>
-      <p style={{ margin: '0 0 1rem 0', opacity: '0.8', fontSize: '0.9rem' }}>
-        {description}
-      </p>
-      <button 
-        style={{
-          backgroundColor: buttonColor,
-          color: 'white',
-          border: 'none',
-          padding: '0.75rem 1rem',
-          borderRadius: '0.375rem',
-          cursor: 'pointer',
-          width: '100%',
-          fontWeight: '500',
-          fontSize: '0.9rem'
-        }}
-        onClick={() => console.log(`${title} clicked`)}
-      >
-        {buttonText}
-      </button>
+      <div style={{
+        aspectRatio: '1',
+        backgroundImage: `url(${imageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundColor: '#374151'
+      }} />
+      <div style={{ padding: '0.75rem' }}>
+        <div style={{
+          fontSize: '0.8rem',
+          fontWeight: '600',
+          marginBottom: '0.25rem',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {nft.title || 'Untitled'}
+        </div>
+        <div style={{
+          fontSize: '0.7rem',
+          opacity: '0.7',
+          marginBottom: '0.25rem'
+        }}>
+          📍 {nft.location || 'Unknown'}
+        </div>
+        <div style={{
+          fontSize: '0.7rem',
+          color: '#10b981',
+          fontWeight: '500'
+        }}>
+          {price}
+        </div>
+      </div>
     </div>
+  );
+}
+
+// Action button component
+function ActionButton({ icon, text, color }: { icon: string, text: string, color: string }) {
+  return (
+    <button 
+      style={{
+        backgroundColor: color,
+        color: 'white',
+        border: 'none',
+        padding: '0.75rem 1rem',
+        borderRadius: '0.375rem',
+        cursor: 'pointer',
+        width: '100%',
+        fontWeight: '500',
+        fontSize: '0.9rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem'
+      }}
+      onClick={() => console.log(`${text} clicked`)}
+    >
+      <span>{icon}</span>
+      <span>{text}</span>
+    </button>
   );
 }
 
