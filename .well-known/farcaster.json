@@ -13,18 +13,10 @@
     "homeUrl": "https://travelnft.replit.app",
     "imageUrl": "https://travelnft.replit.app/image.png",
     "heroImageUrl": "https://travelnft.replit.app/image.png",
-    "splashImageUrl": "https://travelnft.replit.app/splash.png",
-    "splashBackgroundColor": "#0f172a",
     "buttonTitle": "Open TravelMint",
     "webhookUrl": "https://travelnft.replit.app/api/webhook",
     "tagline": "Turn travel into NFTs",
-    "tags": [
-      "travel",
-      "nft",
-      "blockchain",
-      "photography",
-      "base"
-    ],
+    "tags": ["travel", "nft", "blockchain", "photography", "base"],
     "screenshotUrls": [
       "https://travelnft.replit.app/image.png",
       "https://travelnft.replit.app/splash.png"
@@ -37,8 +29,6 @@
     "primaryCategory": "social"
   },
   "baseBuilder": {
-    "allowedAddresses": [
-      "0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"
-    ]
+    "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
   }
 }
