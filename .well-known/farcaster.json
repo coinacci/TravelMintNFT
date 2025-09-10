@@ -33,7 +33,7 @@
     "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
     "ogImageUrl": "https://travelnft.replit.app/image.png",
     "castShareUrl": "https://travelnft.replit.app/share",
-    "noindex": "false",
+    "noindex": false,
     "primaryCategory": "social"
   },
   "baseBuilder": {
