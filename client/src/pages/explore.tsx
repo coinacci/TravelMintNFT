@@ -46,17 +46,45 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
 
   useEffect(() => {
-    // Smart image loading - Object Storage first, IPFS fallback when needed
+    // Expand IPFS URLs to multiple gateways for modal redundancy
+    const expandIPFSUrl = (url: string): string[] => {
+      if (!url) return [];
+      
+      // If already an IPFS gateway URL, extract hash and create fallbacks
+      if (url.includes('/ipfs/')) {
+        const hash = url.split('/ipfs/')[1];
+        if (hash) {
+          const cleanHash = hash.split('?')[0]; // Remove query params
+          return [
+            url, // Keep original first
+            `https://ipfs.io/ipfs/${cleanHash}`,              // Most reliable public gateway
+            `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,  // Fast CDN
+            `https://dweb.link/ipfs/${cleanHash}`,            // Protocol Labs
+            `https://4everland.io/ipfs/${cleanHash}`          // Alternative gateway
+          ];
+        }
+      }
+      
+      return [url];
+    };
+
+    // Smart image loading with robust IPFS gateway fallbacks for modal
     const tryUrls: string[] = [];
     
-    // 1. Object Storage URL (preferred)
+    // 1. Object Storage URL (preferred for speed)
     if (nft.objectStorageUrl) {
       tryUrls.push(nft.objectStorageUrl);
     }
     
-    // 2. IPFS URL as fallback
+    // 2. IPFS URL with multiple gateway fallbacks
     if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
-      tryUrls.push(nft.imageUrl);
+      const ipfsUrls = expandIPFSUrl(nft.imageUrl);
+      // Add all IPFS gateway options
+      ipfsUrls.forEach(url => {
+        if (!tryUrls.includes(url)) {
+          tryUrls.push(url);
+        }
+      });
     }
     
     if (tryUrls.length === 0) {
@@ -70,11 +98,14 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
     setImageSrc(MODAL_PLACEHOLDER);
     
     let currentIndex = 0;
+    let isCompleted = false;
     
     const tryNextUrl = () => {
-      if (currentIndex >= tryUrls.length) {
-        console.log('❌ All modal image URLs failed');
-        setImageLoading(false);
+      if (currentIndex >= tryUrls.length || isCompleted) {
+        if (!isCompleted) {
+          console.log('❌ All modal image URLs failed');
+          setImageLoading(false);
+        }
         return;
       }
       
@@ -83,29 +114,45 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
       
       const img = new Image();
       
-      // Faster timeout for better UX
+      // Progressive timeout for modal: longer timeouts for better full-size image loading
+      const isObjectStorage = currentUrl.includes('/objects/');
+      const isFirstIPFS = currentIndex === 1; // First IPFS gateway (after object storage)
+      const timeout = isObjectStorage ? 3000 : (isFirstIPFS ? 10000 : 15000);
+      
       const timeoutId = setTimeout(() => {
-        console.log(`⏰ Modal URL ${currentIndex + 1} timed out, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      }, 3000);
+        if (!isCompleted) {
+          console.log(`⏰ Modal URL ${currentIndex + 1} timed out, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        }
+      }, timeout);
       
       img.onload = () => {
-        clearTimeout(timeoutId);
-        console.log('✅ Modal image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
-        setImageLoading(false);
+        if (!isCompleted) {
+          clearTimeout(timeoutId);
+          console.log('✅ Modal image loaded successfully from:', currentUrl);
+          setImageSrc(currentUrl);
+          setImageLoading(false);
+          isCompleted = true;
+        }
       };
       img.onerror = () => {
-        clearTimeout(timeoutId);
-        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
+        if (!isCompleted) {
+          clearTimeout(timeoutId);
+          console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        }
       };
       img.src = currentUrl;
     };
     
     tryNextUrl();
+    
+    // Cleanup function
+    return () => {
+      isCompleted = true;
+    };
   }, [nft.objectStorageUrl, nft.imageUrl]);
 
   return (

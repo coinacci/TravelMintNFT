@@ -37,19 +37,47 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return parseFloat(price).toFixed(0);
   };
   
-  // Smart image loading - Object Storage first, IPFS fallback when needed
+  // Smart image loading with robust IPFS gateway fallbacks and improved timeouts
   useEffect(() => {
-    // Priority order: Object Storage -> IPFS
+    // Expand IPFS URLs to multiple gateways for redundancy
+    const expandIPFSUrl = (url: string): string[] => {
+      if (!url) return [];
+      
+      // If already an IPFS gateway URL, extract hash and create fallbacks
+      if (url.includes('/ipfs/')) {
+        const hash = url.split('/ipfs/')[1];
+        if (hash) {
+          const cleanHash = hash.split('?')[0]; // Remove query params
+          return [
+            url, // Keep original first
+            `https://ipfs.io/ipfs/${cleanHash}`,              // Most reliable public gateway
+            `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,  // Fast CDN
+            `https://dweb.link/ipfs/${cleanHash}`,            // Protocol Labs
+            `https://4everland.io/ipfs/${cleanHash}`          // Alternative gateway
+          ];
+        }
+      }
+      
+      return [url];
+    };
+    
+    // Priority order: Object Storage -> IPFS with multiple gateway fallbacks
     const tryUrls: string[] = [];
     
-    // 1. Object Storage URL (preferred)
+    // 1. Object Storage URL (preferred for speed)
     if (nft.objectStorageUrl) {
       tryUrls.push(nft.objectStorageUrl);
     }
     
-    // 2. IPFS URL as fallback
+    // 2. IPFS URL with multiple gateway fallbacks
     if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
-      tryUrls.push(nft.imageUrl);
+      const ipfsUrls = expandIPFSUrl(nft.imageUrl);
+      // Add all IPFS gateway options
+      ipfsUrls.forEach(url => {
+        if (!tryUrls.includes(url)) {
+          tryUrls.push(url);
+        }
+      });
     }
     
     if (tryUrls.length === 0) {
@@ -61,11 +89,14 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     console.log('🖼️ Loading NFT image with URLs:', tryUrls);
     
     let currentIndex = 0;
+    let isCompleted = false;
     
     const tryNextUrl = () => {
-      if (currentIndex >= tryUrls.length) {
-        console.log('❌ All image URLs failed');
-        setImageLoading(false);
+      if (currentIndex >= tryUrls.length || isCompleted) {
+        if (!isCompleted) {
+          console.log('❌ All image URLs failed');
+          setImageLoading(false);
+        }
         return;
       }
       
@@ -74,29 +105,45 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       
       const img = new Image();
       
-      // Faster timeout for better UX
+      // Progressive timeout: faster for object storage, longer for IPFS gateways
+      const isObjectStorage = currentUrl.includes('/objects/');
+      const isFirstIPFS = currentIndex === 1; // First IPFS gateway (after object storage)
+      const timeout = isObjectStorage ? 2000 : (isFirstIPFS ? 8000 : 12000);
+      
       const timeoutId = setTimeout(() => {
-        console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      }, 3000);
+        if (!isCompleted) {
+          console.log(`⏰ URL ${currentIndex + 1} timed out, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        }
+      }, timeout);
       
       img.onload = () => {
-        clearTimeout(timeoutId);
-        console.log('✅ Image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
-        setImageLoading(false);
+        if (!isCompleted) {
+          clearTimeout(timeoutId);
+          console.log('✅ Image loaded successfully from:', currentUrl);
+          setImageSrc(currentUrl);
+          setImageLoading(false);
+          isCompleted = true;
+        }
       };
       img.onerror = () => {
-        clearTimeout(timeoutId);
-        console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
+        if (!isCompleted) {
+          clearTimeout(timeoutId);
+          console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        }
       };
       img.src = currentUrl;
     };
     
     tryNextUrl();
+    
+    // Cleanup function
+    return () => {
+      isCompleted = true;
+    };
   }, [nft.objectStorageUrl, nft.imageUrl]);
   
   // Check if the connected wallet owns this NFT

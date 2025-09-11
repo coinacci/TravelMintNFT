@@ -93,18 +93,35 @@ export interface BlockchainNFT {
   metadata?: any;
 }
 
-// Helper function to normalize different URI schemes to HTTP URLs
+// Helper function to normalize different URI schemes to HTTP URLs with multiple robust gateways
 function normalizeUri(uri: string): string[] {
   if (!uri) return [];
   
-  // Handle IPFS URIs
+  // Handle IPFS URIs with multiple reliable gateways for redundancy
   if (uri.startsWith('ipfs://')) {
     const cid = uri.replace('ipfs://', '');
     return [
-      `https://ipfs.io/ipfs/${cid}`,
-      `https://gateway.pinata.cloud/ipfs/${cid}`,
-      `https://cloudflare-ipfs.com/ipfs/${cid}`
+      `https://ipfs.io/ipfs/${cid}`,              // Most reliable public gateway
+      `https://cloudflare-ipfs.com/ipfs/${cid}`,  // Cloudflare CDN - very fast
+      `https://dweb.link/ipfs/${cid}`,            // Protocol Labs gateway
+      `https://4everland.io/ipfs/${cid}`,         // Alternative reliable gateway
+      `https://gateway.pinata.cloud/ipfs/${cid}`  // Pinata (may be rate limited)
     ];
+  }
+  
+  // Handle direct IPFS gateway URLs - add fallback gateways
+  if (uri.includes('/ipfs/')) {
+    const hash = uri.split('/ipfs/')[1];
+    if (hash) {
+      const cleanHash = hash.split('?')[0]; // Remove query params
+      return [
+        uri, // Keep original first (may be fastest if not rate limited)
+        `https://ipfs.io/ipfs/${cleanHash}`,              // Most reliable
+        `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,  // Fast CDN
+        `https://dweb.link/ipfs/${cleanHash}`,            // Protocol Labs
+        `https://4everland.io/ipfs/${cleanHash}`          // Alternative
+      ];
+    }
   }
   
   // Handle Arweave URIs
@@ -211,22 +228,31 @@ function parseCoordinatePair(value: string): { latitude: string, longitude: stri
   return null;
 }
 
-// Fetch content from multiple gateways with fallback
+// Fetch content from multiple gateways with improved timeout and retry logic
 async function fetchWithGateways(uris: string[]): Promise<any> {
-  for (const uri of uris) {
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < uris.length; i++) {
+    const uri = uris[i];
     try {
       // Handle special data: JSON marker
       if (uri.startsWith('data:')) {
         return JSON.parse(uri.replace('data:', ''));
       }
       
-      console.log(`🔗 Trying gateway: ${uri}`);
+      console.log(`🔗 Trying gateway ${i + 1}/${uris.length}: ${uri}`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      // Progressive timeout - faster for first gateways, longer for fallbacks  
+      const timeout = i === 0 ? 8000 : (i === 1 ? 12000 : 15000);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
       
       const response = await fetch(uri, { 
         signal: controller.signal,
-        headers: { 'User-Agent': 'TravelMint/1.0' }
+        headers: { 
+          'User-Agent': 'TravelMint/1.0',
+          'Accept': 'application/json, text/plain, */*'
+        }
       });
       
       clearTimeout(timeoutId);
@@ -234,17 +260,41 @@ async function fetchWithGateways(uris: string[]): Promise<any> {
       if (response.ok) {
         const contentType = response.headers.get('content-type');
         if (contentType?.includes('application/json')) {
+          console.log(`✅ Gateway ${i + 1} success: JSON response`);
           return await response.json();
         } else {
-          return await response.text();
+          console.log(`✅ Gateway ${i + 1} success: Text response`);
+          const text = await response.text();
+          // Try to parse as JSON if it looks like JSON
+          if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+            try {
+              return JSON.parse(text);
+            } catch {
+              return text; // Return as text if JSON parsing fails
+            }
+          }
+          return text;
         }
+      } else {
+        console.log(`⚠️ Gateway ${i + 1} HTTP error: ${response.status} ${response.statusText}`);
+        if (response.status === 429) {
+          console.log(`⚠️ Gateway ${i + 1} rate limited, trying next...`);
+        }
+        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.log(`⚠️ Gateway failed: ${uri} - ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.log(`⚠️ Gateway ${i + 1} failed: ${errorMsg}`);
+      lastError = error instanceof Error ? error : new Error(errorMsg);
+      
+      // Don't wait on timeout/abort errors, move to next gateway quickly
+      if (errorMsg.includes('aborted') || errorMsg.includes('timeout')) {
+        continue;
+      }
     }
   }
   
-  throw new Error(`All gateways failed for URIs: ${uris.join(', ')}`);
+  throw lastError || new Error(`All ${uris.length} gateways failed`);
 }
 
 export class BlockchainService {
