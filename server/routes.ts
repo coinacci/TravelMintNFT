@@ -45,6 +45,26 @@ export async function registerRoutes(app: Express) {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
   });
 
+  // Farcaster frame endpoint for validation
+  app.post("/api/frame", (req, res) => {
+    try {
+      // Basic frame response for Farcaster validation
+      res.json({
+        frame: {
+          version: "vNext",
+          image: "https://travelnft.replit.app/image.png",
+          buttons: [
+            { label: "🗺️ Explore NFTs", action: "link", target: "https://travelnft.replit.app/explore" },
+            { label: "📸 Mint Travel NFT", action: "link", target: "https://travelnft.replit.app/mint" }
+          ]
+        }
+      });
+    } catch (error) {
+      console.error("Frame endpoint error:", error);
+      res.status(500).json({ error: "Frame error" });
+    }
+  });
+
   // Clear cache endpoint for immediate refresh
   app.post("/api/cache/clear", (req, res) => {
     clearAllCache();
