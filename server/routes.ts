@@ -1087,8 +1087,9 @@ export async function registerRoutes(app: Express) {
         try {
           checkedTokens++;
           
-          // Fast existence check only (no metadata)
-          const owner = await withRetry(() => nftContract.ownerOf(tokenId), 1); // Single retry
+          // Enhanced retry logic for critical tokens like 47
+          const maxRetries = tokenId === 47 ? 8 : 1; // Extra retries for Token 47
+          const owner = await withRetry(() => nftContract.ownerOf(tokenId), maxRetries);
           const tokenURI = await nftContract.tokenURI(tokenId);
           
           const blockchainNFT = {
@@ -1097,6 +1098,8 @@ export async function registerRoutes(app: Express) {
             tokenURI,
             metadata: null // Will be enriched later
           };
+          
+          console.log(`🎯 Successfully detected Token ${tokenId} (owner: ${owner}) in post-mint sync`);
         
           if (blockchainNFT) {
             console.log(`🆕 Found new token ${tokenId} owned by ${blockchainNFT.owner}`);
@@ -1133,6 +1136,69 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error in post-mint sync:", error);
       res.status(500).json({ success: false, message: "Post-mint sync failed" });
+    }
+  });
+
+  // ADMIN Token 47 Debug Endpoint (Remove in production)
+  app.get("/api/admin/debug/token47", async (req, res) => {
+    // Basic admin protection
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== "debug-2025-token47") {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      console.log("🔍 DEBUG: Direct Token 47 detection attempt...");
+      
+      // Multiple retry attempts with different strategies
+      for (let attempt = 1; attempt <= 10; attempt++) {
+        try {
+          console.log(`🔄 Attempt ${attempt}/10 for Token 47...`);
+          
+          // Direct contract call with extra timeout
+          const owner = await nftContract.ownerOf(47);
+          const tokenURI = await nftContract.tokenURI(47);
+          
+          console.log(`✅ SUCCESS! Token 47 owner: ${owner}, tokenURI: ${tokenURI}`);
+          
+          // Immediately save to database
+          const dbFormat = {
+            id: "blockchain-47",
+            title: "Token 47 (Direct Detection)",
+            description: 'Critical token detected via debug endpoint',
+            imageUrl: tokenURI,
+            location: { city: 'Unknown', latitude: '0', longitude: '0' },
+            price: '0',
+            tokenId: '47',
+            contractAddress: "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f",
+            owner: owner.toLowerCase(),
+            isForSale: false
+          };
+          
+          await storage.createNFT(dbFormat);
+          clearAllCache(); // Clear cache to show new NFT
+          
+          return res.json({ 
+            success: true, 
+            message: "Token 47 detected and saved!",
+            owner: owner.toLowerCase(),
+            tokenURI,
+            attempt
+          });
+          
+        } catch (error: any) {
+          console.log(`❌ Attempt ${attempt} failed:`, error.message);
+          if (attempt < 10) {
+            // Wait longer between attempts
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      }
+      
+      res.json({ success: false, message: "Token 47 detection failed after 10 attempts" });
+      
+    } catch (error) {
+      console.error("Error in Token 47 debug:", error);
+      res.status(500).json({ success: false, message: "Debug endpoint failed" });
     }
   });
 

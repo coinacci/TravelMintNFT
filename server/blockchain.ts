@@ -360,18 +360,20 @@ export class BlockchainService {
         console.log(`❌ Error checking token ${tokenId}:`, error.reason || error.message || error);
         
         // Only count as failure if it's actually a "token doesn't exist" error
+        // Don't count rate limiting or network errors as consecutive failures
         if (error.reason === "ERC721: invalid token ID" || 
-            error.code === "CALL_EXCEPTION" ||
+            (error.code === "CALL_EXCEPTION" && !error.message?.includes("missing revert data")) ||
             error.message?.includes("invalid token ID")) {
           consecutiveFailures++;
           console.log(`⚠️ Token ${tokenId} doesn't exist (${consecutiveFailures} consecutive failures)`);
         } else {
-          // Different error - don't count as consecutive failure, just log and continue
-          console.log(`🔄 Non-fatal error for token ${tokenId}, continuing...`);
+          // Rate limiting or network error - don't count as consecutive failure
+          console.log(`🔄 Rate limit/network error for token ${tokenId}, continuing without counting failure...`);
         }
         
-        // If we have 5 consecutive token-not-found failures, likely no more tokens exist
-        if (consecutiveFailures >= 5) {
+        // If we have 15 consecutive token-not-found failures, likely no more tokens exist
+        // Allow for gaps in token IDs (like missing tokens 5-46, then 47 exists)
+        if (consecutiveFailures >= 15) {
           console.log(`🛑 Stopping search after ${consecutiveFailures} consecutive "token not found" failures at token ${tokenId}`);
           break;
         }
