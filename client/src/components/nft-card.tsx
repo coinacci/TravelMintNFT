@@ -81,19 +81,43 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
         tryNextUrl();
       }, 3000);
       
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        console.log('✅ Image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
-        setImageLoading(false);
-      };
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      };
-      img.src = currentUrl;
+      // Quick pre-check for JSON responses (object storage bug fix)
+      if (currentUrl.startsWith('/objects/')) {
+        fetch(currentUrl, { method: 'HEAD' })
+          .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              console.log(`🚫 URL ${currentIndex + 1} is JSON, skipping:`, currentUrl);
+              currentIndex++;
+              tryNextUrl();
+              return;
+            }
+            // If it's not JSON, proceed with image loading
+            loadImage();
+          })
+          .catch(() => {
+            console.log(`❌ URL ${currentIndex + 1} pre-check failed, trying as image anyway:`, currentUrl);
+            loadImage();
+          });
+      } else {
+        loadImage();
+      }
+      
+      function loadImage() {
+        img.onload = () => {
+          clearTimeout(timeoutId);
+          console.log('✅ Image loaded successfully from:', currentUrl);
+          setImageSrc(currentUrl);
+          setImageLoading(false);
+        };
+        img.onerror = () => {
+          clearTimeout(timeoutId);
+          console.log(`❌ URL ${currentIndex + 1} failed, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        };
+        img.src = currentUrl;
+      }
     };
     
     tryNextUrl();
