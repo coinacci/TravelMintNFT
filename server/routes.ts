@@ -759,13 +759,33 @@ export async function registerRoutes(app: Express) {
 
   // Function to determine country from coordinates
   const getCountryFromCoordinates = (lat: number, lng: number): string => {
+    // France borders: roughly 41-51°N, -5 to 10°E
+    if (lat >= 41 && lat <= 51 && lng >= -5 && lng <= 10) {
+      return 'France';
+    }
+    // Switzerland borders: roughly 45.8-47.8°N, 5.9-10.5°E
+    if (lat >= 45.8 && lat <= 47.8 && lng >= 5.9 && lng <= 10.5) {
+      return 'Switzerland';
+    }
+    // Italy borders: roughly 35-47°N, 6-19°E
+    if (lat >= 35 && lat <= 47 && lng >= 6 && lng <= 19) {
+      return 'Italy';
+    }
     // Montenegro borders: roughly 42-43.5°N, 18.5-20.5°E
     if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
       return 'Montenegro';
     }
+    // Cyprus borders: roughly 34.5-35.7°N, 32-34.6°E
+    if (lat >= 34.5 && lat <= 35.7 && lng >= 32 && lng <= 34.6) {
+      return 'Cyprus';
+    }
     // Turkey borders: roughly 36-42°N, 26-45°E
     if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) {
       return 'Turkey';
+    }
+    // Georgia borders: roughly 41-43.6°N, 39.9-46.7°E
+    if (lat >= 41 && lat <= 43.6 && lng >= 39.9 && lng <= 46.7) {
+      return 'Georgia';
     }
     // Egypt borders: roughly 22-32°N, 25-35°E  
     if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
@@ -775,11 +795,18 @@ export async function registerRoutes(app: Express) {
     if (lat >= 22 && lat <= 26 && lng >= 51 && lng <= 56) {
       return 'UAE';
     }
+    // Thailand borders: roughly 5.5-20.5°N, 97-106°E
+    if (lat >= 5.5 && lat <= 20.5 && lng >= 97 && lng <= 106) {
+      return 'Thailand';
+    }
     // Canada borders: roughly 42-75°N, -141 to -52°W
     if (lat >= 42 && lat <= 75 && lng >= -141 && lng <= -52) {
       return 'Canada';
     }
-    // Add more countries as needed
+    // USA borders: roughly 24-49°N, -125 to -66°W
+    if (lat >= 24 && lat <= 49 && lng >= -125 && lng <= -66) {
+      return 'USA';
+    }
     return 'Unknown';
   };
 
