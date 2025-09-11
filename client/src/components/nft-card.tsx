@@ -12,6 +12,7 @@ interface NFTCardProps {
     description?: string;
     imageUrl: string;
     objectStorageUrl?: string;
+    tokenURI?: string; // Add tokenURI for fallback when image URL fails
     location: string;
     price: string;
     isForSale: number;
@@ -74,6 +75,17 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
       const ipfsUrls = expandIPFSUrl(nft.imageUrl);
       // Add all IPFS gateway options
       ipfsUrls.forEach(url => {
+        if (!tryUrls.includes(url)) {
+          tryUrls.push(url);
+        }
+      });
+    }
+    
+    // 3. TokenURI as final fallback (for tokens like #47 where image URL is broken but tokenURI works)
+    if (nft.tokenURI && !tryUrls.includes(nft.tokenURI)) {
+      const tokenUriUrls = expandIPFSUrl(nft.tokenURI);
+      // Add all TokenURI gateway options
+      tokenUriUrls.forEach(url => {
         if (!tryUrls.includes(url)) {
           tryUrls.push(url);
         }
@@ -144,7 +156,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     return () => {
       isCompleted = true;
     };
-  }, [nft.objectStorageUrl, nft.imageUrl]);
+  }, [nft.objectStorageUrl, nft.imageUrl, nft.tokenURI]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && (
