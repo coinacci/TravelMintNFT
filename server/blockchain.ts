@@ -42,7 +42,7 @@ const ERC20_ABI = [
 ];
 
 // Rate limit retry utility
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error;
   
   for (let i = 0; i < maxRetries; i++) {
@@ -57,8 +57,8 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
         if (info?.error?.code === -32016 || info?.error?.message?.includes('rate limit')) {
           console.log(`⚠️ Rate limit hit (attempt ${i + 1}/${maxRetries}), waiting...`);
           
-          // Wait much longer on rate limit for new mints (progressive backoff)
-          await new Promise(resolve => setTimeout(resolve, 5000 * (i + 1))); // 5s, 10s, 15s
+          // Faster backoff for real-time detection
+          await new Promise(resolve => setTimeout(resolve, 1000 + (i * 500))); // 1.5s, 2s, 2.5s
           continue;
         }
       }
@@ -77,7 +77,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
 
 // Create contract instances
-const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider);
+export const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider);
 const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
 
 export interface BlockchainNFT {

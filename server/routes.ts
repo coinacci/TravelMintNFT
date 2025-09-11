@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
-import { blockchainService } from "./blockchain";
+import { blockchainService, withRetry, nftContract } from "./blockchain";
 import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
@@ -18,7 +18,7 @@ interface CacheEntry {
 }
 
 const nftCache: { [key: string]: CacheEntry } = {};
-const CACHE_DURATION = 30 * 1000; // 30 seconds cache for better NFT sync
+const CACHE_DURATION = 5 * 1000; // 5 seconds cache for real-time detection
 
 function isCacheValid(key: string): boolean {
   const entry = nftCache[key];
@@ -1075,7 +1075,7 @@ export async function registerRoutes(app: Express) {
       
       // Get current max token ID from database
       const allDbNFTs = await storage.getAllNFTs();
-      const maxTokenId = Math.max(...allDbNFTs.map(nft => parseInt(nft.tokenId) || 0), 0);
+      const maxTokenId = Math.max(...allDbNFTs.map(nft => parseInt(nft.tokenId || "0") || 0), 0);
       
       console.log(`🎯 Checking tokens after ${maxTokenId} (post-mint optimization)`);
       
@@ -1087,10 +1087,17 @@ export async function registerRoutes(app: Express) {
         try {
           checkedTokens++;
           
-          // Try to get specific token (checking if exists)
-          const blockchainNFTs = await blockchainService.tryKnownTokenIds([tokenId.toString()]);
-          const blockchainNFT = blockchainNFTs.find(nft => nft.tokenId === tokenId.toString());
+          // Fast existence check only (no metadata)
+          const owner = await withRetry(() => nftContract.ownerOf(tokenId), 1); // Single retry
+          const tokenURI = await nftContract.tokenURI(tokenId);
           
+          const blockchainNFT = {
+            tokenId: tokenId.toString(),
+            owner: owner.toLowerCase(),
+            tokenURI,
+            metadata: null // Will be enriched later
+          };
+        
           if (blockchainNFT) {
             console.log(`🆕 Found new token ${tokenId} owned by ${blockchainNFT.owner}`);
             
