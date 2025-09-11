@@ -86,13 +86,59 @@ export async function registerRoutes(app: Express) {
   app.get("/share", (req, res) => {
     const { nft } = req.query;
     const shareUrl = nft 
-      ? `https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/nft/${nft}` 
-      : "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app";
+      ? `https://travelnft.replit.app/nft/${nft}` 
+      : "https://travelnft.replit.app";
     
     res.redirect(shareUrl);
   });
 
-  // Duplicate route removed - only keeping the one with proper cache headers below
+  // Versioned route for cache busting
+  app.get("/.well-known/farcaster.json", (req, res) => {
+    const farcasterConfig = {
+      "accountAssociation": {
+        "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+        "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
+      },
+      "frame": {
+        "version": "1",
+        "name": "TravelMint",
+        "subtitle": "Travel Photo NFT Marketplace",
+        "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
+        "iconUrl": "https://travelnft.replit.app/icon.png",
+        "homeUrl": "https://travelnft.replit.app",
+        "imageUrl": "https://travelnft.replit.app/image.png",
+        "heroImageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
+        "buttonTitle": "Open TravelMint",
+        "webhookUrl": "https://travelnft.replit.app/api/webhook",
+        "tagline": "Turn travel into NFTs",
+        "tags": ["travel", "nft", "blockchain", "photography", "base"],
+        "screenshotUrls": [
+          "https://travelnft.replit.app/image.png",
+          "https://travelnft.replit.app/splash.png"
+        ],
+        "ogTitle": "TravelMint NFT App",
+        "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+        "ogImageUrl": "https://travelnft.replit.app/image.png",
+        "castShareUrl": "https://travelnft.replit.app/share",
+        "noindex": false,
+        "primaryCategory": "social"
+      },
+      "baseBuilder": {
+        "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
+      }
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('ETag', `"v${Date.now()}"`);
+    res.setHeader('Last-Modified', new Date().toUTCString());
+    res.send(JSON.stringify(farcasterConfig, null, 2));
+  });
 
   // Farcaster Frame endpoint for NFT sharing with optimized IPFS image loading
   app.get("/api/share/frame/:nftId", async (req, res) => {
@@ -985,16 +1031,16 @@ export async function registerRoutes(app: Express) {
     const manifest = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": "eyJkb21haW4iOiI1MDAwLTljZDc0N2RhLWFmYmUtNGE5MS05OThhLWM1MzA4MjMyOWE3Ny5yZXBsaXQuYXBwIn0=",
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "frame": {
         "version": "1",
         "name": "TravelMint",
-        "iconUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/icon.png",
-        "homeUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app",
-        "imageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/image.png",
-        "splashImageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/splash.png",
+        "iconUrl": "https://travelnft.replit.app/icon.png",
+        "homeUrl": "https://travelnft.replit.app",
+        "imageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint"
       }
@@ -1029,7 +1075,7 @@ export async function registerRoutes(app: Express) {
       
       // Get current max token ID from database
       const allDbNFTs = await storage.getAllNFTs();
-      const maxTokenId = Math.max(...allDbNFTs.map(nft => parseInt(nft.tokenId || "0") || 0), 0);
+      const maxTokenId = Math.max(...allDbNFTs.map(nft => parseInt(nft.tokenId) || 0), 0);
       
       console.log(`🎯 Checking tokens after ${maxTokenId} (post-mint optimization)`);
       
