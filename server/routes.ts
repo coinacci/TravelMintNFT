@@ -1160,18 +1160,22 @@ export async function registerRoutes(app: Express) {
           
           console.log(`✅ SUCCESS! Token 47 owner: ${owner}, tokenURI: ${tokenURI}`);
           
-          // Immediately save to database
+          // Immediately save to database with proper schema
           const dbFormat = {
             id: "blockchain-47",
-            title: "Token 47 (Direct Detection)",
+            title: "Token 47 (Direct Detection)", 
             description: 'Critical token detected via debug endpoint',
             imageUrl: tokenURI,
-            location: { city: 'Unknown', latitude: '0', longitude: '0' },
+            location: 'Unknown Location',
+            latitude: '0',
+            longitude: '0', 
+            category: 'Unknown',
             price: '0',
+            isForSale: 0, // INTEGER: 0 = false, 1 = true
+            creatorAddress: owner.toLowerCase(),
+            ownerAddress: owner.toLowerCase(),
             tokenId: '47',
-            contractAddress: "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f",
-            owner: owner.toLowerCase(),
-            isForSale: false
+            contractAddress: "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f"
           };
           
           await storage.createNFT(dbFormat);
