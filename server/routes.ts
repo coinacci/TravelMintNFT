@@ -86,8 +86,8 @@ export async function registerRoutes(app: Express) {
   app.get("/share", (req, res) => {
     const { nft } = req.query;
     const shareUrl = nft 
-      ? `https://travelnft.replit.app/nft/${nft}` 
-      : "https://travelnft.replit.app";
+      ? `https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/nft/${nft}` 
+      : "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app";
     
     res.redirect(shareUrl);
   });
@@ -97,7 +97,7 @@ export async function registerRoutes(app: Express) {
     const farcasterConfig = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+        "payload": "eyJkb21haW4iOiI1MDAwLTljZDc0N2RhLWFmYmUtNGE5MS05OThhLWM1MzA4MjMyOWE3Ny5yZXBsaXQuYXBwIn0=",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "frame": {
@@ -105,24 +105,24 @@ export async function registerRoutes(app: Express) {
         "name": "TravelMint",
         "subtitle": "Travel Photo NFT Marketplace",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-        "iconUrl": "https://travelnft.replit.app/icon.png",
-        "homeUrl": "https://travelnft.replit.app",
-        "imageUrl": "https://travelnft.replit.app/image.png",
-        "heroImageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "iconUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/icon.png",
+        "homeUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app",
+        "imageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/image.png",
+        "heroImageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/image.png",
+        "splashImageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint",
-        "webhookUrl": "https://travelnft.replit.app/api/webhook",
+        "webhookUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/api/webhook",
         "tagline": "Turn travel into NFTs",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
-          "https://travelnft.replit.app/image.png",
-          "https://travelnft.replit.app/splash.png"
+          "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/image.png",
+          "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/splash.png"
         ],
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-        "ogImageUrl": "https://travelnft.replit.app/image.png",
-        "castShareUrl": "https://travelnft.replit.app/share",
+        "ogImageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/image.png",
+        "castShareUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/share",
         "noindex": false,
         "primaryCategory": "social"
       },
@@ -1031,16 +1031,16 @@ export async function registerRoutes(app: Express) {
     const manifest = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+        "payload": "eyJkb21haW4iOiI1MDAwLTljZDc0N2RhLWFmYmUtNGE5MS05OThhLWM1MzA4MjMyOWE3Ny5yZXBsaXQuYXBwIn0=",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "frame": {
         "version": "1",
         "name": "TravelMint",
-        "iconUrl": "https://travelnft.replit.app/icon.png",
-        "homeUrl": "https://travelnft.replit.app",
-        "imageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "iconUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/icon.png",
+        "homeUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app",
+        "imageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/image.png",
+        "splashImageUrl": "https://5000-9cd747da-afbe-4a91-998a-c53082329a77.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint"
       }
