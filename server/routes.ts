@@ -757,6 +757,72 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Location to country mapping (same as frontend)
+  const locationToCountry: Record<string, string> = {
+    // Turkey
+    'Tuzla': 'Turkey',
+    'Pendik': 'Turkey', 
+    'Istanbul': 'Turkey',
+    'Ankara': 'Turkey',
+    'Izmir': 'Turkey',
+    'Beyoglu': 'Turkey',
+    'Bodrum': 'Turkey',
+    'Kadikoy': 'Turkey',
+    'Osmangazi': 'Turkey',
+    'Didim': 'Turkey',
+    'Datça': 'Turkey',
+    'Maltepe': 'Turkey',
+    'Tire': 'Turkey',
+    'Karsiyaka': 'Turkey',
+    'Yenisehir': 'Turkey',
+    'Kapakli': 'Turkey',
+    'Bursa': 'Turkey',
+    // Manual corrections we made
+    'Tiflis': 'Georgia',
+    'Dubai': 'UAE', 
+    'Kahire': 'Egypt',
+    // Montenegro
+    'Karadağ': 'Montenegro',
+    'Karadag Nature': 'Montenegro',
+    // Canada
+    'Vancouver': 'Canada',
+    'Toronto': 'Canada',
+    'Montreal': 'Canada',
+    'Calgary': 'Canada',
+    // Egypt
+    'El Obour': 'Egypt',
+    'Cairo': 'Egypt',
+    'Alexandria': 'Egypt',
+    'Giza': 'Egypt',
+    // USA
+    'New York': 'USA',
+    'Los Angeles': 'USA', 
+    'San Francisco': 'USA',
+    'Chicago': 'USA',
+    'Miami': 'USA',
+    'Beverly Hills': 'USA',
+    // Cyprus
+    'Agios Georgios': 'Cyprus',
+    // Other major cities
+    'London': 'UK',
+    'Paris': 'France',
+    'Tokyo': 'Japan',
+    'Sydney': 'Australia',
+    'Singapore': 'Singapore',
+    'Amsterdam': 'Netherlands',
+    'Berlin': 'Germany',
+    'Rome': 'Italy',
+    'Barcelona': 'Spain',
+    'Yenimahalle': 'Turkey',
+    'Palamutbuku': 'Turkey',
+    'Harbiye Cemil Topuzlu Açık Hava Tiyatrosu': 'Turkey',
+    'Harbiye, Şişli/İstanbul': 'Turkey',
+    'Cukurova': 'Turkey',
+    'Tire': 'Turkey',
+    'Genoa': 'Italy',
+    'Pattaya, Thailand': 'Thailand'
+  };
+
   // Function to determine country from coordinates
   const getCountryFromCoordinates = (lat: number, lng: number): string => {
     // France borders: roughly 41-51°N, -5 to 10°E
@@ -810,6 +876,23 @@ export async function registerRoutes(app: Express) {
     return 'Unknown';
   };
 
+  // Hybrid country detection (same logic as frontend)
+  const getNFTCountry = (nft: any): string => {
+    // First try location-based mapping
+    let country = locationToCountry[nft.location];
+    
+    // If not found and it's a manual location with coordinates, use coordinates
+    if (!country && nft.location?.startsWith('Location at ') && nft.latitude && nft.longitude) {
+      const lat = parseFloat(nft.latitude);
+      const lng = parseFloat(nft.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+        country = getCountryFromCoordinates(lat, lng);
+      }
+    }
+    
+    return country || 'Unknown';
+  };
+
   // Stats endpoint with country calculation
   app.get("/api/stats", async (req, res) => {
     try {
@@ -825,17 +908,12 @@ export async function registerRoutes(app: Express) {
         }
       });
 
-      // Calculate unique countries from NFT locations
+      // Calculate unique countries using hybrid detection
       const uniqueCountries = new Set<string>();
       allNFTs.forEach(nft => {
-        const lat = parseFloat(nft.latitude);
-        const lng = parseFloat(nft.longitude);
-        
-        if (!isNaN(lat) && !isNaN(lng)) {
-          const country = getCountryFromCoordinates(lat, lng);
-          if (country && country !== 'Unknown') {
-            uniqueCountries.add(country);
-          }
+        const country = getNFTCountry(nft);
+        if (country && country !== 'Unknown') {
+          uniqueCountries.add(country);
         }
       });
       
