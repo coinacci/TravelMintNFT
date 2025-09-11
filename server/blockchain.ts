@@ -11,6 +11,7 @@ const BASE_RPC_URLS = [
 let currentRpcIndex = 0;
 const BASE_RPC_URL = BASE_RPC_URLS[0];
 const BASESCAN_API_URL = "https://api.basescan.org/api";
+const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || ""; // Add API key support
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
