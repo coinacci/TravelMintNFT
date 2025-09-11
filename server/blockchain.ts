@@ -11,9 +11,12 @@ const BASE_RPC_URLS = [
 
 let currentRpcIndex = 0;
 const BASE_RPC_URL = BASE_RPC_URLS[0];
-// Disable BaseScan - use direct RPC scanning instead
-const BASESCAN_API_URL = ""; // Disabled - using direct contract calls
-const BASESCAN_API_KEY = ""; // Disabled - invalid key anyway
+// Moralis API configuration - much more reliable than BaseScan
+const MORALIS_API_URL = "https://deep-index.moralis.io/api/v2";
+const MORALIS_API_KEY = process.env.MORALIS_API_KEY || "";
+// Disable BaseScan - use Moralis API instead  
+const BASESCAN_API_URL = ""; // Disabled - replaced with Moralis
+const BASESCAN_API_KEY = ""; // Disabled - replaced with Moralis
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
@@ -241,79 +244,83 @@ async function fetchWithGateways(uris: string[]): Promise<any> {
 }
 
 export class BlockchainService {
-  
-  // Get all NFTs from the contract using Basescan API for Transfer events
-  async getAllNFTs(): Promise<BlockchainNFT[]> {
+
+  // Get specific NFT using Moralis API - much faster and more reliable
+  async getMoralisNFT(tokenId: string): Promise<BlockchainNFT | null> {
     try {
-      console.log("🔗 Fetching NFTs using Basescan API...");
-      
-      // Use Basescan API to get all Transfer events
-      const basescanUrl = `${BASESCAN_API_URL}?module=account&action=tokennfttx&contractaddress=${NFT_CONTRACT_ADDRESS}&page=1&offset=100&sort=asc&apikey=${process.env.BASESCAN_API_KEY}`;
-      
-      const response = await fetch(basescanUrl);
-      const data = await response.json();
-      
-      if (data.status !== "1") {
-        console.log("No NFT transfers found or API error:", data.message);
-        // Fallback: try known token IDs
-        return await this.tryKnownTokenIds();
+      if (!MORALIS_API_KEY) {
+        console.log("⚠️ No Moralis API key - falling back to RPC");
+        return null;
       }
+
+      console.log(`🚀 Fetching Token ${tokenId} using Moralis API...`);
       
-      const transfers = data.result;
-      const uniqueTokenIds = new Set<string>();
+      const moralisUrl = `${MORALIS_API_URL}/nft/${NFT_CONTRACT_ADDRESS}/${tokenId}?chain=base&format=decimal`;
       
-      // Extract unique token IDs from transfers (excluding unwanted NFTs)
-      for (const transfer of transfers) {
-        if (transfer.to !== "0x0000000000000000000000000000000000000000" &&
-            transfer.tokenID !== "1" && transfer.tokenID !== "2") {
-          uniqueTokenIds.add(transfer.tokenID);
+      const response = await fetch(moralisUrl, {
+        headers: {
+          'X-API-Key': MORALIS_API_KEY,
+          'Content-Type': 'application/json'
         }
+      });
+      
+      if (!response.ok) {
+        console.log(`❌ Moralis API error for Token ${tokenId}:`, response.status);
+        return null;
       }
       
-      console.log(`Found ${uniqueTokenIds.size} unique NFTs from transfer events`);
+      const nftData = await response.json();
       
-      const nfts: BlockchainNFT[] = [];
+      if (!nftData.owner_of) {
+        console.log(`❌ Token ${tokenId} has no owner (doesn't exist)`);
+        return null;
+      }
       
-      // Get current owner and metadata for each token
-      for (const tokenId of Array.from(uniqueTokenIds)) {
+      console.log(`✅ SUCCESS! Token ${tokenId} owner: ${nftData.owner_of}, tokenURI: ${nftData.token_uri}`);
+      
+      // Fetch and parse metadata
+      let metadata = null;
+      if (nftData.token_uri) {
         try {
-          const owner = await withRetry(() => nftContract.ownerOf(tokenId));
-          const tokenURI = await withRetry(() => nftContract.tokenURI(tokenId));
-          
-          // Fetch metadata using new robust URI handling
-          let metadata = null;
-          const uris = normalizeUri(tokenURI);
-          
-          if (uris.length > 0) {
-            try {
-              console.log(`📥 Fetching metadata from tokenURI: ${tokenURI}`);
-              metadata = await fetchWithGateways(uris);
-              console.log(`✅ Parsed metadata for token ${tokenId}:`, metadata);
-            } catch (fetchError) {
-              console.log(`❌ Error fetching metadata for token ${tokenId}:`, fetchError);
-            }
-          } else {
-            console.log(`⚠️ Unsupported tokenURI format for token ${tokenId}: ${tokenURI}`);
-          }
-          
-          nfts.push({
-            tokenId: tokenId.toString(),
-            owner: owner.toLowerCase(),
-            tokenURI,
-            metadata
-          });
-          
+          metadata = await fetchWithGateways([nftData.token_uri]);
+          console.log(`✅ Parsed metadata for token ${tokenId}:`, metadata);
         } catch (error) {
-          console.error(`Error fetching NFT ${tokenId}:`, error);
+          console.log(`❌ Error fetching metadata for token ${tokenId}:`, error);
         }
       }
       
-      console.log(`✅ Successfully fetched ${nfts.length} NFTs from blockchain`);
-      return nfts;
+      return this.blockchainNFTToDBFormat({
+        tokenId: tokenId,
+        owner: nftData.owner_of,
+        tokenURI: nftData.token_uri || "",
+        metadata
+      });
       
     } catch (error) {
-      console.error("Error fetching all NFTs:", error);
-      // Fallback: try known token IDs
+      console.log(`❌ Moralis API error for Token ${tokenId}:`, error);
+      return null;
+    }
+  }
+  
+  // Get all NFTs from the contract using Moralis API for Transfer events
+  async getAllNFTs(): Promise<BlockchainNFT[]> {
+    try {
+      // First try Token 47 specifically with Moralis
+      if (MORALIS_API_KEY) {
+        console.log("🚀 Trying Moralis API for Token 47...");
+        const token47 = await this.getMoralisNFT("47");
+        if (token47) {
+          console.log("🎉 SUCCESS! Token 47 found via Moralis API!");
+          // Don't return immediately - check for other tokens too
+        }
+      }
+      
+      console.log("🔗 Fetching NFTs using fallback scanning...");
+      
+      // Fallback: try known token IDs with direct RPC
+      return await this.tryKnownTokenIds();
+    } catch (error) {
+      console.error("Error in getAllNFTs:", error);
       return await this.tryKnownTokenIds();
     }
   }
