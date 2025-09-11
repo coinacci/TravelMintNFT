@@ -797,11 +797,26 @@ export async function registerRoutes(app: Express) {
           uniqueHolders.add(nft.ownerAddress.toLowerCase());
         }
       });
+
+      // Calculate unique countries from NFT locations
+      const uniqueCountries = new Set<string>();
+      allNFTs.forEach(nft => {
+        const lat = parseFloat(nft.latitude);
+        const lng = parseFloat(nft.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          const country = getCountryFromCoordinates(lat, lng);
+          if (country && country !== 'Unknown') {
+            uniqueCountries.add(country);
+          }
+        }
+      });
       
       res.json({
         totalNFTs,
         totalVolume: totalVolume.toFixed(1),
-        totalHolders: uniqueHolders.size
+        totalHolders: uniqueHolders.size,
+        totalCountries: uniqueCountries.size
       });
     } catch (error) {
       console.error('Stats endpoint error:', error);
