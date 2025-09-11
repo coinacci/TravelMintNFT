@@ -90,19 +90,43 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
         tryNextUrl();
       }, 3000);
       
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        console.log('✅ Modal image loaded successfully from:', currentUrl);
-        setImageSrc(currentUrl);
-        setImageLoading(false);
-      };
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
-        currentIndex++;
-        tryNextUrl();
-      };
-      img.src = currentUrl;
+      // Quick pre-check for JSON responses (object storage bug fix)
+      if (currentUrl.startsWith('/objects/')) {
+        fetch(currentUrl, { method: 'HEAD' })
+          .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              console.log(`🚫 Modal URL ${currentIndex + 1} is JSON, skipping:`, currentUrl);
+              currentIndex++;
+              tryNextUrl();
+              return;
+            }
+            // If it's not JSON, proceed with image loading
+            loadModalImage();
+          })
+          .catch(() => {
+            console.log(`❌ Modal URL ${currentIndex + 1} pre-check failed, trying as image anyway:`, currentUrl);
+            loadModalImage();
+          });
+      } else {
+        loadModalImage();
+      }
+      
+      function loadModalImage() {
+        img.onload = () => {
+          clearTimeout(timeoutId);
+          console.log('✅ Modal image loaded successfully from:', currentUrl);
+          setImageSrc(currentUrl);
+          setImageLoading(false);
+        };
+        img.onerror = () => {
+          clearTimeout(timeoutId);
+          console.log(`❌ Modal URL ${currentIndex + 1} failed, trying next...`);
+          currentIndex++;
+          tryNextUrl();
+        };
+        img.src = currentUrl;
+      }
     };
     
     tryNextUrl();
