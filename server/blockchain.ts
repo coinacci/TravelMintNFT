@@ -151,13 +151,17 @@ function extractCoordinates(metadata: any): { latitude: string | null, longitude
     const traitLower = attr.trait_type.toLowerCase();
     const value = String(attr.value).trim();
     
-    // Handle latitude/lat
-    if (traitLower.includes('latitude') || traitLower.includes('lat')) {
+    // Handle latitude (be specific to avoid false matches)
+    if (traitLower.includes('latitude')) {
+      latitude = parseCoordinate(value);
+    } else if (traitLower === 'lat') {
       latitude = parseCoordinate(value);
     }
     
-    // Handle longitude/lng/lon
-    if (traitLower.includes('longitude') || traitLower.includes('lng') || traitLower.includes('lon')) {
+    // Handle longitude (be specific to avoid false matches)
+    if (traitLower.includes('longitude')) {
+      longitude = parseCoordinate(value);
+    } else if (traitLower === 'lng' || traitLower === 'lon') {
       longitude = parseCoordinate(value);
     }
     
@@ -289,12 +293,13 @@ export class BlockchainService {
         }
       }
       
-      return this.blockchainNFTToDBFormat({
+      // Return BlockchainNFT format (not DB format yet)
+      return {
         tokenId: tokenId,
-        owner: nftData.owner_of,
+        owner: nftData.owner_of.toLowerCase(),
         tokenURI: nftData.token_uri || "",
         metadata
-      });
+      };
       
     } catch (error) {
       console.log(`❌ Moralis API error for Token ${tokenId}:`, error);
@@ -305,22 +310,43 @@ export class BlockchainService {
   // Get all NFTs from the contract using Moralis API for Transfer events
   async getAllNFTs(): Promise<BlockchainNFT[]> {
     try {
-      // First try Token 47 specifically with Moralis
+      console.log("🔗 Fetching NFTs using parallel scanning (RPC + Moralis)...");
+      
+      // Run Moralis API and RPC scanning in parallel to avoid blocking
+      const scanPromises: Promise<any>[] = [];
+      
+      // Always try fast RPC scanning (with timeout protection)
+      scanPromises.push(this.tryKnownTokenIds());
+      
+      // Parallel Moralis API call for Token 47 if available
       if (MORALIS_API_KEY) {
-        console.log("🚀 Trying Moralis API for Token 47...");
-        const token47 = await this.getMoralisNFT("47");
-        if (token47) {
-          console.log("🎉 SUCCESS! Token 47 found via Moralis API!");
-          // Don't return immediately - check for other tokens too
+        console.log("🚀 Starting parallel Moralis API call for Token 47...");
+        scanPromises.push(this.getMoralisNFT("47"));
+      } else {
+        scanPromises.push(Promise.resolve(null));
+      }
+      
+      // Wait for both to complete (or fail)
+      const [rpcResults, moralisToken47] = await Promise.allSettled(scanPromises);
+      
+      // Extract results
+      const results: BlockchainNFT[] = rpcResults.status === 'fulfilled' ? rpcResults.value : [];
+      
+      // Add Moralis Token 47 if found and not already in results
+      if (moralisToken47.status === 'fulfilled' && moralisToken47.value) {
+        console.log("🎉 SUCCESS! Token 47 found via Moralis API!");
+        const exists = results.some(nft => nft.tokenId === "47");
+        if (!exists) {
+          console.log("✅ Adding Token 47 to results list");
+          results.push(moralisToken47.value);
         }
       }
       
-      console.log("🔗 Fetching NFTs using fallback scanning...");
-      
-      // Fallback: try known token IDs with direct RPC
-      return await this.tryKnownTokenIds();
+      console.log(`📊 Total NFTs found: ${results.length}`);
+      return results;
     } catch (error) {
       console.error("Error in getAllNFTs:", error);
+      // Final fallback - try RPC only with no timeout
       return await this.tryKnownTokenIds();
     }
   }
@@ -347,10 +373,17 @@ export class BlockchainService {
         if (uris.length > 0) {
           try {
             console.log(`📥 Fetching metadata from tokenURI: ${tokenURI}`);
-            metadata = await fetchWithGateways(uris);
+            // Add timeout to prevent infinite blocking on slow IPFS gateways
+            metadata = await Promise.race([
+              fetchWithGateways(uris),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Metadata fetch timeout')), 3000)
+              )
+            ]);
             console.log(`✅ Parsed metadata for token ${tokenId}:`, metadata);
           } catch (fetchError) {
             console.log(`❌ Error fetching metadata for token ${tokenId}:`, fetchError);
+            // Continue without metadata to avoid blocking the entire scan
           }
         } else {
           console.log(`⚠️ Unsupported tokenURI format for token ${tokenId}: ${tokenURI}`);
