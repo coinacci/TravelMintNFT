@@ -43,6 +43,17 @@ The application uses Drizzle ORM with PostgreSQL:
 
 The schema supports location-based NFTs with latitude/longitude coordinates, user balance tracking, and comprehensive transaction history.
 
+## Country Statistics System
+
+The application features a dynamic country counting system for statistics display:
+
+- **Hybrid Detection**: Uses both location name mapping and coordinate-based detection
+- **City Mapping**: Pre-mapped city names to countries (e.g., "Tiflis" → "Georgia", "Dubai" → "UAE")
+- **Coordinate Fallback**: Geographic boundary detection for unmapped locations
+- **Real-time Updates**: Country count automatically updates as new NFTs are minted
+- **Current Count**: Displays unique countries represented in the NFT collection
+- **Manual Corrections**: Includes fixes for mislabeled locations from blockchain metadata
+
 ## Authentication and Authorization
 
 Currently implements a simplified authentication system without external providers. The application uses session-based authentication with in-memory storage for development purposes.

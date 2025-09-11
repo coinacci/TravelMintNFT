@@ -627,7 +627,6 @@ export default function Marketplace() {
                       onPurchase={() => handlePurchase(nft)}
                       onSelect={() => handleNFTClick(nft)}
                       showPurchaseButton={true}
-                      showShareButton={true}
                     />
                   ))}
                 </div>
