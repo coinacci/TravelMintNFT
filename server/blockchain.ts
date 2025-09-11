@@ -87,6 +87,156 @@ export interface BlockchainNFT {
   metadata?: any;
 }
 
+// Helper function to normalize different URI schemes to HTTP URLs
+function normalizeUri(uri: string): string[] {
+  if (!uri) return [];
+  
+  // Handle IPFS URIs
+  if (uri.startsWith('ipfs://')) {
+    const cid = uri.replace('ipfs://', '');
+    return [
+      `https://ipfs.io/ipfs/${cid}`,
+      `https://gateway.pinata.cloud/ipfs/${cid}`,
+      `https://cloudflare-ipfs.com/ipfs/${cid}`
+    ];
+  }
+  
+  // Handle Arweave URIs
+  if (uri.startsWith('ar://')) {
+    const id = uri.replace('ar://', '');
+    return [`https://arweave.net/${id}`];
+  }
+  
+  // Handle data URIs (base64 JSON)
+  if (uri.startsWith('data:application/json;base64,')) {
+    try {
+      const base64 = uri.split(',')[1];
+      const jsonString = Buffer.from(base64, 'base64').toString();
+      return [`data:${jsonString}`]; // Special marker for JSON data
+    } catch (e) {
+      console.error('Failed to decode base64 JSON:', e);
+      return [];
+    }
+  }
+  
+  // HTTP/HTTPS URLs are already normalized
+  if (uri.startsWith('http')) {
+    return [uri];
+  }
+  
+  return [];
+}
+
+// Robust coordinate extraction from metadata
+function extractCoordinates(metadata: any): { latitude: string | null, longitude: string | null } {
+  if (!metadata || !metadata.attributes) {
+    return { latitude: null, longitude: null };
+  }
+  
+  let latitude: string | null = null;
+  let longitude: string | null = null;
+  
+  // Look for coordinate attributes with various naming conventions
+  const coordTraits = ['latitude', 'lat', 'longitude', 'lng', 'lon', 'coordinates', 'coord', 'gps', 'geo'];
+  
+  for (const attr of metadata.attributes) {
+    if (!attr.trait_type || !attr.value) continue;
+    
+    const traitLower = attr.trait_type.toLowerCase();
+    const value = String(attr.value).trim();
+    
+    // Handle latitude/lat
+    if (traitLower.includes('latitude') || traitLower.includes('lat')) {
+      latitude = parseCoordinate(value);
+    }
+    
+    // Handle longitude/lng/lon
+    if (traitLower.includes('longitude') || traitLower.includes('lng') || traitLower.includes('lon')) {
+      longitude = parseCoordinate(value);
+    }
+    
+    // Handle combined coordinates (e.g., "40.123,29.456")
+    if (traitLower.includes('coordinates') || traitLower.includes('coord') || traitLower.includes('gps')) {
+      const coords = parseCoordinatePair(value);
+      if (coords) {
+        latitude = coords.latitude;
+        longitude = coords.longitude;
+      }
+    }
+  }
+  
+  return { latitude, longitude };
+}
+
+// Parse a single coordinate value
+function parseCoordinate(value: string): string | null {
+  if (!value) return null;
+  
+  // Remove degree symbols and other non-numeric characters except dots, minus, and commas
+  const cleaned = value.replace(/[^\d\.\-,]/g, '');
+  
+  // Try to parse as number
+  const num = parseFloat(cleaned);
+  if (!isNaN(num) && num !== 0) {
+    return num.toString();
+  }
+  
+  return null;
+}
+
+// Parse coordinate pair from a single string (e.g., "40.123,29.456")
+function parseCoordinatePair(value: string): { latitude: string, longitude: string } | null {
+  if (!value) return null;
+  
+  // Look for comma-separated values
+  const parts = value.split(',').map(p => p.trim());
+  if (parts.length === 2) {
+    const lat = parseCoordinate(parts[0]);
+    const lng = parseCoordinate(parts[1]);
+    if (lat && lng) {
+      return { latitude: lat, longitude: lng };
+    }
+  }
+  
+  return null;
+}
+
+// Fetch content from multiple gateways with fallback
+async function fetchWithGateways(uris: string[]): Promise<any> {
+  for (const uri of uris) {
+    try {
+      // Handle special data: JSON marker
+      if (uri.startsWith('data:')) {
+        return JSON.parse(uri.replace('data:', ''));
+      }
+      
+      console.log(`🔗 Trying gateway: ${uri}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(uri, { 
+        signal: controller.signal,
+        headers: { 'User-Agent': 'TravelMint/1.0' }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          return await response.json();
+        } else {
+          return await response.text();
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Gateway failed: ${uri} - ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  throw new Error(`All gateways failed for URIs: ${uris.join(', ')}`);
+}
+
 export class BlockchainService {
   
   // Get all NFTs from the contract using Basescan API for Transfer events
@@ -127,40 +277,20 @@ export class BlockchainService {
           const owner = await withRetry(() => nftContract.ownerOf(tokenId));
           const tokenURI = await withRetry(() => nftContract.tokenURI(tokenId));
           
-          // Fetch metadata if URI is available with multiple retries and gateways
+          // Fetch metadata using new robust URI handling
           let metadata = null;
-          if (tokenURI && tokenURI.startsWith('http')) {
+          const uris = normalizeUri(tokenURI);
+          
+          if (uris.length > 0) {
             try {
-              // Try multiple IPFS gateways - prioritize ipfs.io for reliability  
-              const gateways = [
-                // Primary: ipfs.io (most reliable, no Cloudflare blocks)
-                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io').replace('cloudflare-ipfs.com', 'ipfs.io'),
-                // Secondary: original URL (keep as backup)
-                tokenURI,
-                // Tertiary: cloudflare (has blocking issues sometimes) 
-                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com').replace('ipfs.io', 'cloudflare-ipfs.com')
-              ];
-              
-              for (const gatewayUrl of gateways) {
-                try {
-                  const response = await withRetry(() => fetch(gatewayUrl));
-                  if (response.ok) {
-                    metadata = await response.json();
-                    console.log(`✅ Parsed IPFS metadata for token ${tokenId}:`, metadata);
-                    break; // Stop trying other gateways once we succeed
-                  }
-                } catch (gatewayError: any) {
-                  console.log(`⚠️ Failed gateway ${gatewayUrl} for token ${tokenId}:`, gatewayError.message);
-                  continue; // Try next gateway
-                }
-              }
-              
-              if (!metadata) {
-                console.log(`❌ All IPFS gateways failed for token ${tokenId}, metadata will be incomplete`);
-              }
-            } catch (e) {
-              console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
+              console.log(`📥 Fetching metadata from tokenURI: ${tokenURI}`);
+              metadata = await fetchWithGateways(uris);
+              console.log(`✅ Parsed metadata for token ${tokenId}:`, metadata);
+            } catch (fetchError) {
+              console.log(`❌ Error fetching metadata for token ${tokenId}:`, fetchError);
             }
+          } else {
+            console.log(`⚠️ Unsupported tokenURI format for token ${tokenId}: ${tokenURI}`);
           }
           
           nfts.push({
@@ -200,48 +330,20 @@ export class BlockchainService {
         // Reset consecutive failures when we find a valid token
         consecutiveFailures = 0;
         
-        // Fetch metadata if URI is available with multiple retries and gateways
+        // Fetch metadata using new robust URI handling
         let metadata = null;
-        if (tokenURI) {
+        const uris = normalizeUri(tokenURI);
+        
+        if (uris.length > 0) {
           try {
-            if (tokenURI.startsWith('http')) {
-              // Try multiple IPFS gateways - prioritize ipfs.io for reliability  
-              const gateways = [
-                // Primary: ipfs.io (most reliable, no Cloudflare blocks)
-                tokenURI.replace('gateway.pinata.cloud', 'ipfs.io').replace('cloudflare-ipfs.com', 'ipfs.io'),
-                // Secondary: original URL (keep as backup)
-                tokenURI,
-                // Tertiary: cloudflare (has blocking issues sometimes)
-                tokenURI.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com').replace('ipfs.io', 'cloudflare-ipfs.com')
-              ];
-              
-              for (const gatewayUrl of gateways) {
-                try {
-                  const response = await withRetry(() => fetch(gatewayUrl));
-                  if (response.ok) {
-                    metadata = await response.json();
-                    console.log(`✅ Parsed IPFS metadata for token ${tokenId}:`, metadata);
-                    break; // Stop trying other gateways once we succeed
-                  }
-                } catch (gatewayError: any) {
-                  console.log(`⚠️ Failed gateway ${gatewayUrl} for token ${tokenId}:`, gatewayError.message);
-                  continue; // Try next gateway
-                }
-              }
-              
-              if (!metadata) {
-                console.log(`❌ All IPFS gateways failed for token ${tokenId}, metadata will be incomplete`);
-              }
-            } else if (tokenURI.startsWith('data:application/json;base64,')) {
-              // Handle base64 encoded JSON metadata
-              const base64Data = tokenURI.replace('data:application/json;base64,', '');
-              const jsonString = Buffer.from(base64Data, 'base64').toString('utf-8');
-              metadata = JSON.parse(jsonString);
-              console.log(`✅ Parsed base64 metadata for token ${tokenId}:`, metadata);
-            }
-          } catch (e) {
-            console.log(`Failed to fetch/parse metadata for token ${tokenId}:`, e);
+            console.log(`📥 Fetching metadata from tokenURI: ${tokenURI}`);
+            metadata = await fetchWithGateways(uris);
+            console.log(`✅ Parsed metadata for token ${tokenId}:`, metadata);
+          } catch (fetchError) {
+            console.log(`❌ Error fetching metadata for token ${tokenId}:`, fetchError);
           }
+        } else {
+          console.log(`⚠️ Unsupported tokenURI format for token ${tokenId}: ${tokenURI}`);
         }
         
         nfts.push({
@@ -336,8 +438,9 @@ export class BlockchainService {
     const metadata = blockchainNFT.metadata;
     
     const location = this.extractLocationFromMetadata(metadata);
-    const latitude = this.extractLatitudeFromMetadata(metadata) || "0";
-    const longitude = this.extractLongitudeFromMetadata(metadata) || "0";
+    const coords = extractCoordinates(metadata);
+    const latitude = coords.latitude;
+    const longitude = coords.longitude;
     
     // Always prioritize uploaded travel images over metadata placeholders
     let imageUrl = await this.extractImageUrl(metadata, blockchainNFT.tokenURI);
@@ -366,8 +469,8 @@ export class BlockchainService {
       description: metadata?.description || "A beautiful travel memory captured on the blockchain.",
       imageUrl: imageUrl,
       location: location,
-      latitude: latitude,
-      longitude: longitude, 
+      latitude: latitude || undefined,
+      longitude: longitude || undefined, 
       category: this.extractCategoryFromMetadata(metadata) || "travel",
       price: "1.0", // Fixed mint price
       isForSale: 0,
