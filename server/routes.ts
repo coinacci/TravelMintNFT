@@ -838,7 +838,11 @@ export async function registerRoutes(app: Express) {
     'Harbiye, Şişli/İstanbul': 'Turkey',
     'Cukurova': 'Turkey',
     'Genoa': 'Italy',
-    'Pattaya, Thailand': 'Thailand'
+    'Pattaya, Thailand': 'Thailand',
+    // New missing locations found in recent NFTs
+    'Esztergom': 'Hungary',
+    'Yakutiye': 'Turkey',
+    'Demirci': 'Turkey'
   };
 
   // Function to determine country from coordinates
@@ -928,18 +932,36 @@ export async function registerRoutes(app: Express) {
 
       // Calculate unique countries using hybrid detection
       const uniqueCountries = new Set<string>();
+      const countryDebug: any[] = [];
       allNFTs.forEach(nft => {
         const country = getNFTCountry(nft);
+        countryDebug.push({
+          id: nft.id,
+          location: nft.location,
+          latitude: nft.latitude,
+          longitude: nft.longitude,
+          detectedCountry: country
+        });
         if (country && country !== 'Unknown') {
           uniqueCountries.add(country);
         }
       });
+
+      // Temporary debug info - NO CACHE USE FOR FRESH DATA
+      console.log('🔍 COUNTRY DEBUG - Unique countries found:', Array.from(uniqueCountries).sort());
+      console.log('🔍 COUNTRY DEBUG - Total unique countries:', uniqueCountries.size);
+      console.log('🔍 COUNTRY DEBUG - Some country detections:', countryDebug.slice(0, 10));
       
       res.json({
         totalNFTs,
         totalVolume: totalVolume.toFixed(1),
         totalHolders: uniqueHolders.size,
-        totalCountries: uniqueCountries.size
+        totalCountries: uniqueCountries.size,
+        // Temporary debug field
+        debug: {
+          uniqueCountriesList: Array.from(uniqueCountries).sort(),
+          sampleDetections: countryDebug.slice(0, 20)
+        }
       });
     } catch (error) {
       console.error('Stats endpoint error:', error);
