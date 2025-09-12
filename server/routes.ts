@@ -133,7 +133,6 @@ export async function registerRoutes(app: Express) {
         "imageUrl": "https://travelnft.replit.app/image.png",
         "splashImageUrl": "https://travelnft.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
-        "buttonTitle": "Open TravelMint",
         "subtitle": "Travel Photo NFT Marketplace",
         "heroImageUrl": "https://travelnft.replit.app/image.png",
         "tagline": "Turn travel into NFTs",
@@ -161,7 +160,6 @@ export async function registerRoutes(app: Express) {
         "heroImageUrl": "https://travelnft.replit.app/image.png",
         "splashImageUrl": "https://travelnft.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
-        "buttonTitle": "Open TravelMint",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "tagline": "Turn travel into NFTs",
         "screenshotUrls": [
@@ -187,6 +185,7 @@ export async function registerRoutes(app: Express) {
     res.setHeader('Expires', '0');
     res.setHeader('ETag', `"v${Date.now()}"`);
     res.setHeader('Last-Modified', new Date().toUTCString());
+    res.setHeader('X-Timestamp', Date.now().toString());
     res.send(JSON.stringify(farcasterConfig, null, 2));
   });
 
