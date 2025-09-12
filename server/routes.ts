@@ -1141,34 +1141,7 @@ export async function registerRoutes(app: Express) {
     res.json({ message: "Use wallet-based endpoints for user data" });
   });
 
-  // Farcaster manifest endpoint (CRITICAL for miniapp to work!)
-  app.get("/.well-known/farcaster.json", (req, res) => {
-    // This manifest is required for Farcaster debug tools to work
-    // Cache-busting headers to force refresh
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
-    const manifest = {
-      "accountAssociation": {
-        "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-        "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
-        "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
-      },
-      "frame": {
-        "version": "1",
-        "name": "TravelMint",
-        "iconUrl": "https://travelnft.replit.app/icon.png",
-        "homeUrl": "https://travelnft.replit.app",
-        "imageUrl": "https://travelnft.replit.app/image.png",
-        "splashImageUrl": "https://travelnft.replit.app/splash.png",
-        "splashBackgroundColor": "#0f172a",
-        "buttonTitle": "Open TravelMint"
-      }
-    };
-    
-    res.json(manifest);
-  });
+  // Duplicate farcaster.json route removed - using the complete one at line 120
 
   // Farcaster webhook endpoint
   app.post("/api/webhook", async (req, res) => {
