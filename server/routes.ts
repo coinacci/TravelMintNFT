@@ -41,17 +41,23 @@ function clearAllCache(): void {
 // Helper function to create user objects with Farcaster usernames
 function createUserObject(walletAddress: string, farcasterUsername?: string | null, farcasterFid?: string | null) {
   if (farcasterUsername) {
+    // Normalize username: strip any leading @ before prefixing with @
+    const normalizedUsername = farcasterUsername.startsWith('@') 
+      ? farcasterUsername.slice(1) 
+      : farcasterUsername;
+    
     return {
       id: walletAddress,
-      username: `@${farcasterUsername}`,
+      username: `@${normalizedUsername}`,
       avatar: null,
-      farcasterFid: farcasterFid
+      farcasterFid: farcasterFid || null
     };
   } else {
     return {
       id: walletAddress,
       username: walletAddress.slice(0, 8) + '...',
-      avatar: null
+      avatar: null,
+      farcasterFid: null
     };
   }
 }
