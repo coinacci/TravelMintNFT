@@ -134,6 +134,13 @@ export async function registerRoutes(app: Express) {
         "splashImageUrl": "https://travelnft.replit.app/splash.png",
         "splashBackgroundColor": "#0f172a",
         "buttonTitle": "Open TravelMint",
+        "subtitle": "Travel Photo NFT Marketplace",
+        "heroImageUrl": "https://travelnft.replit.app/image.png",
+        "tagline": "Turn travel into NFTs",
+        "ogTitle": "TravelMint NFT App",
+        "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+        "ogImageUrl": "https://travelnft.replit.app/image.png",
+        "castShareUrl": "https://travelnft.replit.app/share",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
