@@ -26,6 +26,10 @@ export const nfts = pgTable("nfts", {
   isForSale: integer("is_for_sale").default(0).notNull(), // 0 = false, 1 = true
   creatorAddress: text("creator_address").notNull(),
   ownerAddress: text("owner_address").notNull(),
+  farcasterCreatorUsername: text("farcaster_creator_username"), // Optional Farcaster username
+  farcasterOwnerUsername: text("farcaster_owner_username"), // Optional Farcaster username
+  farcasterCreatorFid: text("farcaster_creator_fid"), // Optional Farcaster user ID
+  farcasterOwnerFid: text("farcaster_owner_fid"), // Optional Farcaster user ID
   mintPrice: decimal("mint_price", { precision: 18, scale: 6 }).default("1").notNull(),
   royaltyPercentage: decimal("royalty_percentage", { precision: 5, scale: 2 }).default("5").notNull(),
   tokenId: text("token_id"), // NFT contract token ID
