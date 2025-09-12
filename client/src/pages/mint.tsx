@@ -391,7 +391,11 @@ export default function Mint() {
       return;
     }
 
+    // Clear previous states when new file is selected
     setImageFile(file);
+    setImageIpfsUrl(null);
+    setImageObjectStorageUrl(null);
+    setMetadataIpfsUrl(null);
     
     // Create preview
     const reader = new FileReader();
@@ -652,18 +656,44 @@ export default function Mint() {
               <h3 className="text-lg font-semibold mb-4">Upload Photo</h3>
               
               <div
-                className={`upload-dropzone rounded-lg p-8 text-center mb-4 cursor-pointer ${
-                  isDragging ? 'dragover' : ''
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={() => document.getElementById('file-input')?.click()}
+                className={`upload-dropzone rounded-lg p-8 text-center mb-4 ${
+                  imageIpfsUrl && imageObjectStorageUrl 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'cursor-pointer'
+                } ${isDragging ? 'dragover' : ''}`}
+                onDrop={imageIpfsUrl && imageObjectStorageUrl ? undefined : handleDrop}
+                onDragOver={imageIpfsUrl && imageObjectStorageUrl ? undefined : handleDragOver}
+                onDragLeave={imageIpfsUrl && imageObjectStorageUrl ? undefined : handleDragLeave}
+                onClick={imageIpfsUrl && imageObjectStorageUrl ? undefined : () => document.getElementById('file-input')?.click()}
                 data-testid="upload-dropzone"
               >
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">Drop your photo here or click to browse</p>
-                <p className="text-xs text-muted-foreground">Supports JPEG, PNG. Max size: 10MB</p>
+                {imageIpfsUrl && imageObjectStorageUrl ? (
+                  <>
+                    <p className="text-green-600 dark:text-green-400 mb-2 font-medium">✅ Photo uploaded successfully!</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Reset upload state
+                        setImageFile(null);
+                        setImagePreview(null);
+                        setImageIpfsUrl(null);
+                        setImageObjectStorageUrl(null);
+                        setMetadataIpfsUrl(null);
+                        document.getElementById('file-input')!.value = '';
+                      }}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1"
+                      data-testid="reset-upload"
+                    >
+                      Upload different photo
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground mb-2">Drop your photo here or click to browse</p>
+                    <p className="text-xs text-muted-foreground">Supports JPEG, PNG. Max size: 10MB</p>
+                  </>
+                )}
                 <input
                   id="file-input"
                   type="file"
@@ -671,6 +701,7 @@ export default function Mint() {
                   accept="image/*"
                   onChange={handleFileInputChange}
                   data-testid="file-input"
+                  disabled={!!(imageIpfsUrl && imageObjectStorageUrl)}
                 />
               </div>
 
