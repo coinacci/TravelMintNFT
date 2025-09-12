@@ -38,6 +38,24 @@ function clearAllCache(): void {
   console.log("🗑️ All cache cleared for fresh sync");
 }
 
+// Helper function to create user objects with Farcaster usernames
+function createUserObject(walletAddress: string, farcasterUsername?: string | null, farcasterFid?: string | null) {
+  if (farcasterUsername) {
+    return {
+      id: walletAddress,
+      username: `@${farcasterUsername}`,
+      avatar: null,
+      farcasterFid: farcasterFid
+    };
+  } else {
+    return {
+      id: walletAddress,
+      username: walletAddress.slice(0, 8) + '...',
+      avatar: null
+    };
+  }
+}
+
 export async function registerRoutes(app: Express) {
 
   // Health check
@@ -270,16 +288,8 @@ export async function registerRoutes(app: Express) {
             imageUrl: nft.imageUrl || parsedMetadata?.image,
             objectStorageUrl: nft.objectStorageUrl, // Include Object Storage URL for frontend priority
             tokenURI: nft.tokenURI, // Add tokenURI for frontend fallback (for tokens like #47 where image URL is broken but tokenURI works)
-            owner: { 
-              id: nft.ownerAddress, 
-              username: nft.ownerAddress.slice(0, 8) + '...', 
-              avatar: null 
-            },
-            creator: { 
-              id: nft.creatorAddress, 
-              username: nft.creatorAddress.slice(0, 8) + '...', 
-              avatar: null 
-            }
+            owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
           };
         })
       );
@@ -418,16 +428,8 @@ export async function registerRoutes(app: Express) {
             imageUrl: nft.imageUrl || parsedMetadata?.image,
             objectStorageUrl: nft.objectStorageUrl, // Include Object Storage URL for frontend priority
             ownerAddress: nft.ownerAddress, // Include raw owner address for purchases
-            owner: { 
-              id: nft.ownerAddress, 
-              username: nft.ownerAddress.slice(0, 8) + '...', 
-              avatar: null 
-            },
-            creator: { 
-              id: nft.creatorAddress, 
-              username: nft.creatorAddress.slice(0, 8) + '...', 
-              avatar: null 
-            }
+            owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
           };
         })
       );
@@ -461,16 +463,8 @@ export async function registerRoutes(app: Express) {
         // Use metadata name and image if available, fallback to NFT fields
         title: parsedMetadata?.name || nft.title,
         imageUrl: nft.imageUrl || parsedMetadata?.image,
-        owner: { 
-          id: nft.ownerAddress, 
-          username: nft.ownerAddress.slice(0, 8) + '...', 
-          avatar: null 
-        },
-        creator: { 
-          id: nft.creatorAddress, 
-          username: nft.creatorAddress.slice(0, 8) + '...', 
-          avatar: null 
-        }
+        owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+        creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFT" });
@@ -569,16 +563,8 @@ export async function registerRoutes(app: Express) {
           // Use uploaded travel images for known tokens, otherwise use stored imageUrl
           imageUrl: nft.imageUrl, // This already has the correct image paths
           title: parsedMetadata?.name || nft.title,
-          owner: { 
-            id: nft.ownerAddress, 
-            username: nft.ownerAddress.slice(0, 8) + '...', 
-            avatar: null 
-          },
-          creator: { 
-            id: nft.creatorAddress, 
-            username: nft.creatorAddress.slice(0, 8) + '...', 
-            avatar: null 
-          }
+          owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+          creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
         };
       });
       
