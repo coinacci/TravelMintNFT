@@ -141,6 +141,7 @@ export async function registerRoutes(app: Express) {
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
         "ogImageUrl": "https://travelnft.replit.app/image.png",
         "castShareUrl": "https://travelnft.replit.app/share",
+        "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "noindex": false,
         "primaryCategory": "social"
       },
