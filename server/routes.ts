@@ -836,7 +836,6 @@ export async function registerRoutes(app: Express) {
     'Harbiye Cemil Topuzlu Açık Hava Tiyatrosu': 'Turkey',
     'Harbiye, Şişli/İstanbul': 'Turkey',
     'Cukurova': 'Turkey',
-    'Tire': 'Turkey',
     'Genoa': 'Italy',
     'Pattaya, Thailand': 'Thailand'
   };
