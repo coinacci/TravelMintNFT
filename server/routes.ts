@@ -926,20 +926,10 @@ export async function registerRoutes(app: Express) {
         }
       });
 
-      // Calculate unique countries using hybrid detection
-      const uniqueCountries = new Set<string>();
-      allNFTs.forEach(nft => {
-        const country = getNFTCountry(nft);
-        if (country && country !== 'Unknown') {
-          uniqueCountries.add(country);
-        }
-      });
-      
       res.json({
         totalNFTs,
         totalVolume: totalVolume.toFixed(1),
-        totalHolders: uniqueHolders.size,
-        totalCountries: uniqueCountries.size
+        totalHolders: uniqueHolders.size
       });
     } catch (error) {
       console.error('Stats endpoint error:', error);
