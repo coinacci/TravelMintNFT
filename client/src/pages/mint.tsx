@@ -18,6 +18,7 @@ import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
 import { createNFTMetadata, createIPFSUrl } from "@shared/ipfs";
 import L from "leaflet";
+import sdk from "@farcaster/frame-sdk";
 
 // USDC Contract on Base mainnet
 const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
@@ -95,6 +96,8 @@ export default function Mint() {
   const [mintingStep, setMintingStep] = useState<'idle' | 'uploading-image' | 'uploading-metadata' | 'approving' | 'minting'>('idle');
   const [approvalHash, setApprovalHash] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string>('');
+  // Farcaster user context
+  const [farcasterUser, setFarcasterUser] = useState<any>(null);
   // Force GPS only mode - manual location disabled
   const [useManualLocation, setUseManualLocation] = useState(false); // Force GPS only
   const [manualLocation, setManualLocation] = useState('');
@@ -123,6 +126,30 @@ export default function Mint() {
   
   // USDC amount: 1 USDC = 1,000,000 (6 decimals)
   const USDC_MINT_AMOUNT = BigInt(1000000);
+
+  // Get Farcaster user context
+  useEffect(() => {
+    const getFarcasterContext = async () => {
+      try {
+        if (typeof window !== 'undefined' && sdk?.context) {
+          const context = await Promise.resolve(sdk.context);
+          if (context?.user) {
+            setFarcasterUser({
+              fid: context.user.fid,
+              username: context.user.username,
+              displayName: context.user.displayName,
+              pfpUrl: context.user.pfpUrl
+            });
+            console.log('✅ Farcaster user loaded:', context.user.username);
+          }
+        }
+      } catch (error) {
+        console.log('ℹ️ No Farcaster context - running in standard web browser');
+      }
+    };
+
+    getFarcasterContext();
+  }, []);
   
   
 
@@ -158,6 +185,11 @@ export default function Mint() {
             royaltyPercentage: "5",
             contractAddress: NFT_CONTRACT_ADDRESS,
             transactionHash: sendCallsData, // Batch transaction ID
+            // Farcaster user information
+            farcasterCreatorUsername: farcasterUser?.username || null,
+            farcasterCreatorFid: farcasterUser?.fid?.toString() || null,
+            farcasterOwnerUsername: farcasterUser?.username || null,
+            farcasterOwnerFid: farcasterUser?.fid?.toString() || null,
             metadata: {
               name: title,
               description: description || "Travel NFT minted on TravelMint",
