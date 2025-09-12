@@ -100,10 +100,29 @@ export async function registerRoutes(app: Express) {
         "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
+      "miniapp": {
+        "version": "1", 
+        "name": "TravelMint",
+        "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
+        "iconUrl": "https://travelnft.replit.app/icon.png",
+        "homeUrl": "https://travelnft.replit.app/",
+        "imageUrl": "https://travelnft.replit.app/image.png",
+        "splashImageUrl": "https://travelnft.replit.app/splash.png",
+        "splashBackgroundColor": "#0f172a",
+        "buttonTitle": "Open TravelMint",
+        "webhookUrl": "https://travelnft.replit.app/api/webhook",
+        "tags": ["travel", "nft", "blockchain", "photography", "base"],
+        "screenshotUrls": [
+          "https://travelnft.replit.app/image.png",
+          "https://travelnft.replit.app/splash.png"
+        ],
+        "noindex": false,
+        "primaryCategory": "social"
+      },
       "frame": {
         "version": "1",
         "name": "TravelMint",
-        "subtitle": "Travel Photo NFT Marketplace",
+        "subtitle": "Travel Photo NFT Marketplace", 
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
         "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app",
@@ -114,7 +133,6 @@ export async function registerRoutes(app: Express) {
         "buttonTitle": "Open TravelMint",
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "tagline": "Turn travel into NFTs",
-        "tags": ["travel", "nft", "blockchain", "photography", "base"],
         "screenshotUrls": [
           "https://travelnft.replit.app/image.png",
           "https://travelnft.replit.app/splash.png"
