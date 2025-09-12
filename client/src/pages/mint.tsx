@@ -680,7 +680,7 @@ export default function Mint() {
                         setImageIpfsUrl(null);
                         setImageObjectStorageUrl(null);
                         setMetadataIpfsUrl(null);
-                        document.getElementById('file-input')!.value = '';
+                        (document.getElementById('file-input') as HTMLInputElement).value = '';
                       }}
                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1"
                       data-testid="reset-upload"
