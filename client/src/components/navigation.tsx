@@ -1,8 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { useAccount, useBalance } from "wagmi";
-import { MapPin, Store, Camera, Wallet, Globe, Home, User } from "lucide-react";
+import { MapPin, Store, Camera, Wallet, Globe, Home, User, Menu, ChevronDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -93,23 +100,35 @@ export default function Navigation() {
           </div>
 
           <nav className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className={`flex items-center space-x-2 transition-colors ${
-                    isActive ? "text-primary" : "text-foreground hover:text-primary"
-                  }`}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2" data-testid="nav-menu-trigger">
+                  <Menu className="h-4 w-4" />
+                  <span>Menu</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location === item.path;
+                  return (
+                    <DropdownMenuItem key={item.path} asChild>
+                      <Link
+                        href={item.path}
+                        className={`flex items-center space-x-2 w-full ${
+                          isActive ? "text-primary font-medium" : "text-foreground"
+                        }`}
+                        data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           <div className="flex items-center space-x-3">
