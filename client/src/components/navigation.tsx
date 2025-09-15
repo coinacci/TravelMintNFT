@@ -57,33 +57,41 @@ export default function Navigation() {
                   </div>
                 )}
                 <WalletConnect />
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center space-x-1" data-testid="nav-menu-trigger-mobile">
+                      <Menu className="h-4 w-4" />
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location === item.path;
+                      return (
+                        <DropdownMenuItem key={item.path} asChild>
+                          <Link
+                            href={item.path}
+                            className={`flex items-center space-x-2 w-full ${
+                              isActive ? "text-primary font-medium" : "text-foreground"
+                            }`}
+                            data-testid={`nav-mobile-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
-          <div className="grid grid-cols-4 h-16">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="text-xs">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+        {/* Mobile bottom navigation removed - now using header dropdown */}
       </>
     );
   }

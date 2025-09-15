@@ -16,7 +16,7 @@ app.get("/.well-known/farcaster.json", (req, res) => {
       "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
     },
     "miniapp": {
-      "version": `3.${currentTimestamp}`,
+      "version": "1",
       "name": "TravelMint",
       "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
       "iconUrl": `https://travelnft.replit.app/icon.png${cacheBuster}`,
@@ -41,7 +41,7 @@ app.get("/.well-known/farcaster.json", (req, res) => {
       "primaryCategory": "social"
     },
     "frame": {
-      "version": `3.${currentTimestamp}`,
+      "version": "1",
       "name": "TravelMint",
       "subtitle": "Travel Photo NFT Marketplace",
       "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
