@@ -4,6 +4,86 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
+// HIGH PRIORITY: Farcaster manifest route MUST be first to avoid Vite/static interception
+app.get("/.well-known/farcaster.json", (req, res) => {
+  console.log("🎯 HIGH PRIORITY FARCASTER ROUTE HIT!", Date.now());
+  const currentTimestamp = Date.now();
+  const cacheBuster = `?v=${currentTimestamp}`;
+  const farcasterConfig = {
+    "accountAssociation": {
+      "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
+      "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
+      "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
+    },
+    "miniapp": {
+      "version": `3.${currentTimestamp}`,
+      "name": "TravelMint",
+      "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
+      "iconUrl": `https://travelnft.replit.app/icon.png${cacheBuster}`,
+      "homeUrl": `https://travelnft.replit.app/${cacheBuster}`,
+      "imageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
+      "splashImageUrl": `https://travelnft.replit.app/splash.png${cacheBuster}`,
+      "splashBackgroundColor": "#0f172a",
+      "subtitle": "Travel Photo NFT Marketplace",
+      "heroImageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
+      "tagline": "Turn travel into NFTs",
+      "ogTitle": "TravelMint NFT App",
+      "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+      "ogImageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
+      "castShareUrl": `https://travelnft.replit.app/share${cacheBuster}`,
+      "webhookUrl": "https://travelnft.replit.app/api/webhook",
+      "tags": ["travel", "nft", "blockchain", "photography", "base"],
+      "screenshotUrls": [
+        `https://travelnft.replit.app/image.png${cacheBuster}`,
+        `https://travelnft.replit.app/splash.png${cacheBuster}`
+      ],
+      "noindex": false,
+      "primaryCategory": "social"
+    },
+    "frame": {
+      "version": `3.${currentTimestamp}`,
+      "name": "TravelMint",
+      "subtitle": "Travel Photo NFT Marketplace",
+      "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
+      "iconUrl": `https://travelnft.replit.app/icon.png${cacheBuster}`,
+      "homeUrl": `https://travelnft.replit.app${cacheBuster}`,
+      "imageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
+      "heroImageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
+      "splashImageUrl": `https://travelnft.replit.app/splash.png${cacheBuster}`,
+      "splashBackgroundColor": "#0f172a",
+      "webhookUrl": "https://travelnft.replit.app/api/webhook",
+      "tagline": "Turn travel into NFTs",
+      "screenshotUrls": [
+        `https://travelnft.replit.app/image.png${cacheBuster}`,
+        `https://travelnft.replit.app/splash.png${cacheBuster}`
+      ],
+      "ogTitle": "TravelMint NFT App",
+      "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+      "ogImageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
+      "castShareUrl": `https://travelnft.replit.app/share${cacheBuster}`,
+      "tags": ["travel", "nft", "blockchain", "photography", "base"],
+      "noindex": false,
+      "primaryCategory": "social"
+    },
+    "baseBuilder": {
+      "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
+    }
+  };
+
+  // Extreme cache invalidation headers
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('ETag', `"v${currentTimestamp}"`);
+  res.setHeader('Last-Modified', new Date().toUTCString());
+  res.setHeader('X-Timestamp', currentTimestamp.toString());
+  res.setHeader('X-Cache-Buster', cacheBuster);
+  res.setHeader('X-Farcaster-Version', `3.${currentTimestamp}`);
+  res.setHeader('X-Debug', 'HIGH-PRIORITY-ROUTE');
+  res.send(JSON.stringify(farcasterConfig, null, 2));
+});
+
 // Enhanced CORS setup for browser extension compatibility
 app.use((req, res, next) => {
   // Allow all origins for development (browser extensions need this)
