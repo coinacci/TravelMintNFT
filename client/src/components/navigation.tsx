@@ -99,7 +99,17 @@ export default function Navigation() {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-6">
+          <div className="flex items-center space-x-3">
+            {isConnected && address && balance && (
+              <div className="hidden md:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
+                <Wallet className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium" data-testid="wallet-balance">
+                  {parseFloat(balance.formatted || "0").toFixed(2)} USDC
+                </span>
+              </div>
+            )}
+            <WalletConnect />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2" data-testid="nav-menu-trigger">
@@ -108,7 +118,7 @@ export default function Navigation() {
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="end" className="w-48">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
@@ -129,18 +139,6 @@ export default function Navigation() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-          </nav>
-
-          <div className="flex items-center space-x-3">
-            {isConnected && address && balance && (
-              <div className="hidden md:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
-                <Wallet className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium" data-testid="wallet-balance">
-                  {parseFloat(balance.formatted || "0").toFixed(2)} USDC
-                </span>
-              </div>
-            )}
-            <WalletConnect />
           </div>
         </div>
       </div>
