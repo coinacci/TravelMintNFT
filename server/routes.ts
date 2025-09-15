@@ -116,8 +116,9 @@ export async function registerRoutes(app: Express) {
     res.redirect(shareUrl);
   });
 
-  // Versioned route for cache busting
+  // Versioned route for cache busting with timestamp
   app.get("/.well-known/farcaster.json", (req, res) => {
+    const currentTimestamp = Date.now();
     const farcasterConfig = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
@@ -125,7 +126,7 @@ export async function registerRoutes(app: Express) {
         "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
       },
       "miniapp": {
-        "version": "1", 
+        "version": `2.${Math.floor(currentTimestamp / 1000)}`, 
         "name": "TravelMint",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
         "iconUrl": "https://travelnft.replit.app/icon.png",
