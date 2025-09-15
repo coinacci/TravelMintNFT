@@ -47,7 +47,7 @@ export default function Navigation() {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
                 {isConnected && address && balance && (
                   <div className="flex items-center space-x-2 bg-muted px-2 py-1 rounded-lg">
                     <Wallet className="h-3 w-3 text-primary" />
@@ -65,7 +65,7 @@ export default function Navigation() {
                       <ChevronDown className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuContent align="center" className="w-40">
                     {navItems.map((item) => {
                       const Icon = item.icon;
                       const isActive = location === item.path;
@@ -107,7 +107,7 @@ export default function Navigation() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {isConnected && address && balance && (
               <div className="hidden md:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
                 <Wallet className="h-4 w-4 text-primary" />
@@ -126,7 +126,7 @@ export default function Navigation() {
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="center" className="w-48">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
