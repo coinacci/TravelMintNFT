@@ -2,7 +2,19 @@ import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService, withRetry, nftContract } from "./blockchain";
-import { insertNFTSchema, insertTransactionSchema, insertUserSchema } from "@shared/schema";
+import { 
+  insertNFTSchema, 
+  insertTransactionSchema, 
+  insertUserSchema, 
+  insertUserStatsSchema, 
+  insertQuestCompletionSchema,
+  questClaimSchema,
+  userStatsParamsSchema,
+  questCompletionsParamsSchema,
+  holderStatusParamsSchema,
+  leaderboardQuerySchema,
+  type QuestClaimRequest 
+} from "@shared/schema";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -1468,6 +1480,261 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('❌ Fix token images failed:', error);
       res.status(500).json({ error: "Failed to fix token images" });
+    }
+  });
+
+  // ===== QUEST SYSTEM API ENDPOINTS =====
+  
+  // Get user stats for quest system - SECURED
+  app.get("/api/user-stats/:fid", async (req, res) => {
+    try {
+      // Validate request parameters
+      const validationResult = userStatsParamsSchema.safeParse(req.params);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { fid } = validationResult.data;
+      const userStats = await storage.getUserStats(fid);
+      
+      if (!userStats) {
+        // Return default stats for new users
+        return res.json({
+          farcasterFid: fid,
+          farcasterUsername: '',
+          totalPoints: 0,
+          currentStreak: 0,
+          lastCheckIn: null,
+          lastStreakClaim: null
+        });
+      }
+      
+      res.json(userStats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      res.status(500).json({ message: "Failed to fetch user stats" });
+    }
+  });
+  
+  // Get quest completions for a specific date - SECURED
+  app.get("/api/quest-completions/:fid/:date", async (req, res) => {
+    try {
+      // Validate request parameters
+      const validationResult = questCompletionsParamsSchema.safeParse(req.params);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { fid, date } = validationResult.data;
+      const completions = await storage.getQuestCompletions(fid, date);
+      res.json(completions);
+    } catch (error) {
+      console.error('Error fetching quest completions:', error);
+      res.status(500).json({ message: "Failed to fetch quest completions" });
+    }
+  });
+  
+  // Check holder status - SECURED
+  app.get("/api/holder-status/:address", async (req, res) => {
+    try {
+      // Validate request parameters
+      const validationResult = holderStatusParamsSchema.safeParse(req.params);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { address } = validationResult.data;
+      const holderStatus = await storage.checkHolderStatus(address.toLowerCase());
+      res.json(holderStatus);
+    } catch (error) {
+      console.error('Error checking holder status:', error);
+      res.status(500).json({ message: "Failed to check holder status" });
+    }
+  });
+  
+  // Get leaderboard - SECURED
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      // Validate query parameters
+      const validationResult = leaderboardQuerySchema.safeParse(req.query);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid query parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const limit = validationResult.data.limit ? parseInt(validationResult.data.limit) : 50;
+      const leaderboard = await storage.getLeaderboard(limit);
+      
+      // Add rank to each entry
+      const rankedLeaderboard = leaderboard.map((entry, index) => ({
+        ...entry,
+        rank: index + 1
+      }));
+      
+      res.json(rankedLeaderboard);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+  
+  // SECURED Claim quest reward - CRITICAL SECURITY FIX
+  app.post("/api/quest-claim", async (req, res) => {
+    try {
+      // 🔒 SECURITY: Validate all input with Zod schema
+      const validationResult = questClaimSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        console.warn('🚨 Invalid quest claim request:', validationResult.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid request data", 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const { farcasterFid, questType, walletAddress, farcasterUsername } = validationResult.data;
+      
+      // 🔒 SECURITY: Basic Farcaster verification (client-side context check)
+      // NOTE: This is a basic security layer. In production, implement server-side Farcaster signature verification
+      if (!farcasterUsername || farcasterUsername.trim() === '') {
+        console.warn('🚨 Quest claim without proper Farcaster context:', farcasterFid);
+        return res.status(403).json({ 
+          message: "Farcaster verification required. Please connect through Farcaster." 
+        });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Pre-validate requirements before atomic transaction
+      let pointsEarned = 0;
+      let userStatsUpdates: any = {};
+      
+      // Get current user stats for streak validation (outside transaction for performance)
+      const existingUserStats = await storage.getUserStats(farcasterFid);
+      
+      switch (questType) {
+        case 'daily_checkin':
+          pointsEarned = 1;
+          
+          // Calculate streak updates for daily checkin
+          if (existingUserStats) {
+            const lastCheckIn = existingUserStats.lastCheckIn;
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            if (lastCheckIn && new Date(lastCheckIn).toISOString().split('T')[0] === yesterdayStr) {
+              // Consecutive day - increment streak
+              userStatsUpdates.currentStreak = existingUserStats.currentStreak + 1;
+            } else if (!lastCheckIn || new Date(lastCheckIn).toISOString().split('T')[0] !== today) {
+              // First check-in or broken streak - reset to 1
+              userStatsUpdates.currentStreak = 1;
+            }
+            
+            userStatsUpdates.lastCheckIn = new Date();
+          }
+          break;
+          
+        case 'holder_bonus':
+          if (!walletAddress) {
+            return res.status(400).json({ message: "Wallet address required for holder bonus" });
+          }
+          
+          const holderStatus = await storage.checkHolderStatus(walletAddress.toLowerCase());
+          if (!holderStatus.isHolder) {
+            return res.status(400).json({ 
+              message: "Must hold at least one Travel NFT to claim holder bonus" 
+            });
+          }
+          
+          pointsEarned = 3;
+          
+          // Update wallet address if not already set
+          if (!existingUserStats?.walletAddress) {
+            userStatsUpdates.walletAddress = walletAddress.toLowerCase();
+          }
+          break;
+          
+        case 'streak_bonus':
+          if (!existingUserStats) {
+            return res.status(400).json({ 
+              message: "Must complete daily check-ins first to claim streak bonus" 
+            });
+          }
+          
+          if (existingUserStats.currentStreak < 7) {
+            return res.status(400).json({ 
+              message: `Need ${7 - existingUserStats.currentStreak} more consecutive days to claim streak bonus` 
+            });
+          }
+          
+          // Check if already claimed streak bonus today
+          if (existingUserStats.lastStreakClaim && 
+              new Date(existingUserStats.lastStreakClaim).toISOString().split('T')[0] === today) {
+            return res.status(400).json({ message: "Streak bonus already claimed today" });
+          }
+          
+          pointsEarned = 7;
+          userStatsUpdates.lastStreakClaim = new Date();
+          // Keep current streak, don't reset it
+          break;
+          
+        default:
+          return res.status(400).json({ message: "Invalid quest type" });
+      }
+
+      // 🔒 ATOMICITY: Use atomic transaction for all database operations
+      console.log(`🎯 Processing ${questType} quest for user ${farcasterFid} (+${pointsEarned} points)`);
+      
+      const result = await storage.claimQuestAtomic({
+        farcasterFid,
+        farcasterUsername: farcasterUsername.trim(),
+        walletAddress: walletAddress?.toLowerCase(),
+        questType,
+        pointsEarned,
+        completionDate: today,
+        userStatsUpdates
+      });
+
+      console.log(`✅ Quest atomically completed: ${questType} (+${pointsEarned} points) for @${farcasterUsername}`);
+      
+      res.json({
+        success: true,
+        pointsEarned,
+        totalPoints: result.userStats.totalPoints,
+        currentStreak: result.userStats.currentStreak,
+        questCompletion: {
+          id: result.questCompletion.id,
+          completionDate: result.questCompletion.completionDate
+        },
+        message: `Successfully claimed ${questType} for +${pointsEarned} points!`
+      });
+      
+    } catch (error) {
+      console.error('🚨 Quest claim failed:', error);
+      
+      // Handle specific error types
+      if (error instanceof Error && error.message.includes('already completed')) {
+        return res.status(409).json({ 
+          message: error.message,
+          code: 'QUEST_ALREADY_COMPLETED'
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to claim quest reward. Please try again.",
+        code: 'QUEST_CLAIM_ERROR'
+      });
     }
   });
 

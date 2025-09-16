@@ -121,3 +121,38 @@ export type UserStats = typeof userStats.$inferSelect;
 
 export type InsertQuestCompletion = z.infer<typeof insertQuestCompletionSchema>;
 export type QuestCompletion = typeof questCompletions.$inferSelect;
+
+// Quest API Validation Schemas
+export const questClaimSchema = z.object({
+  farcasterFid: z.string().min(1, "Farcaster FID is required"),
+  questType: z.enum(['daily_checkin', 'holder_bonus', 'streak_bonus'], {
+    errorMap: () => ({ message: "Invalid quest type" })
+  }),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address").optional(),
+  farcasterUsername: z.string().min(1, "Farcaster username is required"),
+  // Server-side verification data - should be included by middleware
+  farcasterVerified: z.boolean().default(false).optional()
+});
+
+export const userStatsParamsSchema = z.object({
+  fid: z.string().min(1, "Farcaster FID is required")
+});
+
+export const questCompletionsParamsSchema = z.object({
+  fid: z.string().min(1, "Farcaster FID is required"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
+});
+
+export const holderStatusParamsSchema = z.object({
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address")
+});
+
+export const leaderboardQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/, "Limit must be a number").optional()
+});
+
+export type QuestClaimRequest = z.infer<typeof questClaimSchema>;
+export type UserStatsParams = z.infer<typeof userStatsParamsSchema>;
+export type QuestCompletionsParams = z.infer<typeof questCompletionsParamsSchema>;
+export type HolderStatusParams = z.infer<typeof holderStatusParamsSchema>;
+export type LeaderboardQuery = z.infer<typeof leaderboardQuerySchema>;
