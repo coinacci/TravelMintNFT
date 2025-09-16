@@ -157,21 +157,17 @@ export type QuestCompletionsParams = z.infer<typeof questCompletionsParamsSchema
 export type HolderStatusParams = z.infer<typeof holderStatusParamsSchema>;
 export type LeaderboardQuery = z.infer<typeof leaderboardQuerySchema>;
 
-// Quest daily cycle utility - day starts at 3:00 AM
+// Quest daily cycle utility - day starts at UTC 00:00
 export function getQuestDay(date: Date = new Date()): string {
   const questDate = new Date(date);
   
-  // If it's before 3 AM, consider it as the previous day
-  if (questDate.getHours() < 3) {
-    questDate.setDate(questDate.getDate() - 1);
-  }
-  
+  // Use UTC date for consistent quest day calculation across time zones
   return questDate.toISOString().split('T')[0];
 }
 
 // Get yesterday's quest day for streak calculation
 export function getYesterdayQuestDay(date: Date = new Date()): string {
-  const yesterdayDate = new Date(date);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  // UTC-safe: subtract 24 hours in milliseconds to avoid DST issues
+  const yesterdayDate = new Date(date.getTime() - 24 * 60 * 60 * 1000);
   return getQuestDay(yesterdayDate);
 }
