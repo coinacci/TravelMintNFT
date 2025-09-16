@@ -5,13 +5,39 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import sdk from "@farcaster/frame-sdk";
 
 export function WalletConnect() {
   const [isOpen, setIsOpen] = useState(false);
+  const [farcasterUser, setFarcasterUser] = useState<any>(null);
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const { toast } = useToast();
+  
+  // Get Farcaster user context
+  useEffect(() => {
+    const getFarcasterContext = async () => {
+      try {
+        if (typeof window !== 'undefined' && sdk?.context) {
+          const context = await Promise.resolve(sdk.context);
+          if (context?.user) {
+            setFarcasterUser({
+              fid: context.user.fid,
+              username: context.user.username,
+              displayName: context.user.displayName,
+              pfpUrl: context.user.pfpUrl
+            });
+            console.log('✅ Farcaster user detected in WalletConnect:', context.user.username);
+          }
+        }
+      } catch (error) {
+        console.log('ℹ️ No Farcaster context in wallet connect');
+      }
+    };
+    
+    getFarcasterContext();
+  }, []);
 
   useEffect(() => {
     if (connectError) {
@@ -105,7 +131,12 @@ export function WalletConnect() {
             data-testid="wallet-connected-button"
           >
             <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <span>{formatAddress(address)}</span>
+            <span>
+              {farcasterUser ? 
+                `@${farcasterUser.username}` : 
+                formatAddress(address)
+              }
+            </span>
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-md">
