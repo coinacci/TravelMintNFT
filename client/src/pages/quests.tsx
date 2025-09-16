@@ -61,13 +61,13 @@ export default function Quests() {
 
   // Fetch user stats
   const { data: userStats, isLoading: statsLoading } = useQuery<UserStats>({
-    queryKey: ['/api/user-stats', farcasterUser?.fid],
+    queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : null],
     enabled: !!farcasterUser?.fid,
   });
 
   // Fetch today's completed quests
   const { data: todayQuests = [] } = useQuery<QuestCompletion[]>({
-    queryKey: ['/api/quest-completions', farcasterUser?.fid, getQuestDay()],
+    queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : null, getQuestDay()],
     enabled: !!farcasterUser?.fid,
   });
 
@@ -80,7 +80,7 @@ export default function Quests() {
   // Daily check-in mutation
   const checkInMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: farcasterUser.fid,
+      farcasterFid: String(farcasterUser.fid),
       questType: 'daily_checkin',
       farcasterUsername: farcasterUser.username
     }),
@@ -89,15 +89,22 @@ export default function Quests() {
         title: "Daily check-in complete! 🎉",
         description: "+1 point earned"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to claim daily check-in",
+        description: "Please try again later",
+        variant: "destructive"
+      });
     }
   });
 
   // Holder bonus mutation
   const holderBonusMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: farcasterUser.fid,
+      farcasterFid: String(farcasterUser.fid),
       questType: 'holder_bonus',
       walletAddress: address,
       farcasterUsername: farcasterUser.username
@@ -107,15 +114,22 @@ export default function Quests() {
         title: "Holder bonus claimed! 🏆",
         description: "+3 points earned"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to claim holder bonus",
+        description: "Please try again later",
+        variant: "destructive"
+      });
     }
   });
 
   // Streak bonus mutation
   const streakBonusMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: farcasterUser.fid,
+      farcasterFid: String(farcasterUser.fid),
       questType: 'streak_bonus',
       farcasterUsername: farcasterUser.username
     }),
@@ -124,8 +138,15 @@ export default function Quests() {
         title: "Streak bonus claimed! 🔥",
         description: "+7 points earned for 7-day streak!"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to claim streak bonus",
+        description: "Please try again later",
+        variant: "destructive"
+      });
     }
   });
 
@@ -146,6 +167,7 @@ export default function Quests() {
   const hasClaimedHolderBonus = todayQuests.some(q => q.questType === 'holder_bonus');
   const canClaimStreakBonus = userStats && userStats.currentStreak >= 7 && 
     (!userStats.lastStreakClaim || getQuestDay(new Date(userStats.lastStreakClaim)) !== today);
+
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
