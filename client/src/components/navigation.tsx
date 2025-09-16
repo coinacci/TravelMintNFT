@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAccount, useBalance } from "wagmi";
-import { MapPin, Store, Camera, Wallet, Globe, Home, User, Menu, ChevronDown } from "lucide-react";
+import { MapPin, Store, Camera, Wallet, Globe, Home, User, Menu, ChevronDown, Trophy, Target } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import {
@@ -10,11 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import sdk from "@farcaster/frame-sdk";
 
 export default function Navigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const { address, isConnected } = useAccount();
+  const [farcasterUser, setFarcasterUser] = useState<any>(null);
   
   const { data: balance } = useBalance({
     address: address,
@@ -26,12 +29,46 @@ export default function Navigation() {
     }
   });
 
-  const navItems = [
+  // Get Farcaster user context for quest menu
+  useEffect(() => {
+    const getFarcasterContext = async () => {
+      try {
+        if (typeof window !== 'undefined' && sdk?.context) {
+          const context = await Promise.resolve(sdk.context);
+          if (context?.user) {
+            setFarcasterUser({
+              fid: context.user.fid,
+              username: context.user.username,
+              displayName: context.user.displayName,
+              pfpUrl: context.user.pfpUrl
+            });
+            console.log('✅ Farcaster user detected for navigation:', context.user.username);
+          }
+        }
+      } catch (error) {
+        console.log('ℹ️ No Farcaster context in navigation');
+      }
+    };
+    
+    getFarcasterContext();
+  }, []);
+
+  // Base navigation items
+  const baseNavItems = [
     { path: "/", label: "Home", icon: Home },
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
     { path: "/my-nfts", label: "My NFTs", icon: User },
   ];
+  
+  // Quest items - only show for Farcaster users
+  const questNavItems = farcasterUser ? [
+    { path: "/quests", label: "Quests", icon: Target },
+    { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  ] : [];
+  
+  // Combine navigation items
+  const navItems = [...baseNavItems, ...questNavItems];
 
   if (isMobile) {
     return (
