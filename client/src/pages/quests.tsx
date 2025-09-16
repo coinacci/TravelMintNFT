@@ -84,8 +84,8 @@ export default function Quests() {
         title: "Daily check-in complete! 🎉",
         description: "+1 point earned"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, new Date().toISOString().split('T')[0]] });
     }
   });
 
@@ -102,8 +102,8 @@ export default function Quests() {
         title: "Holder bonus claimed! 🏆",
         description: "+3 points earned"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, new Date().toISOString().split('T')[0]] });
     }
   });
 
@@ -119,8 +119,8 @@ export default function Quests() {
         title: "Streak bonus claimed! 🔥",
         description: "+7 points earned for 7-day streak!"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, new Date().toISOString().split('T')[0]] });
     }
   });
 
