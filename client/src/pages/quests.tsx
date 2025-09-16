@@ -36,19 +36,23 @@ export default function Quests() {
   useEffect(() => {
     const getFarcasterContext = async () => {
       try {
-        if (typeof window !== 'undefined' && sdk?.context) {
-          const context = await Promise.resolve(sdk.context);
-          if (context?.user) {
-            setFarcasterUser({
-              fid: context.user.fid,
-              username: context.user.username,
-              displayName: context.user.displayName,
-              pfpUrl: context.user.pfpUrl
-            });
+        if (typeof window !== 'undefined' && sdk) {
+          try {
+            const context = await Promise.resolve(sdk.context);
+            if (context?.user) {
+              setFarcasterUser({
+                fid: context.user.fid,
+                username: context.user.username,
+                displayName: context.user.displayName,
+                pfpUrl: context.user.pfpUrl
+              });
+            }
+          } catch (contextError) {
+            console.log('No Farcaster context available');
           }
         }
       } catch (error) {
-        console.log('ℹ️ No Farcaster context in quests');
+        console.log('No Farcaster context available');
       }
     };
     
@@ -125,19 +129,6 @@ export default function Quests() {
     }
   });
 
-  if (!farcasterUser) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <Target className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Farcaster Only</h1>
-          <p className="text-muted-foreground">
-            Quest system is only available when accessing through Farcaster.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (statsLoading) {
     return (
@@ -166,6 +157,16 @@ export default function Quests() {
           Complete daily tasks to earn points and climb the leaderboard!
         </p>
       </div>
+
+      {/* Farcaster Connection Banner */}
+      {!farcasterUser && (
+        <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <div className="flex items-center space-x-2 text-orange-600 dark:text-orange-400">
+            <Target className="h-5 w-5" />
+            <p className="font-medium">Connect via Farcaster to claim quest rewards</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -230,12 +231,14 @@ export default function Quests() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => checkInMutation.mutate()}
-              disabled={hasCheckedInToday || checkInMutation.isPending}
+              onClick={() => farcasterUser && checkInMutation.mutate()}
+              disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
               className="w-full"
               data-testid="button-daily-checkin"
             >
-              {hasCheckedInToday ? "✓ Completed Today" : "Claim Check-in"}
+              {!farcasterUser ? "Connect via Farcaster First"
+               : hasCheckedInToday ? "✓ Completed Today" 
+               : "Claim Check-in"}
             </Button>
           </CardContent>
         </Card>
@@ -258,12 +261,13 @@ export default function Quests() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => holderBonusMutation.mutate()}
-              disabled={!address || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
+              onClick={() => farcasterUser && holderBonusMutation.mutate()}
+              disabled={!farcasterUser || !address || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
               className="w-full"
               data-testid="button-holder-bonus"
             >
-              {!address ? "Connect Wallet First" 
+              {!farcasterUser ? "Connect via Farcaster First"
+               : !address ? "Connect Wallet First" 
                : !holderStatus?.isHolder ? "No NFTs Found"
                : hasClaimedHolderBonus ? "✓ Completed Today"
                : "Claim Holder Bonus"}
@@ -300,12 +304,14 @@ export default function Quests() {
                 />
               </div>
               <Button
-                onClick={() => streakBonusMutation.mutate()}
-                disabled={!canClaimStreakBonus || streakBonusMutation.isPending}
+                onClick={() => farcasterUser && streakBonusMutation.mutate()}
+                disabled={!farcasterUser || !canClaimStreakBonus || streakBonusMutation.isPending}
                 className="w-full"
                 data-testid="button-streak-bonus"
               >
-                {!canClaimStreakBonus ? `Need ${7 - (userStats?.currentStreak || 0)} more days` : "Claim Streak Bonus"}
+                {!farcasterUser ? "Connect via Farcaster First"
+                 : !canClaimStreakBonus ? `Need ${7 - (userStats?.currentStreak || 0)} more days` 
+                 : "Claim Streak Bonus"}
               </Button>
             </div>
           </CardContent>
