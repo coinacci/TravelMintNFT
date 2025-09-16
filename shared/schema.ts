@@ -76,3 +76,48 @@ export type NFT = typeof nfts.$inferSelect;
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+// Quest System Tables
+export const userStats = pgTable("user_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().unique(),
+  farcasterUsername: text("farcaster_username").notNull(),
+  walletAddress: text("wallet_address"), // Nullable - only required for holder bonus
+  totalPoints: integer("total_points").default(0).notNull(),
+  currentStreak: integer("current_streak").default(0).notNull(),
+  lastCheckIn: timestamp("last_check_in"),
+  lastStreakClaim: timestamp("last_streak_claim"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const questCompletions = pgTable("quest_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  questType: text("quest_type").notNull(), // 'daily_checkin', 'holder_bonus', 'streak_bonus'
+  pointsEarned: integer("points_earned").notNull(),
+  completionDate: text("completion_date").notNull(), // YYYY-MM-DD format for daily uniqueness
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    // Unique constraint: one quest per type per day per user
+    uniqueQuestPerDay: sql`UNIQUE (farcaster_fid, quest_type, completion_date)`,
+  };
+});
+
+export const insertUserStatsSchema = createInsertSchema(userStats).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertQuestCompletionSchema = createInsertSchema(questCompletions).omit({
+  id: true,
+  completedAt: true,
+});
+
+export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
+export type UserStats = typeof userStats.$inferSelect;
+
+export type InsertQuestCompletion = z.infer<typeof insertQuestCompletionSchema>;
+export type QuestCompletion = typeof questCompletions.$inferSelect;
