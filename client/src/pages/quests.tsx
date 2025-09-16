@@ -76,7 +76,8 @@ export default function Quests() {
   const checkInMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
       farcasterFid: farcasterUser.fid,
-      questType: 'daily_checkin'
+      questType: 'daily_checkin',
+      farcasterUsername: farcasterUser.username
     }),
     onSuccess: () => {
       toast({
@@ -93,7 +94,8 @@ export default function Quests() {
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
       farcasterFid: farcasterUser.fid,
       questType: 'holder_bonus',
-      walletAddress: address
+      walletAddress: address,
+      farcasterUsername: farcasterUser.username
     }),
     onSuccess: () => {
       toast({
@@ -109,7 +111,8 @@ export default function Quests() {
   const streakBonusMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
       farcasterFid: farcasterUser.fid,
-      questType: 'streak_bonus'
+      questType: 'streak_bonus',
+      farcasterUsername: farcasterUser.username
     }),
     onSuccess: () => {
       toast({
