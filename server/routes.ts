@@ -13,7 +13,9 @@ import {
   questCompletionsParamsSchema,
   holderStatusParamsSchema,
   leaderboardQuerySchema,
-  type QuestClaimRequest 
+  type QuestClaimRequest,
+  getQuestDay,
+  getYesterdayQuestDay
 } from "@shared/schema";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
@@ -1613,7 +1615,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getQuestDay();
       
       // Pre-validate requirements before atomic transaction
       let pointsEarned = 0;
@@ -1629,14 +1631,12 @@ export async function registerRoutes(app: Express) {
           // Calculate streak updates for daily checkin
           if (existingUserStats) {
             const lastCheckIn = existingUserStats.lastCheckIn;
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayQuest = getYesterdayQuestDay();
             
-            if (lastCheckIn && new Date(lastCheckIn).toISOString().split('T')[0] === yesterdayStr) {
+            if (lastCheckIn && getQuestDay(new Date(lastCheckIn)) === yesterdayQuest) {
               // Consecutive day - increment streak
               userStatsUpdates.currentStreak = existingUserStats.currentStreak + 1;
-            } else if (!lastCheckIn || new Date(lastCheckIn).toISOString().split('T')[0] !== today) {
+            } else if (!lastCheckIn || getQuestDay(new Date(lastCheckIn)) !== today) {
               // First check-in or broken streak - reset to 1
               userStatsUpdates.currentStreak = 1;
             }
@@ -1680,7 +1680,7 @@ export async function registerRoutes(app: Express) {
           
           // Check if already claimed streak bonus today
           if (existingUserStats.lastStreakClaim && 
-              new Date(existingUserStats.lastStreakClaim).toISOString().split('T')[0] === today) {
+              getQuestDay(new Date(existingUserStats.lastStreakClaim)) === today) {
             return res.status(400).json({ message: "Streak bonus already claimed today" });
           }
           

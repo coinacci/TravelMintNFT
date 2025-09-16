@@ -156,3 +156,22 @@ export type UserStatsParams = z.infer<typeof userStatsParamsSchema>;
 export type QuestCompletionsParams = z.infer<typeof questCompletionsParamsSchema>;
 export type HolderStatusParams = z.infer<typeof holderStatusParamsSchema>;
 export type LeaderboardQuery = z.infer<typeof leaderboardQuerySchema>;
+
+// Quest daily cycle utility - day starts at 3:00 AM
+export function getQuestDay(date: Date = new Date()): string {
+  const questDate = new Date(date);
+  
+  // If it's before 3 AM, consider it as the previous day
+  if (questDate.getHours() < 3) {
+    questDate.setDate(questDate.getDate() - 1);
+  }
+  
+  return questDate.toISOString().split('T')[0];
+}
+
+// Get yesterday's quest day for streak calculation
+export function getYesterdayQuestDay(date: Date = new Date()): string {
+  const yesterdayDate = new Date(date);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  return getQuestDay(yesterdayDate);
+}

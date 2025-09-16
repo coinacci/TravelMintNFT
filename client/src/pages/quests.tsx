@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
+import { getQuestDay } from "@shared/schema";
 
 interface UserStats {
   farcasterFid: string;
@@ -62,7 +63,7 @@ export default function Quests() {
 
   // Fetch today's completed quests
   const { data: todayQuests = [] } = useQuery<QuestCompletion[]>({
-    queryKey: ['/api/quest-completions', farcasterUser?.fid, new Date().toISOString().split('T')[0]],
+    queryKey: ['/api/quest-completions', farcasterUser?.fid, getQuestDay()],
     enabled: !!farcasterUser?.fid,
   });
 
@@ -85,7 +86,7 @@ export default function Quests() {
         description: "+1 point earned"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, new Date().toISOString().split('T')[0]] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, getQuestDay()] });
     }
   });
 
@@ -103,7 +104,7 @@ export default function Quests() {
         description: "+3 points earned"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, new Date().toISOString().split('T')[0]] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, getQuestDay()] });
     }
   });
 
@@ -120,7 +121,7 @@ export default function Quests() {
         description: "+7 points earned for 7-day streak!"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser.fid] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, new Date().toISOString().split('T')[0]] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser.fid, getQuestDay()] });
     }
   });
 
@@ -149,11 +150,11 @@ export default function Quests() {
     );
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getQuestDay();
   const hasCheckedInToday = todayQuests.some(q => q.questType === 'daily_checkin');
   const hasClaimedHolderBonus = todayQuests.some(q => q.questType === 'holder_bonus');
   const canClaimStreakBonus = userStats && userStats.currentStreak >= 7 && 
-    (!userStats.lastStreakClaim || new Date(userStats.lastStreakClaim).toISOString().split('T')[0] !== today);
+    (!userStats.lastStreakClaim || getQuestDay(new Date(userStats.lastStreakClaim)) !== today);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
