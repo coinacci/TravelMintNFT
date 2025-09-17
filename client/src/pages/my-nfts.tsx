@@ -367,30 +367,37 @@ export default function MyNFTs() {
       const baseUrl = window.location.origin;
       const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
       
-      // Copy to clipboard
-      await navigator.clipboard.writeText(frameUrl);
+      // Create share message
+      const shareMessage = `TravelMint ile mintledim: ${nft.title} - ${nft.location}`;
+      
+      // Create Warpcast compose URL with embedded frame
+      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareMessage)}&embeds[]=${encodeURIComponent(frameUrl)}`;
+      
+      // Open Warpcast in new tab
+      window.open(warpcastUrl, '_blank');
       
       toast({
-        title: "Frame URL Copied! 🖼️",
-        description: "Paste this URL in your Farcaster post to share your NFT as a frame!",
+        title: "Opening Warpcast! 🚀",
+        description: "Your NFT frame is ready to post on Farcaster!",
       });
     } catch (error) {
-      // Fallback for browsers that don't support clipboard API
+      // Fallback to clipboard if something goes wrong
       const baseUrl = window.location.origin;
       const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
       
-      // Create a temporary input element to copy the URL
-      const tempInput = document.createElement('input');
-      tempInput.value = frameUrl;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempInput);
-      
-      toast({
-        title: "Frame URL Ready! 🖼️",
-        description: "The frame URL is ready to paste in your Farcaster post!",
-      });
+      try {
+        await navigator.clipboard.writeText(frameUrl);
+        toast({
+          title: "Frame URL Copied! 🖼️",
+          description: "Paste this URL in your Farcaster post to share your NFT as a frame!",
+        });
+      } catch (clipboardError) {
+        toast({
+          title: "Error Sharing NFT",
+          description: "Please try again later.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGeneratingFrame(false);
     }
