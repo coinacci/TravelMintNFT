@@ -487,6 +487,7 @@ export default function MyNFTs() {
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
+                          {/* Share button temporarily hidden
                           <Button
                             size="sm"
                             variant="ghost"
@@ -502,6 +503,7 @@ export default function MyNFTs() {
                               <Share2 className="w-4 h-4" />
                             )}
                           </Button>
+                          */}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -543,6 +545,7 @@ export default function MyNFTs() {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
+                        {/* Share button temporarily hidden
                         <Button
                           size="sm"
                           variant="ghost"
@@ -558,6 +561,7 @@ export default function MyNFTs() {
                             <Share2 className="w-4 h-4" />
                           )}
                         </Button>
+                        */}
                         <Button
                           size="sm"
                           variant="ghost"

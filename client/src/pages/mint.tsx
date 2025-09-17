@@ -861,6 +861,7 @@ export default function Mint() {
                       <div className="text-xs text-green-600">
                         ✅ NFT successfully minted!
                       </div>
+                      {/* Share button temporarily hidden
                       <Button
                         size="sm"
                         variant="outline"
@@ -894,6 +895,7 @@ export default function Mint() {
                         <Share2 className="w-3 h-3 mr-1" />
                         Share on Farcaster
                       </Button>
+                      */}
                     </div>
                   )}
                 </div>
