@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSimulateContract, useSwitchChain } from "wagmi";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, User, Clock, Eye } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { MapPin, User, Clock, Eye, Send, Loader2 } from "lucide-react";
+import { isAddress, parseAbi, formatEther } from "viem";
+import { base } from "wagmi/chains";
 
 interface NFT {
   id: string;
+  tokenId?: string; // Blockchain token ID
   title: string;
   description?: string;
   imageUrl: string;
@@ -48,10 +52,39 @@ export default function MyNFTs() {
   const [sortBy, setSortBy] = useState("recent");
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferToAddress, setTransferToAddress] = useState("");
+  const [transferNFT, setTransferNFT] = useState<NFT | null>(null);
+  const [showGasEstimate, setShowGasEstimate] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { address, isConnected } = useAccount();
+  const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
+  const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
+  const { switchChain } = useSwitchChain();
+
+  // NFT Contract Configuration
+  const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
+  const TRAVEL_NFT_ABI = parseAbi([
+    "function safeTransferFrom(address from, address to, uint256 tokenId)",
+    "function ownerOf(uint256 tokenId) view returns (address)",
+    "function approve(address to, uint256 tokenId)",
+    "function getApproved(uint256 tokenId) view returns (address)"
+  ]);
+  
+  // Gas estimation for transfer
+  const { data: simulateData, isLoading: isSimulating, error: simulateError } = useSimulateContract({
+    address: NFT_CONTRACT_ADDRESS,
+    abi: TRAVEL_NFT_ABI,
+    functionName: 'safeTransferFrom',
+    args: transferNFT && transferToAddress && address && isAddress(transferToAddress) ? 
+      [address, transferToAddress as `0x${string}`, BigInt(transferNFT.tokenId || '0')] : 
+      undefined,
+    query: {
+      enabled: !!transferNFT && !!transferToAddress && !!address && isAddress(transferToAddress) && !!transferNFT.tokenId
+    }
+  });
   const syncedAddressRef = useRef<string | null>(null);
 
   const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
@@ -141,6 +174,38 @@ export default function MyNFTs() {
     }
   }, [address, isConnected]); // Remove nfts.length dependency to prevent loops
 
+  // Handle transfer success
+  React.useEffect(() => {
+    if (isTransferSuccess && transferHash) {
+      toast({
+        title: "Transfer Successful",
+        description: `NFT transferred successfully! Transaction: ${transferHash}`,
+      });
+      setIsTransferModalOpen(false);
+      setTransferToAddress("");
+      setTransferNFT(null);
+      // Invalidate queries and trigger sync
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      // Trigger blockchain sync
+      if (address) {
+        apiRequest("POST", `/api/sync/wallet/${address}`, {});
+      }
+    }
+  }, [isTransferSuccess, transferHash, toast, queryClient, address]);
+
+  // Handle transfer error
+  React.useEffect(() => {
+    if (transferError) {
+      toast({
+        title: "Transfer Failed",
+        description: transferError.message || "Failed to transfer NFT",
+        variant: "destructive",
+      });
+    }
+  }, [transferError, toast]);
+
   // Log for troubleshooting
   if (isError) {
     console.log('NFT fetch error:', error?.message);
@@ -190,6 +255,99 @@ export default function MyNFTs() {
   const handleNFTClick = (nft: NFT) => {
     setSelectedNFT(nft);
     setIsModalOpen(true);
+  };
+
+
+  const handleTransferClick = (nft: NFT) => {
+    // Check if NFT has tokenId before allowing transfer
+    if (!nft.tokenId) {
+      toast({
+        title: "Cannot Transfer NFT",
+        description: "This NFT is not ready for transfer. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTransferNFT(nft);
+    setTransferToAddress("");
+    setShowGasEstimate(false);
+    setIsTransferModalOpen(true);
+  };
+
+  const handleNetworkCheck = async () => {
+    // Check if on Base network
+    const chainId = await window.ethereum?.request({ method: 'eth_chainId' });
+    if (chainId !== base.id.toString(16)) {
+      try {
+        await switchChain({ chainId: base.id });
+      } catch (error: any) {
+        toast({
+          title: "Network Switch Required",
+          description: "Please switch to Base network to transfer NFTs",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleEstimateGas = async () => {
+    if (!transferNFT || !transferToAddress || !address) {
+      toast({
+        title: "Invalid Transfer",
+        description: "Please check all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate recipient address
+    if (!isAddress(transferToAddress)) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid Ethereum address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevent self-transfer
+    if (transferToAddress.toLowerCase() === address.toLowerCase()) {
+      toast({
+        title: "Invalid Transfer",
+        description: "Cannot transfer to your own address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check network
+    const networkOk = await handleNetworkCheck();
+    if (!networkOk) return;
+
+    setShowGasEstimate(true);
+  };
+
+  const handleTransferSubmit = async () => {
+    if (!transferNFT || !transferToAddress || !address || !transferNFT.tokenId) {
+      return;
+    }
+
+    try {
+      await writeContract({
+        address: NFT_CONTRACT_ADDRESS,
+        abi: TRAVEL_NFT_ABI,
+        functionName: 'safeTransferFrom',
+        args: [address, transferToAddress as `0x${string}`, BigInt(transferNFT.tokenId)],
+      });
+    } catch (error: any) {
+      toast({
+        title: "Transfer Failed",
+        description: error.message || "Failed to initiate transfer",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -277,6 +435,15 @@ export default function MyNFTs() {
                           </Button>
                           <Button
                             size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleTransferClick(nft); }}
+                            data-testid={`transfer-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleToggleListing(nft)}
                             disabled={updateListingMutation.isPending}
@@ -305,6 +472,15 @@ export default function MyNFTs() {
                           className="text-muted-foreground hover:text-foreground"
                         >
                           <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleTransferClick(nft); }}
+                          data-testid={`transfer-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Send className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
@@ -437,6 +613,147 @@ export default function MyNFTs() {
                       ))}
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* NFT Transfer Modal */}
+      <Dialog open={isTransferModalOpen} onOpenChange={setIsTransferModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Send className="h-5 w-5" />
+              <span>Transfer NFT</span>
+            </DialogTitle>
+            <DialogDescription>
+              Transfer your NFT to another wallet address. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {transferNFT && (
+            <div className="space-y-6">
+              {/* NFT Preview */}
+              <div className="flex items-center space-x-3 p-3 bg-muted/20 rounded-lg">
+                <img
+                  src={transferNFT.imageUrl}
+                  alt={transferNFT.title}
+                  className="w-12 h-12 object-cover rounded"
+                />
+                <div>
+                  <h4 className="font-medium">{transferNFT.title}</h4>
+                  <p className="text-sm text-muted-foreground">{transferNFT.location}</p>
+                </div>
+              </div>
+              
+              {/* Recipient Address Input */}
+              <div className="space-y-2">
+                <Label htmlFor="recipient-address">Recipient Address</Label>
+                <Input
+                  id="recipient-address"
+                  type="text"
+                  placeholder="0x..."
+                  value={transferToAddress}
+                  onChange={(e) => setTransferToAddress(e.target.value)}
+                  data-testid="transfer-address-input"
+                  disabled={showGasEstimate}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the wallet address you want to transfer this NFT to
+                </p>
+              </div>
+              
+              {/* Gas Estimation Display */}
+              {showGasEstimate && simulateData && (
+                <div className="space-y-3 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <h4 className="font-medium flex items-center space-x-2">
+                    <span>✅ Transfer Ready</span>
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Estimated Gas:</span>
+                      <span className="font-mono">{formatEther(simulateData.request.gas || BigInt(0))} ETH</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Network:</span>
+                      <span className="text-green-600">Base</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Gas Estimation Error */}
+              {showGasEstimate && (simulateError || isSimulating) && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  {isSimulating ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Estimating gas...</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      ❌ Transfer simulation failed: {simulateError?.message}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Warning */}
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  ⚠️ This will permanently transfer ownership of your NFT. Make sure the recipient address is correct.
+                </p>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsTransferModalOpen(false);
+                    setShowGasEstimate(false);
+                    setTransferToAddress("");
+                  }}
+                  className="flex-1"
+                  data-testid="transfer-cancel-button"
+                >
+                  Cancel
+                </Button>
+                
+                {!showGasEstimate ? (
+                  <Button
+                    onClick={handleEstimateGas}
+                    disabled={!transferToAddress || !isAddress(transferToAddress) || isSimulating}
+                    className="flex-1"
+                    data-testid="transfer-estimate-button"
+                  >
+                    {isSimulating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      'Estimate Gas'
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleTransferSubmit}
+                    disabled={!simulateData || isTransferPending || isTransferLoading || !!simulateError}
+                    className="flex-1"
+                    data-testid="transfer-confirm-button"
+                  >
+                    {isTransferPending || isTransferLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Transferring...
+                      </>
+                    ) : (
+                      'Confirm Transfer'
+                    )}
+                  </Button>
                 )}
               </div>
             </div>
