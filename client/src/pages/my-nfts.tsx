@@ -368,16 +368,16 @@ export default function MyNFTs() {
       const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
       
       // Create share message (without location for privacy)
-      const shareMessage = `TravelMint ile mintledim: ${nft.title}`;
+      const shareMessage = `Minted on TravelMint: ${nft.title}`;
       
       // Create Warpcast compose URL with embedded frame
       const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareMessage)}&embeds[]=${encodeURIComponent(frameUrl)}`;
       
-      // Open Warpcast in new tab
-      window.open(warpcastUrl, '_blank');
+      // Redirect to Warpcast in same tab (keeps Farcaster experience)
+      window.location.href = warpcastUrl;
       
       toast({
-        title: "Opening Warpcast! 🚀",
+        title: "Redirecting to Warpcast! 🚀",
         description: "Your NFT frame is ready to post on Farcaster!",
       });
     } catch (error) {

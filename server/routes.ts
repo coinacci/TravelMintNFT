@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express) {
       // SECURITY FIX: Escape all user data to prevent XSS
       const safeTitle = escapeHtml(nft.title);
       const safeLocation = escapeHtml(nft.location);
-      const safeDescription = escapeHtml(`TravelMint ile mintledim: ${nft.title}`);
+      const safeDescription = escapeHtml(`Minted on TravelMint: ${nft.title}`);
       const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
       const sanitizedImageUrl = sanitizeUrl(rawImageUrl);
       const safeImageUrl = escapeHtml(sanitizedImageUrl);
@@ -1834,7 +1834,7 @@ export async function registerRoutes(app: Express) {
       // Escape user data to prevent XSS
       const safeTitle = escapeHtml(nft.title);
       const safeLocation = escapeHtml(nft.location);
-      const safeDescription = escapeHtml(`TravelMint ile mintledim: ${nft.title}`);
+      const safeDescription = escapeHtml(`Minted on TravelMint: ${nft.title}`);
       
       // Sanitize and escape image URL to prevent XSS
       const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
@@ -1880,7 +1880,7 @@ export async function registerRoutes(app: Express) {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
       <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px;">
       <h1 style="color: #333; margin-bottom: 10px;">${safeTitle}</h1>
-      <p style="color: #888; margin-bottom: 20px;">TravelMint ile mintledim</p>
+      <p style="color: #888; margin-bottom: 20px;">Minted on TravelMint</p>
       <a href="${appUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open in TravelMint</a>
     </div>
   </body>
