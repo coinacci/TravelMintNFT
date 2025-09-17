@@ -1871,8 +1871,8 @@ export async function registerRoutes(app: Express) {
     <!-- Farcaster Frame -->
     <meta property="fc:frame" content="vNext">
     <meta property="fc:frame:image" content="${safeImageUrl}">
-    <meta property="fc:frame:image:aspect_ratio" content="1:1">
-    <meta property="fc:frame:button:1" content="View on TravelMint">
+    <meta property="fc:frame:image:aspect_ratio" content="1.91:1">
+    <meta property="fc:frame:button:1" content="Open">
     <meta property="fc:frame:button:1:action" content="link">
     <meta property="fc:frame:button:1:target" content="${appUrl}">
   </head>
@@ -1881,7 +1881,7 @@ export async function registerRoutes(app: Express) {
       <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px;">
       <h1 style="color: #333; margin-bottom: 10px;">${safeTitle}</h1>
       <p style="color: #888; margin-bottom: 20px;">TravelMint ile mintledim</p>
-      <a href="${appUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View on TravelMint</a>
+      <a href="${appUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open in TravelMint</a>
     </div>
   </body>
 </html>`;
