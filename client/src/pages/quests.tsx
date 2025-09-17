@@ -110,9 +110,10 @@ export default function Quests() {
       farcasterUsername: farcasterUser.username
     }),
     onSuccess: () => {
+      const nftCount = holderStatus?.nftCount || 1;
       toast({
         title: "Holder bonus claimed! 🏆",
-        description: "+3 points earned"
+        description: `+${nftCount} point${nftCount > 1 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -273,11 +274,11 @@ export default function Quests() {
                 <Gift className="h-6 w-6 text-purple-500" />
                 <div>
                   <CardTitle>Holder Bonus</CardTitle>
-                  <CardDescription>Extra points for NFT holders</CardDescription>
+                  <CardDescription>Earn 1 point per NFT owned</CardDescription>
                 </div>
               </div>
               <Badge variant={hasClaimedHolderBonus ? "secondary" : "default"}>
-                +3 Points
+                +{holderStatus?.nftCount || 0} Point{(holderStatus?.nftCount || 0) !== 1 ? 's' : ''}
               </Badge>
             </div>
           </CardHeader>
@@ -292,7 +293,7 @@ export default function Quests() {
                : !address ? "Connect Wallet First" 
                : !holderStatus?.isHolder ? "No NFTs Found"
                : hasClaimedHolderBonus ? "✓ Completed Today"
-               : "Claim Holder Bonus"}
+               : `Claim +${holderStatus?.nftCount || 0} Point${(holderStatus?.nftCount || 0) !== 1 ? 's' : ''}`}
             </Button>
           </CardContent>
         </Card>

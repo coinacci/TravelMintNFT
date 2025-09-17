@@ -1657,7 +1657,7 @@ export async function registerRoutes(app: Express) {
             });
           }
           
-          pointsEarned = 3;
+          pointsEarned = holderStatus.nftCount;
           
           // Update wallet address if not already set
           if (!existingUserStats?.walletAddress) {
