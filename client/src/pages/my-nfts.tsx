@@ -367,8 +367,8 @@ export default function MyNFTs() {
       const baseUrl = window.location.origin;
       const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
       
-      // Create share message
-      const shareMessage = `TravelMint ile mintledim: ${nft.title} - ${nft.location}`;
+      // Create share message (without location for privacy)
+      const shareMessage = `TravelMint ile mintledim: ${nft.title}`;
       
       // Create Warpcast compose URL with embedded frame
       const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareMessage)}&embeds[]=${encodeURIComponent(frameUrl)}`;

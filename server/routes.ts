@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express) {
       // SECURITY FIX: Escape all user data to prevent XSS
       const safeTitle = escapeHtml(nft.title);
       const safeLocation = escapeHtml(nft.location);
-      const safeDescription = escapeHtml(nft.description);
+      const safeDescription = escapeHtml(`TravelMint ile mintledim: ${nft.title}`);
       const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
       const sanitizedImageUrl = sanitizeUrl(rawImageUrl);
       const safeImageUrl = escapeHtml(sanitizedImageUrl);
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle} - Travel NFT</title>
-  <meta name="description" content="Travel NFT from ${safeLocation} - ${safeDescription}" />
+  <meta name="description" content="${safeDescription}" />
   
   <!-- Farcaster Frame Meta Tags -->
   <meta name="fc:frame" content="vNext" />
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express) {
   
   <!-- Open Graph for social sharing -->
   <meta property="og:title" content="${safeTitle} - Travel NFT" />
-  <meta property="og:description" content="Travel NFT from ${safeLocation} for ${parseFloat(nft.price).toFixed(2)} USDC" />
+  <meta property="og:description" content="${safeDescription}" />
   <meta property="og:image" content="${safeImageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" />
@@ -187,13 +187,12 @@ export async function registerRoutes(app: Express) {
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${safeTitle} - Travel NFT" />
-  <meta name="twitter:description" content="Travel NFT from ${safeLocation} for ${parseFloat(nft.price).toFixed(2)} USDC" />
+  <meta name="twitter:description" content="${safeDescription}" />
   <meta name="twitter:image" content="${safeImageUrl}" />
 </head>
 <body>
   <div style="font-family: Inter, sans-serif; text-align: center; padding: 40px;">
     <h1>${safeTitle}</h1>
-    <p>Travel NFT from ${safeLocation}</p>
     <p>Price: ${parseFloat(nft.price).toFixed(2)} USDC</p>
     <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 400px; height: auto; border-radius: 8px;" />
     <br /><br />
@@ -1835,7 +1834,7 @@ export async function registerRoutes(app: Express) {
       // Escape user data to prevent XSS
       const safeTitle = escapeHtml(nft.title);
       const safeLocation = escapeHtml(nft.location);
-      const safeDescription = escapeHtml(`TravelMint ile mintledim: ${nft.title} - ${nft.location}`);
+      const safeDescription = escapeHtml(`TravelMint ile mintledim: ${nft.title}`);
       
       // Sanitize and escape image URL to prevent XSS
       const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
@@ -1881,7 +1880,6 @@ export async function registerRoutes(app: Express) {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
       <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px;">
       <h1 style="color: #333; margin-bottom: 10px;">${safeTitle}</h1>
-      <p style="color: #666; margin-bottom: 15px;">📍 ${safeLocation}</p>
       <p style="color: #888; margin-bottom: 20px;">TravelMint ile mintledim</p>
       <a href="${appUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View on TravelMint</a>
     </div>
