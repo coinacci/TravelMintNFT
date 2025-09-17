@@ -1562,6 +1562,27 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to check holder status" });
     }
   });
+
+  // Check combined holder status for Farcaster user - SECURED
+  app.get("/api/combined-holder-status/:fid", async (req, res) => {
+    try {
+      // Validate request parameters
+      const validationResult = userStatsParamsSchema.safeParse(req.params);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const { fid } = validationResult.data;
+      const combinedHolderStatus = await storage.checkCombinedHolderStatus(fid);
+      res.json(combinedHolderStatus);
+    } catch (error) {
+      console.error('Error checking combined holder status:', error);
+      res.status(500).json({ message: "Failed to check combined holder status" });
+    }
+  });
   
   // Get leaderboard - SECURED
   app.get("/api/leaderboard", async (req, res) => {
@@ -1650,13 +1671,18 @@ export async function registerRoutes(app: Express) {
             return res.status(400).json({ message: "Wallet address required for holder bonus" });
           }
           
-          const holderStatus = await storage.checkHolderStatus(walletAddress.toLowerCase());
+          // SECURITY FIX: Only check the currently connected wallet directly
+          // No automatic wallet addition - user must prove ownership by connecting wallet
+          console.log(`🔍 Checking holder bonus for connected wallet: ${walletAddress}`);
+          
+          const holderStatus = await storage.checkHolderStatus(walletAddress);
           if (!holderStatus.isHolder) {
             return res.status(400).json({ 
-              message: "Must hold at least one Travel NFT to claim holder bonus" 
+              message: "The connected wallet must hold at least one Travel NFT to claim holder bonus" 
             });
           }
           
+          console.log(`✅ Wallet ${walletAddress} holds ${holderStatus.nftCount} NFTs`);
           pointsEarned = holderStatus.nftCount;
           
           // Update wallet address if not already set

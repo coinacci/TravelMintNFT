@@ -105,6 +105,20 @@ export const questCompletions = pgTable("quest_completions", {
   };
 });
 
+// User-Wallet Relationship Table for multi-wallet support
+export const userWallets = pgTable("user_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  walletAddress: text("wallet_address").notNull(),
+  platform: text("platform").notNull(), // 'farcaster', 'base_app', 'manual'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    // Unique constraint: one wallet per user per platform
+    uniqueWalletPerUserPlatform: sql`UNIQUE (farcaster_fid, wallet_address, platform)`,
+  };
+});
+
 export const insertUserStatsSchema = createInsertSchema(userStats).omit({
   id: true,
   createdAt: true,
@@ -116,11 +130,19 @@ export const insertQuestCompletionSchema = createInsertSchema(questCompletions).
   completedAt: true,
 });
 
+export const insertUserWalletSchema = createInsertSchema(userWallets).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
 export type UserStats = typeof userStats.$inferSelect;
 
 export type InsertQuestCompletion = z.infer<typeof insertQuestCompletionSchema>;
 export type QuestCompletion = typeof questCompletions.$inferSelect;
+
+export type InsertUserWallet = z.infer<typeof insertUserWalletSchema>;
+export type UserWallet = typeof userWallets.$inferSelect;
 
 // Quest API Validation Schemas
 export const questClaimSchema = z.object({

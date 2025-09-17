@@ -71,7 +71,7 @@ export default function Quests() {
     enabled: !!farcasterUser?.fid,
   });
 
-  // Check if user holds NFTs (holder status)
+  // Check if user holds NFTs (holder status) - simplified to current connected wallet only
   const { data: holderStatus } = useQuery<{ isHolder: boolean; nftCount: number }>({
     queryKey: ['/api/holder-status', address],
     enabled: !!address,
@@ -101,7 +101,7 @@ export default function Quests() {
     }
   });
 
-  // Holder bonus mutation
+  // Holder bonus mutation - simplified to current connected wallet only
   const holderBonusMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
       farcasterFid: String(farcasterUser.fid),
@@ -117,6 +117,7 @@ export default function Quests() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/holder-status', address] });
     },
     onError: (error) => {
       toast({
@@ -278,7 +279,7 @@ export default function Quests() {
                 </div>
               </div>
               <Badge variant={hasClaimedHolderBonus ? "secondary" : "default"}>
-                +{holderStatus?.nftCount || 0} Point{(holderStatus?.nftCount || 0) !== 1 ? 's' : ''}
+                +{holderStatus?.nftCount || 0} Point{((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}
               </Badge>
             </div>
           </CardHeader>
@@ -293,7 +294,7 @@ export default function Quests() {
                : !address ? "Connect Wallet First" 
                : !holderStatus?.isHolder ? "No NFTs Found"
                : hasClaimedHolderBonus ? "✓ Completed Today"
-               : `Claim +${holderStatus?.nftCount || 0} Point${(holderStatus?.nftCount || 0) !== 1 ? 's' : ''}`}
+               : `Claim +${holderStatus?.nftCount || 0} Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
             </Button>
           </CardContent>
         </Card>

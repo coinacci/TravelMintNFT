@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -35,6 +35,11 @@ export interface IStorage {
   createQuestCompletion(completion: InsertQuestCompletion): Promise<QuestCompletion>;
   getLeaderboard(limit?: number): Promise<UserStats[]>;
   checkHolderStatus(walletAddress: string): Promise<{ isHolder: boolean; nftCount: number }>;
+  
+  // Multi-wallet operations
+  addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
+  getUserWallets(farcasterFid: string): Promise<UserWallet[]>;
+  checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }>;
   
   // Atomic quest claiming operation
   claimQuestAtomic(data: {
@@ -277,6 +282,70 @@ export class DatabaseStorage implements IStorage {
     return {
       isHolder: userNFTs.length > 0,
       nftCount: userNFTs.length
+    };
+  }
+
+  // Multi-wallet operations
+  async addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet> {
+    const [userWallet] = await db
+      .insert(userWallets)
+      .values({
+        farcasterFid,
+        walletAddress: walletAddress.toLowerCase(),
+        platform
+      })
+      .onConflictDoNothing()
+      .returning();
+    
+    if (!userWallet) {
+      // If conflict, return the existing one
+      const [existing] = await db
+        .select()
+        .from(userWallets)
+        .where(sql`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${walletAddress.toLowerCase()} AND ${userWallets.platform} = ${platform}`);
+      return existing;
+    }
+    
+    return userWallet;
+  }
+
+  async getUserWallets(farcasterFid: string): Promise<UserWallet[]> {
+    return await db
+      .select()
+      .from(userWallets)
+      .where(eq(userWallets.farcasterFid, farcasterFid));
+  }
+
+  async checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }> {
+    // Get all wallets for this Farcaster user
+    const walletList = await this.getUserWallets(farcasterFid);
+    
+    if (walletList.length === 0) {
+      return { isHolder: false, nftCount: 0 };
+    }
+    
+    // SECURITY FIX: Deduplicate wallets by address to prevent double-counting
+    // Same wallet recorded under different platforms should only be counted once
+    const uniqueWalletAddresses = Array.from(
+      new Set(walletList.map(wallet => wallet.walletAddress.toLowerCase()))
+    );
+    
+    console.log(`🔍 Checking holder status for Farcaster FID ${farcasterFid}: ${walletList.length} wallet entries → ${uniqueWalletAddresses.length} unique addresses`);
+    
+    let totalNFTCount = 0;
+    
+    // Check NFT count for each unique wallet address
+    for (const walletAddress of uniqueWalletAddresses) {
+      const holderStatus = await this.checkHolderStatus(walletAddress);
+      totalNFTCount += holderStatus.nftCount;
+      if (holderStatus.nftCount > 0) {
+        console.log(`  ✅ Wallet ${walletAddress}: ${holderStatus.nftCount} NFTs`);
+      }
+    }
+    
+    return {
+      isHolder: totalNFTCount > 0,
+      nftCount: totalNFTCount
     };
   }
 
