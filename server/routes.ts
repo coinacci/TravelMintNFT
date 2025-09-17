@@ -143,24 +143,32 @@ export async function registerRoutes(app: Express) {
       }
 
       // Optimize IPFS URL for faster loading (use different gateways as fallback)
-      const optimizedImageUrl = nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io');
+      const optimizedImageUrl = nft.imageUrl?.replace('gateway.pinata.cloud', 'ipfs.io') || nft.imageUrl;
       
       // Add cache headers for better performance
       res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
       res.setHeader('ETag', `"nft-${nft.id}-${nft.updatedAt?.getTime()}"`);
 
       // Create Farcaster Frame HTML with optimized image loading
+      // SECURITY FIX: Escape all user data to prevent XSS
+      const safeTitle = escapeHtml(nft.title);
+      const safeLocation = escapeHtml(nft.location);
+      const safeDescription = escapeHtml(nft.description);
+      const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
+      const sanitizedImageUrl = sanitizeUrl(rawImageUrl);
+      const safeImageUrl = escapeHtml(sanitizedImageUrl);
+
       const frameHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${nft.title} - Travel NFT</title>
-  <meta name="description" content="Travel NFT from ${nft.location} - ${nft.description}" />
+  <title>${safeTitle} - Travel NFT</title>
+  <meta name="description" content="Travel NFT from ${safeLocation} - ${safeDescription}" />
   
   <!-- Farcaster Frame Meta Tags -->
   <meta name="fc:frame" content="vNext" />
-  <meta name="fc:frame:image" content="${nft.objectStorageUrl || nft.imageUrl}" />
+  <meta name="fc:frame:image" content="${safeImageUrl}" />
   <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
   <meta name="fc:frame:button:1" content="💰 Buy ${parseFloat(nft.price).toFixed(0)} USDC" />
   <meta name="fc:frame:button:1:action" content="link" />
@@ -170,24 +178,24 @@ export async function registerRoutes(app: Express) {
   <meta name="fc:frame:button:2:target" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/explore" />
   
   <!-- Open Graph for social sharing -->
-  <meta property="og:title" content="${nft.title} - Travel NFT" />
-  <meta property="og:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
-  <meta property="og:image" content="${nft.objectStorageUrl || nft.imageUrl}" />
+  <meta property="og:title" content="${safeTitle} - Travel NFT" />
+  <meta property="og:description" content="Travel NFT from ${safeLocation} for ${parseFloat(nft.price).toFixed(2)} USDC" />
+  <meta property="og:image" content="${safeImageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" />
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${nft.title} - Travel NFT" />
-  <meta name="twitter:description" content="Travel NFT from ${nft.location} for ${parseFloat(nft.price).toFixed(2)} USDC" />
-  <meta name="twitter:image" content="${nft.objectStorageUrl || nft.imageUrl}" />
+  <meta name="twitter:title" content="${safeTitle} - Travel NFT" />
+  <meta name="twitter:description" content="Travel NFT from ${safeLocation} for ${parseFloat(nft.price).toFixed(2)} USDC" />
+  <meta name="twitter:image" content="${safeImageUrl}" />
 </head>
 <body>
   <div style="font-family: Inter, sans-serif; text-align: center; padding: 40px;">
-    <h1>${nft.title}</h1>
-    <p>Travel NFT from ${nft.location}</p>
+    <h1>${safeTitle}</h1>
+    <p>Travel NFT from ${safeLocation}</p>
     <p>Price: ${parseFloat(nft.price).toFixed(2)} USDC</p>
-    <img src="${nft.objectStorageUrl || nft.imageUrl}" alt="${nft.title}" style="max-width: 400px; height: auto; border-radius: 8px;" />
+    <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 400px; height: auto; border-radius: 8px;" />
     <br /><br />
     <a href="${process.env.REPLIT_DEV_DOMAIN || 'https://9cd747da-afbe-4a91-998a-c53082329a77-00-2sqy9psnptz5t.kirk.replit.dev'}/marketplace" 
        style="background: #007aff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
@@ -1764,6 +1772,140 @@ export async function registerRoutes(app: Express) {
         message: "Failed to claim quest reward. Please try again.",
         code: 'QUEST_CLAIM_ERROR'
       });
+    }
+  });
+
+  // Helper function to escape HTML
+  const escapeHtml = (text: string | null | undefined) => {
+    if (!text) return '';
+    return text.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+  
+  // Helper function to sanitize URLs
+  const sanitizeUrl = (url: string | null | undefined) => {
+    if (!url) return 'about:blank';
+    const urlStr = url.toString().trim();
+    if (!urlStr) return 'about:blank';
+    
+    // Allow only https, http, and ipfs schemes
+    const allowedSchemes = /^(https?|ipfs):/i;
+    const dangerousSchemes = /^(javascript|data|vbscript|file):/i;
+    
+    if (dangerousSchemes.test(urlStr)) {
+      return 'about:blank';
+    }
+    
+    if (!allowedSchemes.test(urlStr)) {
+      // Assume relative URL, make it absolute
+      return urlStr.startsWith('/') ? urlStr : `/${urlStr}`;
+    }
+    
+    return urlStr;
+  };
+
+  // NFT Frame endpoint for Farcaster sharing
+  app.get("/api/frames/nft/:tokenId", async (req, res) => {
+    try {
+      const { tokenId } = req.params;
+      
+      // Get NFT data from database by tokenId
+      const nft = await storage.getNFTByTokenId(tokenId);
+      
+      if (!nft) {
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>NFT Not Found - TravelMint</title>
+              <meta name="description" content="NFT not found on TravelMint">
+            </head>
+            <body>
+              <h1>NFT Not Found</h1>
+              <p>The requested NFT could not be found.</p>
+            </body>
+          </html>
+        `);
+      }
+
+      // Escape user data to prevent XSS
+      const safeTitle = escapeHtml(nft.title);
+      const safeLocation = escapeHtml(nft.location);
+      const safeDescription = escapeHtml(`TravelMint ile mintledim: ${nft.title} - ${nft.location}`);
+      
+      // Sanitize and escape image URL to prevent XSS
+      const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
+      const sanitizedImageUrl = sanitizeUrl(rawImageUrl);
+      const safeImageUrl = escapeHtml(sanitizedImageUrl);
+      
+      // Generate secure URLs
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const frameUrl = `${protocol}://${host}/api/frames/nft/${tokenId}`;
+      const appUrl = `${protocol}://${host}/marketplace`;
+      
+      const frameHtml = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>${safeTitle} - TravelMint NFT</title>
+    <meta name="description" content="${safeDescription}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${frameUrl}">
+    <meta property="og:title" content="${safeTitle} - TravelMint">
+    <meta property="og:description" content="${safeDescription}">
+    <meta property="og:image" content="${safeImageUrl}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="${frameUrl}">
+    <meta property="twitter:title" content="${safeTitle} - TravelMint">
+    <meta property="twitter:description" content="${safeDescription}">
+    <meta property="twitter:image" content="${safeImageUrl}">
+    
+    <!-- Farcaster Frame -->
+    <meta property="fc:frame" content="vNext">
+    <meta property="fc:frame:image" content="${safeImageUrl}">
+    <meta property="fc:frame:image:aspect_ratio" content="1:1">
+    <meta property="fc:frame:button:1" content="View on TravelMint">
+    <meta property="fc:frame:button:1:action" content="link">
+    <meta property="fc:frame:button:1:target" content="${appUrl}">
+  </head>
+  <body>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
+      <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px;">
+      <h1 style="color: #333; margin-bottom: 10px;">${safeTitle}</h1>
+      <p style="color: #666; margin-bottom: 15px;">📍 ${safeLocation}</p>
+      <p style="color: #888; margin-bottom: 20px;">TravelMint ile mintledim</p>
+      <a href="${appUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View on TravelMint</a>
+    </div>
+  </body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(frameHtml);
+      
+    } catch (error) {
+      console.error('Error generating NFT frame:', error);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Error - TravelMint</title>
+            <meta name="description" content="Error loading NFT frame">
+          </head>
+          <body>
+            <h1>Error</h1>
+            <p>Unable to load NFT frame. Please try again later.</p>
+          </body>
+        </html>
+      `);
     }
   });
 

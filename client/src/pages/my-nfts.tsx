@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MapPin, User, Clock, Eye, Send, Loader2 } from "lucide-react";
+import { MapPin, User, Clock, Eye, Send, Loader2, Share2 } from "lucide-react";
 import { isAddress, parseAbi, formatEther } from "viem";
 import { base } from "wagmi/chains";
 
@@ -56,6 +56,7 @@ export default function MyNFTs() {
   const [transferToAddress, setTransferToAddress] = useState("");
   const [transferNFT, setTransferNFT] = useState<NFT | null>(null);
   const [showGasEstimate, setShowGasEstimate] = useState(false);
+  const [isGeneratingFrame, setIsGeneratingFrame] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -350,6 +351,51 @@ export default function MyNFTs() {
     }
   };
 
+  const handleShareNFT = async (nft: NFT) => {
+    if (!nft.tokenId) {
+      toast({
+        title: "Cannot Share NFT",
+        description: "This NFT is not ready for sharing. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingFrame(true);
+    try {
+      // Generate frame URL
+      const baseUrl = window.location.origin;
+      const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(frameUrl);
+      
+      toast({
+        title: "Frame URL Copied! 🖼️",
+        description: "Paste this URL in your Farcaster post to share your NFT as a frame!",
+      });
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const baseUrl = window.location.origin;
+      const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
+      
+      // Create a temporary input element to copy the URL
+      const tempInput = document.createElement('input');
+      tempInput.value = frameUrl;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      
+      toast({
+        title: "Frame URL Ready! 🖼️",
+        description: "The frame URL is ready to paste in your Farcaster post!",
+      });
+    } finally {
+      setIsGeneratingFrame(false);
+    }
+  };
+
 
   const formatDate = (dateString: string) => {
     try {
@@ -430,8 +476,24 @@ export default function MyNFTs() {
                             onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
                             data-testid={`open-${nft.id}`}
                             className="text-muted-foreground hover:text-foreground"
+                            title="View Details"
                           >
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
+                            disabled={isGeneratingFrame}
+                            data-testid={`share-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Share as Frame"
+                          >
+                            {isGeneratingFrame ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Share2 className="w-4 h-4" />
+                            )}
                           </Button>
                           <Button
                             size="sm"
@@ -470,8 +532,24 @@ export default function MyNFTs() {
                           onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
                           data-testid={`open-${nft.id}`}
                           className="text-muted-foreground hover:text-foreground"
+                          title="View Details"
                         >
                           <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
+                          disabled={isGeneratingFrame}
+                          data-testid={`share-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          title="Share as Frame"
+                        >
+                          {isGeneratingFrame ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Share2 className="w-4 h-4" />
+                          )}
                         </Button>
                         <Button
                           size="sm"
