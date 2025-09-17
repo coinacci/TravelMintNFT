@@ -1599,8 +1599,11 @@ export async function registerRoutes(app: Express) {
       const limit = validationResult.data.limit ? parseInt(validationResult.data.limit) : 50;
       const leaderboard = await storage.getLeaderboard(limit);
       
+      // Filter out @coinacci from leaderboard for testing purposes
+      const filteredLeaderboard = leaderboard.filter(entry => entry.farcasterUsername !== 'coinacci');
+      
       // Add rank to each entry
-      const rankedLeaderboard = leaderboard.map((entry, index) => ({
+      const rankedLeaderboard = filteredLeaderboard.map((entry, index) => ({
         ...entry,
         rank: index + 1
       }));
