@@ -13,6 +13,7 @@ import MyNFTs from "@/pages/my-nfts";
 import Mint from "@/pages/mint";
 import Quests from "@/pages/quests";
 import Leaderboard from "@/pages/leaderboard";
+import Privacy from "@/pages/privacy";
 import Navigation from "@/components/navigation";
 
 // Browser-safe Farcaster SDK initialization
@@ -101,6 +102,7 @@ function Router() {
         <Route path="/mint" component={Mint} />
         <Route path="/quests" component={Quests} />
         <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/privacy" component={Privacy} />
         <Route>
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
