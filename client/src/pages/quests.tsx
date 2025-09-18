@@ -338,8 +338,8 @@ export default function Quests() {
                : "Claim Check-in"}
             </Button>
             
-            {/* Share button - only show if quest completed today */}
-            {hasCheckedInToday && (
+            {/* Share button - temporarily hidden */}
+            {false && hasCheckedInToday && (
               <ComposeCastButton
                 type="quest"
                 questName="Daily Check-in"
@@ -382,8 +382,8 @@ export default function Quests() {
                : `Claim +${holderStatus?.nftCount || 0}.00 Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
             </Button>
             
-            {/* Share button - only show if quest completed today */}
-            {hasClaimedHolderBonus && holderStatus?.isHolder && (
+            {/* Share button - temporarily hidden */}
+            {false && hasClaimedHolderBonus && holderStatus?.isHolder && (
               <ComposeCastButton
                 type="quest"
                 questName="Holder Bonus"
@@ -481,8 +481,8 @@ export default function Quests() {
                  : "Claim Streak Bonus"}
               </Button>
               
-              {/* Share button - only show if quest completed and can claim streak bonus */}
-              {userStats && userStats.currentStreak >= 7 && (
+              {/* Share button - temporarily hidden */}
+              {false && userStats?.currentStreak && userStats?.currentStreak >= 7 && (
                 <ComposeCastButton
                   type="quest"
                   questName="7-Day Streak Bonus"

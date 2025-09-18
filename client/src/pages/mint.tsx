@@ -970,8 +970,8 @@ export default function Mint() {
                     )}
                   </Button>
                   
-                  {/* Share NFT Button - only show after successful mint */}
-                  {(isConfirmed || sendCallsData) && (
+                  {/* Share NFT Button - temporarily hidden */}
+                  {false && (isConfirmed || sendCallsData) && (
                     <ComposeCastButton
                       type="mint"
                       nftName={title}
