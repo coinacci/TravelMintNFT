@@ -1725,6 +1725,20 @@ export async function registerRoutes(app: Express) {
           // Keep current streak, don't reset it
           break;
           
+        case 'base_transaction':
+          if (!walletAddress) {
+            return res.status(400).json({ message: "Wallet address required for Base transaction quest" });
+          }
+          
+          // Check if user made any Base transaction today
+          const hasTransaction = await blockchainService.hasBaseTransactionToday(walletAddress);
+          if (!hasTransaction) {
+            return res.status(400).json({ message: "No Base network transaction found today. Make any transaction on Base to claim this quest." });
+          }
+          
+          pointsEarned = 0.25; // 0.25 points for Base transaction
+          break;
+          
         default:
           return res.status(400).json({ message: "Invalid quest type" });
       }

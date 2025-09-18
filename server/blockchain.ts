@@ -14,9 +14,9 @@ const BASE_RPC_URL = BASE_RPC_URLS[0];
 // Moralis API configuration - much more reliable than BaseScan
 const MORALIS_API_URL = "https://deep-index.moralis.io/api/v2";
 const MORALIS_API_KEY = process.env.MORALIS_API_KEY || "";
-// Disable BaseScan - use Moralis API instead  
-const BASESCAN_API_URL = ""; // Disabled - replaced with Moralis
-const BASESCAN_API_KEY = ""; // Disabled - replaced with Moralis
+// Use BaseScan API for transaction verification
+const BASESCAN_API_URL = "https://api.basescan.org/api";
+const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
@@ -841,6 +841,62 @@ export class BlockchainService {
         success: false,
         error: error.message || "Failed to generate purchase transaction"
       };
+    }
+  }
+
+  // Check if wallet made any transaction on Base network today
+  async hasBaseTransactionToday(walletAddress: string): Promise<boolean> {
+    try {
+      if (!BASESCAN_API_KEY) {
+        console.log("⚠️ No Basescan API key - cannot verify Base transactions");
+        return false;
+      }
+
+      console.log(`🔍 Checking Base transactions for wallet: ${walletAddress}`);
+      
+      // Get today's date for transaction filtering (UTC)
+      const today = new Date();
+      const todayStartUnix = Math.floor(new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000);
+      const nowUnix = Math.floor(Date.now() / 1000);
+      
+      // Basescan API endpoint for getting transactions
+      const url = `${BASESCAN_API_URL}?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${BASESCAN_API_KEY}`;
+      
+      console.log(`📡 Fetching transactions from Basescan...`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.log(`❌ Basescan API error:`, response.status);
+        return false;
+      }
+      
+      const data = await response.json();
+      
+      if (data.status !== "1") {
+        console.log(`❌ Basescan API returned error:`, data.message);
+        return false;
+      }
+      
+      // Check if any transaction happened today
+      const todayTransactions = data.result.filter((tx: any) => {
+        const txTimestamp = parseInt(tx.timeStamp);
+        return txTimestamp >= todayStartUnix && txTimestamp <= nowUnix;
+      });
+      
+      const hasTransaction = todayTransactions.length > 0;
+      
+      if (hasTransaction) {
+        console.log(`✅ Found ${todayTransactions.length} Base transaction(s) today for ${walletAddress}`);
+        console.log(`📋 Latest tx hash: ${todayTransactions[0].hash}`);
+      } else {
+        console.log(`❌ No Base transactions found today for ${walletAddress}`);
+      }
+      
+      return hasTransaction;
+      
+    } catch (error) {
+      console.error(`❌ Error checking Base transactions for ${walletAddress}:`, error);
+      return false;
     }
   }
 

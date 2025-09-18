@@ -147,7 +147,7 @@ export type UserWallet = typeof userWallets.$inferSelect;
 // Quest API Validation Schemas
 export const questClaimSchema = z.object({
   farcasterFid: z.string().min(1, "Farcaster FID is required"),
-  questType: z.enum(['daily_checkin', 'holder_bonus', 'streak_bonus'], {
+  questType: z.enum(['daily_checkin', 'holder_bonus', 'streak_bonus', 'base_transaction'], {
     errorMap: () => ({ message: "Invalid quest type" })
   }),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address").optional(),
