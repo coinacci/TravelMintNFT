@@ -50,8 +50,23 @@
       }
     }' />
     
+    <!-- Font Preloading for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    
     <!-- Add custom CSS for splash screen positioning -->
     <style>
+      /* Font display optimization for faster rendering */
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: local('Inter Regular'), local('Inter-Regular');
+      }
+      
       /* Custom splash screen styles for full-screen optimization */
       @media (max-width: 768px) {
         .fc-splash-container {

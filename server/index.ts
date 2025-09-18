@@ -18,6 +18,8 @@ app.get("/.well-known/farcaster.json", (req, res) => {
     "miniapp": {
       "version": "1",
       "name": "TravelMint",
+      "author": "coinacci",
+      "authorUrl": "https://warpcast.com/coinacci",
       "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
       "iconUrl": "https://travelnft.replit.app/icon.png",
       "homeUrl": "https://travelnft.replit.app/",
@@ -32,6 +34,8 @@ app.get("/.well-known/farcaster.json", (req, res) => {
       "ogImageUrl": `https://travelnft.replit.app/image.png${cacheBuster}`,
       "castShareUrl": `https://travelnft.replit.app/share${cacheBuster}`,
       "webhookUrl": "https://travelnft.replit.app/api/webhook",
+      "license": "MIT",
+      "privacyPolicyUrl": "https://travelnft.replit.app/privacy",
       "tags": ["travel", "nft", "blockchain", "photography", "base"],
       "screenshotUrls": [
         `https://travelnft.replit.app/image.png${cacheBuster}`,
