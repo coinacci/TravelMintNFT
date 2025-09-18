@@ -2,8 +2,37 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createApp } from "./createApp";
+import fs from "fs";
+import path from "path";
 
 const app = createApp();
+
+// Crawler detection middleware for static meta tags
+app.get('/', (req, res, next) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|discord|farcaster|warpcast/i.test(userAgent);
+  
+  if (isCrawler) {
+    // Serve pre-rendered HTML with meta tags for crawlers
+    const indexPath = path.join(process.cwd(), 'client', 'index.html');
+    
+    if (fs.existsSync(indexPath)) {
+      let html = fs.readFileSync(indexPath, 'utf-8');
+      
+      // Ensure cache busting is up to date
+      const cacheVersion = 'v=2025091803';
+      html = html.replace(/\?v=\d{10}/g, `?${cacheVersion}`);
+      
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.send(html);
+      log(`🤖 Crawler detected: ${userAgent.substring(0, 50)}... served static HTML`);
+      return;
+    }
+  }
+  
+  next();
+});
 
 // Serve attached assets statically with optimized headers
 app.use('/attached_assets', (req, res, next) => {
