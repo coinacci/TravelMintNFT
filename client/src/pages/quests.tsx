@@ -53,7 +53,7 @@ export default function Quests() {
   const { toast } = useToast();
 
   // Smart contract interactions for Base transaction quest
-  const { data: claimHash, error: claimError, isPending: isClaimPending, writeContract: claimContract } = useWriteContract();
+  const { data: claimHash, error: claimError, isPending: isClaimPending, writeContract } = useWriteContract();
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
@@ -389,7 +389,7 @@ export default function Quests() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => farcasterUser && claimContract({
+              onClick={() => farcasterUser && writeContract({
                 to: "0x000000000000000000000000000000000000dEaD", // Burn address 
                 value: parseEther('0.0001') // 0.0001 ETH fee for quest
               })}
