@@ -76,11 +76,12 @@ app.use((req, res, next) => {
   res.header('X-Content-Type-Options', 'nosniff');
   res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Content Security Policy - ALLOW ALL ORIGINS for Farcaster embedding
+  // Content Security Policy - ALLOW ALL ORIGINS for Farcaster embedding + Google Fonts CORS fix
   res.header('Content-Security-Policy', [
     "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:",
-    "style-src 'self' 'unsafe-inline' https: data:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https: data:",
+    "font-src 'self' https://fonts.gstatic.com https: data:",
     "img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:",
     "connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:",
     "frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:",
