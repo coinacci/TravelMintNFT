@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useEffect, useState } from "react";
-import { Target, Gift, Calendar, Trophy, Flame } from "lucide-react";
+import { Target, Gift, Calendar, Trophy, Flame, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -152,6 +152,31 @@ export default function Quests() {
     }
   });
 
+  // Base transaction mutation
+  const baseTransactionMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/quest-claim', {
+      farcasterFid: String(farcasterUser.fid),
+      questType: 'base_transaction',
+      walletAddress: address,
+      farcasterUsername: farcasterUser.username
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Hello TravelMint! ⚡",
+        description: "+0.25 points earned for Base transaction!"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to claim Base transaction bonus",
+        description: "Make any transaction on Base network first",
+        variant: "destructive"
+      });
+    }
+  });
+
 
   if (statsLoading) {
     return (
@@ -167,6 +192,7 @@ export default function Quests() {
   const today = getQuestDay();
   const hasCheckedInToday = todayQuests.some(q => q.questType === 'daily_checkin');
   const hasClaimedHolderBonus = todayQuests.some(q => q.questType === 'holder_bonus');
+  const hasClaimedBaseTransaction = todayQuests.some(q => q.questType === 'base_transaction');
   const canClaimStreakBonus = userStats && userStats.currentStreak >= 7 && 
     (!userStats.lastStreakClaim || getQuestDay(new Date(userStats.lastStreakClaim)) !== today);
 
@@ -295,6 +321,37 @@ export default function Quests() {
                : !holderStatus?.isHolder ? "No NFTs Found"
                : hasClaimedHolderBonus ? "✓ Completed Today"
                : `Claim +${holderStatus?.nftCount || 0} Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Base Network Transaction */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Zap className="h-6 w-6 text-blue-600" />
+                <div>
+                  <CardTitle>Hello TravelMint</CardTitle>
+                  <CardDescription>Onchain Tx tasks</CardDescription>
+                </div>
+              </div>
+              <Badge variant={hasClaimedBaseTransaction ? "secondary" : "default"}>
+                +0.25 Points
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => farcasterUser && baseTransactionMutation.mutate()}
+              disabled={!farcasterUser || !address || hasClaimedBaseTransaction || baseTransactionMutation.isPending}
+              className="w-full"
+              data-testid="button-base-transaction"
+            >
+              {!farcasterUser ? "Connect via Farcaster First"
+               : !address ? "Connect Wallet First" 
+               : hasClaimedBaseTransaction ? "✓ Completed Today"
+               : "Claim Base Transaction Bonus"}
             </Button>
           </CardContent>
         </Card>

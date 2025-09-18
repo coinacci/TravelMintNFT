@@ -46,7 +46,7 @@ export interface IStorage {
     farcasterFid: string;
     farcasterUsername: string;
     walletAddress?: string;
-    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus';
+    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction';
     pointsEarned: number;
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
@@ -354,7 +354,7 @@ export class DatabaseStorage implements IStorage {
     farcasterFid: string;
     farcasterUsername: string;
     walletAddress?: string;
-    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus';
+    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction';
     pointsEarned: number;
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
