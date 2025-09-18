@@ -5,7 +5,14 @@ import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-c
 
 // Get the correct app URL for wallet authorization
 const getAppUrl = () => {
-  // Always use production domain for wallet authorization to prevent replit.dev issues
+  // Use current origin in development, production domain for production
+  if (typeof window !== 'undefined') {
+    // Development: use current origin to fix CORS issues
+    if (window.location.hostname.includes('replit.dev') || window.location.hostname.includes('replit.co')) {
+      return window.location.origin;
+    }
+  }
+  // Production: use production domain
   return 'https://travelnft.replit.app';
 };
 
