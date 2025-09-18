@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
 import { createNFTMetadata, createIPFSUrl } from "@shared/ipfs";
+import ComposeCastButton from "@/components/ComposeCastButton";
 import L from "leaflet";
 import sdk from "@farcaster/frame-sdk";
 
@@ -969,6 +970,16 @@ export default function Mint() {
                     )}
                   </Button>
                   
+                  {/* Share NFT Button - only show after successful mint */}
+                  {(isConfirmed || sendCallsData) && (
+                    <ComposeCastButton
+                      type="mint"
+                      nftName={title}
+                      nftLocation={useManualLocation ? manualLocation : (location?.city || "Unknown Location")}
+                      variant="outline"
+                      className="w-full"
+                    />
+                  )}
                   
                   <Button
                     variant="secondary"

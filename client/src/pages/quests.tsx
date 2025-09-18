@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
+import ComposeCastButton from "@/components/ComposeCastButton";
 import { useWriteContract, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
 import { parseEther } from "viem";
 
@@ -329,13 +330,25 @@ export default function Quests() {
             <Button
               onClick={() => farcasterUser && checkInMutation.mutate()}
               disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
-              className="w-full"
+              className="w-full mb-3"
               data-testid="button-daily-checkin"
             >
               {!farcasterUser ? "Connect via Farcaster First"
                : hasCheckedInToday ? "✓ Completed Today" 
                : "Claim Check-in"}
             </Button>
+            
+            {/* Share button - only show if quest completed today */}
+            {hasCheckedInToday && (
+              <ComposeCastButton
+                type="quest"
+                questName="Daily Check-in"
+                questPoints={1.00}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -359,7 +372,7 @@ export default function Quests() {
             <Button
               onClick={() => farcasterUser && holderBonusMutation.mutate()}
               disabled={!farcasterUser || !address || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
-              className="w-full"
+              className="w-full mb-3"
               data-testid="button-holder-bonus"
             >
               {!farcasterUser ? "Connect via Farcaster First"
@@ -368,6 +381,18 @@ export default function Quests() {
                : hasClaimedHolderBonus ? "✓ Completed Today"
                : `Claim +${holderStatus?.nftCount || 0}.00 Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
             </Button>
+            
+            {/* Share button - only show if quest completed today */}
+            {hasClaimedHolderBonus && holderStatus?.isHolder && (
+              <ComposeCastButton
+                type="quest"
+                questName="Holder Bonus"
+                questPoints={holderStatus?.nftCount || 1}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -394,7 +419,7 @@ export default function Quests() {
                 value: parseEther('0') // No ETH transfer, only gas fee
               })}
               disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
-              className="w-full"
+              className="w-full mb-3"
               data-testid="button-base-transaction"
             >
               {!farcasterUser ? "Connect via Farcaster First"
@@ -402,6 +427,18 @@ export default function Quests() {
                : hasClaimedBaseTransaction ? "✓ Completed Today"
                : "Claim Base Transaction Bonus"}
             </Button>
+            
+            {/* Share button - only show if quest completed today */}
+            {hasClaimedBaseTransaction && (
+              <ComposeCastButton
+                type="quest"
+                questName="Hello TravelMint"
+                questPoints={0.25}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -436,13 +473,25 @@ export default function Quests() {
               <Button
                 onClick={() => farcasterUser && streakBonusMutation.mutate()}
                 disabled={!farcasterUser || !canClaimStreakBonus || streakBonusMutation.isPending}
-                className="w-full"
+                className="w-full mb-3"
                 data-testid="button-streak-bonus"
               >
                 {!farcasterUser ? "Connect via Farcaster First"
                  : !canClaimStreakBonus ? `Need ${7 - (userStats?.currentStreak || 0)} more days` 
                  : "Claim Streak Bonus"}
               </Button>
+              
+              {/* Share button - only show if quest completed and can claim streak bonus */}
+              {userStats && userStats.currentStreak >= 7 && (
+                <ComposeCastButton
+                  type="quest"
+                  questName="7-Day Streak Bonus"
+                  questPoints={7.00}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                />
+              )}
             </div>
           </CardContent>
         </Card>

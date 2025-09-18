@@ -16,6 +16,7 @@ interface ComposeCastButtonProps {
   variant?: "default" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   disabled?: boolean;
+  className?: string;
 }
 
 export default function ComposeCastButton({
@@ -30,7 +31,8 @@ export default function ComposeCastButton({
   embeds = [],
   variant = "default",
   size = "default",
-  disabled = false
+  disabled = false,
+  className
 }: ComposeCastButtonProps) {
   const { toast } = useToast();
 
@@ -39,17 +41,17 @@ export default function ComposeCastButton({
 
     switch (type) {
       case 'quest':
-        return `🎯 Just completed "${questName}" quest on @TravelMint and earned ${questPoints} points! Building my travel NFT collection on @base 🗺️✨`;
+        return `🎯 Just completed "${questName}" quest on @TravelMint and earned ${questPoints} points! Building my travel NFT collection on @base #TravelNFT #Base 🗺️✨`;
       
       case 'mint':
-        return `📸 Just minted a new travel NFT "${nftName}" from ${nftLocation} on @TravelMint! Creating memories on @base blockchain 🌍⛓️`;
+        return `📸 Just minted a new travel NFT "${nftName}" on @TravelMint! Creating memories on @base blockchain #TravelNFT #Base 🌍⛓️`;
       
       case 'leaderboard':
-        return `🏆 Ranked #${leaderboardPosition} on @TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on @base 🎖️`;
+        return `🏆 Ranked #${leaderboardPosition} on @TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on @base #TravelNFT #Base 🎖️`;
       
       case 'general':
       default:
-        return `🗺️ Exploring @TravelMint - the travel photo NFT marketplace on @base! Turn your travel memories into NFTs ✨`;
+        return `🗺️ Exploring @TravelMint - the travel photo NFT marketplace on @base! Turn your travel memories into NFTs #TravelNFT #Base ✨`;
     }
   };
 
@@ -82,11 +84,11 @@ export default function ComposeCastButton({
   const handleComposeCast = async () => {
     try {
       const castText = generateCastText();
-      const castEmbeds = embeds.length > 0 ? embeds : ['https://travelnft.replit.app'];
+      const castEmbeds = embeds.length > 0 ? embeds : [typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app'];
 
       const result = await sdk.actions.composeCast({
         text: castText,
-        embeds: castEmbeds,
+        embeds: castEmbeds.slice(0, 2) as [string] | [string, string] | [],
       });
 
       if (result) {
@@ -111,7 +113,7 @@ export default function ComposeCastButton({
       variant={variant}
       size={size}
       disabled={disabled}
-      className="gap-2"
+      className={`gap-2 ${className || ''}`}
       data-testid={`button-compose-cast-${type}`}
     >
       {getIcon()}

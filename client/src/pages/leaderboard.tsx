@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import sdk from "@farcaster/frame-sdk";
+import ComposeCastButton from "@/components/ComposeCastButton";
 
 // Helper function to convert fixed-point values (stored as integers * 100) to display format
 const pointsToDisplay = (points: number): string => {
@@ -52,7 +53,7 @@ export default function Leaderboard() {
   });
 
   // Find current user's position
-  const currentUserEntry = leaderboard.find(entry => entry.farcasterFid === farcasterUser?.fid);
+  const currentUserEntry = leaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
 
   if (!farcasterUser) {
     return (
@@ -140,6 +141,18 @@ export default function Leaderboard() {
                 <div className="text-2xl font-bold" data-testid="user-points">{pointsToDisplay(currentUserEntry.totalPoints)}</div>
                 <div className="text-sm text-muted-foreground">points</div>
               </div>
+            </div>
+            
+            {/* Share Position Button */}
+            <div className="mt-4 pt-4 border-t border-muted">
+              <ComposeCastButton
+                type="leaderboard"
+                leaderboardPosition={currentUserEntry.rank}
+                totalPoints={parseFloat(pointsToDisplay(currentUserEntry.totalPoints))}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              />
             </div>
           </CardContent>
         </Card>
