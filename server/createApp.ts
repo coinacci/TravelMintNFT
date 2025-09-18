@@ -12,7 +12,7 @@ export function createApp() {
   app.get("/.well-known/farcaster.json", (req, res) => {
     console.log("🎯 HIGH PRIORITY FARCASTER ROUTE HIT!", Date.now());
     const currentTimestamp = Date.now();
-    const cacheBuster = `?v=${currentTimestamp}`;
+    const cacheBuster = `?v=${currentTimestamp}&force=${Math.random().toString(36).substring(7)}`;
     const farcasterConfig = {
       "accountAssociation": {
         "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
