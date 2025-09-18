@@ -83,7 +83,7 @@ export const userStats = pgTable("user_stats", {
   farcasterFid: text("farcaster_fid").notNull().unique(),
   farcasterUsername: text("farcaster_username").notNull(),
   walletAddress: text("wallet_address"), // Nullable - only required for holder bonus
-  totalPoints: integer("total_points").default(0).notNull(),
+  totalPoints: integer("total_points").default(0).notNull(), // Stored as fixed-point (points * 100)
   currentStreak: integer("current_streak").default(0).notNull(),
   lastCheckIn: timestamp("last_check_in"),
   lastStreakClaim: timestamp("last_streak_claim"),
@@ -95,7 +95,7 @@ export const questCompletions = pgTable("quest_completions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
   questType: text("quest_type").notNull(), // 'daily_checkin', 'holder_bonus', 'streak_bonus'
-  pointsEarned: integer("points_earned").notNull(),
+  pointsEarned: integer("points_earned").notNull(), // Stored as fixed-point (points * 100)
   completionDate: text("completion_date").notNull(), // YYYY-MM-DD format for daily uniqueness
   completedAt: timestamp("completed_at").defaultNow().notNull(),
 }, (table) => {

@@ -11,6 +11,11 @@ import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
 
+// Helper function to convert fixed-point values (stored as integers * 100) to display format
+const pointsToDisplay = (points: number): string => {
+  return (points / 100).toFixed(2);
+};
+
 interface UserStats {
   farcasterFid: string;
   farcasterUsername: string;
@@ -87,7 +92,7 @@ export default function Quests() {
     onSuccess: () => {
       toast({
         title: "Daily check-in complete! 🎉",
-        description: "+1 point earned"
+        description: "+1.00 points earned"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -113,7 +118,7 @@ export default function Quests() {
       const nftCount = holderStatus?.nftCount || 1;
       toast({
         title: "Holder bonus claimed! 🏆",
-        description: `+${nftCount} point${nftCount > 1 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
+        description: `+${nftCount}.00 point${nftCount > 1 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -138,7 +143,7 @@ export default function Quests() {
     onSuccess: () => {
       toast({
         title: "Streak bonus claimed! 🔥",
-        description: "+7 points earned for 7-day streak!"
+        description: "+7.00 points earned for 7-day streak!"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -226,7 +231,7 @@ export default function Quests() {
               <Trophy className="h-8 w-8 text-yellow-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Points</p>
-                <p className="text-2xl font-bold" data-testid="total-points">{userStats?.totalPoints || 0}</p>
+                <p className="text-2xl font-bold" data-testid="total-points">{pointsToDisplay(userStats?.totalPoints || 0)}</p>
               </div>
             </div>
           </CardContent>
@@ -251,7 +256,7 @@ export default function Quests() {
               <div>
                 <p className="text-sm text-muted-foreground">Today's Points</p>
                 <p className="text-2xl font-bold" data-testid="today-points">
-                  {todayQuests.reduce((sum, q) => sum + q.pointsEarned, 0)}
+                  {pointsToDisplay(todayQuests.reduce((sum, q) => sum + q.pointsEarned, 0))}
                 </p>
               </div>
             </div>
@@ -305,7 +310,7 @@ export default function Quests() {
                 </div>
               </div>
               <Badge variant={hasClaimedHolderBonus ? "secondary" : "default"}>
-                +{holderStatus?.nftCount || 0} Point{((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}
+                +{holderStatus?.nftCount || 0}.00 Point{((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}
               </Badge>
             </div>
           </CardHeader>
@@ -320,7 +325,7 @@ export default function Quests() {
                : !address ? "Connect Wallet First" 
                : !holderStatus?.isHolder ? "No NFTs Found"
                : hasClaimedHolderBonus ? "✓ Completed Today"
-               : `Claim +${holderStatus?.nftCount || 0} Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
+               : `Claim +${holderStatus?.nftCount || 0}.00 Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
             </Button>
           </CardContent>
         </Card>

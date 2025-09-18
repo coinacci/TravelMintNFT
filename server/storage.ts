@@ -391,7 +391,7 @@ export class DatabaseStorage implements IStorage {
             farcasterFid: data.farcasterFid,
             farcasterUsername: data.farcasterUsername,
             walletAddress: data.walletAddress || null,
-            totalPoints: data.pointsEarned,
+            totalPoints: Math.round(data.pointsEarned * 100), // Convert to fixed-point
             currentStreak: data.questType === 'daily_checkin' ? 1 : 0,
             lastCheckIn: data.questType === 'daily_checkin' ? new Date() : null,
             lastStreakClaim: data.questType === 'streak_bonus' ? new Date() : null,
@@ -404,7 +404,7 @@ export class DatabaseStorage implements IStorage {
           .values({
             farcasterFid: data.farcasterFid,
             questType: data.questType,
-            pointsEarned: data.pointsEarned,
+            pointsEarned: Math.round(data.pointsEarned * 100), // Convert to fixed-point
             completionDate: data.completionDate,
           })
           .returning();
@@ -414,7 +414,7 @@ export class DatabaseStorage implements IStorage {
         // Update existing user stats
         const currentStats = existingUserStats[0];
         const updates = {
-          totalPoints: currentStats.totalPoints + data.pointsEarned,
+          totalPoints: currentStats.totalPoints + Math.round(data.pointsEarned * 100), // Add fixed-point values
           updatedAt: new Date(),
           ...data.userStatsUpdates,
         };
@@ -431,7 +431,7 @@ export class DatabaseStorage implements IStorage {
           .values({
             farcasterFid: data.farcasterFid,
             questType: data.questType,
-            pointsEarned: data.pointsEarned,
+            pointsEarned: Math.round(data.pointsEarned * 100), // Convert to fixed-point
             completionDate: data.completionDate,
           })
           .returning();
