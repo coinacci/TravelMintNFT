@@ -391,7 +391,7 @@ export default function Quests() {
             <Button
               onClick={() => farcasterUser && sendTransaction({
                 to: "0x000000000000000000000000000000000000dEaD", // Burn address 
-                value: parseEther('0.0001') // 0.0001 ETH fee for quest
+                value: parseEther('0') // No ETH transfer, only gas fee
               })}
               disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               className="w-full"
