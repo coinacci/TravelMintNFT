@@ -1751,7 +1751,7 @@ export async function registerRoutes(app: Express) {
             return res.status(400).json({ message: "No Base network transaction found today. Make any transaction on Base to claim this quest." });
           }
           
-          pointsEarned = 0.25; // 0.25 points for Base transaction
+          pointsEarned = 0.25; // 0.25 points for Base transaction (will be converted to fixed-point 25 in storage)
           break;
           
         default:
