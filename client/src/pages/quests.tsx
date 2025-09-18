@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
 import { parseEther } from "viem";
 
 // Contract configuration
@@ -53,7 +53,7 @@ export default function Quests() {
   const { toast } = useToast();
 
   // Smart contract interactions for Base transaction quest
-  const { data: claimHash, error: claimError, isPending: isClaimPending, writeContract } = useWriteContract();
+  const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
@@ -389,7 +389,7 @@ export default function Quests() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => farcasterUser && writeContract({
+              onClick={() => farcasterUser && sendTransaction({
                 to: "0x000000000000000000000000000000000000dEaD", // Burn address 
                 value: parseEther('0.0001') // 0.0001 ETH fee for quest
               })}
