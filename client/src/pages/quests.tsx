@@ -429,7 +429,8 @@ export default function Quests() {
             </Button>
             
             {/* Share button - only show if quest completed today */}
-            {hasClaimedBaseTransaction && (
+            {/* Share button - temporarily hidden */}
+            {false && hasClaimedBaseTransaction && (
               <ComposeCastButton
                 type="quest"
                 questName="Hello TravelMint"
