@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import sdk from "@farcaster/frame-sdk";
 
+// Helper function to convert fixed-point values (stored as integers * 100) to display format
+const pointsToDisplay = (points: number): string => {
+  return (points / 100).toFixed(2);
+};
+
 interface LeaderboardEntry {
   farcasterFid: string;
   farcasterUsername: string;
@@ -132,7 +137,7 @@ export default function Leaderboard() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold" data-testid="user-points">{currentUserEntry.totalPoints}</div>
+                <div className="text-2xl font-bold" data-testid="user-points">{pointsToDisplay(currentUserEntry.totalPoints)}</div>
                 <div className="text-sm text-muted-foreground">points</div>
               </div>
             </div>
@@ -164,7 +169,7 @@ export default function Leaderboard() {
                       <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <h3 className="font-bold mb-1" data-testid={`rank-${entry.rank}-username`}>{entry.farcasterUsername}</h3>
-                    <p className="text-2xl font-bold text-primary mb-2" data-testid={`rank-${entry.rank}-points`}>{entry.totalPoints}</p>
+                    <p className="text-2xl font-bold text-primary mb-2" data-testid={`rank-${entry.rank}-points`}>{pointsToDisplay(entry.totalPoints)}</p>
                     <Badge variant="secondary">
                       {entry.currentStreak} day streak
                     </Badge>
@@ -214,7 +219,7 @@ export default function Leaderboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold" data-testid={`row-${entry.rank}-points`}>{entry.totalPoints}</div>
+                    <div className="font-bold" data-testid={`row-${entry.rank}-points`}>{pointsToDisplay(entry.totalPoints)}</div>
                     <div className="text-sm text-muted-foreground">points</div>
                   </div>
                 </div>
