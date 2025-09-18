@@ -1726,31 +1726,8 @@ export async function registerRoutes(app: Express) {
           break;
           
         case 'base_transaction':
-          if (!walletAddress) {
-            return res.status(400).json({ message: "Wallet address required for Base transaction quest" });
-          }
-          
-          // SECURITY: Verify wallet ownership - STRICT verification only
-          const userWallets = await storage.getUserWallets(farcasterFid);
-          const connectedWallet = walletAddress.toLowerCase();
-          const ownedWallets = userWallets.map(w => w.walletAddress.toLowerCase());
-          
-          // Check if connected wallet is owned by user OR if it's their main wallet address
-          const userStatsWallet = existingUserStats?.walletAddress?.toLowerCase();
-          const isWalletOwned = ownedWallets.includes(connectedWallet) || userStatsWallet === connectedWallet;
-          
-          if (!isWalletOwned) {
-            return res.status(403).json({ 
-              message: "This wallet is not linked to your account. Please connect a verified wallet to claim Base transaction rewards." 
-            });
-          }
-          
-          // Check if user made any Base transaction today using their verified wallet
-          const hasTransaction = await withRetry(() => blockchainService.hasBaseTransactionToday(connectedWallet));
-          if (!hasTransaction) {
-            return res.status(400).json({ message: "No Base network transaction found today. Make any transaction on Base to claim this quest." });
-          }
-          
+          // Simple daily claim - no transaction verification required
+          // The unique constraint on (farcaster_fid, quest_type, completion_date) prevents multiple claims per day
           pointsEarned = 0.25; // 0.25 points for Base transaction (will be converted to fixed-point 25 in storage)
           break;
           
