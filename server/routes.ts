@@ -1726,16 +1726,8 @@ export async function registerRoutes(app: Express) {
           break;
           
         case 'base_transaction':
-          if (!walletAddress) {
-            return res.status(400).json({ message: "Wallet address required for Base transaction quest" });
-          }
-          
-          // Check if user made any Base transaction today using their wallet
-          const hasTransaction = await withRetry(() => blockchainService.hasBaseTransactionToday(walletAddress));
-          if (!hasTransaction) {
-            return res.status(400).json({ message: "No Base network transaction found today. Make any transaction on Base to claim this quest." });
-          }
-          
+          // No transaction verification - user can claim daily and make their first Base transaction
+          // The unique constraint on (farcaster_fid, quest_type, completion_date) prevents multiple claims per day
           pointsEarned = 0.25; // 0.25 points for Base transaction (will be converted to fixed-point 25 in storage)
           break;
           
