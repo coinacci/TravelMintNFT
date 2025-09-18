@@ -35,7 +35,7 @@ export function createApp() {
         "tagline": "Turn travel into NFTs",
         "ogTitle": "TravelMint NFT App",
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-        "ogImageUrl": `https://travelnft.replit.app/og-image.jpeg${cacheBuster}`,
+        "ogImageUrl": `https://travelnft.replit.app/og-image-1200x630.jpeg${cacheBuster}`,
         "castShareUrl": `https://travelnft.replit.app/share${cacheBuster}`,
         "webhookUrl": "https://travelnft.replit.app/api/webhook",
         "license": "MIT",
