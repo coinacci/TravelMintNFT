@@ -202,6 +202,20 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         revert("Mint price is fixed at 1 USDC");
     }
 
+    /**
+     * @dev Claim Base network reward - simple on-chain transaction for quest
+     */
+    function claimBaseReward() external payable {
+        // Minimal transaction fee required (0.0001 ETH)
+        require(msg.value >= 0.0001 ether, "Minimum fee required: 0.0001 ETH");
+        
+        // Emit event for quest tracking
+        emit BaseRewardClaimed(msg.sender, msg.value, block.timestamp);
+    }
+    
+    // New event for Base reward claims
+    event BaseRewardClaimed(address indexed user, uint256 amount, uint256 timestamp);
+
     // Required overrides
     function tokenURI(uint256 tokenId)
         public

@@ -10,6 +10,22 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseEther } from "viem";
+
+// Contract configuration
+const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
+
+// ABI for claimBaseReward function
+const QUEST_ABI = [
+  {
+    "inputs": [],
+    "name": "claimBaseReward",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+] as const;
 
 // Helper function to convert fixed-point values (stored as integers * 100) to display format
 const pointsToDisplay = (points: number): string => {
@@ -35,6 +51,10 @@ export default function Quests() {
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
   const { address } = useAccount();
   const { toast } = useToast();
+
+  // Smart contract interactions for Base transaction quest
+  const { data: claimHash, error: claimError, isPending: isClaimPending, writeContract: claimContract } = useWriteContract();
+  const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
   // Get Farcaster user context
@@ -157,30 +177,51 @@ export default function Quests() {
     }
   });
 
-  // Base transaction mutation
-  const baseTransactionMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: String(farcasterUser.fid),
-      questType: 'base_transaction',
-      walletAddress: address,
-      farcasterUsername: farcasterUser.username
-    }),
-    onSuccess: () => {
+  // Handle successful Base claim transaction
+  useEffect(() => {
+    if (isClaimConfirmed && claimHash) {
+      // Transaction confirmed, now claim quest rewards via API
+      const claimQuestReward = async () => {
+        try {
+          await apiRequest('POST', '/api/quest-claim', {
+            farcasterFid: String(farcasterUser.fid),
+            questType: 'base_transaction',
+            walletAddress: address,
+            farcasterUsername: farcasterUser.username
+          });
+
+          toast({
+            title: "Hello TravelMint! ⚡",
+            description: "+0.25 points earned for Base transaction!"
+          });
+          
+          queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+          queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+        } catch (error) {
+          toast({
+            title: "Quest claiming failed",
+            description: "Transaction successful but points not awarded. Please try again.",
+            variant: "destructive"
+          });
+        }
+      };
+
+      claimQuestReward();
+    }
+  }, [isClaimConfirmed, claimHash, farcasterUser, address, toast, queryClient]);
+
+  // Handle claim transaction errors
+  useEffect(() => {
+    if (claimError) {
       toast({
-        title: "Hello TravelMint! ⚡",
-        description: "+0.25 points earned for Base transaction!"
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to claim Base transaction bonus",
-        description: "Make any transaction on Base network first",
+        title: "Transaction Failed",
+        description: claimError.message.includes('User rejected') 
+          ? "Transaction cancelled by user"
+          : "Failed to complete Base transaction",
         variant: "destructive"
       });
     }
-  });
+  }, [claimError, toast]);
 
 
   if (statsLoading) {
@@ -348,8 +389,11 @@ export default function Quests() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => farcasterUser && baseTransactionMutation.mutate()}
-              disabled={!farcasterUser || !address || hasClaimedBaseTransaction || baseTransactionMutation.isPending}
+              onClick={() => farcasterUser && claimContract({
+                to: "0x000000000000000000000000000000000000dEaD", // Burn address 
+                value: parseEther('0.0001') // 0.0001 ETH fee for quest
+              })}
+              disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               className="w-full"
               data-testid="button-base-transaction"
             >
