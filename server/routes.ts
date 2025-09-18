@@ -83,6 +83,84 @@ export async function registerRoutes(app: Express) {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
   });
 
+  // Base App compatible HTML endpoint  
+  app.get("/base", (req, res) => {
+    // Dynamic URL construction for environment flexibility
+    const baseUrl = req.protocol + '://' + req.get('host');
+    
+    const baseAppHtml = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    
+    <!-- Security headers for Base App validation -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    
+    <!-- App Meta Tags -->
+    <title>TravelMint - Travel Photo NFT Marketplace</title>
+    <meta name="description" content="Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates." />
+    
+    <!-- Base App Integration Meta Tags -->
+    <meta name="noindex" content="false" />
+    <meta name="robots" content="index, follow" />
+    <meta name="primaryCategory" content="social" />
+    
+    <!-- Base App Compatible Mini App Discovery Tags -->
+    <meta name="fc:miniapp" content='{
+      "version": "1",
+      "iconUrl": "${baseUrl}/base-icon.png",
+      "imageUrl": "${baseUrl}/base-image.png",
+      "button": {
+        "title": "Open TravelMint",
+        "action": {
+          "type": "link",
+          "name": "TravelMint",
+          "url": "${baseUrl}",
+          "splashImageUrl": "${baseUrl}/base-splash.png",
+          "splashBackgroundColor": "#0f172a"
+        }
+      }
+    }' />
+    
+    <!-- Base App Compatible Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/base-icon.png" />
+    <link rel="apple-touch-icon" href="/base-icon.png" />
+    <meta name="theme-color" content="#0f172a" />
+    
+    <!-- Open Graph Tags - Base App Compatible -->
+    <meta property="og:title" content="TravelMint - Travel Photo NFT Marketplace" />
+    <meta property="og:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
+    <meta property="og:image" content="${baseUrl}/base-image.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${baseUrl}" />
+    <meta property="og:site_name" content="TravelMint" />
+    
+    <!-- Twitter Card Tags - Base App Compatible -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TravelMint - Travel Photo NFT Marketplace" />
+    <meta name="twitter:description" content="Turn your travel memories into NFTs" />
+    <meta name="twitter:image" content="${baseUrl}/base-image.png" />
+    
+    <!-- Additional Base App Meta Tags -->
+    <meta name="keywords" content="travel, nft, blockchain, photography, base, web3, social, map, location" />
+    <meta name="author" content="TravelMint" />
+    <meta name="application-name" content="TravelMint" />
+  </head>
+  <body>
+    <h1>TravelMint - Base App Validation</h1>
+    <p>This page is optimized for Base App validation. <a href="/">Go to main app</a></p>
+  </body>
+</html>`;
+
+    // Set headers for Base App validation and embedding
+    res.setHeader('Content-Type', 'text/html');
+    res.removeHeader('X-Frame-Options'); // Remove blocking header for Base App embedding
+    res.setHeader('Content-Security-Policy', 'frame-ancestors https:'); // Allow Base App embedding
+    res.send(baseAppHtml);
+  });
+
   // Farcaster frame endpoint for validation
   app.post("/api/frame", (req, res) => {
     try {
