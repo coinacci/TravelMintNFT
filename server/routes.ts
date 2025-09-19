@@ -1755,10 +1755,7 @@ export async function registerRoutes(app: Express) {
       const limit = validationResult.data.limit ? parseInt(validationResult.data.limit) : 10;
       const champions = await storage.getWeeklyChampions(limit);
       
-      // Filter out @coinacci from weekly champions for testing purposes
-      const filteredChampions = champions.filter(champion => champion.farcasterUsername !== 'coinacci');
-      
-      res.json(filteredChampions);
+      res.json(champions);
     } catch (error) {
       console.error('Error fetching weekly champions:', error);
       res.status(500).json({ message: "Failed to fetch weekly champions" });

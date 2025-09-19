@@ -517,6 +517,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(weeklyChampions)
+      .where(sql`${weeklyChampions.farcasterUsername} != 'coinacci'`)
       .orderBy(sql`${weeklyChampions.year} DESC, ${weeklyChampions.weekNumber} DESC`)
       .limit(limit);
   }
