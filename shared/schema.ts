@@ -241,7 +241,16 @@ export function getWeekEnd(weekStart: string): string {
 }
 
 export function getWeekNumber(date: Date = new Date()): number {
-  const start = new Date(date.getFullYear(), 0, 1);
-  const days = Math.floor((date.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
-  return Math.ceil((days + start.getDay() + 1) / 7);
+  // Mini app started on Monday, December 30, 2024 (Week 1)
+  const appStartDate = new Date('2024-12-30'); // Monday, December 30, 2024
+  const currentDate = new Date(date);
+  
+  // If date is before app start, return 0
+  if (currentDate < appStartDate) {
+    return 0;
+  }
+  
+  const diffTime = currentDate.getTime() - appStartDate.getTime();
+  const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+  return Math.floor(diffDays / 7) + 1; // Week 1 starts from app launch
 }

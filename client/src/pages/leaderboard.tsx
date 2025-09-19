@@ -242,26 +242,32 @@ export default function Leaderboard() {
             </TabsContent>
             
             <TabsContent value="weekly">
-              {/* Show latest weekly champion if exists */}
-              {weeklyChampions.length > 0 && (
-                <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-lg">Previous Weekly Champion</h3>
-                      <p className="text-sm text-muted-foreground">@{weeklyChampions[0].farcasterUsername}</p>
+              {/* Show latest weekly champion if exists and week has ended */}
+              {weeklyChampions.length > 0 && (() => {
+                const today = new Date();
+                const championWeekEnd = new Date(weeklyChampions[0].weekEndDate);
+                const hasWeekEnded = today > championWeekEnd;
+                
+                return hasWeekEnded && (
+                  <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-lg">Previous Weekly Champion</h3>
+                        <p className="text-sm text-muted-foreground">@{weeklyChampions[0].farcasterUsername}</p>
+                      </div>
+                      <WeeklyChampionBadge
+                        weekNumber={weeklyChampions[0].weekNumber}
+                        year={weeklyChampions[0].year}
+                        weekStartDate={weeklyChampions[0].weekStartDate}
+                        weekEndDate={weeklyChampions[0].weekEndDate}
+                      />
                     </div>
-                    <WeeklyChampionBadge
-                      weekNumber={weeklyChampions[0].weekNumber}
-                      year={weeklyChampions[0].year}
-                      weekStartDate={weeklyChampions[0].weekStartDate}
-                      weekEndDate={weeklyChampions[0].weekEndDate}
-                    />
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Won with {pointsToDisplay(weeklyChampions[0].weeklyPoints)} points
+                    </div>
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Won with {pointsToDisplay(weeklyChampions[0].weeklyPoints)} points
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               
               {weeklyLeaderboard.length === 0 ? (
                 <div className="text-center py-8">

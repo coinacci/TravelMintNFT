@@ -280,6 +280,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(userStats)
+      .where(sql`${userStats.weeklyPoints} > 0`)
       .orderBy(sql`${userStats.weeklyPoints} DESC`)
       .limit(limit);
   }
