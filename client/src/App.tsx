@@ -127,16 +127,24 @@ function App() {
       // Get Farcaster context if available (optional, non-blocking, safe)
       if (typeof window !== 'undefined' && sdk?.context) {
         // Wrap in setTimeout to prevent blocking app initialization
-        setTimeout(() => {
-          Promise.resolve(sdk.context)
-            .then((appContext: any) => {
+        setTimeout(async () => {
+          try {
+            let appContext;
+            try {
+              appContext = await Promise.resolve(sdk.context);
+            } catch (contextError) {
+              // Fallback: try treating it as a direct object
+              appContext = sdk.context as any;
+            }
+            
+            if (appContext) {
               setContext(appContext);
               console.log('✅ Farcaster context loaded:', appContext?.user?.displayName || 'User');
-            })
-            .catch((error) => {
-              // Silent fail - don't let Farcaster context issues crash app
-              console.log('ℹ️ Running in web browser mode (Farcaster context not available)');
-            });
+            }
+          } catch (error) {
+            // Silent fail - don't let Farcaster context issues crash app
+            console.log('ℹ️ Running in web browser mode (Farcaster context not available):', (error as any)?.message || error);
+          }
         }, 100); // Small delay to prevent blocking
       } else {
         console.log('🌐 No Farcaster SDK available - running in standard web browser');

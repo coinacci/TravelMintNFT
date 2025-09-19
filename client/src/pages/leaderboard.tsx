@@ -34,22 +34,39 @@ export default function Leaderboard() {
     const getFarcasterContext = async () => {
       try {
         if (typeof window !== 'undefined' && sdk?.context) {
-          const context = await Promise.resolve(sdk.context);
+          // Handle both promise and non-promise context
+          let context: any;
+          try {
+            context = await Promise.resolve(sdk.context);
+          } catch (contextError) {
+            // Fallback: try treating it as a direct object
+            context = sdk.context as any;
+          }
+          
           if (context?.user) {
+            console.log('✅ Farcaster user found in leaderboard:', context.user.username);
             setFarcasterUser({
               fid: context.user.fid,
               username: context.user.username,
               displayName: context.user.displayName,
               pfpUrl: context.user.pfpUrl
             });
+          } else {
+            console.log('ℹ️ No Farcaster user in context');
           }
+        } else {
+          console.log('ℹ️ No Farcaster SDK available in leaderboard');
         }
       } catch (error) {
-        console.log('ℹ️ No Farcaster context in leaderboard');
+        console.error('❌ Error getting Farcaster context in leaderboard:', error);
+        // Don't throw - just continue without Farcaster context
       }
     };
     
-    getFarcasterContext();
+    // Add delay to prevent blocking and race conditions
+    setTimeout(() => {
+      getFarcasterContext();
+    }, 200);
   }, []);
 
   // Check if user has access (either Farcaster or connected wallet)
