@@ -84,9 +84,11 @@ export const userStats = pgTable("user_stats", {
   farcasterUsername: text("farcaster_username").notNull(),
   walletAddress: text("wallet_address"), // Nullable - only required for holder bonus
   totalPoints: integer("total_points").default(0).notNull(), // Stored as fixed-point (points * 100)
+  weeklyPoints: integer("weekly_points").default(0).notNull(), // Weekly points - resets every Monday
   currentStreak: integer("current_streak").default(0).notNull(),
   lastCheckIn: timestamp("last_check_in"),
   lastStreakClaim: timestamp("last_streak_claim"),
+  weeklyResetDate: text("weekly_reset_date"), // YYYY-MM-DD format - tracks last weekly reset
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -192,4 +194,52 @@ export function getYesterdayQuestDay(date: Date = new Date()): string {
   // UTC-safe: subtract 24 hours in milliseconds to avoid DST issues
   const yesterdayDate = new Date(date.getTime() - 24 * 60 * 60 * 1000);
   return getQuestDay(yesterdayDate);
+}
+
+// Weekly Champions Badge Table
+export const weeklyChampions = pgTable("weekly_champions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  farcasterUsername: text("farcaster_username").notNull(),
+  weekStartDate: text("week_start_date").notNull(), // YYYY-MM-DD format - Monday of the week
+  weekEndDate: text("week_end_date").notNull(), // YYYY-MM-DD format - Sunday of the week
+  weeklyPoints: integer("weekly_points").notNull(), // Final points for that week
+  weekNumber: integer("week_number").notNull(), // Week number of the year
+  year: integer("year").notNull(), // Year of the championship
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    // Unique constraint: one champion per week
+    uniqueChampionPerWeek: sql`UNIQUE (week_start_date, year)`,
+  };
+});
+
+export const insertWeeklyChampionSchema = createInsertSchema(weeklyChampions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWeeklyChampion = z.infer<typeof insertWeeklyChampionSchema>;
+export type WeeklyChampion = typeof weeklyChampions.$inferSelect;
+
+// Weekly utilities
+export function getCurrentWeekStart(date: Date = new Date()): string {
+  const current = new Date(date);
+  // Get Monday of current week (0 = Sunday, 1 = Monday)
+  const dayOfWeek = current.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days to Monday
+  current.setDate(current.getDate() + mondayOffset);
+  return current.toISOString().split('T')[0];
+}
+
+export function getWeekEnd(weekStart: string): string {
+  const startDate = new Date(weekStart);
+  startDate.setDate(startDate.getDate() + 6); // Sunday = Monday + 6 days
+  return startDate.toISOString().split('T')[0];
+}
+
+export function getWeekNumber(date: Date = new Date()): number {
+  const start = new Date(date.getFullYear(), 0, 1);
+  const days = Math.floor((date.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.ceil((days + start.getDay() + 1) / 7);
 }
