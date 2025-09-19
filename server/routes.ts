@@ -1782,7 +1782,7 @@ export async function registerRoutes(app: Express) {
         ...result,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Admin backfill failed:', error);
       res.status(500).json({ 
         success: false, 
@@ -1812,7 +1812,7 @@ export async function registerRoutes(app: Express) {
         message: "Weekly reset completed successfully",
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Cron weekly reset failed:', error);
       res.status(500).json({ 
         success: false, 

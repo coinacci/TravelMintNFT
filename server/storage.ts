@@ -532,7 +532,23 @@ export class DatabaseStorage implements IStorage {
     return await db.transaction(async (tx) => {
       const currentWeekStart = getCurrentWeekStart();
       
-      // Update users who haven't been migrated yet (weeklyResetDate IS NULL)
+      // First check how many users need backfill
+      const usersNeedingBackfill = await tx
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.weeklyPoints} = 0 AND ${userStats.totalPoints} > 0`);
+      
+      console.log(`🔍 Found ${usersNeedingBackfill.length} users needing weekly points backfill`);
+      
+      if (usersNeedingBackfill.length === 0) {
+        console.log('📋 No users needed weekly points backfill (all already migrated)');
+        return {
+          updated: 0,
+          message: 'No users needed backfill - all users already have weekly points initialized'
+        };
+      }
+      
+      // Update users who have 0 weekly points but positive total points
       const result = await tx
         .update(userStats)
         .set({
@@ -540,23 +556,15 @@ export class DatabaseStorage implements IStorage {
           weeklyResetDate: currentWeekStart, // Mark as migrated to current week
           updatedAt: new Date(),
         })
-        .where(sql`${userStats.weeklyResetDate} IS NULL`); // Only update unmigrated users
+        .where(sql`${userStats.weeklyPoints} = 0 AND ${userStats.totalPoints} > 0`);
 
       const updatedCount = result.rowCount || 0;
       
-      if (updatedCount > 0) {
-        console.log(`✅ Backfilled weekly points for ${updatedCount} users`);
-        return {
-          updated: updatedCount,
-          message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
-        };
-      } else {
-        console.log('📋 No users needed weekly points backfill (all already migrated)');
-        return {
-          updated: 0,
-          message: 'No users needed backfill - all users already have weekly points initialized'
-        };
-      }
+      console.log(`✅ Backfilled weekly points for ${updatedCount} users`);
+      return {
+        updated: updatedCount,
+        message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
+      };
     });
   }
 }
