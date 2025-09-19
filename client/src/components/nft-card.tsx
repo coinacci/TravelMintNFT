@@ -30,6 +30,21 @@ interface NFTCardProps {
 // Simple loading placeholder
 const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
+// Generate consistent color for wallet address
+const getWalletColor = (walletAddress: string): string => {
+  // Simple hash function to generate consistent colors
+  let hash = 0;
+  for (let i = 0; i < walletAddress.length; i++) {
+    const char = walletAddress.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Convert hash to HSL color (hue varies, saturation and lightness fixed for good visibility)
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+};
+
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
   const { toast } = useToast();
@@ -180,33 +195,15 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           </div>
         )}
         
-        {/* Wallet Source Badge */}
-        {nft.sourcePlatform && (
+        {/* Wallet Color Badge */}
+        {nft.sourceWallet && (
           <div className="absolute top-2 right-2 z-10">
-            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm border ${
-              nft.sourcePlatform === 'farcaster' 
-                ? 'bg-purple-500/80 text-white border-purple-400/50' 
-                : nft.sourcePlatform === 'base_app'
-                ? 'bg-blue-500/80 text-white border-blue-400/50'
-                : 'bg-gray-500/80 text-white border-gray-400/50'
-            }`} data-testid={`wallet-badge-${nft.id}`}>
-              {nft.sourcePlatform === 'farcaster' ? (
-                <>
-                  <Users className="w-3 h-3 mr-1" />
-                  Farcaster
-                </>
-              ) : nft.sourcePlatform === 'base_app' ? (
-                <>
-                  <Wallet className="w-3 h-3 mr-1" />
-                  Base App
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-3 h-3 mr-1" />
-                  Manual
-                </>
-              )}
-            </div>
+            <div 
+              className="w-4 h-4 rounded-full border-2 border-white/80 backdrop-blur-sm shadow-sm"
+              style={{ backgroundColor: getWalletColor(nft.sourceWallet) }}
+              data-testid={`wallet-badge-${nft.id}`}
+              title={`Wallet: ${nft.sourceWallet.slice(0, 6)}...${nft.sourceWallet.slice(-4)}`}
+            />
           </div>
         )}
         

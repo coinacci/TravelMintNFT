@@ -97,10 +97,10 @@ export default function Quests() {
     enabled: !!farcasterUser?.fid,
   });
 
-  // Check if user holds NFTs (holder status) - simplified to current connected wallet only
+  // Check if user holds NFTs (holder status) - uses all linked wallets + verified addresses
   const { data: holderStatus } = useQuery<{ isHolder: boolean; nftCount: number }>({
-    queryKey: ['/api/holder-status', address],
-    enabled: !!address,
+    queryKey: ['/api/combined-holder-status', farcasterUser?.fid ? String(farcasterUser.fid) : null],
+    enabled: !!farcasterUser?.fid,
   });
 
   // Daily check-in mutation
@@ -127,12 +127,11 @@ export default function Quests() {
     }
   });
 
-  // Holder bonus mutation - simplified to current connected wallet only
+  // Holder bonus mutation - uses combined multi-wallet NFT count
   const holderBonusMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
       farcasterFid: String(farcasterUser.fid),
       questType: 'holder_bonus',
-      walletAddress: address,
       farcasterUsername: farcasterUser.username
     }),
     onSuccess: () => {
@@ -143,7 +142,7 @@ export default function Quests() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
-      queryClient.invalidateQueries({ queryKey: ['/api/holder-status', address] });
+      queryClient.invalidateQueries({ queryKey: ['/api/combined-holder-status', String(farcasterUser.fid)] });
     },
     onError: (error) => {
       toast({
@@ -371,13 +370,12 @@ export default function Quests() {
           <CardContent>
             <Button
               onClick={() => farcasterUser && holderBonusMutation.mutate()}
-              disabled={!farcasterUser || !address || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
+              disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
               className="w-full mb-3"
               data-testid="button-holder-bonus"
             >
               {!farcasterUser ? "Connect via Farcaster First"
-               : !address ? "Connect Wallet First" 
-               : !holderStatus?.isHolder ? "No NFTs Found"
+               : !holderStatus?.isHolder ? "No NFTs Found (across all linked wallets)"
                : hasClaimedHolderBonus ? "✓ Completed Today"
                : `Claim +${holderStatus?.nftCount || 0}.00 Point${((holderStatus?.nftCount || 0) !== 1) ? 's' : ''}`}
             </Button>
