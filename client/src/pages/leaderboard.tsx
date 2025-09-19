@@ -166,7 +166,7 @@ export default function Leaderboard() {
               <div className="flex items-center space-x-4">
                 {getRankIcon(allTimeUserEntry.rank)}
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={farcasterUser.pfpUrl} alt={allTimeUserEntry.farcasterUsername} />
+                  {/* <AvatarImage src={farcasterUser.pfpUrl} alt={allTimeUserEntry.farcasterUsername} /> */}
                   <AvatarFallback>{allTimeUserEntry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -238,7 +238,7 @@ export default function Leaderboard() {
                           #{entry.rank}
                         </Badge>
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={entry.farcasterPfpUrl} alt={entry.farcasterUsername} />
+                          {/* <AvatarImage src={entry.farcasterPfpUrl} alt={entry.farcasterUsername} /> */}
                           <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -308,7 +308,7 @@ export default function Leaderboard() {
                           #{entry.rank}
                         </Badge>
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={entry.farcasterPfpUrl} alt={entry.farcasterUsername} />
+                          {/* <AvatarImage src={entry.farcasterPfpUrl} alt={entry.farcasterUsername} /> */}
                           <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
