@@ -1699,6 +1699,59 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch leaderboard" });
     }
   });
+
+  // Get weekly leaderboard - SECURED
+  app.get("/api/leaderboard/weekly", async (req, res) => {
+    try {
+      // Validate query parameters
+      const validationResult = leaderboardQuerySchema.safeParse(req.query);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid query parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const limit = validationResult.data.limit ? parseInt(validationResult.data.limit) : 50;
+      const weeklyLeaderboard = await storage.getWeeklyLeaderboard(limit);
+      
+      // Filter out @coinacci from leaderboard for testing purposes
+      const filteredLeaderboard = weeklyLeaderboard.filter(entry => entry.farcasterUsername !== 'coinacci');
+      
+      // Add rank to each entry
+      const rankedLeaderboard = filteredLeaderboard.map((entry, index) => ({
+        ...entry,
+        rank: index + 1
+      }));
+      
+      res.json(rankedLeaderboard);
+    } catch (error) {
+      console.error('Error fetching weekly leaderboard:', error);
+      res.status(500).json({ message: "Failed to fetch weekly leaderboard" });
+    }
+  });
+
+  // Get weekly champions - SECURED
+  app.get("/api/weekly-champions", async (req, res) => {
+    try {
+      // Validate query parameters
+      const validationResult = leaderboardQuerySchema.safeParse(req.query);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid query parameters", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
+      const limit = validationResult.data.limit ? parseInt(validationResult.data.limit) : 10;
+      const champions = await storage.getWeeklyChampions(limit);
+      
+      res.json(champions);
+    } catch (error) {
+      console.error('Error fetching weekly champions:', error);
+      res.status(500).json({ message: "Failed to fetch weekly champions" });
+    }
+  });
   
   // SECURED Claim quest reward - CRITICAL SECURITY FIX
   app.post("/api/quest-claim", async (req, res) => {
