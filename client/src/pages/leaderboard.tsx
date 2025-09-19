@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Trophy, Medal, Award, Crown, Target } from "lucide-react";
+import { Trophy, Medal, Award, Crown, Target, Calendar, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import sdk from "@farcaster/frame-sdk";
 import ComposeCastButton from "@/components/ComposeCastButton";
 
@@ -46,14 +47,21 @@ export default function Leaderboard() {
     getFarcasterContext();
   }, []);
 
-  // Fetch leaderboard data
-  const { data: leaderboard = [], isLoading } = useQuery<LeaderboardEntry[]>({
+  // Fetch all-time leaderboard data
+  const { data: allTimeLeaderboard = [], isLoading: isAllTimeLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard'],
     enabled: !!farcasterUser,
   });
 
-  // Find current user's position
-  const currentUserEntry = leaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
+  // Fetch weekly leaderboard data
+  const { data: weeklyLeaderboard = [], isLoading: isWeeklyLoading } = useQuery<LeaderboardEntry[]>({
+    queryKey: ['/api/leaderboard/weekly'],
+    enabled: !!farcasterUser,
+  });
+
+  // Find current user's position in both leaderboards
+  const allTimeUserEntry = allTimeLeaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
+  const weeklyUserEntry = weeklyLeaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
 
   if (!farcasterUser) {
     return (
@@ -69,7 +77,7 @@ export default function Leaderboard() {
     );
   }
 
-  if (isLoading) {
+  if (isAllTimeLoading || isWeeklyLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -116,8 +124,8 @@ export default function Leaderboard() {
         </p>
       </div>
 
-      {/* Current User Position */}
-      {currentUserEntry && (
+      {/* Current User Position - All Time */}
+      {allTimeUserEntry && (
         <Card className="mb-8 border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-center">Your Position</CardTitle>
@@ -125,21 +133,21 @@ export default function Leaderboard() {
           <CardContent>
             <div className="flex items-center justify-between p-4 rounded-lg bg-background">
               <div className="flex items-center space-x-4">
-                {getRankIcon(currentUserEntry.rank)}
+                {getRankIcon(allTimeUserEntry.rank)}
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={farcasterUser.pfpUrl} alt={currentUserEntry.farcasterUsername} />
-                  <AvatarFallback>{currentUserEntry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={farcasterUser.pfpUrl} alt={allTimeUserEntry.farcasterUsername} />
+                  <AvatarFallback>{allTimeUserEntry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold">{currentUserEntry.farcasterUsername}</p>
+                  <p className="font-semibold">{allTimeUserEntry.farcasterUsername}</p>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <span>Streak: {currentUserEntry.currentStreak} days</span>
+                    <span>Streak: {allTimeUserEntry.currentStreak} days</span>
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold" data-testid="user-points">{pointsToDisplay(currentUserEntry.totalPoints)}</div>
-                <div className="text-sm text-muted-foreground">points</div>
+                <div className="text-2xl font-bold" data-testid="user-points">{pointsToDisplay(allTimeUserEntry.totalPoints)}</div>
+                <div className="text-sm text-muted-foreground">all-time points</div>
               </div>
             </div>
             
@@ -147,8 +155,8 @@ export default function Leaderboard() {
             <div className="mt-4 pt-4 border-t border-muted">
               <ComposeCastButton
                 type="leaderboard"
-                leaderboardPosition={currentUserEntry.rank}
-                totalPoints={parseFloat(pointsToDisplay(currentUserEntry.totalPoints))}
+                leaderboardPosition={allTimeUserEntry.rank}
+                totalPoints={parseFloat(pointsToDisplay(allTimeUserEntry.totalPoints))}
                 variant="outline"
                 size="sm"
                 className="w-full"
@@ -158,87 +166,108 @@ export default function Leaderboard() {
         </Card>
       )}
 
-      {/* Top 3 Podium */}
-      {leaderboard.length >= 3 && (
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4 text-center">Top 3</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[2, 1, 3].map((position) => {
-              const entry = leaderboard.find(e => e.rank === position);
-              if (!entry) return null;
-              
-              return (
-                <Card 
-                  key={entry.farcasterFid} 
-                  className={`${position === 1 ? 'order-2 md:order-2 scale-105' : position === 2 ? 'order-1 md:order-1' : 'order-3 md:order-3'} ${
-                    entry.farcasterFid === farcasterUser?.fid ? 'ring-2 ring-primary' : ''
-                  }`}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="mb-4">
-                      {getRankIcon(entry.rank)}
-                    </div>
-                    <Avatar className="h-16 w-16 mx-auto mb-3">
-                      <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-bold mb-1" data-testid={`rank-${entry.rank}-username`}>{entry.farcasterUsername}</h3>
-                    <p className="text-2xl font-bold text-primary mb-2" data-testid={`rank-${entry.rank}-points`}>{pointsToDisplay(entry.totalPoints)}</p>
-                    <Badge variant="secondary">
-                      {entry.currentStreak} day streak
-                    </Badge>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Full Leaderboard */}
+      {/* All Rankings with Tabs */}
       <Card>
         <CardHeader>
           <CardTitle>All Rankings</CardTitle>
         </CardHeader>
         <CardContent>
-          {leaderboard.length === 0 ? (
-            <div className="text-center py-8">
-              <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No quest completers yet. Be the first!</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {leaderboard.map((entry) => (
-                <div
-                  key={entry.farcasterFid}
-                  className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
-                    entry.farcasterFid === farcasterUser?.fid 
-                      ? 'bg-primary/10 border border-primary/20' 
-                      : 'bg-muted/50 hover:bg-muted'
-                  }`}
-                  data-testid={`leaderboard-row-${entry.rank}`}
-                >
-                  <div className="flex items-center space-x-4">
-                    <Badge variant={getRankBadgeVariant(entry.rank)}>
-                      #{entry.rank}
-                    </Badge>
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium" data-testid={`row-${entry.rank}-username`}>{entry.farcasterUsername}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {entry.currentStreak} day streak
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold" data-testid={`row-${entry.rank}-points`}>{pointsToDisplay(entry.totalPoints)}</div>
-                    <div className="text-sm text-muted-foreground">points</div>
-                  </div>
+          <Tabs defaultValue="all-time" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="all-time" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                All Time
+              </TabsTrigger>
+              <TabsTrigger value="weekly" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Weekly
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all-time">
+              {allTimeLeaderboard.length === 0 ? (
+                <div className="text-center py-8">
+                  <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No quest completers yet. Be the first!</p>
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <div className="space-y-2">
+                  {allTimeLeaderboard.map((entry) => (
+                    <div
+                      key={entry.farcasterFid}
+                      className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
+                        entry.farcasterFid === farcasterUser?.fid 
+                          ? 'bg-primary/10 border border-primary/20' 
+                          : 'bg-muted/50 hover:bg-muted'
+                      }`}
+                      data-testid={`leaderboard-row-${entry.rank}`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <Badge variant={getRankBadgeVariant(entry.rank)}>
+                          #{entry.rank}
+                        </Badge>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium" data-testid={`row-${entry.rank}-username`}>{entry.farcasterUsername}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {entry.currentStreak} day streak
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold" data-testid={`row-${entry.rank}-points`}>{pointsToDisplay(entry.totalPoints)}</div>
+                        <div className="text-sm text-muted-foreground">points</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="weekly">
+              {weeklyLeaderboard.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No weekly quest completers yet. Start completing quests to be this week's champion!</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {weeklyLeaderboard.map((entry) => (
+                    <div
+                      key={entry.farcasterFid}
+                      className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
+                        entry.farcasterFid === farcasterUser?.fid 
+                          ? 'bg-primary/10 border border-primary/20' 
+                          : 'bg-muted/50 hover:bg-muted'
+                      }`}
+                      data-testid={`weekly-leaderboard-row-${entry.rank}`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <Badge variant={getRankBadgeVariant(entry.rank)}>
+                          #{entry.rank}
+                        </Badge>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium" data-testid={`weekly-row-${entry.rank}-username`}>{entry.farcasterUsername}</p>
+                          <p className="text-sm text-muted-foreground">
+                            This week's points
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold" data-testid={`weekly-row-${entry.rank}-points`}>{pointsToDisplay(entry.weeklyPoints || 0)}</div>
+                        <div className="text-sm text-muted-foreground">weekly points</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
