@@ -29,6 +29,11 @@ export default function Leaderboard() {
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
   const { address, isConnected } = useAccount();
   
+  console.log('🎯 Leaderboard rendering with:', { 
+    farcasterUser: farcasterUser?.username || 'none', 
+    isConnected 
+  });
+  
   // Get Farcaster user context
   useEffect(() => {
     const getFarcasterContext = async () => {
@@ -70,7 +75,8 @@ export default function Leaderboard() {
   }, []);
 
   // Check if user has access (either Farcaster or connected wallet)
-  const hasAccess = farcasterUser || isConnected;
+  // In Farcaster environment, always enable queries initially - access check happens on server
+  const hasAccess = true; // Changed to always true - server will handle access control
 
   // Fetch all-time leaderboard data
   const { data: allTimeLeaderboard = [], isLoading: isAllTimeLoading } = useQuery<LeaderboardEntry[]>({
@@ -94,19 +100,8 @@ export default function Leaderboard() {
   const allTimeUserEntry = allTimeLeaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
   const weeklyUserEntry = weeklyLeaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
 
-  if (!hasAccess) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <Trophy className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Connect Required</h1>
-          <p className="text-muted-foreground">
-            Please connect your wallet or access through Farcaster to view the leaderboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Server handles access control, so we don't need to block UI here
+  // This prevents issues in Farcaster environment where context loads asynchronously
 
   if (isAllTimeLoading || isWeeklyLoading) {
     return (

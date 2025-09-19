@@ -45,8 +45,15 @@ class ErrorBoundary extends Component<{children: ReactNode}, ErrorBoundaryState>
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('🚨 CRITICAL: Error caught by boundary:', error, errorInfo);
+    console.error('🚨 CRITICAL: Error caught by boundary:', error);
+    console.error('🚨 Error message:', error.message);
+    console.error('🚨 Error stack:', error.stack);
     console.error('🚨 Component stack:', errorInfo.componentStack);
+    
+    // Send error details to console for debugging
+    if (typeof window !== 'undefined') {
+      (window as any).lastError = { error, errorInfo };
+    }
   }
 
   render() {
