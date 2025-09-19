@@ -41,17 +41,17 @@ export default function ComposeCastButton({
 
     switch (type) {
       case 'quest':
-        return `🎯 Just completed "${questName}" quest on @TravelMint and earned ${questPoints} points! Building my travel NFT collection on @base #TravelNFT #Base 🗺️✨`;
+        return `🎯 Just completed "${questName}" quest on TravelMint and earned ${questPoints} points! Building my travel NFT collection on Base blockchain 🗺️✨`;
       
       case 'mint':
-        return `📸 Just minted a new travel NFT "${nftName}" on @TravelMint! Creating memories on @base blockchain #TravelNFT #Base 🌍⛓️`;
+        return `📸 Just minted a new travel NFT "${nftName}" on TravelMint! Creating memories on Base blockchain 🌍⛓️`;
       
       case 'leaderboard':
-        return `🏆 Ranked #${leaderboardPosition} on @TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on @base #TravelNFT #Base 🎖️`;
+        return `🏆 Ranked ${leaderboardPosition}th on TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on Base blockchain 🎖️`;
       
       case 'general':
       default:
-        return `🗺️ Exploring @TravelMint - the travel photo NFT marketplace on @base! Turn your travel memories into NFTs #TravelNFT #Base ✨`;
+        return `🗺️ Exploring TravelMint - the travel photo NFT marketplace on Base! Turn your travel memories into NFTs ✨`;
     }
   };
 
