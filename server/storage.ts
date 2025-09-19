@@ -303,25 +303,42 @@ export class DatabaseStorage implements IStorage {
 
   // Multi-wallet operations
   async addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet> {
+    const lowerAddress = walletAddress.toLowerCase();
+    
+    // First, try to upsert: update platform if wallet already exists for this FID
+    const [updated] = await db
+      .update(userWallets)
+      .set({ platform })
+      .where(sql`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${lowerAddress}`)
+      .returning();
+    
+    if (updated) {
+      console.log(`🔄 Updated existing wallet platform: ${lowerAddress} → ${platform}`);
+      return updated;
+    }
+    
+    // If no existing wallet found, insert new one
     const [userWallet] = await db
       .insert(userWallets)
       .values({
         farcasterFid,
-        walletAddress: walletAddress.toLowerCase(),
+        walletAddress: lowerAddress,
         platform
       })
       .onConflictDoNothing()
       .returning();
     
     if (!userWallet) {
-      // If conflict, return the existing one
+      // If still conflict (edge case), return the existing one
       const [existing] = await db
         .select()
         .from(userWallets)
-        .where(sql`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${walletAddress.toLowerCase()} AND ${userWallets.platform} = ${platform}`);
+        .where(sql`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${lowerAddress}`);
+      console.log(`ℹ️ Returning existing wallet: ${lowerAddress} (${existing?.platform})`);
       return existing;
     }
     
+    console.log(`✅ Created new wallet link: ${lowerAddress} → ${platform}`);
     return userWallet;
   }
 

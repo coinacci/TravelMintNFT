@@ -72,7 +72,7 @@ export default function MyNFTs() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector } = useAccount();
   const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
   const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
   const { switchChain } = useSwitchChain();
@@ -127,16 +127,31 @@ export default function MyNFTs() {
   // Auto-link wallet for Farcaster users
   useEffect(() => {
     const linkWallet = async () => {
-      if (farcasterUser && address && isConnected) {
+      if (farcasterUser && address && isConnected && connector) {
         try {
-          console.log(`🔗 Auto-linking wallet ${address} to Farcaster FID ${farcasterUser.fid}`);
+          // Debug log connector information
+          console.log(`🔍 Connector details:`, { 
+            id: connector.id, 
+            name: connector.name, 
+            type: connector.type 
+          });
+          
+          // Detect wallet type based on connector
+          const isFarcasterWallet = connector.id === 'farcasterMiniApp' || connector.name?.includes('Farcaster');
+          const platform = isFarcasterWallet ? 'farcaster' : 'base_app';
+          
+          console.log(`🔗 Auto-linking wallet ${address} to Farcaster FID ${farcasterUser.fid} (${platform} wallet)`);
           
           await apiRequest('POST', `/api/user/${farcasterUser.fid}/link-wallet`, {
             walletAddress: address,
-            platform: 'base_app'
+            platform: platform
           });
           
-          console.log('✅ Wallet auto-linked successfully');
+          console.log(`✅ Wallet auto-linked successfully as ${platform} wallet`);
+          
+          // Invalidate multi-wallet query to refresh labels immediately
+          queryClient.invalidateQueries({ queryKey: [`/api/user/${farcasterUser.fid}/all-nfts`] });
+          
         } catch (error) {
           console.log('ℹ️ Wallet may already be linked:', error);
         }
@@ -144,7 +159,7 @@ export default function MyNFTs() {
     };
     
     linkWallet();
-  }, [farcasterUser, address, isConnected]);
+  }, [farcasterUser, address, isConnected, connector]);
 
   // Single wallet query (current behavior)
   const { data: singleWalletNFTs = [], isLoading: isSingleLoading, isError: isSingleError, error: singleError } = useQuery<NFT[]>({
