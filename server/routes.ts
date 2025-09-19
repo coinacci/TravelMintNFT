@@ -625,6 +625,56 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Link wallet to Farcaster user
+  app.post("/api/user/:farcasterFid/link-wallet", async (req, res) => {
+    try {
+      const farcasterFid = req.params.farcasterFid;
+      const { walletAddress, platform = 'base_app' } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ message: "Wallet address required" });
+      }
+      
+      console.log(`🔗 Linking wallet ${walletAddress} to Farcaster FID ${farcasterFid} (platform: ${platform})`);
+      
+      // Ensure user stats exist (foreign key requirement)
+      console.log(`🔍 Checking existing user stats for Farcaster FID: ${farcasterFid}`);
+      let userStats = await storage.getUserStats(farcasterFid);
+      
+      if (!userStats) {
+        console.log(`📊 Creating user stats for new Farcaster FID: ${farcasterFid}`);
+        try {
+          userStats = await storage.createOrUpdateUserStats({
+            farcasterFid,
+            farcasterUsername: '',
+            totalPoints: 0,
+            currentStreak: 0,
+            walletAddress: walletAddress.toLowerCase()
+          });
+          console.log(`✅ User stats created successfully for FID: ${farcasterFid}`);
+        } catch (createError) {
+          console.error(`❌ Failed to create user stats:`, createError);
+          throw createError;
+        }
+      } else {
+        console.log(`ℹ️ User stats already exist for FID: ${farcasterFid}`);
+      }
+      
+      // Add wallet to user's linked wallets
+      const userWallet = await storage.addUserWallet(farcasterFid, walletAddress, platform);
+      
+      console.log(`✅ Wallet linked successfully for Farcaster FID ${farcasterFid}`);
+      res.json({ 
+        success: true, 
+        message: "Wallet linked successfully",
+        userWallet 
+      });
+    } catch (error) {
+      console.error(`Error linking wallet for Farcaster FID ${req.params.farcasterFid}:`, error);
+      res.status(500).json({ message: "Failed to link wallet" });
+    }
+  });
+
   // Get all NFTs for a Farcaster user across all linked wallets
   app.get("/api/user/:farcasterFid/all-nfts", async (req, res) => {
     try {

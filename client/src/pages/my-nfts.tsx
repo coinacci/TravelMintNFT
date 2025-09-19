@@ -124,6 +124,28 @@ export default function MyNFTs() {
     getFarcasterContext();
   }, []);
 
+  // Auto-link wallet for Farcaster users
+  useEffect(() => {
+    const linkWallet = async () => {
+      if (farcasterUser && address && isConnected) {
+        try {
+          console.log(`🔗 Auto-linking wallet ${address} to Farcaster FID ${farcasterUser.fid}`);
+          
+          await apiRequest('POST', `/api/user/${farcasterUser.fid}/link-wallet`, {
+            walletAddress: address,
+            platform: 'base_app'
+          });
+          
+          console.log('✅ Wallet auto-linked successfully');
+        } catch (error) {
+          console.log('ℹ️ Wallet may already be linked:', error);
+        }
+      }
+    };
+    
+    linkWallet();
+  }, [farcasterUser, address, isConnected]);
+
   // Single wallet query (current behavior)
   const { data: singleWalletNFTs = [], isLoading: isSingleLoading, isError: isSingleError, error: singleError } = useQuery<NFT[]>({
     queryKey: [`/api/wallet/${address}/nfts`],
