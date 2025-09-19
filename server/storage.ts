@@ -349,39 +349,118 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userWallets.farcasterFid, farcasterFid));
   }
 
-  async getAllNFTsForUser(farcasterFid: string): Promise<(NFT & { sourceWallet: string; sourcePlatform: string })[]> {
-    // Get all wallets for this Farcaster user
-    const walletList = await this.getUserWallets(farcasterFid);
-    
-    if (walletList.length === 0) {
+  // Fetch verified addresses from Farcaster Hub API
+  async getFarcasterVerifiedAddresses(farcasterFid: string): Promise<string[]> {
+    try {
+      console.log(`🔍 Fetching verified addresses for Farcaster FID ${farcasterFid}`);
+      
+      // Use Farcaster Hub API with fallback endpoints
+      const hubEndpoints = [
+        'https://hub.farcaster.xyz',
+        'https://hub.pinata.cloud'
+      ];
+      
+      for (const hubUrl of hubEndpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const response = await fetch(
+            `${hubUrl}/v1/verificationsByFid?fid=${farcasterFid}`,
+            { signal: controller.signal }
+          );
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            console.log(`⚠️ Hub ${hubUrl} error: ${response.status} ${response.statusText}`);
+            continue;
+          }
+          
+          const data = await response.json();
+          const addresses: string[] = [];
+          
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages.forEach((message: any) => {
+              if (message.data?.verificationAddEthAddressBody?.address) {
+                const address = message.data.verificationAddEthAddressBody.address;
+                if (address.startsWith('0x')) {
+                  addresses.push(address.toLowerCase());
+                }
+              }
+            });
+          }
+          
+          // Deduplicate addresses
+          const uniqueAddresses = Array.from(new Set(addresses));
+          console.log(`✅ Found ${uniqueAddresses.length} verified addresses for FID ${farcasterFid} via ${hubUrl}:`, uniqueAddresses);
+          return uniqueAddresses;
+          
+        } catch (hubError) {
+          console.log(`⚠️ Hub ${hubUrl} failed:`, hubError);
+          continue;
+        }
+      }
+      
+      console.log(`⚠️ All Hub endpoints failed for FID ${farcasterFid}`);
+      return [];
+      
+    } catch (error) {
+      console.error(`❌ Error fetching verified addresses for FID ${farcasterFid}:`, error);
       return [];
     }
+  }
+
+  async getAllNFTsForUser(farcasterFid: string): Promise<(NFT & { sourceWallet: string; sourcePlatform: string })[]> {
+    // Get linked wallets and verified addresses in parallel
+    const [linkedWallets, verifiedAddresses] = await Promise.all([
+      this.getUserWallets(farcasterFid),
+      this.getFarcasterVerifiedAddresses(farcasterFid)
+    ]);
     
-    // SECURITY FIX: Deduplicate wallets by address to prevent duplicates
-    const uniqueWallets = new Map<string, UserWallet>();
-    walletList.forEach(wallet => {
+    // Create wallet map for all addresses (both linked and verified)
+    const uniqueWallets = new Map<string, { address: string; platform: string }>();
+    
+    // Add linked wallets
+    linkedWallets.forEach(wallet => {
       const address = wallet.walletAddress.toLowerCase();
-      if (!uniqueWallets.has(address)) {
-        uniqueWallets.set(address, wallet);
+      uniqueWallets.set(address, {
+        address,
+        platform: wallet.platform
+      });
+    });
+    
+    // Add verified addresses (mark as 'farcaster' platform if not already linked)
+    verifiedAddresses.forEach(address => {
+      const lowerAddress = address.toLowerCase();
+      if (!uniqueWallets.has(lowerAddress)) {
+        uniqueWallets.set(lowerAddress, {
+          address: lowerAddress,
+          platform: 'farcaster'
+        });
       }
     });
     
-    console.log(`🔍 Fetching NFTs for Farcaster FID ${farcasterFid}: ${walletList.length} wallet entries → ${uniqueWallets.size} unique addresses`);
+    console.log(`🔍 Fetching NFTs for Farcaster FID ${farcasterFid}: ${linkedWallets.length} linked + ${verifiedAddresses.length} verified → ${uniqueWallets.size} unique addresses`);
+    
+    if (uniqueWallets.size === 0) {
+      return [];
+    }
     
     const allNFTs: (NFT & { sourceWallet: string; sourcePlatform: string })[] = [];
     
     // Get NFTs from each unique wallet address
     for (const [walletAddress, walletInfo] of Array.from(uniqueWallets.entries())) {
-      const nfts = await this.getNFTsByOwner(walletAddress);
+      const nfts = await this.getNFTsByOwner(walletInfo.address);
       const nftsWithSource = nfts.map(nft => ({
         ...nft,
-        sourceWallet: walletAddress,
+        sourceWallet: walletInfo.address,
         sourcePlatform: walletInfo.platform
       }));
       allNFTs.push(...nftsWithSource);
       
       if (nfts.length > 0) {
-        console.log(`  ✅ Wallet ${walletAddress} (${walletInfo.platform}): ${nfts.length} NFTs`);
+        console.log(`  ✅ Wallet ${walletInfo.address} (${walletInfo.platform}): ${nfts.length} NFTs`);
       }
     }
     
