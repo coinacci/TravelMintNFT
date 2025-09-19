@@ -77,6 +77,15 @@ function createUserObject(walletAddress: string, farcasterUsername?: string | nu
 }
 
 export async function registerRoutes(app: Express) {
+  
+  // Initialize weekly reset on server startup
+  console.log('🔄 Checking for weekly reset on server startup...');
+  try {
+    await storage.performWeeklyReset();
+    console.log('✅ Weekly reset check completed');
+  } catch (error) {
+    console.error('❌ Weekly reset check failed:', error);
+  }
 
   // Health check
   app.get("/api/health", (req, res) => {
