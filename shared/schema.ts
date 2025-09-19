@@ -155,6 +155,7 @@ export const questClaimSchema = z.object({
   }),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address").optional(),
   farcasterUsername: z.string().min(1, "Farcaster username is required"),
+  farcasterPfpUrl: z.string().url("Invalid profile picture URL").optional(),
   // Server-side verification data - should be included by middleware
   farcasterVerified: z.boolean().default(false).optional()
 });

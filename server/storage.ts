@@ -368,6 +368,7 @@ export class DatabaseStorage implements IStorage {
   async claimQuestAtomic(data: {
     farcasterFid: string;
     farcasterUsername: string;
+    farcasterPfpUrl?: string;
     walletAddress?: string;
     questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction';
     pointsEarned: number;
@@ -406,6 +407,7 @@ export class DatabaseStorage implements IStorage {
           .values({
             farcasterFid: data.farcasterFid,
             farcasterUsername: data.farcasterUsername,
+            farcasterPfpUrl: data.farcasterPfpUrl || null,
             walletAddress: data.walletAddress || null,
             totalPoints: Math.round(data.pointsEarned * 100), // Convert to fixed-point
             weeklyPoints: Math.round(data.pointsEarned * 100), // Same as totalPoints for new users
@@ -440,6 +442,7 @@ export class DatabaseStorage implements IStorage {
           totalPoints: currentStats.totalPoints + Math.round(data.pointsEarned * 100), // Add fixed-point values
           weeklyPoints: needsWeeklyReset ? Math.round(data.pointsEarned * 100) : (currentStats.weeklyPoints || 0) + Math.round(data.pointsEarned * 100),
           weeklyResetDate: currentWeekStart, // Update to current week
+          farcasterPfpUrl: data.farcasterPfpUrl || currentStats.farcasterPfpUrl, // Update profile picture if provided
           updatedAt: new Date(),
           ...data.userStatsUpdates,
         };

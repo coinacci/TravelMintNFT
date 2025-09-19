@@ -1835,7 +1835,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { farcasterFid, questType, walletAddress, farcasterUsername } = validationResult.data;
+      const { farcasterFid, questType, walletAddress, farcasterUsername, farcasterPfpUrl } = validationResult.data;
       
       // 🔒 SECURITY: Basic Farcaster verification (client-side context check)
       // NOTE: This is a basic security layer. In production, implement server-side Farcaster signature verification
@@ -1941,6 +1941,7 @@ export async function registerRoutes(app: Express) {
       const result = await storage.claimQuestAtomic({
         farcasterFid,
         farcasterUsername: farcasterUsername.trim(),
+        farcasterPfpUrl: farcasterPfpUrl?.trim(),
         walletAddress: walletAddress?.toLowerCase(),
         questType,
         pointsEarned,
