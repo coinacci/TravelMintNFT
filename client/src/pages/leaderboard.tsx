@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import sdk from "@farcaster/frame-sdk";
+import { useAccount } from "wagmi";
 import ComposeCastButton from "@/components/ComposeCastButton";
 import WeeklyChampionBadge from "@/components/WeeklyChampionBadge";
 
@@ -17,6 +18,7 @@ const pointsToDisplay = (points: number): string => {
 interface LeaderboardEntry {
   farcasterFid: string;
   farcasterUsername: string;
+  farcasterPfpUrl?: string; // Profile picture URL
   totalPoints: number;
   weeklyPoints?: number; // Optional for weekly leaderboard entries
   currentStreak: number;
@@ -25,6 +27,7 @@ interface LeaderboardEntry {
 
 export default function Leaderboard() {
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
+  const { address, isConnected } = useAccount();
   
   // Get Farcaster user context
   useEffect(() => {
@@ -49,36 +52,39 @@ export default function Leaderboard() {
     getFarcasterContext();
   }, []);
 
+  // Check if user has access (either Farcaster or connected wallet)
+  const hasAccess = farcasterUser || isConnected;
+
   // Fetch all-time leaderboard data
   const { data: allTimeLeaderboard = [], isLoading: isAllTimeLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard'],
-    enabled: !!farcasterUser,
+    enabled: hasAccess,
   });
 
   // Fetch weekly leaderboard data
   const { data: weeklyLeaderboard = [], isLoading: isWeeklyLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard/weekly'],
-    enabled: !!farcasterUser,
+    enabled: hasAccess,
   });
 
   // Fetch weekly champions data
   const { data: weeklyChampions = [] } = useQuery<any[]>({
     queryKey: ['/api/weekly-champions'],
-    enabled: !!farcasterUser,
+    enabled: hasAccess,
   });
 
   // Find current user's position in both leaderboards
   const allTimeUserEntry = allTimeLeaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
   const weeklyUserEntry = weeklyLeaderboard.find(entry => entry.farcasterFid === String(farcasterUser?.fid));
 
-  if (!farcasterUser) {
+  if (!hasAccess) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <Trophy className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Farcaster Only</h1>
+          <h1 className="text-2xl font-bold mb-2">Connect Required</h1>
           <p className="text-muted-foreground">
-            Leaderboard is only available when accessing through Farcaster.
+            Please connect your wallet or access through Farcaster to view the leaderboard.
           </p>
         </div>
       </div>
@@ -215,6 +221,7 @@ export default function Leaderboard() {
                           #{entry.rank}
                         </Badge>
                         <Avatar className="h-8 w-8">
+                          <AvatarImage src={entry.farcasterPfpUrl} alt={entry.farcasterUsername} />
                           <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -278,6 +285,7 @@ export default function Leaderboard() {
                           #{entry.rank}
                         </Badge>
                         <Avatar className="h-8 w-8">
+                          <AvatarImage src={entry.farcasterPfpUrl} alt={entry.farcasterUsername} />
                           <AvatarFallback>{entry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
