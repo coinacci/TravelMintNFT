@@ -482,8 +482,8 @@ export default function Quests() {
                  : "Claim Streak Bonus"}
               </Button>
               
-              {/* Share button - temporarily hidden */}
-              {false && userStats?.currentStreak && userStats.currentStreak >= 7 && (
+              {/* Share button - temporarily hidden
+              {false && userStats && typeof userStats.currentStreak === 'number' && userStats.currentStreak >= 7 && (
                 <ComposeCastButton
                   type="quest"
                   questName="7-Day Streak Bonus"
@@ -493,6 +493,7 @@ export default function Quests() {
                   className="w-full"
                 />
               )}
+              */}
             </div>
           </CardContent>
         </Card>

@@ -123,7 +123,8 @@ router.get('/info/:hash', async (req: Request, res: Response) => {
     
     console.log('📋 Getting IPFS file info for hash:', hash);
     
-    const fileInfo = await pinataService.getFileInfo(hash);
+    // Temporary: Return basic info since getFileInfo method is not implemented
+    const fileInfo = { hash, message: 'File info retrieval not yet implemented' };
     
     if (fileInfo) {
       res.json(fileInfo);
