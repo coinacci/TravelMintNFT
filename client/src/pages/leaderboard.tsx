@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import sdk from "@farcaster/frame-sdk";
 import ComposeCastButton from "@/components/ComposeCastButton";
+import WeeklyChampionBadge from "@/components/WeeklyChampionBadge";
 
 // Helper function to convert fixed-point values (stored as integers * 100) to display format
 const pointsToDisplay = (points: number): string => {
@@ -17,6 +18,7 @@ interface LeaderboardEntry {
   farcasterFid: string;
   farcasterUsername: string;
   totalPoints: number;
+  weeklyPoints?: number; // Optional for weekly leaderboard entries
   currentStreak: number;
   rank: number;
 }
@@ -56,6 +58,12 @@ export default function Leaderboard() {
   // Fetch weekly leaderboard data
   const { data: weeklyLeaderboard = [], isLoading: isWeeklyLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard/weekly'],
+    enabled: !!farcasterUser,
+  });
+
+  // Fetch weekly champions data
+  const { data: weeklyChampions = [] } = useQuery<any[]>({
+    queryKey: ['/api/weekly-champions'],
     enabled: !!farcasterUser,
   });
 
@@ -227,6 +235,27 @@ export default function Leaderboard() {
             </TabsContent>
             
             <TabsContent value="weekly">
+              {/* Show latest weekly champion if exists */}
+              {weeklyChampions.length > 0 && (
+                <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-lg">Previous Weekly Champion</h3>
+                      <p className="text-sm text-muted-foreground">@{weeklyChampions[0].farcasterUsername}</p>
+                    </div>
+                    <WeeklyChampionBadge
+                      weekNumber={weeklyChampions[0].weekNumber}
+                      year={weeklyChampions[0].year}
+                      weekStartDate={weeklyChampions[0].weekStartDate}
+                      weekEndDate={weeklyChampions[0].weekEndDate}
+                    />
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Won with {pointsToDisplay(weeklyChampions[0].weeklyPoints)} points
+                  </div>
+                </div>
+              )}
+              
               {weeklyLeaderboard.length === 0 ? (
                 <div className="text-center py-8">
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

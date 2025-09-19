@@ -483,7 +483,7 @@ export default function Quests() {
               </Button>
               
               {/* Share button - temporarily hidden */}
-              {false && userStats?.currentStreak && userStats?.currentStreak >= 7 && (
+              {false && userStats?.currentStreak && userStats.currentStreak >= 7 && (
                 <ComposeCastButton
                   type="quest"
                   questName="7-Day Streak Bonus"
