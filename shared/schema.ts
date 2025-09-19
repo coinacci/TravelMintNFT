@@ -241,8 +241,8 @@ export function getWeekEnd(weekStart: string): string {
 }
 
 export function getWeekNumber(date: Date = new Date()): number {
-  // Mini app started on Monday, December 30, 2024 (Week 1)
-  const appStartDate = new Date('2024-12-30'); // Monday, December 30, 2024
+  // Mini app started on Monday, September 16, 2025 (Week 1)
+  const appStartDate = new Date('2025-09-16'); // Monday, September 16, 2025 - This week
   const currentDate = new Date(date);
   
   // If date is before app start, return 0
