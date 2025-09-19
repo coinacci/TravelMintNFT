@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -34,7 +34,13 @@ export interface IStorage {
   getQuestCompletions(farcasterFid: string, date?: string): Promise<QuestCompletion[]>;
   createQuestCompletion(completion: InsertQuestCompletion): Promise<QuestCompletion>;
   getLeaderboard(limit?: number): Promise<UserStats[]>;
+  getWeeklyLeaderboard(limit?: number): Promise<UserStats[]>;
   checkHolderStatus(walletAddress: string): Promise<{ isHolder: boolean; nftCount: number }>;
+  
+  // Weekly reset and champion tracking
+  performWeeklyReset(): Promise<void>;
+  getWeeklyChampions(limit?: number): Promise<WeeklyChampion[]>;
+  getCurrentWeekChampion(): Promise<WeeklyChampion | null>;
   
   // Multi-wallet operations
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
@@ -269,6 +275,14 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
+  async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
+    return await db
+      .select()
+      .from(userStats)
+      .orderBy(sql`${userStats.weeklyPoints} DESC`)
+      .limit(limit);
+  }
+
   async checkHolderStatus(walletAddress: string): Promise<{ isHolder: boolean; nftCount: number }> {
     if (!walletAddress) {
       return { isHolder: false, nftCount: 0 };
@@ -385,6 +399,7 @@ export class DatabaseStorage implements IStorage {
 
       if (existingUserStats.length === 0) {
         // Create new user stats
+        const currentWeekStart = getCurrentWeekStart();
         const [newUserStats] = await tx
           .insert(userStats)
           .values({
@@ -392,9 +407,11 @@ export class DatabaseStorage implements IStorage {
             farcasterUsername: data.farcasterUsername,
             walletAddress: data.walletAddress || null,
             totalPoints: Math.round(data.pointsEarned * 100), // Convert to fixed-point
+            weeklyPoints: Math.round(data.pointsEarned * 100), // Same as totalPoints for new users
             currentStreak: data.questType === 'daily_checkin' ? 1 : 0,
             lastCheckIn: data.questType === 'daily_checkin' ? new Date() : null,
             lastStreakClaim: data.questType === 'streak_bonus' ? new Date() : null,
+            weeklyResetDate: currentWeekStart, // Track current week
           })
           .returning();
         
@@ -413,8 +430,15 @@ export class DatabaseStorage implements IStorage {
       } else {
         // Update existing user stats
         const currentStats = existingUserStats[0];
+        const currentWeekStart = getCurrentWeekStart();
+        
+        // Check if weekly reset is needed
+        const needsWeeklyReset = !currentStats.weeklyResetDate || currentStats.weeklyResetDate !== currentWeekStart;
+        
         const updates = {
           totalPoints: currentStats.totalPoints + Math.round(data.pointsEarned * 100), // Add fixed-point values
+          weeklyPoints: needsWeeklyReset ? Math.round(data.pointsEarned * 100) : (currentStats.weeklyPoints || 0) + Math.round(data.pointsEarned * 100),
+          weeklyResetDate: currentWeekStart, // Update to current week
           updatedAt: new Date(),
           ...data.userStatsUpdates,
         };
@@ -439,6 +463,68 @@ export class DatabaseStorage implements IStorage {
         return { userStats: updatedStats, questCompletion };
       }
     });
+  }
+
+  // Weekly reset and champion tracking
+  async performWeeklyReset(): Promise<void> {
+    await db.transaction(async (tx) => {
+      const currentWeekStart = getCurrentWeekStart();
+      const weekEnd = getWeekEnd(currentWeekStart);
+      const currentYear = new Date().getFullYear();
+      const weekNumber = getWeekNumber();
+
+      // Get current weekly champion before reset
+      const [currentChampion] = await tx
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.weeklyPoints} > 0`)
+        .orderBy(sql`${userStats.weeklyPoints} DESC`)
+        .limit(1);
+
+      // Record weekly champion if exists
+      if (currentChampion && currentChampion.weeklyPoints > 0) {
+        await tx
+          .insert(weeklyChampions)
+          .values({
+            farcasterFid: currentChampion.farcasterFid,
+            farcasterUsername: currentChampion.farcasterUsername,
+            weekStartDate: currentChampion.weeklyResetDate || currentWeekStart,
+            weekEndDate: weekEnd,
+            weeklyPoints: currentChampion.weeklyPoints,
+            weekNumber,
+            year: currentYear,
+          })
+          .onConflictDoNothing(); // Prevent duplicate champions for same week
+      }
+
+      // Reset all weekly points and update reset date
+      await tx
+        .update(userStats)
+        .set({
+          weeklyPoints: 0,
+          weeklyResetDate: currentWeekStart,
+          updatedAt: new Date(),
+        });
+    });
+  }
+
+  async getWeeklyChampions(limit: number = 10): Promise<WeeklyChampion[]> {
+    return await db
+      .select()
+      .from(weeklyChampions)
+      .orderBy(sql`${weeklyChampions.year} DESC, ${weeklyChampions.weekNumber} DESC`)
+      .limit(limit);
+  }
+
+  async getCurrentWeekChampion(): Promise<WeeklyChampion | null> {
+    const currentWeekStart = getCurrentWeekStart();
+    const [champion] = await db
+      .select()
+      .from(weeklyChampions)
+      .where(eq(weeklyChampions.weekStartDate, currentWeekStart))
+      .limit(1);
+    
+    return champion || null;
   }
 }
 
