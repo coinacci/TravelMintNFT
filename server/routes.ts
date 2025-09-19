@@ -1761,6 +1761,66 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch weekly champions" });
     }
   });
+
+  // Admin endpoint for one-time weekly points backfill - SECRET PROTECTED
+  app.post("/api/admin/backfill-weekly", async (req, res) => {
+    try {
+      // Check admin secret (use environment variable or default for development)
+      const adminSecret = process.env.ADMIN_SECRET || 'dev-admin-secret-2024';
+      const providedSecret = req.headers.authorization || req.headers['x-admin-secret'];
+      
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin secret" });
+      }
+
+      console.log('🔧 Admin backfill requested - starting weekly points migration...');
+      const result = await storage.backfillWeeklyPointsFromTotal();
+      
+      console.log('✅ Admin backfill completed:', result);
+      res.json({
+        success: true,
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Admin backfill failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Backfill failed", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Cron endpoint for automated weekly reset - SECRET PROTECTED
+  app.post("/api/cron/weekly-reset", async (req, res) => {
+    try {
+      // Check cron secret (use environment variable or default for development)
+      const cronSecret = process.env.CRON_SECRET || 'dev-cron-secret-2024';
+      const providedSecret = req.headers.authorization || req.headers['x-cron-secret'];
+      
+      if (!providedSecret || providedSecret !== cronSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid cron secret" });
+      }
+
+      console.log('🕐 Cron weekly reset triggered - performing automated reset...');
+      await storage.performWeeklyReset();
+      
+      console.log('✅ Cron weekly reset completed successfully');
+      res.json({
+        success: true,
+        message: "Weekly reset completed successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Cron weekly reset failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Weekly reset failed", 
+        error: error.message 
+      });
+    }
+  });
   
   // SECURED Claim quest reward - CRITICAL SECURITY FIX
   app.post("/api/quest-claim", async (req, res) => {
