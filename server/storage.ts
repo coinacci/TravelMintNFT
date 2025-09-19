@@ -478,6 +478,21 @@ export class DatabaseStorage implements IStorage {
       const currentYear = new Date().getFullYear();
       const weekNumber = getWeekNumber();
 
+      // Check if any user needs weekly reset (i.e., week has actually changed)
+      const [sampleUser] = await tx
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.weeklyResetDate} IS NOT NULL`)
+        .limit(1);
+
+      // If no users exist or weekly reset date matches current week, no reset needed
+      if (sampleUser && sampleUser.weeklyResetDate === currentWeekStart) {
+        console.log(`ℹ️ Weekly reset not needed - still in week starting ${currentWeekStart}`);
+        return;
+      }
+
+      console.log(`🔄 Performing weekly reset for week starting ${currentWeekStart}`);
+
       // Get current weekly champion before reset
       const [currentChampion] = await tx
         .select()
@@ -510,6 +525,8 @@ export class DatabaseStorage implements IStorage {
           weeklyResetDate: currentWeekStart,
           updatedAt: new Date(),
         });
+      
+      console.log(`✅ Weekly reset completed for week starting ${currentWeekStart}`);
     });
   }
 
