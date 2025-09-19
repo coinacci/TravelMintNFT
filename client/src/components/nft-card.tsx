@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, ExternalLink } from "lucide-react";
+import { MapPin, ExternalLink, Wallet, Users } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -19,6 +19,8 @@ interface NFTCardProps {
     ownerAddress?: string;
     creator: { username: string; avatar?: string } | null;
     owner: { id?: string; username: string; avatar?: string } | null;
+    sourceWallet?: string; // Source wallet address for multi-wallet
+    sourcePlatform?: string; // 'farcaster', 'base_app', 'manual'
   };
   onSelect?: () => void;
   onPurchase?: () => void;
@@ -175,6 +177,36 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
         {imageLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted">
             <div className="text-sm text-muted-foreground">Loading...</div>
+          </div>
+        )}
+        
+        {/* Wallet Source Badge */}
+        {nft.sourcePlatform && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm border ${
+              nft.sourcePlatform === 'farcaster' 
+                ? 'bg-purple-500/80 text-white border-purple-400/50' 
+                : nft.sourcePlatform === 'base_app'
+                ? 'bg-blue-500/80 text-white border-blue-400/50'
+                : 'bg-gray-500/80 text-white border-gray-400/50'
+            }`} data-testid={`wallet-badge-${nft.id}`}>
+              {nft.sourcePlatform === 'farcaster' ? (
+                <>
+                  <Users className="w-3 h-3 mr-1" />
+                  Farcaster
+                </>
+              ) : nft.sourcePlatform === 'base_app' ? (
+                <>
+                  <Wallet className="w-3 h-3 mr-1" />
+                  Base App
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-3 h-3 mr-1" />
+                  Manual
+                </>
+              )}
+            </div>
           </div>
         )}
         

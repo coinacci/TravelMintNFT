@@ -332,6 +332,45 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userWallets.farcasterFid, farcasterFid));
   }
 
+  async getAllNFTsForUser(farcasterFid: string): Promise<(NFT & { sourceWallet: string; sourcePlatform: string })[]> {
+    // Get all wallets for this Farcaster user
+    const walletList = await this.getUserWallets(farcasterFid);
+    
+    if (walletList.length === 0) {
+      return [];
+    }
+    
+    // SECURITY FIX: Deduplicate wallets by address to prevent duplicates
+    const uniqueWallets = new Map<string, UserWallet>();
+    walletList.forEach(wallet => {
+      const address = wallet.walletAddress.toLowerCase();
+      if (!uniqueWallets.has(address)) {
+        uniqueWallets.set(address, wallet);
+      }
+    });
+    
+    console.log(`🔍 Fetching NFTs for Farcaster FID ${farcasterFid}: ${walletList.length} wallet entries → ${uniqueWallets.size} unique addresses`);
+    
+    const allNFTs: (NFT & { sourceWallet: string; sourcePlatform: string })[] = [];
+    
+    // Get NFTs from each unique wallet address
+    for (const [walletAddress, walletInfo] of Array.from(uniqueWallets.entries())) {
+      const nfts = await this.getNFTsByOwner(walletAddress);
+      const nftsWithSource = nfts.map(nft => ({
+        ...nft,
+        sourceWallet: walletAddress,
+        sourcePlatform: walletInfo.platform
+      }));
+      allNFTs.push(...nftsWithSource);
+      
+      if (nfts.length > 0) {
+        console.log(`  ✅ Wallet ${walletAddress} (${walletInfo.platform}): ${nfts.length} NFTs`);
+      }
+    }
+    
+    return allNFTs;
+  }
+
   async checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }> {
     // Get all wallets for this Farcaster user
     const walletList = await this.getUserWallets(farcasterFid);

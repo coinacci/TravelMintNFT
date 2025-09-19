@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSimulateContract, useSwitchChain } from "wagmi";
 import NFTCard from "@/components/nft-card";
@@ -6,15 +6,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MapPin, User, Clock, Eye, Send, Loader2, Share2 } from "lucide-react";
+import { MapPin, User, Clock, Eye, Send, Loader2, Share2, Wallet, Users } from "lucide-react";
 import { isAddress, parseAbi, formatEther } from "viem";
 import { base } from "wagmi/chains";
+import sdk from "@farcaster/frame-sdk";
 
 interface NFT {
   id: string;
@@ -31,6 +33,8 @@ interface NFT {
   createdAt?: string;
   creator: { id: string; username: string; avatar?: string } | null;
   owner: { id: string; username: string; avatar?: string } | null;
+  sourceWallet?: string; // Source wallet address for multi-wallet
+  sourcePlatform?: string; // 'farcaster', 'base_app', 'manual'
 }
 
 interface Transaction {
@@ -57,6 +61,14 @@ export default function MyNFTs() {
   const [transferNFT, setTransferNFT] = useState<NFT | null>(null);
   const [showGasEstimate, setShowGasEstimate] = useState(false);
   const [isGeneratingFrame, setIsGeneratingFrame] = useState(false);
+  const [showAllWallets, setShowAllWallets] = useState(true); // Default to show all wallets
+  const [farcasterUser, setFarcasterUser] = useState<{
+    fid: number;
+    username: string;
+    displayName: string;
+    pfpUrl?: string;
+  } | null>(null);
+  
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,15 +100,57 @@ export default function MyNFTs() {
   });
   const syncedAddressRef = useRef<string | null>(null);
 
-  const { data: nfts = [], isLoading, isError, error } = useQuery<NFT[]>({
-    queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
-    enabled: !!address && isConnected,
-    staleTime: 2_000, // 2 seconds for immediate updates after purchase
-    refetchOnMount: true, // Refetch when component mounts (new purchases)
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 30_000, // 30 seconds cache time for faster updates
-    refetchInterval: 5_000, // Auto-refetch every 5 seconds for real-time updates
+  // Initialize Farcaster context
+  useEffect(() => {
+    const getFarcasterContext = async () => {
+      try {
+        if (typeof window !== 'undefined' && sdk?.context) {
+          const context = await Promise.resolve(sdk.context);
+          if (context?.user) {
+            setFarcasterUser({
+              fid: context.user.fid,
+              username: context.user.username || '',
+              displayName: context.user.displayName || '',
+              pfpUrl: context.user.pfpUrl
+            });
+            console.log('✅ Farcaster user loaded in My NFTs:', context.user.username || context.user.fid);
+          }
+        }
+      } catch (error) {
+        console.log('ℹ️ No Farcaster context in My NFTs - running in standard web browser');
+      }
+    };
+    
+    getFarcasterContext();
+  }, []);
+
+  // Single wallet query (current behavior)
+  const { data: singleWalletNFTs = [], isLoading: isSingleLoading, isError: isSingleError, error: singleError } = useQuery<NFT[]>({
+    queryKey: [`/api/wallet/${address}/nfts`],
+    enabled: !!address && isConnected && (!farcasterUser || !showAllWallets),
+    staleTime: 2_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    gcTime: 30_000,
+    refetchInterval: 5_000,
   });
+
+  // Multi-wallet query (for Farcaster users)
+  const { data: multiWalletNFTs = [], isLoading: isMultiLoading, isError: isMultiError, error: multiError } = useQuery<NFT[]>({
+    queryKey: [`/api/user/${farcasterUser?.fid}/all-nfts`],
+    enabled: !!farcasterUser && showAllWallets,
+    staleTime: 2_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    gcTime: 30_000,
+    refetchInterval: 5_000,
+  });
+
+  // Determine which NFTs to display
+  const nfts = (farcasterUser && showAllWallets) ? multiWalletNFTs : singleWalletNFTs;
+  const isLoading = (farcasterUser && showAllWallets) ? isMultiLoading : isSingleLoading;
+  const isError = (farcasterUser && showAllWallets) ? isMultiError : isSingleError;
+  const error = (farcasterUser && showAllWallets) ? multiError : singleError;
 
   // Get detailed NFT data when one is selected
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
@@ -106,15 +160,6 @@ export default function MyNFTs() {
     gcTime: 30 * 1000, // 30 seconds cache time
   });
 
-  const { data: nftsQuery = [], isLoading: isLoadingQuery, isError: isErrorQuery, error: errorQuery } = useQuery<NFT[]>({
-    queryKey: [`/api/wallet/${address}/nfts`], // Stable key without timestamp
-    enabled: !!address && isConnected,
-    staleTime: 2_000, // 2 seconds for immediate updates after purchase
-    refetchOnMount: true, // Refetch when component mounts (new purchases)
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    gcTime: 30_000, // 30 seconds cache time for faster updates
-    refetchInterval: 5_000, // Auto-refetch every 5 seconds for real-time updates
-  });
   
   // Automatic blockchain sync on wallet connection
   const syncMutation = useMutation({
@@ -146,7 +191,11 @@ export default function MyNFTs() {
         title: "NFT Updated",
         description: "Your NFT listing has been updated successfully.",
       });
+      // Invalidate both single wallet and multi-wallet queries
       queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      if (farcasterUser) {
+        queryClient.invalidateQueries({ queryKey: [`/api/user/${farcasterUser.fid}/all-nfts`] });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
       queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
     },
@@ -437,7 +486,24 @@ export default function MyNFTs() {
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold" data-testid="my-nfts-title">My NFTs</h2>
+          <div className="flex items-center space-x-4">
+            <h2 className="text-2xl font-bold" data-testid="my-nfts-title">My NFTs</h2>
+            {farcasterUser && (
+              <div className="flex items-center space-x-2 bg-muted/50 px-3 py-1.5 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  {showAllWallets ? <Users className="h-4 w-4 text-primary" /> : <Wallet className="h-4 w-4 text-muted-foreground" />}
+                  <span className="text-sm font-medium">
+                    {showAllWallets ? 'All Wallets' : 'Current Wallet'}
+                  </span>
+                </div>
+                <Switch
+                  checked={showAllWallets}
+                  onCheckedChange={setShowAllWallets}
+                  data-testid="multi-wallet-toggle"
+                />
+              </div>
+            )}
+          </div>
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-48" data-testid="sort-select">
               <SelectValue />

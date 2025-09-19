@@ -625,6 +625,52 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get all NFTs for a Farcaster user across all linked wallets
+  app.get("/api/user/:farcasterFid/all-nfts", async (req, res) => {
+    try {
+      const farcasterFid = req.params.farcasterFid;
+      console.log(`🔗 Fetching all NFTs for Farcaster FID: ${farcasterFid}`);
+      
+      // Get NFTs from all linked wallets for this user
+      const allNFTs = await storage.getAllNFTsForUser(farcasterFid);
+      
+      // Filter by allowed contract and process like single wallet endpoint
+      const contractNFTs = allNFTs.filter(nft => 
+        !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
+      );
+      
+      const nftsWithOwners = contractNFTs.map((nft) => {
+        // Parse metadata for multi-wallet NFTs
+        let parsedMetadata = null;
+        try {
+          if (nft.metadata && typeof nft.metadata === 'string') {
+            parsedMetadata = JSON.parse(nft.metadata);
+          }
+        } catch (e) {
+          console.log('Failed to parse metadata for NFT:', nft.id);
+        }
+
+        return {
+          ...nft,
+          // Use uploaded travel images for known tokens, otherwise use stored imageUrl
+          imageUrl: nft.imageUrl,
+          title: parsedMetadata?.name || nft.title,
+          owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+          creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+          // Add source wallet information for multi-wallet display
+          sourceWallet: nft.sourceWallet,
+          sourcePlatform: nft.sourcePlatform
+        };
+      });
+      
+      console.log(`✅ Returning ${nftsWithOwners.length} NFTs from ${new Set(contractNFTs.map(n => n.sourceWallet)).size} wallets for Farcaster FID ${farcasterFid}`);
+      res.json(nftsWithOwners);
+    } catch (error) {
+      console.error(`Error fetching all NFTs for Farcaster FID ${req.params.farcasterFid}:`, error);
+      res.status(500).json({ message: "Failed to fetch user NFTs from all wallets" });
+    }
+  });
+
   // Transaction routes
   app.get("/api/transactions/nft/:nftId", async (req, res) => {
     try {
