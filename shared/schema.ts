@@ -82,6 +82,7 @@ export const userStats = pgTable("user_stats", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   farcasterFid: text("farcaster_fid").notNull().unique(),
   farcasterUsername: text("farcaster_username").notNull(),
+  farcasterPfpUrl: text("farcaster_pfp_url"), // Farcaster profile picture URL
   walletAddress: text("wallet_address"), // Nullable - only required for holder bonus
   totalPoints: integer("total_points").default(0).notNull(), // Stored as fixed-point (points * 100)
   weeklyPoints: integer("weekly_points").default(0).notNull(), // Weekly points - resets every Monday
