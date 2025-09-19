@@ -41,6 +41,7 @@ export interface IStorage {
   performWeeklyReset(): Promise<void>;
   getWeeklyChampions(limit?: number): Promise<WeeklyChampion[]>;
   getCurrentWeekChampion(): Promise<WeeklyChampion | null>;
+  backfillWeeklyPointsFromTotal(): Promise<{ updated: number; message: string }>;
   
   // Multi-wallet operations
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
@@ -525,6 +526,38 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return champion || null;
+  }
+
+  async backfillWeeklyPointsFromTotal(): Promise<{ updated: number; message: string }> {
+    return await db.transaction(async (tx) => {
+      const currentWeekStart = getCurrentWeekStart();
+      
+      // Update users who haven't been migrated yet (weeklyResetDate IS NULL)
+      const result = await tx
+        .update(userStats)
+        .set({
+          weeklyPoints: sql`${userStats.totalPoints}`, // Copy totalPoints to weeklyPoints
+          weeklyResetDate: currentWeekStart, // Mark as migrated to current week
+          updatedAt: new Date(),
+        })
+        .where(sql`${userStats.weeklyResetDate} IS NULL`); // Only update unmigrated users
+
+      const updatedCount = result.rowCount || 0;
+      
+      if (updatedCount > 0) {
+        console.log(`✅ Backfilled weekly points for ${updatedCount} users`);
+        return {
+          updated: updatedCount,
+          message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
+        };
+      } else {
+        console.log('📋 No users needed weekly points backfill (all already migrated)');
+        return {
+          updated: 0,
+          message: 'No users needed backfill - all users already have weekly points initialized'
+        };
+      }
+    });
   }
 }
 
