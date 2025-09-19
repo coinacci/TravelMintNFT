@@ -1,8 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, ExternalLink, Wallet, Users } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { useAccount } from "wagmi";
-import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 
 interface NFTCardProps {
@@ -30,24 +29,9 @@ interface NFTCardProps {
 // Simple loading placeholder
 const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
-// Generate consistent color for wallet address
-const getWalletColor = (walletAddress: string): string => {
-  // Simple hash function to generate consistent colors
-  let hash = 0;
-  for (let i = 0; i < walletAddress.length; i++) {
-    const char = walletAddress.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  
-  // Convert hash to HSL color (hue varies, saturation and lightness fixed for good visibility)
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
-};
 
 export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
-  const { toast } = useToast();
   const [imageLoading, setImageLoading] = useState(true);
   const [imageSrc, setImageSrc] = useState(LOADING_PLACEHOLDER);
   
@@ -195,17 +179,6 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           </div>
         )}
         
-        {/* Wallet Color Badge */}
-        {nft.sourceWallet && (
-          <div className="absolute top-2 right-2 z-10">
-            <div 
-              className="w-4 h-4 rounded-full border-2 border-white/80 backdrop-blur-sm shadow-sm"
-              style={{ backgroundColor: getWalletColor(nft.sourceWallet) }}
-              data-testid={`wallet-badge-${nft.id}`}
-              title={`Wallet: ${nft.sourceWallet.slice(0, 6)}...${nft.sourceWallet.slice(-4)}`}
-            />
-          </div>
-        )}
         
         <img
           src={imageSrc}
