@@ -273,7 +273,7 @@ export default function Quests() {
 
 
   return (
-    <div className="container mx-auto px-4 max-w-4xl">
+    <div className="container mx-auto px-4 max-w-4xl pb-24">
       {/* Header */}
       <div className="text-center mb-8">
         <Target className="h-12 w-12 mx-auto text-primary mb-4" />
