@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { useAccount, useBalance } from "wagmi";
-import { MapPin, Store, Camera, Wallet, Globe, Home, User, Menu, ChevronDown, Trophy, Target } from "lucide-react";
+import { useAccount } from "wagmi";
+import { MapPin, Store, Camera, Globe, Home, User, Menu, ChevronDown, Trophy, Target } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import {
@@ -18,16 +18,6 @@ export default function Navigation() {
   const isMobile = useIsMobile();
   const { address, isConnected } = useAccount();
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
-  
-  const { data: balance } = useBalance({
-    address: address,
-    token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
-    query: { 
-      enabled: !!address && isConnected,
-      retry: false,
-      refetchOnWindowFocus: false
-    }
-  });
 
   // Get Farcaster user context for quest menu
   useEffect(() => {
@@ -85,14 +75,6 @@ export default function Navigation() {
               </div>
               
               <div className="flex items-center space-x-1">
-                {isConnected && address && balance && (
-                  <div className="flex items-center space-x-2 bg-muted px-2 py-1 rounded-lg">
-                    <Wallet className="h-3 w-3 text-primary" />
-                    <span className="text-xs font-medium" data-testid="wallet-balance-mobile">
-                      {parseFloat(balance.formatted || "0").toFixed(2)} USDC
-                    </span>
-                  </div>
-                )}
                 <WalletConnect />
                 
                 <DropdownMenu>
@@ -145,14 +127,6 @@ export default function Navigation() {
           </div>
 
           <div className="flex items-center space-x-1">
-            {isConnected && address && balance && (
-              <div className="hidden md:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
-                <Wallet className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium" data-testid="wallet-balance">
-                  {parseFloat(balance.formatted || "0").toFixed(2)} USDC
-                </span>
-              </div>
-            )}
             <WalletConnect />
             
             <DropdownMenu>
