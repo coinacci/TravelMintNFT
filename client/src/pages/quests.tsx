@@ -254,7 +254,7 @@ export default function Quests() {
 
   if (statsLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading your quest progress...</p>
@@ -273,7 +273,7 @@ export default function Quests() {
 
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 max-w-4xl">
       {/* Header */}
       <div className="text-center mb-8">
         <Target className="h-12 w-12 mx-auto text-primary mb-4" />

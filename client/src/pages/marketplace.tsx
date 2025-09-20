@@ -538,7 +538,7 @@ export default function Marketplace() {
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <div className="lg:w-1/4">

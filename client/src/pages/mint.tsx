@@ -666,7 +666,7 @@ export default function Mint() {
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-4" data-testid="mint-title">Mint Your Travel NFT</h1>
           <p className="text-muted-foreground">Transform your travel memories into unique location-based NFTs</p>

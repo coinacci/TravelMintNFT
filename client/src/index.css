@@ -106,8 +106,10 @@
 }
 
 .map-container {
-  height: calc(100vh - 3rem);
+  height: 100vh;
   position: relative;
+  margin-top: -3rem;
+  padding-top: 3rem;
 }
 
 .floating-panel {

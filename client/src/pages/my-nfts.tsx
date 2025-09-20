@@ -302,7 +302,7 @@ export default function MyNFTs() {
   if (!isConnected) {
     return (
       <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-4">My NFTs</h2>
             <p className="text-muted-foreground mb-6">Connect your wallet to see your NFTs</p>
@@ -521,7 +521,7 @@ export default function MyNFTs() {
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <h2 className="text-2xl font-bold" data-testid="my-nfts-title">My NFTs</h2>

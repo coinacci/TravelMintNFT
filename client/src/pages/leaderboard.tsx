@@ -140,7 +140,7 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 max-w-4xl">
       {/* Header */}
       <div className="text-center mb-8">
         <Trophy className="h-12 w-12 mx-auto text-primary mb-4" />
