@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useEffect, useState } from "react";
-import { Target, Gift, Calendar, Trophy, Flame, Zap } from "lucide-react";
+import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
@@ -50,6 +51,7 @@ interface QuestCompletion {
 
 export default function Quests() {
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
+  const [castUrl, setCastUrl] = useState<string>('');
   const { address } = useAccount();
   const { toast } = useToast();
 
@@ -177,6 +179,32 @@ export default function Quests() {
     }
   });
 
+  // Social post quest mutation
+  const socialPostMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/quest-claim', {
+      farcasterFid: String(farcasterUser.fid),
+      questType: 'social_post',
+      castUrl: castUrl.trim(),
+      farcasterUsername: farcasterUser.username
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Social post quest claimed! 📢",
+        description: "+0.50 points earned for sharing TravelMint!"
+      });
+      setCastUrl(''); // Clear the input
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to claim social post quest",
+        description: error?.message || "Please check your cast URL and try again",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Handle successful Base claim transaction
   useEffect(() => {
     if (isClaimConfirmed && claimHash) {
@@ -239,6 +267,7 @@ export default function Quests() {
   const hasCheckedInToday = todayQuests.some(q => q.questType === 'daily_checkin');
   const hasClaimedHolderBonus = todayQuests.some(q => q.questType === 'holder_bonus');
   const hasClaimedBaseTransaction = todayQuests.some(q => q.questType === 'base_transaction');
+  const hasClaimedSocialPost = todayQuests.some(q => q.questType === 'social_post');
   const canClaimStreakBonus = userStats && userStats.currentStreak >= 7 && 
     (!userStats.lastStreakClaim || getQuestDay(new Date(userStats.lastStreakClaim)) !== today);
 
@@ -438,6 +467,49 @@ export default function Quests() {
                 className="w-full"
               />
             )}
+          </CardContent>
+        </Card>
+
+        {/* Social Post Quest */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <MessageSquare className="h-6 w-6 text-green-500" />
+                <div>
+                  <CardTitle>Share TravelMint</CardTitle>
+                  <CardDescription>Post about TravelMint on Farcaster</CardDescription>
+                </div>
+              </div>
+              <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
+                +0.50 Points
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Input
+                placeholder="Paste your Farcaster cast URL here..."
+                value={castUrl}
+                onChange={(e) => setCastUrl(e.target.value)}
+                disabled={!farcasterUser || hasClaimedSocialPost}
+                data-testid="input-cast-url"
+              />
+              <Button
+                onClick={() => farcasterUser && socialPostMutation.mutate()}
+                disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
+                className="w-full"
+                data-testid="button-social-post"
+              >
+                {!farcasterUser ? "Connect via Farcaster First"
+                 : hasClaimedSocialPost ? "✓ Completed Today"
+                 : !castUrl.trim() ? "Enter Cast URL"
+                 : "Claim Social Post Bonus"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                💡 Create a cast mentioning "TravelMint" and our app link to claim points!
+              </p>
+            </div>
           </CardContent>
         </Card>
 
