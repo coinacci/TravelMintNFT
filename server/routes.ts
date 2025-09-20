@@ -1973,28 +1973,18 @@ export async function registerRoutes(app: Express) {
           break;
           
         case 'holder_bonus':
-          if (!walletAddress) {
-            return res.status(400).json({ message: "Wallet address required for holder bonus" });
-          }
+          // Use combined holder status - check all linked wallets + verified addresses
+          console.log(`🔍 Checking combined holder bonus for Farcaster FID: ${farcasterFid}`);
           
-          // SECURITY FIX: Only check the currently connected wallet directly
-          // No automatic wallet addition - user must prove ownership by connecting wallet
-          console.log(`🔍 Checking holder bonus for connected wallet: ${walletAddress}`);
-          
-          const holderStatus = await storage.checkHolderStatus(walletAddress);
-          if (!holderStatus.isHolder) {
+          const combinedHolderStatus = await storage.checkCombinedHolderStatus(farcasterFid);
+          if (!combinedHolderStatus.isHolder) {
             return res.status(400).json({ 
-              message: "The connected wallet must hold at least one Travel NFT to claim holder bonus" 
+              message: "Must hold at least one Travel NFT across all linked wallets to claim holder bonus" 
             });
           }
           
-          console.log(`✅ Wallet ${walletAddress} holds ${holderStatus.nftCount} NFTs`);
-          pointsEarned = holderStatus.nftCount;
-          
-          // Update wallet address if not already set
-          if (!existingUserStats?.walletAddress) {
-            userStatsUpdates.walletAddress = walletAddress.toLowerCase();
-          }
+          console.log(`✅ Farcaster FID ${farcasterFid} holds ${combinedHolderStatus.nftCount} NFTs across all linked wallets`);
+          pointsEarned = combinedHolderStatus.nftCount;
           break;
           
         case 'streak_bonus':
