@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect } from "react";
 
 interface Stats {
   totalNFTs: number;
@@ -21,6 +22,36 @@ export default function Landing() {
   const formatVolume = (volume: string) => {
     return parseFloat(volume).toFixed(1);
   };
+
+  // Lock scroll on mount, unlock on unmount
+  useEffect(() => {
+    const { documentElement: html, body } = document;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    
+    // Lock html and body overflow
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    
+    // iOS robustness: prevent rubber-band scrolling
+    const prevPosition = body.style.position;
+    const prevTop = body.style.top;
+    const scrollY = window.scrollY;
+    
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    
+    return () => {
+      // Restore previous values
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevPosition;
+      body.style.top = prevTop;
+      body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
 
   return (
     <div className={`h-screen max-h-screen overflow-hidden bg-background ${isMobile ? 'pb-14' : ''}`} style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
