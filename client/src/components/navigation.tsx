@@ -82,7 +82,7 @@ export default function Navigation() {
             return (
               <Link key={item.path} href={item.path}>
                 <div 
-                  className={`flex flex-col items-center px-2 py-2 min-w-[50px] max-w-[60px] transition-colors duration-200 ${
+                  className={`flex flex-col items-center px-1 py-2 min-w-[50px] transition-colors duration-200 ${
                     isActive 
                       ? 'text-primary' 
                       : 'text-muted-foreground hover:text-foreground'
@@ -91,7 +91,7 @@ export default function Navigation() {
                 >
                   <Icon className="h-4 w-4 mb-0.5" />
                   {isActive && (
-                    <span className="text-[10px] font-medium text-center leading-tight truncate w-full">
+                    <span className="text-[10px] font-medium text-center leading-tight whitespace-nowrap">
                       {item.label}
                     </span>
                   )}
