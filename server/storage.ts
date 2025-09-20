@@ -469,20 +469,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }> {
-    // Get all wallets for this Farcaster user
-    const walletList = await this.getUserWallets(farcasterFid);
+    // Get linked wallets and verified addresses in parallel - just like getAllNFTsForUser
+    const [linkedWallets, verifiedAddresses] = await Promise.all([
+      this.getUserWallets(farcasterFid),
+      this.getFarcasterVerifiedAddresses(farcasterFid)
+    ]);
     
-    if (walletList.length === 0) {
-      return { isHolder: false, nftCount: 0 };
-    }
+    // Create wallet map for all addresses (both linked and verified)
+    const uniqueWallets = new Map<string, { address: string; platform: string }>();
     
-    // SECURITY FIX: Deduplicate wallets by address to prevent double-counting
-    // Same wallet recorded under different platforms should only be counted once
-    const uniqueWalletAddresses = Array.from(
-      new Set(walletList.map(wallet => wallet.walletAddress.toLowerCase()))
-    );
+    // Add linked wallets
+    linkedWallets.forEach(wallet => {
+      const address = wallet.walletAddress.toLowerCase();
+      uniqueWallets.set(address, {
+        address,
+        platform: wallet.platform
+      });
+    });
     
-    console.log(`🔍 Checking holder status for Farcaster FID ${farcasterFid}: ${walletList.length} wallet entries → ${uniqueWalletAddresses.length} unique addresses`);
+    // Add Farcaster verified addresses (if not already added)
+    verifiedAddresses.forEach(address => {
+      const lowerAddress = address.toLowerCase();
+      if (!uniqueWallets.has(lowerAddress)) {
+        uniqueWallets.set(lowerAddress, {
+          address: lowerAddress,
+          platform: 'farcaster_verified'
+        });
+      }
+    });
+    
+    const uniqueWalletAddresses = Array.from(uniqueWallets.keys());
+    
+    console.log(`🔍 Checking holder status for Farcaster FID ${farcasterFid}: ${linkedWallets.length} linked + ${verifiedAddresses.length} verified → ${uniqueWalletAddresses.length} unique addresses`);
     
     let totalNFTCount = 0;
     
