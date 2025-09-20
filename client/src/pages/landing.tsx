@@ -23,7 +23,7 @@ export default function Landing() {
   };
 
   return (
-    <div className={`h-screen max-h-screen overflow-hidden bg-background ${isMobile ? 'pb-14' : ''}`}>
+    <div className={`h-screen max-h-screen overflow-hidden bg-background ${isMobile ? 'pb-14' : ''}`} style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
       {/* Hero Section */}
       <section className="relative overflow-hidden flex-1 flex flex-col justify-center">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background"></div>
