@@ -1,15 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { MapPin, Store, Camera, Globe, Home, User, Menu, ChevronDown, Trophy, Target } from "lucide-react";
+import { MapPin, Store, Globe, Home, User, Trophy, Target } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import sdk from "@farcaster/frame-sdk";
 
@@ -60,107 +53,57 @@ export default function Navigation() {
   // Combine navigation items
   const navItems = [...baseNavItems, ...questNavItems];
 
-  if (isMobile) {
-    return (
-      <>
-        {/* Mobile Header */}
-        <header className="bg-card border-b border-border sticky top-0 z-50">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="text-xl font-bold travel-gradient bg-clip-text text-transparent">
-                  <MapPin className="inline-block w-5 h-5 mr-2" />
-                  TravelMint
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-1">
-                <WalletConnect />
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-1" data-testid="nav-menu-trigger-mobile">
-                      <Menu className="h-4 w-4" />
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-40">
-                    {navItems.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = location === item.path;
-                      return (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link
-                            href={item.path}
-                            className={`flex items-center space-x-2 w-full ${
-                              isActive ? "text-primary font-medium" : "text-foreground"
-                            }`}
-                            data-testid={`nav-mobile-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Mobile bottom navigation removed - now using header dropdown */}
-      </>
-    );
-  }
-
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="text-2xl font-bold travel-gradient bg-clip-text text-transparent">
-              <MapPin className="inline-block w-6 h-6 mr-2" />
-              TravelMint
+    <>
+      {/* Top Header */}
+      <header className="bg-card border-b border-border sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold travel-gradient bg-clip-text text-transparent`}>
+                <MapPin className={`inline-block ${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
+                TravelMint
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <WalletConnect />
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2" data-testid="nav-menu-trigger">
-                  <Menu className="h-4 w-4" />
-                  <span>Menu</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location === item.path;
-                  return (
-                    <DropdownMenuItem key={item.path} asChild>
-                      <Link
-                        href={item.path}
-                        className={`flex items-center space-x-2 w-full ${
-                          isActive ? "text-primary font-medium" : "text-foreground"
-                        }`}
-                        data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center space-x-1">
+              <WalletConnect />
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Bottom Tab Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+        <div className="flex items-center justify-around py-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.path;
+            return (
+              <Link key={item.path} href={item.path}>
+                <div 
+                  className={`flex flex-col items-center px-2 py-1 min-w-[60px] transition-colors duration-200 ${
+                    isActive 
+                      ? 'text-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`nav-tab-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <Icon className="h-5 w-5 mb-1" />
+                  {isActive && (
+                    <span className="text-xs font-medium text-center leading-tight">
+                      {item.label}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Spacer for bottom navigation */}
+      <div className="h-16"></div>
+    </>
   );
 }
