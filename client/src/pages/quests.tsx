@@ -470,48 +470,50 @@ export default function Quests() {
           </CardContent>
         </Card>
 
-        {/* Social Post Quest */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <MessageSquare className="h-6 w-6 text-green-500" />
-                <div>
-                  <CardTitle>Share TravelMint</CardTitle>
-                  <CardDescription>Post about TravelMint on Farcaster</CardDescription>
+        {/* Social Post Quest - Temporarily Hidden */}
+        {false && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <MessageSquare className="h-6 w-6 text-green-500" />
+                  <div>
+                    <CardTitle>Share TravelMint</CardTitle>
+                    <CardDescription>Post about TravelMint on Farcaster</CardDescription>
+                  </div>
                 </div>
+                <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
+                  +0.50 Points
+                </Badge>
               </div>
-              <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
-                +0.50 Points
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Input
-                placeholder="Paste your Farcaster cast URL here..."
-                value={castUrl}
-                onChange={(e) => setCastUrl(e.target.value)}
-                disabled={!farcasterUser || hasClaimedSocialPost}
-                data-testid="input-cast-url"
-              />
-              <Button
-                onClick={() => farcasterUser && socialPostMutation.mutate()}
-                disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
-                className="w-full"
-                data-testid="button-social-post"
-              >
-                {!farcasterUser ? "Connect via Farcaster First"
-                 : hasClaimedSocialPost ? "✓ Completed Today"
-                 : !castUrl.trim() ? "Enter Cast URL"
-                 : "Claim Social Post Bonus"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                💡 Create a cast mentioning "TravelMint" to claim points! (App link optional)
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Input
+                  placeholder="Paste your Farcaster cast URL here..."
+                  value={castUrl}
+                  onChange={(e) => setCastUrl(e.target.value)}
+                  disabled={!farcasterUser || hasClaimedSocialPost}
+                  data-testid="input-cast-url"
+                />
+                <Button
+                  onClick={() => farcasterUser && socialPostMutation.mutate()}
+                  disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
+                  className="w-full"
+                  data-testid="button-social-post"
+                >
+                  {!farcasterUser ? "Connect via Farcaster First"
+                   : hasClaimedSocialPost ? "✓ Completed Today"
+                   : !castUrl.trim() ? "Enter Cast URL"
+                   : "Claim Social Post Bonus"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  💡 Create a cast mentioning "TravelMint" to claim points! (App link optional)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* 7-Day Streak Bonus */}
         <Card>
