@@ -53,7 +53,8 @@ export interface IStorage {
     farcasterFid: string;
     farcasterUsername: string;
     walletAddress?: string;
-    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction';
+    castUrl?: string;
+    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction' | 'social_post';
     pointsEarned: number;
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
@@ -506,7 +507,8 @@ export class DatabaseStorage implements IStorage {
     farcasterUsername: string;
     farcasterPfpUrl?: string;
     walletAddress?: string;
-    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction';
+    castUrl?: string;
+    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction' | 'social_post';
     pointsEarned: number;
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
@@ -562,6 +564,7 @@ export class DatabaseStorage implements IStorage {
             questType: data.questType,
             pointsEarned: Math.round(data.pointsEarned * 100), // Convert to fixed-point
             completionDate: data.completionDate,
+            castUrl: data.castUrl, // Include cast URL for social_post quests
           })
           .returning();
 
@@ -597,6 +600,7 @@ export class DatabaseStorage implements IStorage {
             questType: data.questType,
             pointsEarned: Math.round(data.pointsEarned * 100), // Convert to fixed-point
             completionDate: data.completionDate,
+            castUrl: data.castUrl, // Include cast URL for social_post quests
           })
           .returning();
 

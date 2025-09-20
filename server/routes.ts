@@ -20,6 +20,7 @@ import {
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { farcasterCastValidator } from "./farcaster-validation";
 import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -1931,7 +1932,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { farcasterFid, questType, walletAddress, farcasterUsername, farcasterPfpUrl } = validationResult.data;
+      const { farcasterFid, questType, walletAddress, castUrl, farcasterUsername, farcasterPfpUrl } = validationResult.data;
       
       // 🔒 SECURITY: Basic Farcaster verification (client-side context check)
       // NOTE: This is a basic security layer. In production, implement server-side Farcaster signature verification
@@ -2017,6 +2018,25 @@ export async function registerRoutes(app: Express) {
           pointsEarned = 0.25; // 0.25 points for Base transaction (will be converted to fixed-point 25 in storage)
           break;
           
+        case 'social_post':
+          if (!castUrl) {
+            return res.status(400).json({ message: "Cast URL is required for social post quest" });
+          }
+          
+          console.log(`🔍 Validating Farcaster cast for social post quest: ${castUrl}`);
+          
+          // Validate cast content and timestamp
+          const castValidation = await farcasterCastValidator.validateCast(castUrl);
+          if (!castValidation.isValid) {
+            return res.status(400).json({ 
+              message: castValidation.reason 
+            });
+          }
+          
+          console.log(`✅ Cast validation passed for @${farcasterUsername}`);
+          pointsEarned = 0.5; // 0.5 points for social post (will be converted to fixed-point 50 in storage)
+          break;
+          
         default:
           return res.status(400).json({ message: "Invalid quest type" });
       }
@@ -2029,6 +2049,7 @@ export async function registerRoutes(app: Express) {
         farcasterUsername: farcasterUsername.trim(),
         farcasterPfpUrl: farcasterPfpUrl?.trim(),
         walletAddress: walletAddress?.toLowerCase(),
+        castUrl, // Include cast URL for social_post quests
         questType,
         pointsEarned,
         completionDate: today,
