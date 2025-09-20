@@ -57,7 +57,7 @@ export default function Navigation() {
     <>
       {/* Top Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-1">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold travel-gradient bg-clip-text text-transparent`}>
