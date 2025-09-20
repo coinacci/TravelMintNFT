@@ -144,7 +144,7 @@ export default function Leaderboard() {
       {/* Header */}
       <div className="text-center mb-8">
         <Trophy className="h-12 w-12 mx-auto text-primary mb-4" />
-        <h1 className="text-3xl font-bold mb-2">Leaderboard</h1>
+        <h1 className="text-2xl md:text-4xl font-bold mb-2">Leaderboard</h1>
         <p className="text-muted-foreground">
           Top quest completers in the TravelMint community
         </p>
