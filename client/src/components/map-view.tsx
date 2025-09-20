@@ -279,7 +279,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
 
       {/* Floating Stats Panel */}
-      <div className="absolute bottom-32 left-4 floating-panel rounded-lg p-3 z-10">
+      <div className="absolute bottom-24 left-4 floating-panel rounded-lg p-3 z-10">
         <div className="text-center">
           <div className="text-xl font-bold text-primary" data-testid="total-nfts">
             {stats?.totalNFTs || 0}
@@ -289,7 +289,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       </div>
 
       {/* Floating Mint Button */}
-      <div className="absolute bottom-32 right-4 z-10">
+      <div className="absolute bottom-24 right-4 z-10">
         <Link href="/mint">
           <Button 
             size="sm" 
