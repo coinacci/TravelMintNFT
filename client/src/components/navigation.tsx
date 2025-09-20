@@ -75,14 +75,14 @@ export default function Navigation() {
 
       {/* Bottom Tab Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
-        <div className="flex items-center justify-around py-1">
+        <div className="flex items-center justify-around py-2 pb-4 safe-area-padding">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
             return (
               <Link key={item.path} href={item.path}>
                 <div 
-                  className={`flex flex-col items-center px-1 py-1 min-w-[50px] max-w-[60px] transition-colors duration-200 ${
+                  className={`flex flex-col items-center px-2 py-2 min-w-[50px] max-w-[60px] transition-colors duration-200 ${
                     isActive 
                       ? 'text-primary' 
                       : 'text-muted-foreground hover:text-foreground'
@@ -103,7 +103,7 @@ export default function Navigation() {
       </nav>
 
       {/* Spacer for bottom navigation */}
-      <div className="h-14"></div>
+      <div className="h-20"></div>
     </>
   );
 }
