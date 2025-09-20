@@ -5,7 +5,6 @@ import { MapPin, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect } from "react";
-import MapView from "@/components/map-view";
 
 interface Stats {
   totalNFTs: number;
@@ -112,13 +111,6 @@ export default function Landing() {
               <div className="text-xs text-muted-foreground">Holders</div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Live Map Preview */}
-      <section className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0">
-          <MapView isPreview={true} />
         </div>
       </section>
     </div>

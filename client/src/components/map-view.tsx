@@ -24,10 +24,9 @@ interface NFT {
 
 interface MapViewProps {
   onNFTSelect?: (nft: NFT) => void;
-  isPreview?: boolean; // Preview mode for home page - no interactions
 }
 
-export default function MapView({ onNFTSelect, isPreview = false }: MapViewProps) {
+export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const queryClient = useQueryClient();
@@ -280,8 +279,7 @@ export default function MapView({ onNFTSelect, isPreview = false }: MapViewProps
 
 
       {/* Floating Stats Panel */}
-      {!isPreview && (
-        <div className="absolute bottom-24 left-4 floating-panel rounded-lg p-3 z-10">
+      <div className="absolute bottom-24 left-4 floating-panel rounded-lg p-3 z-10">
         <div className="text-center">
           <div className="text-xl font-bold text-primary" data-testid="total-nfts">
             {stats?.totalNFTs || 0}
@@ -289,11 +287,9 @@ export default function MapView({ onNFTSelect, isPreview = false }: MapViewProps
           <div className="text-xs text-muted-foreground">NFTs Minted</div>
         </div>
       </div>
-      )}
 
       {/* Floating Mint Button */}
-      {!isPreview && (
-        <div className="absolute bottom-24 right-4 z-10">
+      <div className="absolute bottom-24 right-4 z-10">
         <Link href="/mint">
           <Button 
             size="sm" 
@@ -304,7 +300,6 @@ export default function MapView({ onNFTSelect, isPreview = false }: MapViewProps
           </Button>
         </Link>
       </div>
-      )}
     </div>
   );
 }
