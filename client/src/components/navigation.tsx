@@ -57,11 +57,11 @@ export default function Navigation() {
     <>
       {/* Top Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-4 py-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold travel-gradient bg-clip-text text-transparent`}>
-                <MapPin className={`inline-block ${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
+              <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold travel-gradient bg-clip-text text-transparent`}>
+                <MapPin className={`inline-block ${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-2`} />
                 TravelMint
               </div>
             </div>
