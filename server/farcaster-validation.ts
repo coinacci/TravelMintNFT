@@ -162,7 +162,7 @@ export class FarcasterCastValidator {
   private validateContent(text: string): ValidationResult {
     const lowerText = text.toLowerCase();
 
-    // Check for TravelMint mention
+    // Check for TravelMint mention (only requirement)
     const travelMintKeywords = ['travelmint', 'travel mint'];
     const hasTravelMint = travelMintKeywords.some(keyword => 
       lowerText.includes(keyword.toLowerCase())
@@ -172,25 +172,6 @@ export class FarcasterCastValidator {
       return { 
         isValid: false, 
         reason: "Cast must mention 'TravelMint'" 
-      };
-    }
-
-    // Check for app link
-    const appLinkKeywords = [
-      'travelmint.app',
-      '.replit.app',
-      'travel nft',
-      'travel mint app'
-    ];
-    
-    const hasAppLink = appLinkKeywords.some(keyword => 
-      lowerText.includes(keyword.toLowerCase())
-    );
-
-    if (!hasAppLink) {
-      return { 
-        isValid: false, 
-        reason: "Cast must include app link or reference" 
       };
     }
 

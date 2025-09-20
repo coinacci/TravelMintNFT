@@ -507,7 +507,7 @@ export default function Quests() {
                  : "Claim Social Post Bonus"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                💡 Create a cast mentioning "TravelMint" and our app link to claim points!
+                💡 Create a cast mentioning "TravelMint" to claim points! (App link optional)
               </p>
             </div>
           </CardContent>
