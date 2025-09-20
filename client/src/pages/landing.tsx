@@ -27,33 +27,33 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background"></div>
-        <div className="relative container mx-auto px-4 py-16 md:py-24">
+        <div className="relative container mx-auto px-4 py-8 md:py-16">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight" style={{ color: '#0000ff' }}>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight" style={{ color: '#0000ff' }}>
               TravelMint
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
               Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers. Each photo tells a story, each location holds memories.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/mint">
                 <Button 
-                  size="lg" 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg"
+                  size="default" 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3"
                   data-testid="mint-memory-button"
                 >
-                  <Upload className="w-5 h-5 mr-2" />
+                  <Upload className="w-4 h-4 mr-2" />
                   Mint your Memory
                 </Button>
               </Link>
               <Link href="/explore">
                 <Button 
                   variant="outline" 
-                  size="lg" 
-                  className="px-8 py-4 text-lg"
+                  size="default" 
+                  className="px-6 py-3"
                   data-testid="explore-map-button"
                 >
-                  <MapPin className="w-5 h-5 mr-2" />
+                  <MapPin className="w-4 h-4 mr-2" />
                   Explore Map
                 </Button>
               </Link>
@@ -63,7 +63,7 @@ export default function Landing() {
       </section>
 
       {/* Statistics Section */}
-      <section className="py-16 bg-muted/50">
+      <section className="py-8 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 gap-8 md:gap-12 max-w-2xl mx-auto">
             <div className="text-center">
