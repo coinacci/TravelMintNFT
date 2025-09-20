@@ -90,7 +90,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       maxBoundsViscosity: 1.0, // Strong bounds enforcement  
       minZoom: 1, // Prevent zooming out too far
       maxZoom: 13 // Reduced to ensure tile availability
-    }).setView([20, 0], 2);
+    }).setView([20, 0], 1);
     mapInstanceRef.current = map;
 
     // RELIABLE TILE SERVICE: OpenStreetMap with consistent availability
