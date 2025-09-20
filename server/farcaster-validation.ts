@@ -102,9 +102,17 @@ export class FarcasterCastValidator {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+        // Convert hex hash to bytes format for Hub API
+        const hashBytes = castHash.startsWith('0x') ? castHash.slice(2) : castHash;
+        
         const response = await fetch(
-          `${hubUrl}/v1/castById?fid=0&hash=${castHash}`,
-          { signal: controller.signal }
+          `${hubUrl}/v1/castsByHash?hash=${hashBytes}`,
+          { 
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
         );
 
         clearTimeout(timeoutId);
@@ -115,20 +123,24 @@ export class FarcasterCastValidator {
         }
 
         const data = await response.json();
+        console.log('🔍 Hub API response:', JSON.stringify(data, null, 2));
         
         // Parse Farcaster Hub API response
-        if (data && data.data && data.data.castAddBody) {
-          const cast = data.data.castAddBody;
-          const timestamp = new Date(data.data.timestamp * 1000).toISOString();
-          
-          return {
-            text: cast.text || '',
-            timestamp,
-            author: {
-              fid: data.data.fid,
-              username: data.data.username || 'unknown'
-            }
-          };
+        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+          const message = data.messages[0];
+          if (message.data && message.data.castAddBody) {
+            const cast = message.data.castAddBody;
+            const timestamp = new Date(message.data.timestamp * 1000).toISOString();
+            
+            return {
+              text: cast.text || '',
+              timestamp,
+              author: {
+                fid: message.data.fid,
+                username: message.data.username || 'unknown'
+              }
+            };
+          }
         }
 
         console.log('⚠️ Unexpected cast data format from Hub API');
