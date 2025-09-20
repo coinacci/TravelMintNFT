@@ -3,6 +3,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
+import { Link } from "wouter";
+import { Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface NFT {
   id: string;
@@ -283,6 +286,20 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </div>
           <div className="text-xs text-muted-foreground">NFTs Minted</div>
         </div>
+      </div>
+
+      {/* Floating Mint Button */}
+      <div className="absolute bottom-24 right-4 z-10">
+        <Link href="/mint">
+          <Button 
+            size="default" 
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+            data-testid="mint-memory-fab"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Mint Memory
+          </Button>
+        </Link>
       </div>
     </div>
   );
