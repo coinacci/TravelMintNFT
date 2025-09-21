@@ -528,14 +528,47 @@ export class BlockchainService {
     }
   }
   
+  // Fixed locations for specific NFTs - these will never be changed by metadata updates
+  private getLocationOverride(tokenId: string, nftTitle: string): { location: string, latitude: string, longitude: string } | null {
+    // Override locations for specific travel NFTs to prevent metadata from changing them
+    const locationOverrides: { [key: string]: { location: string, latitude: string, longitude: string } } = {
+      // Baghdad NFT -> Iraq Baghdad
+      "106": { location: "Baghdad", latitude: "33.3152", longitude: "44.3661" },
+      // Vietnam Forest NFT -> Vietnam  
+      "89": { location: "Ho Chi Minh City", latitude: "10.8231", longitude: "106.6297" },
+      // Egypt Night NFT -> Cairo
+      "44": { location: "Cairo", latitude: "30.0444", longitude: "31.2357" }, 
+      // Georgia Moments NFT -> Tbilisi
+      "41": { location: "Tbilisi", latitude: "41.7151", longitude: "44.8271" }
+    };
+
+    return locationOverrides[tokenId] || null;
+  }
+
   // Convert blockchain NFT to database format
   async blockchainNFTToDBFormat(blockchainNFT: BlockchainNFT): Promise<any> {
     const metadata = blockchainNFT.metadata;
     
-    const location = this.extractLocationFromMetadata(metadata);
-    const coords = extractCoordinates(metadata);
-    const latitude = coords.latitude;
-    const longitude = coords.longitude;
+    // Check for location override first - these locations are fixed and won't change
+    const override = this.getLocationOverride(blockchainNFT.tokenId, metadata?.name || '');
+    
+    let location: string;
+    let latitude: string | undefined;
+    let longitude: string | undefined;
+    
+    if (override) {
+      // Use fixed override location - this prevents metadata from changing the location
+      location = override.location;
+      latitude = override.latitude;
+      longitude = override.longitude;
+      console.log(`🔒 Using fixed location for NFT #${blockchainNFT.tokenId}: ${location} at ${latitude}, ${longitude}`);
+    } else {
+      // Use metadata location for other NFTs
+      location = this.extractLocationFromMetadata(metadata);
+      const coords = extractCoordinates(metadata);
+      latitude = coords.latitude || undefined;
+      longitude = coords.longitude || undefined;
+    }
     
     // Always prioritize uploaded travel images over metadata placeholders
     let imageUrl = await this.extractImageUrl(metadata, blockchainNFT.tokenURI);
