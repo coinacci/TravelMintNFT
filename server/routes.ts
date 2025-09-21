@@ -362,7 +362,7 @@ export async function registerRoutes(app: Express) {
             if (!existsInDb) {
               console.log(`🆕 Adding new blockchain NFT #${blockchainNFT.tokenId} to database`);
               const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
-              await storage.createNFT(dbFormat);
+              await storage.upsertNFTByTokenId(dbFormat);
             } else {
               let needsUpdate = false;
               const updateData: any = {};

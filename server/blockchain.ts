@@ -594,7 +594,7 @@ export class BlockchainService {
     // This ensures users see their actual travel photos, not stock images
     
     return {
-      id: `blockchain-${blockchainNFT.tokenId}`,
+      // Remove hard-coded id - let UUID default apply to prevent duplicate key errors
       title: metadata?.name || `Travel NFT #${blockchainNFT.tokenId}`,
       description: metadata?.description || "A beautiful travel memory captured on the blockchain.",
       imageUrl: imageUrl,

@@ -32,7 +32,7 @@ export const nfts = pgTable("nfts", {
   farcasterOwnerFid: text("farcaster_owner_fid"), // Optional Farcaster user ID
   mintPrice: decimal("mint_price", { precision: 18, scale: 6 }).default("1").notNull(),
   royaltyPercentage: decimal("royalty_percentage", { precision: 5, scale: 2 }).default("5").notNull(),
-  tokenId: text("token_id"), // NFT contract token ID
+  tokenId: text("token_id").unique(), // NFT contract token ID - unique for blockchain NFTs
   contractAddress: text("contract_address"), // NFT contract address
   transactionHash: text("transaction_hash"), // Mint transaction hash
   metadata: json("metadata"),

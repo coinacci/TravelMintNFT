@@ -17,6 +17,7 @@ export interface IStorage {
   getNFTsByOwner(ownerAddress: string): Promise<NFT[]>;
   getNFTsForSale(): Promise<NFT[]>;
   createNFT(nft: InsertNFT): Promise<NFT>;
+  upsertNFTByTokenId(nft: InsertNFT): Promise<NFT>;
   updateNFT(id: string, updates: Partial<NFT>): Promise<NFT | undefined>;
   updateNFTCoordinates(tokenId: string, latitude: number, longitude: number): Promise<NFT | undefined>;
   getNFTByTokenId(tokenId: string): Promise<NFT | undefined>;
@@ -138,6 +139,31 @@ export class DatabaseStorage implements IStorage {
     const [nft] = await db
       .insert(nfts)
       .values(insertNFT)
+      .returning();
+    return nft;
+  }
+
+  async upsertNFTByTokenId(insertNFT: InsertNFT): Promise<NFT> {
+    const [nft] = await db
+      .insert(nfts)
+      .values(insertNFT)
+      .onConflictDoUpdate({
+        target: nfts.tokenId,
+        set: {
+          title: insertNFT.title,
+          description: insertNFT.description,
+          imageUrl: insertNFT.imageUrl,
+          location: insertNFT.location,
+          latitude: insertNFT.latitude,
+          longitude: insertNFT.longitude,
+          category: insertNFT.category,
+          price: insertNFT.price,
+          ownerAddress: insertNFT.ownerAddress,
+          creatorAddress: insertNFT.creatorAddress,
+          metadata: insertNFT.metadata,
+          updatedAt: new Date()
+        }
+      })
       .returning();
     return nft;
   }
