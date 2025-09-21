@@ -205,8 +205,8 @@ export const weeklyChampions = pgTable("weekly_champions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
   farcasterUsername: text("farcaster_username").notNull(),
-  weekStartDate: text("week_start_date").notNull(), // YYYY-MM-DD format - Monday of the week
-  weekEndDate: text("week_end_date").notNull(), // YYYY-MM-DD format - Sunday of the week
+  weekStartDate: text("week_start_date").notNull(), // YYYY-MM-DD format - Tuesday of the week
+  weekEndDate: text("week_end_date").notNull(), // YYYY-MM-DD format - Monday of the week
   weeklyPoints: integer("weekly_points").notNull(), // Final points for that week
   weekNumber: integer("week_number").notNull(), // Week number of the year
   year: integer("year").notNull(), // Year of the championship
@@ -229,22 +229,22 @@ export type WeeklyChampion = typeof weeklyChampions.$inferSelect;
 // Weekly utilities
 export function getCurrentWeekStart(date: Date = new Date()): string {
   const current = new Date(date);
-  // Get Monday of current week (0 = Sunday, 1 = Monday)
+  // Get Tuesday of current week (0 = Sunday, 1 = Monday, 2 = Tuesday)
   const dayOfWeek = current.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days to Monday
-  current.setDate(current.getDate() + mondayOffset);
+  const tuesdayOffset = dayOfWeek === 0 ? -5 : 2 - dayOfWeek; // If Sunday, go back 5 days to Tuesday
+  current.setDate(current.getDate() + tuesdayOffset);
   return current.toISOString().split('T')[0];
 }
 
 export function getWeekEnd(weekStart: string): string {
   const startDate = new Date(weekStart);
-  startDate.setDate(startDate.getDate() + 6); // Sunday = Monday + 6 days
+  startDate.setDate(startDate.getDate() + 6); // Monday = Tuesday + 6 days
   return startDate.toISOString().split('T')[0];
 }
 
 export function getWeekNumber(date: Date = new Date()): number {
-  // Mini app started on Monday, September 16, 2025 (Week 1)
-  const appStartDate = new Date('2025-09-16'); // Monday, September 16, 2025 - This week
+  // Mini app started on Tuesday, September 17, 2025 (Week 1)
+  const appStartDate = new Date('2025-09-17'); // Tuesday, September 17, 2025 - This week
   const currentDate = new Date(date);
   
   // If date is before app start, return 0
