@@ -50,6 +50,7 @@ export default function Marketplace() {
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("all");
+  const [nftStatus, setNftStatus] = useState("for-sale"); // New: NFT status filter
   const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
@@ -60,8 +61,11 @@ export default function Marketplace() {
   const queryClient = useQueryClient();
   const { address: walletAddress, isConnected } = useAccount();
 
+  // Dynamic API endpoint based on NFT status filter
+  const apiEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
+  
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
-    queryKey: ["/api/nfts/for-sale"],
+    queryKey: [apiEndpoint],
     staleTime: 2 * 1000, // 2 seconds for immediate updates
     gcTime: 10 * 1000, // 10 seconds cache time
     refetchInterval: 5 * 1000, // Auto-refetch every 5 seconds
@@ -548,6 +552,19 @@ export default function Marketplace() {
                 
                 <div className="space-y-4">
                   <div>
+                    <Label className="text-sm font-medium text-muted-foreground">NFT Status</Label>
+                    <Select value={nftStatus} onValueChange={setNftStatus}>
+                      <SelectTrigger className="w-full mt-2" data-testid="nft-status-select">
+                        <SelectValue placeholder="All NFTs" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="for-sale">For Sale</SelectItem>
+                        <SelectItem value="all">All NFTs</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <Label className="text-sm font-medium text-muted-foreground">Price Range (USDC)</Label>
                     <div className="flex items-center space-x-2 mt-2">
                       <Input
@@ -593,7 +610,9 @@ export default function Marketplace() {
           {/* NFT Grid */}
           <div className="lg:w-3/4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold" data-testid="marketplace-title">Browse NFTs</h2>
+              <h2 className="text-2xl md:text-4xl font-bold" data-testid="marketplace-title">
+                {nftStatus === "all" ? "Browse All NFTs" : "Browse NFTs for Sale"}
+              </h2>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48" data-testid="sort-select">
                   <SelectValue />
@@ -626,7 +645,7 @@ export default function Marketplace() {
                       nft={nft}
                       onPurchase={() => handlePurchase(nft)}
                       onSelect={() => handleNFTClick(nft)}
-                      showPurchaseButton={true}
+                      showPurchaseButton={Boolean(nft.isForSale)}
                     />
                   ))}
                 </div>
