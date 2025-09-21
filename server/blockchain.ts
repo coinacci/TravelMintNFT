@@ -536,6 +536,8 @@ export class BlockchainService {
       "106": { location: "Baghdad", latitude: "33.3152", longitude: "44.3661" },
       // Vietnam Forest NFT -> Vietnam  
       "89": { location: "Ho Chi Minh City", latitude: "10.8231", longitude: "106.6297" },
+      // Dubai Nights NFT -> Dubai
+      "48": { location: "Dubai", latitude: "25.2048", longitude: "55.2708" },
       // Egypt Night NFT -> Cairo
       "44": { location: "Cairo", latitude: "30.0444", longitude: "31.2357" }, 
       // Georgia Moments NFT -> Tbilisi
