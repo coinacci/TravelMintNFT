@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
 import { MapPin, Upload, Wallet, Eye, CheckCircle, Share2 } from "lucide-react";
+import CitySearchInput from "@/components/city-search-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { ipfsClient } from "@/lib/ipfs";
@@ -799,32 +801,87 @@ export default function Mint() {
 
               {/* Location Info */}
               <div className="space-y-4">
-                {/* GPS Location Only */}
                 <div className="bg-muted p-4 rounded-lg">
-                  <div className="mb-2">
-                    <span className="text-sm font-medium">Current Location (GPS)</span>
+                  <div className="mb-4">
+                    <span className="text-sm font-medium">Location Selection</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    <span data-testid="detected-location">
-                      {locationLoading ? "Getting your location..." :
-                       location ? (location.city || "Unknown City") : 
-                       locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
-                    </span>
-                  </div>
-                  {location && (
-                    <div className="text-xs text-muted-foreground mt-1" data-testid="coordinates">
-                      City-based location for privacy
+
+                  {/* Location Type Selection */}
+                  <RadioGroup
+                    value={useManualLocation ? "manual" : "gps"}
+                    onValueChange={(value) => {
+                      setUseManualLocation(value === "manual");
+                      if (value === "gps") {
+                        // Clear manual location data and get GPS location
+                        setManualLocation("");
+                        setSelectedCoords(null);
+                        getCurrentLocation();
+                      }
+                    }}
+                    className="mb-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="gps" id="gps" />
+                      <Label htmlFor="gps" className="text-sm">Use GPS Location</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="manual" id="manual" />
+                      <Label htmlFor="manual" className="text-sm">Search City Manually</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {/* GPS Location Display */}
+                  {!useManualLocation && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 text-sm">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <span data-testid="detected-location">
+                          {locationLoading ? "Getting your location..." :
+                           location ? (location.city || "Unknown City") : 
+                           locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
+                        </span>
+                      </div>
+                      {location && (
+                        <div className="text-xs text-muted-foreground" data-testid="coordinates">
+                          Exact GPS coordinates for authenticity
+                        </div>
+                      )}
+                      {locationError && (
+                        <div className="text-xs text-destructive">
+                          📍 Location permission needed for NFT minting
+                        </div>
+                      )}
+                      <div className="text-xs text-blue-600">
+                        🛡️ GPS coordinates are automatically detected for authenticity
+                      </div>
                     </div>
                   )}
-                  {locationError && (
-                    <div className="text-xs text-destructive mt-1">
-                      📍 Location permission needed for NFT minting
+
+                  {/* Manual City Search */}
+                  {useManualLocation && (
+                    <div className="space-y-2">
+                      <CitySearchInput
+                        onCitySelect={(city) => {
+                          setManualLocation(city.name);
+                          setSelectedCoords({
+                            lat: city.latitude,
+                            lng: city.longitude
+                          });
+                          console.log(`🏙️ City selected: ${city.name} at ${city.latitude}, ${city.longitude}`);
+                        }}
+                        placeholder="Search for your city..."
+                        className="w-full"
+                      />
+                      <div className="text-xs text-blue-600">
+                        🌍 Random location within selected city for privacy
+                      </div>
+                      {manualLocation && selectedCoords && (
+                        <div className="text-xs text-muted-foreground">
+                          Selected: {manualLocation} ({selectedCoords.lat.toFixed(4)}, {selectedCoords.lng.toFixed(4)})
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="text-xs text-blue-600 mt-2">
-                    🛡️ GPS coordinates are automatically detected for authenticity
-                  </div>
                 </div>
 
                 {/* Pricing */}
