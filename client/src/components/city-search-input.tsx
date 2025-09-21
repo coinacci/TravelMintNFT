@@ -88,11 +88,11 @@ export default function CitySearchInput({
         `https://nominatim.openstreetmap.org/search?` +
         `format=json&` +
         `q=${encodeURIComponent(searchQuery)}&` +
-        `limit=8&` +
+        `limit=10&` +
         `addressdetails=1&` +
-        `featuretype=city&` +
         `accept-language=en&` +
-        `countrycodes=tr,us,gb,fr,de,it,es,ca,au,jp,kr,in,br,mx,ar,eg,ma,za,ng,ke,gh,tz,ug,et,dz,ao,mz,zw,zm,bw,mw,rw,bi,dj,so,sd,ly,tn,eh,ci,bf,ml,sn,gn,sl,lr,gm,gw,cv,st,gq,ga,cg,cm,cf,td,ne,mr,mg,mu,sc,km,yt,re`
+        `class=place&` +
+        `type=city,town,village`
       );
 
       if (!response.ok) {
@@ -101,14 +101,37 @@ export default function CitySearchInput({
 
       const data = await response.json();
       
-      // Filter for cities, towns, and other settlements
+      console.log(`🔍 Nominatim API response for "${searchQuery}":`, {
+        totalResults: data.length,
+        sampleResults: data.slice(0, 3).map((item: any) => ({
+          name: item.display_name,
+          type: item.type,
+          category: item.category,
+          importance: item.importance
+        }))
+      });
+      
+      // Filter for cities, towns, and other settlements - be more inclusive
       const filteredCities = data.filter((place: any) => {
         const type = place.type?.toLowerCase() || '';
         const category = place.category?.toLowerCase() || '';
-        return category === 'place' || ['city', 'town', 'village', 'municipality'].includes(type);
+        const osm_type = place.osm_type?.toLowerCase() || '';
+        
+        // Include places that are cities, towns, villages, or administrative areas
+        const validCategories = ['place', 'boundary'];
+        const validTypes = ['city', 'town', 'village', 'municipality', 'administrative', 'suburb', 'hamlet'];
+        
+        return validCategories.includes(category) || validTypes.some(validType => type.includes(validType));
       });
 
-      setCities(filteredCities.slice(0, 6)); // Limit to top 6 results
+      // Sort by importance (if available) and take top results
+      const sortedCities = filteredCities.sort((a: any, b: any) => {
+        const aImportance = parseFloat(a.importance || '0');
+        const bImportance = parseFloat(b.importance || '0');
+        return bImportance - aImportance; // Higher importance first
+      });
+
+      setCities(sortedCities.slice(0, 8)); // Limit to top 8 results
       setShowResults(filteredCities.length > 0);
     } catch (err) {
       console.error('City search error:', err);
