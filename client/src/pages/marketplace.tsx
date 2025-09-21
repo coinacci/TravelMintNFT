@@ -47,10 +47,7 @@ interface User {
 }
 
 export default function Marketplace() {
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [nftStatus, setNftStatus] = useState("for-sale"); // New: NFT status filter
+  const [nftStatus, setNftStatus] = useState("for-sale"); // NFT status filter
   const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
@@ -379,151 +376,19 @@ export default function Marketplace() {
     }
   };
 
-  // Country to continent mapping
-  const countryToContinent: Record<string, string> = {
-    // Europe
-    'Turkey': 'Europe',
-    'Montenegro': 'Europe',
-    'UK': 'Europe',
-    'France': 'Europe',
-    'Germany': 'Europe',
-    'Italy': 'Europe',
-    'Spain': 'Europe',
-    'Netherlands': 'Europe',
-    
-    // Asia  
-    'UAE': 'Asia',
-    'Japan': 'Asia',
-    'Singapore': 'Asia',
-    
-    // Americas
-    'Canada': 'Americas',
-    'USA': 'Americas',
-    
-    // Africa
-    'Egypt': 'Africa',
-    
-    // Oceania
-    'Australia': 'Oceania',
-  };
 
-  // Location to country mapping (from server)
-  const locationToCountry: Record<string, string> = {
-    // Turkey
-    'Tuzla': 'Turkey',
-    'Pendik': 'Turkey', 
-    'Istanbul': 'Turkey',
-    'Ankara': 'Turkey',
-    'Izmir': 'Turkey',
-    'Beyoglu': 'Turkey',
-    'Bodrum': 'Turkey',
-    'Kadikoy': 'Turkey',
-    'Osmangazi': 'Turkey',
-    'Didim': 'Turkey',
-    'Datça': 'Turkey',
-    'Maltepe': 'Turkey',
-    // Montenegro
-    'Karadağ': 'Montenegro',
-    'Karadag Nature': 'Montenegro',
-    // Canada
-    'Vancouver': 'Canada',
-    'Toronto': 'Canada',
-    'Montreal': 'Canada',
-    'Calgary': 'Canada',
-    // Egypt
-    'El Obour': 'Egypt',
-    'Cairo': 'Egypt',
-    'Alexandria': 'Egypt',
-    'Giza': 'Egypt',
-    // USA
-    'New York': 'USA',
-    'Los Angeles': 'USA',
-    'San Francisco': 'USA',
-    'Chicago': 'USA',
-    'Miami': 'USA',
-    // Other major cities
-    'London': 'UK',
-    'Paris': 'France',
-    'Tokyo': 'Japan',
-    'Sydney': 'Australia',
-    'Dubai': 'UAE',
-    'Singapore': 'Singapore',
-    'Amsterdam': 'Netherlands',
-    'Berlin': 'Germany',
-    'Rome': 'Italy',
-    'Barcelona': 'Spain'
-  };
 
-  const getCountryFromCoordinates = (lat: number, lng: number): string => {
-    // Montenegro borders: roughly 42-43.5°N, 18.5-20.5°E
-    if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
-      return 'Montenegro';
-    }
-    // Turkey borders: roughly 36-42°N, 26-45°E
-    if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) {
-      return 'Turkey';
-    }
-    // Egypt borders: roughly 22-32°N, 25-35°E  
-    if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
-      return 'Egypt';
-    }
-    // UAE borders: roughly 22-26°N, 51-56°E
-    if (lat >= 22 && lat <= 26 && lng >= 51 && lng <= 56) {
-      return 'UAE';
-    }
-    // Canada borders: roughly 42-75°N, -141 to -52°W
-    if (lat >= 42 && lat <= 75 && lng >= -141 && lng <= -52) {
-      return 'Canada';
-    }
-    return 'Unknown';
-  };
 
-  const getNFTContinent = (nft: NFT): string => {
-    // First try location-based mapping
-    let country = locationToCountry[nft.location];
-    
-    // If not found and it's a manual location with coordinates, use coordinates
-    if (!country && nft.location?.startsWith('Location at ') && nft.latitude && nft.longitude) {
-      const lat = parseFloat(nft.latitude);
-      const lng = parseFloat(nft.longitude);
-      if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
-        country = getCountryFromCoordinates(lat, lng);
-      }
-    }
-    
-    // Map country to continent
-    if (country && countryToContinent[country]) {
-      return countryToContinent[country];
-    }
-    
-    return 'Unknown';
-  };
 
-  // Filter and sort NFTs
+  // Sort NFTs
   const filteredNFTs = nfts
     .filter(nft => {
-      const price = parseFloat(nft.price);
-      const minPrice = priceMin ? parseFloat(priceMin) : 0;
-      const maxPrice = priceMax ? parseFloat(priceMax) : Infinity;
-      
       // Filter out NFTs with invalid coordinates (0,0)
       const lat = parseFloat(nft.latitude || '0');
       const lng = parseFloat(nft.longitude || '0');
       const hasValidCoordinates = !(lat === 0 && lng === 0);
       
-      // Location filtering
-      let matchesLocation = selectedLocation === "all";
-      if (!matchesLocation && selectedLocation) {
-        const nftContinent = getNFTContinent(nft);
-        matchesLocation = nftContinent === selectedLocation;
-      }
-      
-      return (
-        hasValidCoordinates &&
-        price >= minPrice &&
-        price <= maxPrice &&
-        matchesLocation
-      );
+      return hasValidCoordinates;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -537,8 +402,6 @@ export default function Marketplace() {
           return 0; // Recent (default order)
       }
     });
-
-  const locations = ["Europe", "Asia", "Americas", "Africa", "Oceania"];
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
@@ -563,45 +426,6 @@ export default function Marketplace() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Price Range (USDC)</Label>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Input
-                        type="number"
-                        placeholder="Min"
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(e.target.value)}
-                        className="w-full"
-                        data-testid="price-min-input"
-                      />
-                      <span className="text-muted-foreground">-</span>
-                      <Input
-                        type="number"
-                        placeholder="Max"
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(e.target.value)}
-                        className="w-full"
-                        data-testid="price-max-input"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                    <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                      <SelectTrigger className="w-full mt-2" data-testid="location-select">
-                        <SelectValue placeholder="All Locations" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Locations</SelectItem>
-                        {locations.map(location => (
-                          <SelectItem key={location} value={location}>{location}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
                 </div>
               </CardContent>
             </Card>
