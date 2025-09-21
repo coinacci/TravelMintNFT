@@ -144,25 +144,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertNFTByTokenId(insertNFT: InsertNFT): Promise<NFT> {
+    // Protected NFTs with fixed override locations - NEVER update their locations
+    const protectedTokenIds = ['106', '89', '48', '44', '41'];
+    const isProtected = insertNFT.tokenId && protectedTokenIds.includes(insertNFT.tokenId);
+    
+    // Base update object without location fields
+    const baseUpdateSet = {
+      title: insertNFT.title,
+      description: insertNFT.description,
+      imageUrl: insertNFT.imageUrl,
+      category: insertNFT.category,
+      price: insertNFT.price,
+      ownerAddress: insertNFT.ownerAddress,
+      creatorAddress: insertNFT.creatorAddress,
+      metadata: insertNFT.metadata,
+      updatedAt: new Date()
+    };
+    
+    // For protected NFTs, exclude location updates to preserve override locations
+    const updateSet = isProtected ? baseUpdateSet : {
+      ...baseUpdateSet,
+      location: insertNFT.location,
+      latitude: insertNFT.latitude,
+      longitude: insertNFT.longitude
+    };
+    
     const [nft] = await db
       .insert(nfts)
       .values(insertNFT)
       .onConflictDoUpdate({
         target: nfts.tokenId,
-        set: {
-          title: insertNFT.title,
-          description: insertNFT.description,
-          imageUrl: insertNFT.imageUrl,
-          location: insertNFT.location,
-          latitude: insertNFT.latitude,
-          longitude: insertNFT.longitude,
-          category: insertNFT.category,
-          price: insertNFT.price,
-          ownerAddress: insertNFT.ownerAddress,
-          creatorAddress: insertNFT.creatorAddress,
-          metadata: insertNFT.metadata,
-          updatedAt: new Date()
-        }
+        set: updateSet
       })
       .returning();
     return nft;
