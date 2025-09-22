@@ -1965,14 +1965,9 @@ export async function registerRoutes(app: Express) {
       // Filter out @coinacci from leaderboard for testing purposes
       const filteredLeaderboard = weeklyLeaderboard.filter(entry => entry.farcasterUsername !== 'coinacci');
       
-      // Check if this is first week (no one has weekly points yet)
-      const hasActiveWeeklyPoints = weeklyLeaderboard.some(entry => entry.weeklyPoints > 0);
-      
-      // Add rank to each entry and handle first week display
+      // Add rank to each entry - weekly points are now properly maintained by reset guards
       const rankedLeaderboard = filteredLeaderboard.map((entry, index) => ({
         ...entry,
-        // For first week, show totalPoints as weeklyPoints so frontend displays correctly
-        weeklyPoints: hasActiveWeeklyPoints ? entry.weeklyPoints : entry.totalPoints,
         rank: index + 1
       }));
       
