@@ -209,11 +209,20 @@ export default function Marketplace() {
           tokenId,
           priceUSDC,
           priceWei: priceWei.toString(),
-          currentBalance: usdcBalance?.toString()
+          currentBalance: usdcBalance?.toString(),
+          currentAllowance: ((usdcAllowance as bigint) || BigInt(0)).toString(),
+          walletAddress,
+          nftOwner: (purchaseData as any).transactionData?.sellerAddress
         });
         
         // Check if USDC allowance is sufficient for NFT contract
         const currentAllowance = (usdcAllowance as bigint) || BigInt(0);
+        
+        console.log("💰 Allowance check:", {
+          required: priceWei.toString(),
+          current: currentAllowance.toString(),
+          sufficient: currentAllowance >= priceWei
+        });
         
         if (currentAllowance < priceWei) {
           // STEP 1: Approve USDC for NFT contract
