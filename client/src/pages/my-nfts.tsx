@@ -82,15 +82,22 @@ export default function MyNFTs() {
   // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
-  // NFT Contract Configuration
+  // Contract Configuration
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
-  const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084" as const; // Platform wallet for marketplace transactions
-  // 🔒 SECURITY FIX: Updated ABI with secure listing system
+  const MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c" as const;
+  const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084" as const;
+  
+  // NFT Contract ABI - for transfers and approvals only
   const TRAVEL_NFT_ABI = parseAbi([
     "function safeTransferFrom(address from, address to, uint256 tokenId)",
     "function ownerOf(uint256 tokenId) view returns (address)",
     "function approve(address to, uint256 tokenId)",
     "function getApproved(uint256 tokenId) view returns (address)",
+    "function setApprovalForAll(address operator, bool approved)"
+  ]);
+  
+  // Marketplace Contract ABI - for marketplace operations
+  const MARKETPLACE_ABI = parseAbi([
     "function listNFT(uint256 tokenId, uint256 price)",
     "function cancelListing(uint256 tokenId)",
     "function updatePrice(uint256 tokenId, uint256 newPrice)"
@@ -363,8 +370,8 @@ export default function MyNFTs() {
         });
 
         await writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: TRAVEL_NFT_ABI,
+          address: MARKETPLACE_CONTRACT_ADDRESS,
+          abi: MARKETPLACE_ABI,
           functionName: 'cancelListing',
           args: [tokenId],
         });
@@ -402,9 +409,18 @@ export default function MyNFTs() {
           description: `Listing NFT #${nft.tokenId} for ${price} USDC on-chain...`,
         });
 
+        // First ensure NFT is approved for marketplace
         await writeContract({
           address: NFT_CONTRACT_ADDRESS,
           abi: TRAVEL_NFT_ABI,
+          functionName: 'setApprovalForAll',
+          args: [MARKETPLACE_CONTRACT_ADDRESS, true],
+        });
+        
+        // Then list the NFT on marketplace
+        await writeContract({
+          address: MARKETPLACE_CONTRACT_ADDRESS,
+          abi: MARKETPLACE_ABI,
           functionName: 'listNFT',
           args: [tokenId, priceWei],
         });
