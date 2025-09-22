@@ -1235,18 +1235,17 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Calculate commission split
+      // Note: Balance updates are handled by smart contract
+      // Smart contract automatically transfers USDC from buyer to seller (95%) and platform (5%)
+      // We don't need to update local balances since real balances are on blockchain
+      
       const purchasePrice = parseFloat(nftToUpdate.price);
-      const platformFee = purchasePrice * 0.05; // 5% platform fee
+      const platformFee = purchasePrice * 0.05;
       const sellerAmount = purchasePrice - platformFee;
       
-      // Update balances
-      const buyerNewBalance = (parseFloat(buyer.balance) - purchasePrice).toString();
-      const sellerNewBalance = (parseFloat(seller.balance) + sellerAmount).toString();
+      console.log(`💰 Smart contract handled: ${sellerAmount} USDC to seller, ${platformFee} USDC platform fee`);
       
-      console.log(`💰 Balance updates: Buyer ${buyerNewBalance} USDC, Seller ${sellerNewBalance} USDC`);
-      
-      // Get or create platform user for commission tracking
+      // Get or create platform user for record keeping
       let platformUser = await storage.getUserByWalletAddress(PLATFORM_WALLET);
       if (!platformUser) {
         platformUser = await storage.createUser({
@@ -1256,13 +1255,7 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      const platformNewBalance = (parseFloat(platformUser.balance) + platformFee).toString();
-      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (Balance: ${platformNewBalance} USDC)`);
-      
-      // Update all balances
-      await storage.updateUserBalance(buyer.id, buyerNewBalance);
-      await storage.updateUserBalance(seller.id, sellerNewBalance);
-      await storage.updateUserBalance(platformUser.id, platformNewBalance);
+      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (handled by smart contract)`);
       
       // Update NFT ownership and remove from sale
       console.log(`🔄 Updating NFT ${nftToUpdate.id} ownership: ${nftToUpdate.ownerAddress} → ${buyerId.toLowerCase()}`);
