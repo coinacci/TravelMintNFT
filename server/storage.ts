@@ -316,6 +316,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
+    // Check if any users have weekly points (active week)
+    const weeklyPointsCount = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(userStats)
+      .where(sql`${userStats.weeklyPoints} > 0`);
+    
+    const count = Number(weeklyPointsCount[0]?.count || 0);
+    
+    // If no users have weekly points yet (first week), show all-time leaderboard
+    if (count === 0) {
+      return await db
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.totalPoints} > 0`)
+        .orderBy(sql`${userStats.totalPoints} DESC`)
+        .limit(limit);
+    }
+    
+    // Otherwise, show weekly leaderboard
     return await db
       .select()
       .from(userStats)
