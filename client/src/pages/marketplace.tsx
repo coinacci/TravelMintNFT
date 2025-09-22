@@ -75,7 +75,7 @@ export default function Marketplace() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); // ✅ For cache invalidation
   const { address: walletAddress, isConnected } = useAccount();
 
   // Dynamic API endpoint based on NFT status filter
@@ -370,9 +370,20 @@ export default function Marketplace() {
             // 🚨 CRITICAL: Force fresh allowance + balance read from blockchain
             console.log("🔄 Forcing fresh allowance/balance read from chain...");
             
-            // TODO: Force fresh reads - this is a critical fix needed
-            // For now, wait longer to reduce stale state risk
-            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second wait
+            // ✅ FORCE CACHE INVALIDATION - Critical fix for stale allowance
+            console.log("🗑️ Invalidating USDC allowance + balance cache...");
+            await queryClient.invalidateQueries({ 
+              queryKey: ['readContract', USDC_ADDRESS, 'allowance'] 
+            });
+            await queryClient.invalidateQueries({ 
+              queryKey: ['readContract', USDC_ADDRESS, 'balanceOf'] 
+            });
+            console.log("✅ Cache invalidated successfully");
+            
+            // Wait for blockchain to mine approve transaction
+            console.log("⏱️ Waiting 8 seconds for blockchain to mine approve transaction...");
+            await new Promise(resolve => setTimeout(resolve, 8000)); // 8 second wait for mining
+            console.log("⛓️ Mining wait completed, reading fresh allowance...");
             
             // Re-fetch current allowance and balance from blockchain
             const currentBalance = (usdcBalance as bigint) || BigInt(0);
