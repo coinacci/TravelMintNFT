@@ -768,6 +768,7 @@ export default function MyNFTs() {
                           )}
                         </Button>
                         */}
+                        {/* Trading features temporarily hidden
                         <Button
                           size="sm"
                           variant="ghost"
@@ -795,6 +796,7 @@ export default function MyNFTs() {
                             "List for Sale"
                           )}
                         </Button>
+                        */}
                       </div>
                     </div>
                   )}
