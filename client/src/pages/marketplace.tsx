@@ -70,7 +70,7 @@ export default function Marketplace() {
   const [nftStatus, setNftStatus] = useState("for-sale"); // NFT status filter
   const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
-  const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
+  const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment' | 'nft_transfer'>('idle');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -342,10 +342,55 @@ export default function Marketplace() {
         sendCommission();
         
       } else if (transactionStep === 'commission_payment') {
-        // STEP 2 CONFIRMED: Commission sent, finalize purchase
+        // STEP 2 CONFIRMED: Commission sent, now transfer NFT onchain
+        const transferNFT = async () => {
+          try {
+            console.log("✅ Commission payment confirmed, transferring NFT onchain");
+            
+            const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
+            if (!currentNFT) {
+              throw new Error("NFT not found");
+            }
+
+            // Extract numeric tokenId from blockchain ID (e.g., "blockchain-4" -> 4)
+            const tokenId = currentNFT.id.includes('blockchain-') 
+              ? parseInt(currentNFT.id.split('blockchain-')[1]) 
+              : parseInt(currentNFT.id);
+
+            const priceWei = parseUnits(currentNFT.price, 6);
+            
+            toast({
+              title: "🚚 Transferring NFT",
+              description: "Step 3: Calling smart contract to transfer NFT...",
+            });
+
+            setTransactionStep('nft_transfer');
+
+            // STEP 3: Call smart contract purchaseNFT function
+            writeContract({
+              address: NFT_CONTRACT_ADDRESS,
+              abi: NFT_ABI,
+              functionName: "purchaseNFT",
+              args: [BigInt(tokenId), priceWei],
+            });
+            
+          } catch (error) {
+            console.error("Failed to transfer NFT:", error);
+            toast({
+              title: "NFT Transfer Failed",
+              description: "Payments succeeded but NFT transfer failed. Contact support.",
+              variant: "destructive",
+            });
+          }
+        };
+        
+        transferNFT();
+        
+      } else if (transactionStep === 'nft_transfer') {
+        // STEP 3 CONFIRMED: NFT transferred, finalize purchase
         const finalizePurchase = async () => {
           try {
-            console.log("✅ Commission payment confirmed, finalizing purchase");
+            console.log("✅ NFT transfer confirmed, finalizing purchase");
             
             // Update database
             await apiRequest("POST", `/api/nfts/confirm-purchase`, {
@@ -356,7 +401,7 @@ export default function Marketplace() {
             
             toast({
               title: "🎉 Purchase Complete!",
-              description: "NFT purchased! Seller paid, platform commission collected.",
+              description: "NFT ownership transferred successfully onchain!",
             });
             
             // Reset state
@@ -373,8 +418,8 @@ export default function Marketplace() {
           } catch (error) {
             console.error("Failed to finalize purchase:", error);
             toast({
-              title: "Purchase Finalization Failed",
-              description: "Payments succeeded but database update failed. Contact support.",
+              title: "⚠️ Purchase Partially Complete",
+              description: "NFT transferred but database update failed. Contact support.",
               variant: "destructive",
             });
           }
