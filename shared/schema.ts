@@ -19,8 +19,8 @@ export const nfts = pgTable("nfts", {
   imageUrl: text("image_url").notNull(),
   objectStorageUrl: text("object_storage_url"), // Object storage backup URL
   location: text("location").notNull(),
-  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
-  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
   category: text("category").notNull(),
   price: decimal("price", { precision: 18, scale: 6 }).notNull(),
   isForSale: integer("is_for_sale").default(0).notNull(), // 0 = false, 1 = true
