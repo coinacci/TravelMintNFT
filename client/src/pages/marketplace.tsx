@@ -184,6 +184,10 @@ export default function Marketplace() {
           ? parseInt(nftId.split('blockchain-')[1]) 
           : parseInt(nftId);
         
+        // Calculate commission split first
+        const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
+        const sellerAmount = priceWei - platformCommission; // 95%
+        
         console.log("💰 Single-contract purchase:", {
           tokenId,
           priceUSDC,
@@ -192,42 +196,38 @@ export default function Marketplace() {
         });
         
         toast({
-          title: "💰 Sending Payment", 
-          description: "Step 1: Paying seller 1.90 USDC (95%)",
+          title: "🏗️ Smart Contract Purchase", 
+          description: `Purchasing NFT #${tokenId} for ${priceUSDC} USDC (automatic commission)`,
         });
 
-        // BACK TO WORKING SYSTEM: Direct USDC transfers
-        // Calculate commission split  
-        const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
-        const sellerAmount = priceWei - platformCommission; // 95%
+        // Smart Contract Atomic Purchase - handles USDC + NFT transfer + commission automatically
         
-        console.log("💰 Payment breakdown:", {
+        console.log("💰 Smart contract purchase:", {
+          tokenId: tokenId,
           totalPrice: priceUSDC,
           sellerAmount: (Number(sellerAmount) / 1000000).toString() + " USDC",
           platformCommission: (Number(platformCommission) / 1000000).toString() + " USDC"
         });
 
-        // STEP 1: Pay seller directly (95%)
-        setTransactionStep('seller_payment');
+        // Use Smart Contract's purchaseNFT function - atomic transaction
+        setTransactionStep('commission_payment'); // Skip to final step since it's atomic
         
         writeContract({
-          address: USDC_ADDRESS,
+          address: NFT_CONTRACT_ADDRESS,
           abi: [
             {
-              name: "transfer",
+              name: "purchaseNFT",
               type: "function",
               inputs: [
-                { name: "to", type: "address" },
-                { name: "amount", type: "uint256" }
+                { name: "tokenId", type: "uint256" },
+                { name: "price", type: "uint256" }
               ],
-              outputs: [{ name: "", type: "bool" }]
+              outputs: [],
+              stateMutability: "nonpayable"
             }
           ],
-          functionName: "transfer",
-          args: [
-            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
-            sellerAmount // 95% to seller
-          ],
+          functionName: "purchaseNFT",
+          args: [BigInt(tokenId), priceWei]
         });
         
         console.log("🚀 Reliable dual-payment system initiated");
@@ -286,62 +286,10 @@ export default function Marketplace() {
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
 
-  // Handle dual transaction confirmations
+  // Handle smart contract transaction confirmation  
   React.useEffect(() => {
     if (txHash && !isConfirming) {
-      if (transactionStep === 'seller_payment') {
-        // STEP 1 CONFIRMED: Seller payment done, now send commission
-        const sendCommission = async () => {
-          try {
-            console.log("✅ Seller payment confirmed, sending platform commission");
-            
-            const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
-            if (!currentNFT) return;
-            
-            const priceWei = parseUnits(currentNFT.price, 6);
-            const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
-            
-            toast({
-              title: "💰 Sending Commission",
-              description: `Step 2: Platform commission ${(Number(platformCommission)/1000000).toFixed(2)} USDC`,
-            });
-
-            setTransactionStep('commission_payment');
-
-            // STEP 2: Send platform commission
-            writeContract({
-              address: USDC_ADDRESS,
-              abi: [
-                {
-                  name: "transfer",
-                  type: "function",
-                  inputs: [
-                    { name: "to", type: "address" },
-                    { name: "amount", type: "uint256" }
-                  ],
-                  outputs: [{ name: "", type: "bool" }]
-                }
-              ],
-              functionName: "transfer",
-              args: [
-                "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`,
-                platformCommission
-              ],
-            });
-            
-          } catch (error) {
-            console.error("Failed to send commission:", error);
-            toast({
-              title: "Commission Transfer Failed",
-              description: "Seller payment succeeded but commission failed. Contact support.",
-              variant: "destructive",
-            });
-          }
-        };
-        
-        sendCommission();
-        
-      } else if (transactionStep === 'commission_payment') {
+      if (transactionStep === 'commission_payment') {
         // STEP 2 CONFIRMED: Commission sent, finalize purchase
         const finalizePurchase = async () => {
           try {
