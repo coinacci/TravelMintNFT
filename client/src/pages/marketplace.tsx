@@ -458,8 +458,8 @@ export default function Marketplace() {
             
             // 🔒 SECURITY FIX: Price is now stored on-chain, no need to pass it
             writeContract({
-              address: NFT_CONTRACT_ADDRESS,
-              abi: NFT_ABI,
+              address: MARKETPLACE_CONTRACT_ADDRESS,
+              abi: MARKETPLACE_ABI,
               functionName: "purchaseNFT",
               args: [
                 BigInt(tokenId)
