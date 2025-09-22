@@ -257,13 +257,28 @@ export default function Leaderboard() {
             </TabsContent>
             
             <TabsContent value="weekly">
-              {/* Show latest weekly champion if exists and week has ended */}
+              {/* Show latest weekly champion ONLY after Tuesday 00:00 UTC */}
               {weeklyChampions.length > 0 && (() => {
                 const today = new Date();
                 const championWeekEnd = new Date(weeklyChampions[0].weekEndDate);
-                const hasWeekEnded = today > championWeekEnd;
                 
-                return hasWeekEnded && (
+                // 🎯 FIXED: Champion should only be shown after Tuesday 00:00 UTC
+                // Week ends Monday 23:59, champion determined Tuesday 00:00 UTC
+                const nextTuesday = new Date(championWeekEnd);
+                nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1); // Next day (Tuesday)
+                nextTuesday.setUTCHours(0, 0, 0, 0); // 00:00 UTC
+                
+                const isChampionValidTime = today >= nextTuesday;
+                
+                console.log('🏆 Champion timing check:', {
+                  weekEnd: championWeekEnd.toISOString(),
+                  nextTuesday: nextTuesday.toISOString(),
+                  today: today.toISOString(),
+                  isChampionValidTime,
+                  championUsername: weeklyChampions[0].farcasterUsername
+                });
+                
+                return isChampionValidTime && (
                   <div className="mb-6 p-3 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -327,14 +342,26 @@ export default function Leaderboard() {
             </TabsContent>
             
             <TabsContent value="champions">
-              {weeklyChampions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Crown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No champions yet. Be the first to win a weekly championship!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {weeklyChampions.map((champion) => (
+              {(() => {
+                // 🎯 FIXED: Filter champions to only show those from completed weeks
+                const validChampions = weeklyChampions.filter(champion => {
+                  const championWeekEnd = new Date(champion.weekEndDate);
+                  const nextTuesday = new Date(championWeekEnd);
+                  nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1); // Next Tuesday
+                  nextTuesday.setUTCHours(0, 0, 0, 0); // 00:00 UTC
+                  
+                  const today = new Date();
+                  return today >= nextTuesday;
+                });
+                
+                return validChampions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Crown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No champions yet. Winners are determined every Tuesday at 00:00 UTC!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {validChampions.map((champion) => (
                     <div
                       key={`${champion.farcasterFid}-${champion.weekNumber}-${champion.year}`}
                       className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-700"
@@ -357,8 +384,9 @@ export default function Leaderboard() {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </TabsContent>
           </Tabs>
         </CardContent>
