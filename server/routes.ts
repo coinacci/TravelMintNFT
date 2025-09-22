@@ -1946,6 +1946,10 @@ export async function registerRoutes(app: Express) {
   // Get weekly leaderboard - SECURED
   app.get("/api/leaderboard/weekly", async (req, res) => {
     try {
+      // ✅ CRITICAL FIX: Idempotent weekly reset guard
+      console.log('🔄 Weekly leaderboard requested - ensuring week is current...');
+      await storage.performWeeklyReset();
+      
       // Validate query parameters
       const validationResult = leaderboardQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
@@ -1982,6 +1986,10 @@ export async function registerRoutes(app: Express) {
   // Get weekly champions - SECURED
   app.get("/api/weekly-champions", async (req, res) => {
     try {
+      // ✅ CRITICAL FIX: Idempotent weekly reset guard
+      console.log('🏆 Weekly champions requested - ensuring week is current...');
+      await storage.performWeeklyReset();
+      
       // Validate query parameters
       const validationResult = leaderboardQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
@@ -2094,6 +2102,10 @@ export async function registerRoutes(app: Express) {
   // SECURED Claim quest reward - CRITICAL SECURITY FIX
   app.post("/api/quest-claim", async (req, res) => {
     try {
+      // ✅ CRITICAL FIX: Idempotent weekly reset guard
+      console.log('🎯 Quest claim requested - ensuring week is current...');
+      await storage.performWeeklyReset();
+      
       // 🔒 SECURITY: Validate all input with Zod schema
       const validationResult = questClaimSchema.safeParse(req.body);
       if (!validationResult.success) {
