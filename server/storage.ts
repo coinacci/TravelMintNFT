@@ -707,11 +707,11 @@ export class DatabaseStorage implements IStorage {
 
       console.log(`🔄 Performing weekly reset for week starting ${currentWeekStart}`);
 
-      // Get current weekly champion before reset
+      // Get current weekly champion before reset (excluding coinacci)
       const [currentChampion] = await tx
         .select()
         .from(userStats)
-        .where(sql`${userStats.weeklyPoints} > 0`)
+        .where(sql`${userStats.weeklyPoints} > 0 AND ${userStats.farcasterUsername} != 'coinacci'`)
         .orderBy(sql`${userStats.weeklyPoints} DESC`)
         .limit(1);
 
