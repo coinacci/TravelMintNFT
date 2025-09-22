@@ -14,7 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MapPin, User, Clock, Eye, Send, Loader2, Share2, Wallet, Users } from "lucide-react";
+import { MapPin, User, Clock, Send, Loader2, Share2, Wallet, Users } from "lucide-react";
 import { isAddress, parseAbi, formatEther } from "viem";
 import { base } from "wagmi/chains";
 import sdk from "@farcaster/frame-sdk";
@@ -682,16 +682,6 @@ export default function MyNFTs() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
-                            data-testid={`open-${nft.id}`}
-                            className="text-muted-foreground hover:text-foreground"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
                           {/* Share button temporarily hidden
                           <Button
                             size="sm"
@@ -733,16 +723,6 @@ export default function MyNFTs() {
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
-                          data-testid={`open-${nft.id}`}
-                          className="text-muted-foreground hover:text-foreground"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
                         {/* Share button temporarily hidden
                         <Button
                           size="sm"
