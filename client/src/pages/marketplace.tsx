@@ -41,6 +41,18 @@ interface Transaction {
   toUserId: string;
 }
 
+interface RecentTransaction {
+  id: string;
+  nftId: string;
+  fromAddress: string | null;
+  toAddress: string;
+  transactionType: string;
+  amount: string;
+  platformFee: string;
+  blockchainTxHash: string | null;
+  createdAt: string;
+}
+
 interface User {
   id: string;
   username: string;
@@ -75,6 +87,14 @@ export default function Marketplace() {
     enabled: !!selectedNFT?.id,
     staleTime: 10 * 1000, // 10 seconds for faster updates
     gcTime: 30 * 1000, // 30 seconds cache time
+  });
+
+  // Get recent marketplace activity 
+  const { data: recentTransactions = [], isLoading: isLoadingActivity } = useQuery<RecentTransaction[]>({
+    queryKey: ["/api/transactions/recent"],
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 60 * 1000, // 1 minute cache
+    refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds for real-time feel
   });
 
   const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
@@ -377,6 +397,26 @@ export default function Marketplace() {
     }
   };
 
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+      return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    } catch (error) {
+      return 'Unknown time';
+    }
+  };
+
+  const formatWalletAddress = (address: string) => {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
 
 
 
@@ -503,9 +543,71 @@ export default function Marketplace() {
           </TabsContent>
           
           <TabsContent value="recent-activity" className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-2xl md:text-4xl font-bold mb-6" data-testid="recent-activity-title">Recent Activity</h2>
-              <p className="text-muted-foreground">Recent marketplace purchases and sales will appear here</p>
+            <div className="space-y-6">
+              <h2 className="text-2xl md:text-4xl font-bold text-center" data-testid="recent-activity-title">Recent Activity</h2>
+              
+              {isLoadingActivity ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Card key={i} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
+                          <div className="space-y-1">
+                            <div className="h-4 bg-muted rounded w-32 animate-pulse"></div>
+                            <div className="h-3 bg-muted rounded w-24 animate-pulse"></div>
+                          </div>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
+                          <div className="h-3 bg-muted rounded w-16 animate-pulse"></div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : recentTransactions.length > 0 ? (
+                <div className="space-y-3">
+                  {recentTransactions.map((transaction) => (
+                    <Card key={transaction.id} className="p-4 hover:bg-muted/50 transition-colors" data-testid={`transaction-${transaction.id}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                            <span className="text-green-600 dark:text-green-400 text-sm font-bold">💰</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm" data-testid={`transaction-type-${transaction.id}`}>
+                              {transaction.transactionType === 'purchase' ? 'NFT Purchase' : transaction.transactionType}
+                            </p>
+                            <p className="text-xs text-muted-foreground" data-testid={`transaction-addresses-${transaction.id}`}>
+                              {transaction.fromAddress ? `${formatWalletAddress(transaction.fromAddress)} → ` : ''}
+                              {formatWalletAddress(transaction.toAddress)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-sm text-green-600 dark:text-green-400" data-testid={`transaction-amount-${transaction.id}`}>
+                            {parseFloat(transaction.amount).toFixed(2)} USDC
+                          </p>
+                          <p className="text-xs text-muted-foreground" data-testid={`transaction-time-${transaction.id}`}>
+                            {formatTimeAgo(transaction.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">📈</span>
+                  </div>
+                  <h3 className="font-semibold mb-2" data-testid="no-activity-title">No Recent Activity</h3>
+                  <p className="text-muted-foreground text-sm" data-testid="no-activity-message">
+                    Marketplace purchases and sales will appear here
+                  </p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
