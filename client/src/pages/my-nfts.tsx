@@ -68,9 +68,7 @@ export default function MyNFTs() {
     displayName: string;
     pfpUrl?: string;
   } | null>(null);
-  const [approvingNFTId, setApprovingNFTId] = useState<string | null>(null);
   const [listingNFTId, setListingNFTId] = useState<string | null>(null);
-  const [pendingPrice, setPendingPrice] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -79,9 +77,7 @@ export default function MyNFTs() {
   const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
   const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
   
-  // Separate hooks for approval transactions
-  const { writeContract: writeApproval, data: approvalHash, isPending: isApprovalPending, error: approvalError } = useWriteContract();
-  const { isLoading: isApprovalLoading, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({ hash: approvalHash });
+  // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
   // NFT Contract Configuration
@@ -301,46 +297,7 @@ export default function MyNFTs() {
     }
   }, [transferError, toast]);
 
-  // Handle approval success - proceed with listing
-  useEffect(() => {
-    if (isApprovalSuccess && approvingNFTId && pendingPrice) {
-      console.log('✅ NFT approval confirmed, proceeding with listing...');
-      
-      toast({
-        title: "✅ Approval Confirmed",
-        description: "Now listing your NFT for sale...",
-      });
-
-      setListingNFTId(approvingNFTId);
-      
-      // Step 2: Update database to list for sale
-      updateListingMutation.mutate({
-        nftId: approvingNFTId,
-        updates: { isForSale: 1, price: pendingPrice }
-      });
-
-      // Reset approval state
-      setApprovingNFTId(null);
-      setPendingPrice(null);
-    }
-  }, [isApprovalSuccess, approvingNFTId, pendingPrice, toast, updateListingMutation]);
-
-  // Handle approval errors
-  useEffect(() => {
-    if (approvalError) {
-      console.error('❌ NFT approval failed:', approvalError);
-      
-      toast({
-        title: "Approval Failed",
-        description: "Could not approve NFT for marketplace. Please try again.",
-        variant: "destructive",
-      });
-
-      // Reset state on error
-      setApprovingNFTId(null);
-      setPendingPrice(null);
-    }
-  }, [approvalError, toast]);
+  // REMOVED: All approval-related useEffect hooks - not needed for smart contract with internal _transfer()
 
   // Log for troubleshooting
   if (isError) {
@@ -366,13 +323,13 @@ export default function MyNFTs() {
 
   const handleToggleListing = (nft: NFT, price?: string) => {
     if (nft.isForSale === 1) {
-      // Remove from sale - no approval needed, just update database
+      // Remove from sale - just update database
       updateListingMutation.mutate({
         nftId: nft.id,
         updates: { isForSale: 0 }
       });
     } else {
-      // Add to sale - requires approval first, then database update
+      // Add to sale - NO APPROVAL NEEDED! Smart contract uses internal _transfer()
       if (!price || parseFloat(price) <= 0) {
         toast({
           title: "Invalid Price",
@@ -391,21 +348,15 @@ export default function MyNFTs() {
         return;
       }
 
-      // Store the NFT ID and price for later use after approval
-      setApprovingNFTId(nft.id);
-      setPendingPrice(parseFloat(price).toFixed(2));
-      
-      // Step 1: Approve the platform to transfer this NFT
+      // Directly update database - smart contract doesn't need NFT approval
       toast({
-        title: "🔐 Approval Required",
-        description: "Approving platform to manage your NFT for sales...",
+        title: "📝 Listing NFT",
+        description: "Adding your NFT to the marketplace...",
       });
 
-      writeApproval({
-        address: NFT_CONTRACT_ADDRESS,
-        abi: TRAVEL_NFT_ABI,
-        functionName: "approve",
-        args: [NFT_CONTRACT_ADDRESS, BigInt(nft.tokenId)],
+      updateListingMutation.mutate({
+        nftId: nft.id,
+        updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
       });
     }
   };
@@ -753,16 +704,11 @@ export default function MyNFTs() {
                           }}
                           disabled={
                             updateListingMutation.isPending || 
-                            approvingNFTId === nft.id || 
-                            listingNFTId === nft.id ||
-                            isApprovalPending ||
-                            isApprovalLoading
+                            listingNFTId === nft.id
                           }
                           data-testid={`list-${nft.id}`}
                         >
-                          {approvingNFTId === nft.id ? (
-                            isApprovalPending || isApprovalLoading ? "🔐 Approving..." : "🔐 Approval Required"
-                          ) : listingNFTId === nft.id ? (
+                          {listingNFTId === nft.id ? (
                             "📝 Listing..."
                           ) : (
                             "List for Sale"
