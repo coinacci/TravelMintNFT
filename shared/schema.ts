@@ -226,24 +226,24 @@ export const insertWeeklyChampionSchema = createInsertSchema(weeklyChampions).om
 export type InsertWeeklyChampion = z.infer<typeof insertWeeklyChampionSchema>;
 export type WeeklyChampion = typeof weeklyChampions.$inferSelect;
 
-// Weekly utilities
+// Weekly utilities - FIXED: Now uses UTC for consistent timezone handling
 export function getCurrentWeekStart(date: Date = new Date()): string {
-  const current = new Date(date);
-  // Get Tuesday of current week (0 = Sunday, 1 = Monday, 2 = Tuesday)
-  const dayOfWeek = current.getDay();
+  // Use UTC to avoid timezone issues - week starts Tuesday 00:00 UTC
+  const current = new Date(date.toISOString()); // Ensure we work with UTC
+  const dayOfWeek = current.getUTCDay(); // Use UTC day
   
   let tuesdayOffset;
   if (dayOfWeek === 0) { // Sunday - go back 5 days to Tuesday
     tuesdayOffset = -5;
-  } else if (dayOfWeek === 1) { // Monday - go back 5 days to this week's Tuesday 
-    tuesdayOffset = -5;
+  } else if (dayOfWeek === 1) { // Monday - go back 6 days to previous Tuesday 
+    tuesdayOffset = -6;
   } else if (dayOfWeek === 2) { // Tuesday - stay on Tuesday
     tuesdayOffset = 0;
   } else { // Wed(3), Thu(4), Fri(5), Sat(6) - go back to this week's Tuesday
     tuesdayOffset = 2 - dayOfWeek;
   }
   
-  current.setDate(current.getDate() + tuesdayOffset);
+  current.setUTCDate(current.getUTCDate() + tuesdayOffset);
   return current.toISOString().split('T')[0];
 }
 
@@ -255,8 +255,8 @@ export function getWeekEnd(weekStart: string): string {
 
 export function getWeekNumber(date: Date = new Date()): number {
   // Mini app started on Tuesday, September 17, 2025 (Week 1)
-  const appStartDate = new Date('2025-09-17'); // Tuesday, September 17, 2025 - This week
-  const currentDate = new Date(date);
+  const appStartDate = new Date('2025-09-17T00:00:00.000Z'); // Tuesday, September 17, 2025 00:00 UTC
+  const currentDate = new Date(date.toISOString()); // Ensure UTC
   
   // If date is before app start, return 0
   if (currentDate < appStartDate) {
