@@ -218,6 +218,12 @@ export default function Marketplace() {
           platformCommission: (Number(platformCommission) / 1000000).toString() + " USDC"
         });
 
+        // Quick ownership check before payment
+        console.log("🔍 Checking NFT ownership before payment...", {
+          tokenId,
+          expectedOwner: (purchaseData as any).transactionData.sellerAddress
+        });
+
         // STEP 1: Pay seller directly (95%)
         setTransactionStep('seller_payment');
         
@@ -378,13 +384,16 @@ export default function Marketplace() {
             setTransactionStep('nft_transfer');
 
             // STEP 3: Call smart contract transferNFTOnly function (no payment processing)
-            const sellerAddress = (currentNFT.owner?.id || '0x0') as `0x${string}`;
+            const sellerAddress = currentNFT.owner?.id;
+            if (!sellerAddress) {
+              throw new Error("Seller address not found");
+            }
             
             writeContract({
               address: NFT_CONTRACT_ADDRESS,
               abi: NFT_ABI,
               functionName: "transferNFTOnly",
-              args: [BigInt(tokenId), sellerAddress, walletAddress as `0x${string}`],
+              args: [BigInt(tokenId), sellerAddress as `0x${string}`, walletAddress as `0x${string}`],
             });
             
           } catch (error) {

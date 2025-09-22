@@ -195,8 +195,9 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         require(ownerOf(tokenId) == from, "From address is not the owner");
         require(to != address(0), "Cannot transfer to zero address");
         
-        // Verify caller is authorized (buyer or approved)
+        // Allow owner (seller), buyer, or approved operator to initiate transfer
         require(
+            msg.sender == from || 
             msg.sender == to || 
             getApproved(tokenId) == msg.sender || 
             isApprovedForAll(from, msg.sender),
