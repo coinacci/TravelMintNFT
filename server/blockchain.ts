@@ -19,7 +19,10 @@ const BASESCAN_API_URL = "https://api.basescan.org/api";
 const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const MARKETPLACE_CONTRACT_ADDRESS = "0x123456789abcdef123456789abcdef1234567890"; // Will be updated after deployment
+// 🚨 CRITICAL: UPDATE THIS ADDRESS AFTER DEPLOYING TravelMarketplace.sol
+// This placeholder address will cause marketplace functions to fail
+// Deploy TravelMarketplace.sol first, then update this constant with the real deployed address
+const MARKETPLACE_CONTRACT_ADDRESS = "0x123456789abcdef123456789abcdef1234567890"; // PLACEHOLDER - MUST DEPLOY FIRST!
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 

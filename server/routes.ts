@@ -1162,7 +1162,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found" });
       }
       
-      // Check if NFT is for sale
+      // Check if NFT is for sale (database check for backward compatibility)
       if (nft.isForSale !== 1) {
         return res.status(400).json({ message: "NFT is not for sale" });
       }
@@ -1190,6 +1190,24 @@ export async function registerRoutes(app: Express) {
       }
       
       console.log(`🔄 Generating onchain purchase transaction for NFT #${numericTokenId} at ${nft.price} USDC`);
+      
+      // ✅ PREFLIGHT CHECK: Verify NFT is actually listed on marketplace
+      const isListed = await blockchainService.isNFTListed(tokenId);
+      if (!isListed) {
+        return res.status(400).json({ 
+          message: "NFT is not listed on the secure marketplace",
+          type: "NOT_LISTED_ERROR"
+        });
+      }
+
+      // Get marketplace listing details for price validation
+      const marketplaceListing = await blockchainService.getMarketplaceListing(tokenId);
+      if (!marketplaceListing) {
+        return res.status(400).json({ 
+          message: "NFT marketplace listing not found",
+          type: "LISTING_NOT_FOUND"
+        });
+      }
       
       // 🚨 CRITICAL: Verify on-chain owner matches listing before preparation
       console.log(`🔍 Verifying on-chain ownership before purchase prep...`);
@@ -1219,12 +1237,10 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Generate onchain purchase transaction data
+      // 🔐 SECURE: Generate marketplace purchase transaction data (NO PRICE MANIPULATION!)
       const purchaseData = await blockchainService.generatePurchaseTransaction(
         tokenId, // String for blockchain service
-        buyerId.toLowerCase(),
-        nft.ownerAddress.toLowerCase(),
-        nft.price // Pass actual NFT price
+        buyerId.toLowerCase() // Buyer address only - price comes from secure marketplace listing!
       );
       
       if (!purchaseData.success) {
@@ -2390,6 +2406,209 @@ export async function registerRoutes(app: Express) {
           </body>
         </html>
       `);
+    }
+  });
+
+  // 🏪 SECURE MARKETPLACE API ROUTES
+
+  // List NFT on marketplace
+  app.post("/api/marketplace/list", async (req, res) => {
+    try {
+      const { tokenId, seller, priceUSDC } = req.body;
+
+      if (!tokenId || !seller || !priceUSDC) {
+        return res.status(400).json({ message: "Missing required parameters: tokenId, seller, priceUSDC" });
+      }
+
+      // Validate inputs
+      if (!ethers.isAddress(seller)) {
+        return res.status(400).json({ message: "Invalid seller address format" });
+      }
+
+      if (isNaN(parseFloat(priceUSDC)) || parseFloat(priceUSDC) <= 0) {
+        return res.status(400).json({ message: "Invalid price amount" });
+      }
+
+      // Generate listing transaction
+      const listingData = await blockchainService.generateListingTransaction(
+        tokenId.toString(),
+        seller.toLowerCase(),
+        priceUSDC
+      );
+
+      if (!listingData.success) {
+        return res.status(400).json({ 
+          message: listingData.error || "Failed to generate listing transaction",
+          type: "LISTING_ERROR"
+        });
+      }
+
+      console.log(`✅ Generated listing transaction for NFT #${tokenId} at ${priceUSDC} USDC`);
+
+      res.json({
+        message: "Listing transaction prepared",
+        transactionData: listingData,
+        tokenId: tokenId.toString(),
+        seller: seller.toLowerCase(),
+        priceUSDC
+      });
+
+    } catch (error) {
+      console.error("Marketplace listing error:", error);
+      res.status(500).json({ message: "Failed to prepare listing transaction" });
+    }
+  });
+
+  // Cancel NFT listing
+  app.post("/api/marketplace/cancel", async (req, res) => {
+    try {
+      const { tokenId, seller } = req.body;
+
+      if (!tokenId || !seller) {
+        return res.status(400).json({ message: "Missing required parameters: tokenId, seller" });
+      }
+
+      if (!ethers.isAddress(seller)) {
+        return res.status(400).json({ message: "Invalid seller address format" });
+      }
+
+      // Generate cancel listing transaction
+      const cancelData = await blockchainService.generateCancelListingTransaction(
+        tokenId.toString(),
+        seller.toLowerCase()
+      );
+
+      if (!cancelData.success) {
+        return res.status(400).json({ 
+          message: cancelData.error || "Failed to generate cancel listing transaction",
+          type: "CANCEL_ERROR"
+        });
+      }
+
+      console.log(`✅ Generated cancel listing transaction for NFT #${tokenId}`);
+
+      res.json({
+        message: "Cancel listing transaction prepared",
+        transactionData: cancelData,
+        tokenId: tokenId.toString(),
+        seller: seller.toLowerCase()
+      });
+
+    } catch (error) {
+      console.error("Marketplace cancel listing error:", error);
+      res.status(500).json({ message: "Failed to prepare cancel listing transaction" });
+    }
+  });
+
+  // Update NFT price
+  app.post("/api/marketplace/update-price", async (req, res) => {
+    try {
+      const { tokenId, seller, newPriceUSDC } = req.body;
+
+      if (!tokenId || !seller || !newPriceUSDC) {
+        return res.status(400).json({ message: "Missing required parameters: tokenId, seller, newPriceUSDC" });
+      }
+
+      if (!ethers.isAddress(seller)) {
+        return res.status(400).json({ message: "Invalid seller address format" });
+      }
+
+      if (isNaN(parseFloat(newPriceUSDC)) || parseFloat(newPriceUSDC) <= 0) {
+        return res.status(400).json({ message: "Invalid price amount" });
+      }
+
+      // Generate update price transaction
+      const updateData = await blockchainService.generateUpdatePriceTransaction(
+        tokenId.toString(),
+        seller.toLowerCase(),
+        newPriceUSDC
+      );
+
+      if (!updateData.success) {
+        return res.status(400).json({ 
+          message: updateData.error || "Failed to generate update price transaction",
+          type: "UPDATE_PRICE_ERROR"
+        });
+      }
+
+      console.log(`✅ Generated update price transaction for NFT #${tokenId} to ${newPriceUSDC} USDC`);
+
+      res.json({
+        message: "Update price transaction prepared",
+        transactionData: updateData,
+        tokenId: tokenId.toString(),
+        seller: seller.toLowerCase(),
+        newPriceUSDC
+      });
+
+    } catch (error) {
+      console.error("Marketplace update price error:", error);
+      res.status(500).json({ message: "Failed to prepare update price transaction" });
+    }
+  });
+
+  // Get marketplace listing for specific NFT
+  app.get("/api/marketplace/listings/:tokenId", async (req, res) => {
+    try {
+      const { tokenId } = req.params;
+
+      if (!tokenId) {
+        return res.status(400).json({ message: "Token ID is required" });
+      }
+
+      const listing = await blockchainService.getMarketplaceListing(tokenId);
+
+      if (!listing) {
+        return res.status(404).json({ message: "No active listing found for this NFT" });
+      }
+
+      res.json({
+        listing,
+        message: "Listing found"
+      });
+
+    } catch (error) {
+      console.error("Get marketplace listing error:", error);
+      res.status(500).json({ message: "Failed to get marketplace listing" });
+    }
+  });
+
+  // Check if NFT is listed
+  app.get("/api/marketplace/is-listed/:tokenId", async (req, res) => {
+    try {
+      const { tokenId } = req.params;
+
+      if (!tokenId) {
+        return res.status(400).json({ message: "Token ID is required" });
+      }
+
+      const isListed = await blockchainService.isNFTListed(tokenId);
+
+      res.json({
+        tokenId,
+        isListed,
+        message: isListed ? "NFT is listed for sale" : "NFT is not listed"
+      });
+
+    } catch (error) {
+      console.error("Check if NFT listed error:", error);
+      res.status(500).json({ message: "Failed to check listing status" });
+    }
+  });
+
+  // Get marketplace statistics
+  app.get("/api/marketplace/stats", async (req, res) => {
+    try {
+      const stats = await blockchainService.getMarketplaceStats();
+
+      res.json({
+        stats,
+        message: "Marketplace statistics retrieved"
+      });
+
+    } catch (error) {
+      console.error("Get marketplace stats error:", error);
+      res.status(500).json({ message: "Failed to get marketplace statistics" });
     }
   });
 
