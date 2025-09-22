@@ -261,17 +261,22 @@ export default function Marketplace() {
           description: "Single transaction: payment + NFT transfer",
         });
 
-        console.log("💰 Using SIMPLE single-transaction system:", {
+        console.log("💰 FRESH BALANCE CHECK - USDC Analysis:", {
+          walletAddress,
           tokenId,
           totalPrice: priceUSDC,
           priceWei: priceWei.toString(),
           system: "purchaseNFT - all in one",
-          usdcBalance: usdcBalance?.toString(),
+          rawUsdcBalance: usdcBalance,
+          usdcBalanceString: usdcBalance?.toString(),
           usdcAllowance: usdcAllowance?.toString(),
-          allowanceCheck: {
-            required: priceWei.toString(),
-            available: usdcAllowance?.toString(),
-            sufficient: usdcAllowance ? BigInt(usdcAllowance.toString()) >= priceWei : false
+          balanceInUSDC: usdcBalance ? (Number(usdcBalance) / 1000000).toFixed(6) : "0",
+          allowanceInUSDC: usdcAllowance ? (Number(usdcAllowance) / 1000000).toFixed(6) : "0",
+          requiredUSDC: (Number(priceWei) / 1000000).toFixed(6),
+          balanceCheck: {
+            hasEnoughBalance: usdcBalance ? BigInt(usdcBalance.toString()) >= priceWei : false,
+            hasEnoughAllowance: usdcAllowance ? BigInt(usdcAllowance.toString()) >= priceWei : false,
+            deficit: usdcBalance ? (Number(priceWei) - Number(usdcBalance)) / 1000000 : 0
           }
         });
 
