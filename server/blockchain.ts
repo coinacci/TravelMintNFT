@@ -1007,6 +1007,19 @@ export class BlockchainService {
     }
   }
 
+  // 🆕 Get current on-chain owner of an NFT  
+  async getNFTOwner(tokenId: string): Promise<string | null> {
+    try {
+      console.log(`🔍 Getting on-chain owner for NFT #${tokenId}`);
+      const owner = await withRetry(() => nftContract.ownerOf(tokenId));
+      console.log(`✅ NFT #${tokenId} owner: ${owner}`);
+      return owner;
+    } catch (error: any) {
+      console.error(`❌ Failed to get owner for NFT #${tokenId}:`, error);
+      return null;
+    }
+  }
+
 }
 
 export const blockchainService = new BlockchainService();

@@ -1172,17 +1172,56 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
 
-      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
+      // ✅ ROBUST tokenId extraction and validation
       const tokenId = nft.id.replace("blockchain-", "");
-      if (!tokenId || isNaN(Number(tokenId))) {
-        return res.status(400).json({ message: "Invalid NFT token ID" });
+      const numericTokenId = parseInt(tokenId);
+      
+      if (!tokenId || isNaN(numericTokenId) || numericTokenId <= 0) {
+        console.error(`❌ Invalid tokenId extraction: NFT.id=${nft.id}, extracted=${tokenId}, numeric=${numericTokenId}`);
+        return res.status(400).json({ message: "Invalid NFT token ID format" });
       }
       
       console.log(`🔄 Generating onchain purchase transaction for NFT #${tokenId}`);
       
+      // ✅ ENHANCED validation before blockchain call
+      if (!nft.price || isNaN(parseFloat(nft.price)) || parseFloat(nft.price) <= 0) {
+        console.error(`❌ Invalid NFT price: ${nft.price}`);
+        return res.status(400).json({ message: "Invalid NFT price" });
+      }
+      
+      console.log(`🔄 Generating onchain purchase transaction for NFT #${numericTokenId} at ${nft.price} USDC`);
+      
+      // 🚨 CRITICAL: Verify on-chain owner matches listing before preparation
+      console.log(`🔍 Verifying on-chain ownership before purchase prep...`);
+      try {
+        const onChainOwner = await blockchainService.getNFTOwner(tokenId);
+        if (!onChainOwner) {
+          console.error(`❌ Could not verify on-chain owner for NFT #${numericTokenId}`);
+          return res.status(400).json({ message: "Could not verify NFT ownership on blockchain" });
+        }
+        
+        if (onChainOwner.toLowerCase() !== nft.ownerAddress.toLowerCase()) {
+          console.error(`❌ Ownership mismatch! DB owner: ${nft.ownerAddress}, On-chain: ${onChainOwner}`);
+          return res.status(409).json({ 
+            message: "NFT ownership has changed. Please refresh and try again.",
+            type: "OWNERSHIP_MISMATCH",
+            dbOwner: nft.ownerAddress,
+            onChainOwner: onChainOwner
+          });
+        }
+        
+        console.log(`✅ On-chain ownership verified: ${onChainOwner}`);
+      } catch (ownershipError: any) {
+        console.error(`❌ Ownership verification failed:`, ownershipError);
+        return res.status(400).json({ 
+          message: "Failed to verify NFT ownership on blockchain",
+          type: "BLOCKCHAIN_ERROR"
+        });
+      }
+      
       // Generate onchain purchase transaction data
       const purchaseData = await blockchainService.generatePurchaseTransaction(
-        tokenId,
+        tokenId, // String for blockchain service
         buyerId.toLowerCase(),
         nft.ownerAddress.toLowerCase(),
         nft.price // Pass actual NFT price
@@ -1197,17 +1236,26 @@ export async function registerRoutes(app: Express) {
       
       console.log(`✅ Generated purchase transaction data for NFT #${tokenId}`);
       
-      // Return transaction data for frontend to execute
-      res.json({ 
+      // ✅ GUARANTEED RESPONSE FORMAT for frontend safety
+      const response = { 
         message: "Purchase transaction prepared",
         requiresOnchainPayment: true,
         transactionData: purchaseData,
         nftId: nftId,
-        tokenId: tokenId,
+        tokenId: numericTokenId.toString(), // String format for consistency
         buyer: buyerId.toLowerCase(),
         seller: nft.ownerAddress.toLowerCase(),
-        priceUSDC: nft.price // Use actual NFT price
+        priceUSDC: nft.price // Exact NFT price - no fallbacks allowed
+      };
+      
+      console.log(`✅ Returning verified purchase data:`, {
+        tokenId: response.tokenId,
+        priceUSDC: response.priceUSDC,
+        buyer: response.buyer,
+        seller: response.seller
       });
+      
+      res.json(response);
       
     } catch (error) {
       console.error("Purchase preparation error:", error);
