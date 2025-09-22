@@ -114,14 +114,44 @@ export default function Marketplace() {
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 
   // TravelNFT Contract ABI - includes purchaseNFT function for single-transaction purchases
+  // 🔒 SECURITY FIX: Updated with new listing system
   const NFT_ABI = [
     {
       name: 'purchaseNFT',
       type: 'function',
       stateMutability: 'nonpayable',
       inputs: [
+        { name: 'tokenId', type: 'uint256' }
+        // price parameter removed - uses stored price now
+      ],
+      outputs: []
+    },
+    {
+      name: 'listNFT',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
         { name: 'tokenId', type: 'uint256' },
         { name: 'price', type: 'uint256' }
+      ],
+      outputs: []
+    },
+    {
+      name: 'cancelListing',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'tokenId', type: 'uint256' }
+      ],
+      outputs: []
+    },
+    {
+      name: 'updatePrice',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'newPrice', type: 'uint256' }
       ],
       outputs: []
     }
@@ -283,13 +313,14 @@ export default function Marketplace() {
 
           setTransactionStep('nft_purchase');
           
+          // 🔒 SECURITY FIX: Price is now stored on-chain, no need to pass it
           writeContract({
             address: NFT_CONTRACT_ADDRESS,
             abi: NFT_ABI,
             functionName: "purchaseNFT",
             args: [
-              BigInt(tokenId),
-              priceWei
+              BigInt(tokenId)
+              // priceWei removed - contract uses stored price now
             ],
           });
         }
@@ -412,13 +443,14 @@ export default function Marketplace() {
               finalAllowanceCheck: (currentAllowance >= priceWei) ? "✅" : "❌"
             });
             
+            // 🔒 SECURITY FIX: Price is now stored on-chain, no need to pass it
             writeContract({
               address: NFT_CONTRACT_ADDRESS,
               abi: NFT_ABI,
               functionName: "purchaseNFT",
               args: [
-                BigInt(tokenId),
-                priceWei
+                BigInt(tokenId)
+                // priceWei removed - contract uses stored price now
               ],
             });
             

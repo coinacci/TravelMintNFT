@@ -33,8 +33,14 @@ const TRAVEL_NFT_ABI = [
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
   "function transferFrom(address from, address to, uint256 tokenId)",
   "function approve(address to, uint256 tokenId)",
-  "function purchaseNFT(uint256 tokenId, uint256 price)",
-  "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee)"
+  "function purchaseNFT(uint256 tokenId)",
+  "function listNFT(uint256 tokenId, uint256 price)",
+  "function cancelListing(uint256 tokenId)",
+  "function updatePrice(uint256 tokenId, uint256 newPrice)",
+  "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee)",
+  "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price)",
+  "event NFTUnlisted(uint256 indexed tokenId, address indexed seller)",
+  "event PriceUpdated(uint256 indexed tokenId, address indexed seller, uint256 oldPrice, uint256 newPrice)"
 ];
 
 // ERC20 ABI for USDC interactions
