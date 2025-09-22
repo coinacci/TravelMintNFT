@@ -405,7 +405,7 @@ export default function MyNFTs() {
         address: NFT_CONTRACT_ADDRESS,
         abi: TRAVEL_NFT_ABI,
         functionName: "approve",
-        args: [PLATFORM_WALLET, BigInt(nft.tokenId)],
+        args: [NFT_CONTRACT_ADDRESS, BigInt(nft.tokenId)],
       });
     }
   };
