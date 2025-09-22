@@ -346,30 +346,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
-    // Check if any users have weekly points (active week)
-    const weeklyPointsCount = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(userStats)
-      .where(sql`${userStats.weeklyPoints} > 0`);
-    
-    const count = Number(weeklyPointsCount[0]?.count || 0);
-    
-    // If no users have weekly points yet (first week), show all-time leaderboard
-    if (count === 0) {
-      return await db
-        .select()
-        .from(userStats)
-        .where(sql`${userStats.totalPoints} > 0`)
-        .orderBy(sql`${userStats.totalPoints} DESC`)
-        .limit(limit);
-    }
-    
-    // Otherwise, show weekly leaderboard
+    // Always return all users for weekly leaderboard
+    // API endpoint will handle fallback logic (weeklyPoints > 0 ? weeklyPoints : totalPoints)
     return await db
       .select()
       .from(userStats)
-      .where(sql`${userStats.weeklyPoints} > 0`)
-      .orderBy(sql`${userStats.weeklyPoints} DESC`)
+      .where(sql`${userStats.totalPoints} > 0`) // Only users with some activity
+      .orderBy(sql`${userStats.weeklyPoints} DESC, ${userStats.totalPoints} DESC`) // Sort by weekly first, then total
       .limit(limit);
   }
 
