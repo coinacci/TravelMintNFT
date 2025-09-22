@@ -203,11 +203,24 @@ export default function Marketplace() {
     mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
       console.log("🚀 Single-transaction purchase for NFT:", nftId, "buyer:", buyerId);
       
-      // Get NFT data for purchase
-      const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId });
-      const data = await response.json();
-      
-      console.log("✅ Purchase API response:", data);
+      let data;
+      try {
+        // Get NFT data for purchase
+        console.log("📡 Making API request to purchase NFT...");
+        const response = await apiRequest("POST", `/api/nfts/${nftId}/purchase`, { buyerId });
+        console.log("📡 API Response status:", response.status, response.statusText);
+        
+        data = await response.json();
+        console.log("✅ Purchase API response:", data);
+      } catch (apiError: any) {
+        console.error("❌ API Request failed:", apiError);
+        console.error("❌ Error details:", {
+          message: apiError.message,
+          stack: apiError.stack,
+          name: apiError.name
+        });
+        throw new Error(`API request failed: ${apiError.message}`);
+      }
       
       // Check for ownership error
       if (data.message && data.message.includes("cannot buy your own NFT")) {
@@ -291,14 +304,31 @@ export default function Marketplace() {
         // SINGLE TRANSACTION: Call purchaseNFT (handles payment + NFT transfer)
         setTransactionStep('purchasing');
         
-        writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: NFT_ABI,
-          functionName: "purchaseNFT",
-          args: [
-            BigInt(tokenId) // Only tokenId - price comes from on-chain listing
-          ],
+        console.log("🔗 Calling writeContract for purchaseNFT...", {
+          contract: NFT_CONTRACT_ADDRESS,
+          tokenId,
+          functionName: "purchaseNFT"
         });
+        
+        try {
+          writeContract({
+            address: NFT_CONTRACT_ADDRESS,
+            abi: NFT_ABI,
+            functionName: "purchaseNFT",
+            args: [
+              BigInt(tokenId) // Only tokenId - price comes from on-chain listing
+            ],
+          });
+          console.log("✅ writeContract call initiated successfully");
+        } catch (contractError: any) {
+          console.error("❌ writeContract failed:", contractError);
+          console.error("❌ Contract error details:", {
+            message: contractError.message,
+            code: contractError.code,
+            stack: contractError.stack
+          });
+          throw contractError;
+        }
         
         console.log("🚀 Reliable dual-payment system initiated");
         
