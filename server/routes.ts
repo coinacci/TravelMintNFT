@@ -1243,10 +1243,12 @@ export async function registerRoutes(app: Express) {
       await storage.updateUserBalance(platformUser.id, platformNewBalance);
       
       // Update NFT ownership and remove from sale
-      await storage.updateNFT(nftToUpdate.id, {
+      console.log(`🔄 Updating NFT ${nftToUpdate.id} ownership: ${nftToUpdate.ownerAddress} → ${buyerId.toLowerCase()}`);
+      const updateResult = await storage.updateNFT(nftToUpdate.id, {
         ownerAddress: buyerId.toLowerCase(),
         isForSale: 0,
       });
+      console.log(`✅ NFT ownership update result:`, updateResult ? 'SUCCESS' : 'FAILED');
       
       // Create transaction records for platform distribution flow
       await storage.createTransaction({
