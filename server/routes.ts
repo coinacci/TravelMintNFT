@@ -732,6 +732,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get recent marketplace activity 
+  app.get("/api/transactions/recent", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const recentTransactions = await storage.getRecentTransactions(limit);
+      res.json(recentTransactions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch recent transactions" });
+    }
+  });
+
   // Blockchain sync endpoint - fetches real blockchain data
   app.post("/api/sync/wallet/:address", async (req, res) => {
     try {

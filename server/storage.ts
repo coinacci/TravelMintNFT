@@ -26,6 +26,7 @@ export interface IStorage {
   getTransaction(id: string): Promise<Transaction | undefined>;
   getTransactionsByNFT(nftId: string): Promise<Transaction[]>;
   getTransactionsByUser(userAddress: string): Promise<Transaction[]>;
+  getRecentTransactions(limit?: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
 
   // Quest system operations
@@ -227,6 +228,15 @@ export class DatabaseStorage implements IStorage {
       .from(transactions)
       .where(sql`${transactions.fromAddress} = ${userAddress} OR ${transactions.toAddress} = ${userAddress}`)
       .orderBy(sql`${transactions.createdAt} DESC`);
+  }
+
+  async getRecentTransactions(limit: number = 20): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(sql`${transactions.transactionType} = 'purchase'`) // Only show purchase activities
+      .orderBy(sql`${transactions.createdAt} DESC`)
+      .limit(limit);
   }
 
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {

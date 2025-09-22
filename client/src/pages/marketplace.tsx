@@ -421,7 +421,7 @@ export default function Marketplace() {
                         <SelectValue placeholder="All NFTs" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="for-sale">For Sale</SelectItem>
+                        <SelectItem value="for-sale">Listed</SelectItem>
                         <SelectItem value="all">All NFTs</SelectItem>
                       </SelectContent>
                     </Select>
