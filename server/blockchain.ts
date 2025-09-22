@@ -19,10 +19,11 @@ const BASESCAN_API_URL = "https://api.basescan.org/api";
 const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const MARKETPLACE_CONTRACT_ADDRESS = "0x123456789abcdef123456789abcdef1234567890"; // Will be updated after deployment
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 
-// TravelNFT ABI with purchase function
+// TravelNFT ABI - only for NFT operations
 const TRAVEL_NFT_ABI = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
@@ -32,15 +33,25 @@ const TRAVEL_NFT_ABI = [
   "function getApproved(uint256 tokenId) view returns (address)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
   "function transferFrom(address from, address to, uint256 tokenId)",
+  "function safeTransferFrom(address from, address to, uint256 tokenId)",
   "function approve(address to, uint256 tokenId)",
-  "function purchaseNFT(uint256 tokenId)",
+  "function setApprovalForAll(address operator, bool approved)"
+];
+
+// Marketplace ABI - for secure trading
+const MARKETPLACE_ABI = [
   "function listNFT(uint256 tokenId, uint256 price)",
-  "function cancelListing(uint256 tokenId)",
+  "function cancelListing(uint256 tokenId)", 
   "function updatePrice(uint256 tokenId, uint256 newPrice)",
-  "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee)",
-  "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price)",
-  "event NFTUnlisted(uint256 indexed tokenId, address indexed seller)",
-  "event PriceUpdated(uint256 indexed tokenId, address indexed seller, uint256 oldPrice, uint256 newPrice)"
+  "function purchaseNFT(uint256 tokenId)",
+  "function getListing(uint256 tokenId) view returns (tuple(address seller, uint256 price, bool active, uint256 listedAt))",
+  "function isListed(uint256 tokenId) view returns (bool)",
+  "function getSellerVolume(address seller) view returns (uint256)",
+  "function totalVolume() view returns (uint256)",
+  "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price, uint256 timestamp)",
+  "event NFTUnlisted(uint256 indexed tokenId, address indexed seller, uint256 timestamp)",
+  "event PriceUpdated(uint256 indexed tokenId, address indexed seller, uint256 oldPrice, uint256 newPrice, uint256 timestamp)",
+  "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee, uint256 timestamp)"
 ];
 
 // ERC20 ABI for USDC interactions
@@ -90,6 +101,7 @@ const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
 
 // Create contract instances
 export const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider);
+export const marketplaceContract = new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider);
 const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
 
 export interface BlockchainNFT {
@@ -798,90 +810,82 @@ export class BlockchainService {
     });
   }
 
-  // Generate transaction data for onchain NFT purchase
-  // This returns transaction data that the frontend can execute
-  async generatePurchaseTransaction(tokenId: string, buyerAddress: string, sellerAddress: string, price: string = "1.0") {
+  // 🔐 SECURE: Generate marketplace purchase transaction (NO PRICE MANIPULATION!)
+  // This uses the new secure marketplace contract instead of the vulnerable NFT contract
+  async generatePurchaseTransaction(tokenId: string, buyerAddress: string) {
     try {
       // Validate inputs
-      if (!tokenId || !buyerAddress || !sellerAddress) {
+      if (!tokenId || !buyerAddress) {
         throw new Error("Missing required parameters for purchase");
       }
 
-      // Check if NFT exists and get current owner
-      const currentOwner = await nftContract.ownerOf(tokenId);
-      if (currentOwner.toLowerCase() !== sellerAddress.toLowerCase()) {
-        throw new Error("Seller is not the current owner of this NFT");
+      // Check if NFT is actually listed in marketplace
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        throw new Error("NFT is not listed for sale");
       }
+
+      // Verify current owner matches listing seller
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      if (currentOwner.toLowerCase() !== listing.seller.toLowerCase()) {
+        throw new Error("NFT owner doesn't match marketplace listing");
+      }
+
+      const price = ethers.formatUnits(listing.price, 6); // Convert from wei to USDC
+      const requiredAmount = parseFloat(price);
 
       // Check buyer's USDC balance
       const buyerBalance = await this.getUSDCBalance(buyerAddress);
-      const requiredAmount = parseFloat(price);
-      
       if (parseFloat(buyerBalance) < requiredAmount) {
         throw new Error(`Insufficient USDC balance. Required: ${requiredAmount} USDC, Available: ${buyerBalance} USDC`);
       }
-      
 
-      // Generate transaction data for the frontend to execute
-      // The frontend will need to:
-      // 1. Approve USDC spending (if needed)
-      // 2. Transfer USDC to seller
-      // 3. Transfer NFT from seller to buyer
+      // Check if buyer has approved marketplace to spend USDC
+      const allowance = await this.getUSDCAllowance(buyerAddress, MARKETPLACE_CONTRACT_ADDRESS);
+      if (parseFloat(allowance) < requiredAmount) {
+        console.log(`⚠️ Insufficient USDC allowance. Required: ${requiredAmount} USDC, Allowed: ${allowance} USDC`);
+      }
 
-      const purchasePrice = ethers.parseUnits(price, 6); // NFT price in USDC with 6 decimals
+      // Calculate commission split (done automatically by marketplace contract)
+      const platformFee = listing.price * BigInt(5) / BigInt(100); // 5% commission  
+      const sellerAmount = listing.price - platformFee; // 95% to seller
       
-      // Calculate commission split: 95% to seller, 5% to platform
-      const platformFee = purchasePrice * BigInt(5) / BigInt(100); // 5% commission
-      const sellerAmount = purchasePrice - platformFee; // 95% to seller
-      
-      console.log(`💰 Commission split: Seller ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC, Platform ${(Number(platformFee) / 1000000).toFixed(6)} USDC`);
+      console.log(`💰 Secure purchase: ${price} USDC total (Seller: ${(Number(sellerAmount) / 1000000).toFixed(6)}, Platform: ${(Number(platformFee) / 1000000).toFixed(6)})`);
 
-      // Use smart contract's purchaseNFT function - handles everything atomically
       return {
         success: true,
-        // Primary transaction: Smart contract's purchaseNFT function
+        // 🔐 SECURE: Use marketplace contract with NO price parameter!
         transaction: {
-          type: "PURCHASE_NFT",
-          to: NFT_CONTRACT_ADDRESS,
-          data: nftContract.interface.encodeFunctionData("purchaseNFT", [
-            tokenId,
-            purchasePrice // Price in USDC (6 decimals)
+          type: "PURCHASE_NFT_MARKETPLACE", 
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("purchaseNFT", [
+            tokenId // Only tokenId - price comes from secure listing!
           ]),
-          description: `Purchase NFT #${tokenId} for ${price} USDC (includes automatic commission)`
+          description: `Secure purchase of NFT #${tokenId} for ${price} USDC via marketplace`
         },
-        // Keep for backward compatibility with frontend
-        transactions: [{
-          type: "PURCHASE_NFT",
-          to: NFT_CONTRACT_ADDRESS,
-          data: nftContract.interface.encodeFunctionData("purchaseNFT", [
-            tokenId,
-            purchasePrice
-          ]),
-          description: `Purchase NFT #${tokenId} for ${price} USDC (atomic transaction)`
-        }],
         // Transaction details for confirmation
         tokenId,
         buyerAddress,
-        sellerAddress,
+        seller: listing.seller,
         priceUSDC: price,
         sellerAmount: (Number(sellerAmount) / 1000000).toFixed(6),
         platformFee: (Number(platformFee) / 1000000).toFixed(6),
-        // Additional info for USDC approval (if needed)
+        // USDC approval transaction (if needed)
         approvalData: {
           to: USDC_CONTRACT_ADDRESS,
           data: usdcContract.interface.encodeFunctionData("approve", [
-            NFT_CONTRACT_ADDRESS,
-            purchasePrice
+            MARKETPLACE_CONTRACT_ADDRESS, // Approve marketplace, not NFT contract!
+            listing.price
           ]),
-          description: `Approve ${price} USDC spending for NFT purchase`
+          description: `Approve ${price} USDC spending for secure marketplace purchase`
         }
       };
 
     } catch (error: any) {
-      console.error("Error generating purchase transaction:", error);
+      console.error("Error generating secure purchase transaction:", error);
       return {
         success: false,
-        error: error.message || "Failed to generate purchase transaction"
+        error: error.message || "Failed to generate secure purchase transaction"
       };
     }
   }
@@ -1023,6 +1027,195 @@ export class BlockchainService {
     } catch (error: any) {
       console.error(`❌ Failed to get owner for NFT #${tokenId}:`, error);
       return null;
+    }
+  }
+
+  // 🏪 MARKETPLACE FUNCTIONS - Secure trading without modifying NFT contract
+
+  // Generate transaction to list NFT on marketplace
+  async generateListingTransaction(tokenId: string, seller: string, priceUSDC: string) {
+    try {
+      // Validate inputs
+      if (!tokenId || !seller || !priceUSDC) {
+        throw new Error("Missing required parameters for listing");
+      }
+
+      // Verify seller owns the NFT
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      if (currentOwner.toLowerCase() !== seller.toLowerCase()) {
+        throw new Error("Only NFT owner can create listing");
+      }
+
+      // Check if marketplace is approved to transfer this NFT
+      const isApproved = await nftContract.isApprovedForAll(seller, MARKETPLACE_CONTRACT_ADDRESS);
+      const specificApproval = await nftContract.getApproved(tokenId);
+      
+      if (!isApproved && specificApproval.toLowerCase() !== MARKETPLACE_CONTRACT_ADDRESS.toLowerCase()) {
+        console.log("⚠️ Marketplace not approved to transfer NFT - user needs to approve first");
+      }
+
+      const priceWei = ethers.parseUnits(priceUSDC, 6); // Convert USDC to wei (6 decimals)
+
+      return {
+        success: true,
+        transaction: {
+          type: "LIST_NFT",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("listNFT", [
+            tokenId,
+            priceWei
+          ]),
+          description: `List NFT #${tokenId} for ${priceUSDC} USDC`
+        },
+        // NFT approval transaction (if needed)
+        approvalData: {
+          to: NFT_CONTRACT_ADDRESS,
+          data: nftContract.interface.encodeFunctionData("approve", [
+            MARKETPLACE_CONTRACT_ADDRESS,
+            tokenId
+          ]),
+          description: `Approve marketplace to transfer NFT #${tokenId}`
+        },
+        tokenId,
+        seller,
+        priceUSDC
+      };
+
+    } catch (error: any) {
+      console.error("Error generating listing transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate listing transaction"
+      };
+    }
+  }
+
+  // Generate transaction to cancel NFT listing
+  async generateCancelListingTransaction(tokenId: string, seller: string) {
+    try {
+      // Verify listing exists and seller matches
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        throw new Error("NFT is not listed for sale");
+      }
+      
+      if (listing.seller.toLowerCase() !== seller.toLowerCase()) {
+        throw new Error("Only listing creator can cancel listing");
+      }
+
+      return {
+        success: true,
+        transaction: {
+          type: "CANCEL_LISTING",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("cancelListing", [
+            tokenId
+          ]),
+          description: `Cancel listing for NFT #${tokenId}`
+        },
+        tokenId,
+        seller
+      };
+
+    } catch (error: any) {
+      console.error("Error generating cancel listing transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate cancel listing transaction"
+      };
+    }
+  }
+
+  // Generate transaction to update NFT price
+  async generateUpdatePriceTransaction(tokenId: string, seller: string, newPriceUSDC: string) {
+    try {
+      // Verify listing exists and seller matches
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        throw new Error("NFT is not listed for sale");
+      }
+      
+      if (listing.seller.toLowerCase() !== seller.toLowerCase()) {
+        throw new Error("Only listing creator can update price");
+      }
+
+      const newPriceWei = ethers.parseUnits(newPriceUSDC, 6);
+
+      return {
+        success: true,
+        transaction: {
+          type: "UPDATE_PRICE",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("updatePrice", [
+            tokenId,
+            newPriceWei
+          ]),
+          description: `Update NFT #${tokenId} price to ${newPriceUSDC} USDC`
+        },
+        tokenId,
+        seller,
+        newPriceUSDC
+      };
+
+    } catch (error: any) {
+      console.error("Error generating update price transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate update price transaction"
+      };
+    }
+  }
+
+  // Get marketplace listing for a specific NFT
+  async getMarketplaceListing(tokenId: string) {
+    try {
+      const listing = await marketplaceContract.getListing(tokenId);
+      
+      if (!listing.active) {
+        return null; // No active listing
+      }
+
+      return {
+        tokenId,
+        seller: listing.seller,
+        price: ethers.formatUnits(listing.price, 6), // Convert to USDC
+        priceWei: listing.price.toString(),
+        listedAt: new Date(Number(listing.listedAt) * 1000).toISOString(),
+        active: listing.active
+      };
+
+    } catch (error: any) {
+      console.error(`Error getting marketplace listing for NFT #${tokenId}:`, error);
+      return null;
+    }
+  }
+
+  // Check if NFT is listed on marketplace
+  async isNFTListed(tokenId: string): Promise<boolean> {
+    try {
+      return await marketplaceContract.isListed(tokenId);
+    } catch (error: any) {
+      console.error(`Error checking if NFT #${tokenId} is listed:`, error);
+      return false;
+    }
+  }
+
+  // Get marketplace statistics
+  async getMarketplaceStats() {
+    try {
+      const totalVolume = await marketplaceContract.totalVolume();
+      
+      return {
+        totalVolumeWei: totalVolume.toString(),
+        totalVolumeUSDC: ethers.formatUnits(totalVolume, 6)
+      };
+
+    } catch (error: any) {
+      console.error("Error getting marketplace stats:", error);
+      return {
+        totalVolumeWei: "0",
+        totalVolumeUSDC: "0"
+      };
     }
   }
 
