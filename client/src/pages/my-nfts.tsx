@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSimulateContract, useSwitchChain } from "wagmi";
+import { parseUnits } from "viem";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export default function MyNFTs() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
   const { address, isConnected, connector } = useAccount();
   const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
   const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
@@ -83,11 +85,15 @@ export default function MyNFTs() {
   // NFT Contract Configuration
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
   const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084" as const; // Platform wallet for marketplace transactions
+  // 🔒 SECURITY FIX: Updated ABI with secure listing system
   const TRAVEL_NFT_ABI = parseAbi([
     "function safeTransferFrom(address from, address to, uint256 tokenId)",
     "function ownerOf(uint256 tokenId) view returns (address)",
     "function approve(address to, uint256 tokenId)",
-    "function getApproved(uint256 tokenId) view returns (address)"
+    "function getApproved(uint256 tokenId) view returns (address)",
+    "function listNFT(uint256 tokenId, uint256 price)",
+    "function cancelListing(uint256 tokenId)",
+    "function updatePrice(uint256 tokenId, uint256 newPrice)"
   ]);
   
   // Gas estimation for transfer
@@ -326,15 +332,59 @@ export default function MyNFTs() {
     );
   }
 
-  const handleToggleListing = (nft: NFT, price?: string) => {
-    if (nft.isForSale === 1) {
-      // Remove from sale - just update database
-      updateListingMutation.mutate({
-        nftId: nft.id,
-        updates: { isForSale: 0 }
+  // 🔒 SECURITY FIX: Use secure on-chain listing system
+  const handleToggleListing = async (nft: NFT, price?: string) => {
+    if (!isConnected || !address) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to list NFTs",
+        variant: "destructive",
       });
+      return;
+    }
+
+    if (!nft.tokenId) {
+      toast({
+        title: "Cannot List NFT",
+        description: "This NFT doesn't have a blockchain token ID and cannot be listed for sale",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const tokenId = BigInt(nft.tokenId);
+
+    if (nft.isForSale === 1) {
+      // 🔒 SECURITY: Cancel on-chain listing
+      try {
+        toast({
+          title: "🗑️ Canceling Listing",
+          description: "Removing your NFT from marketplace...",
+        });
+
+        await writeContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: TRAVEL_NFT_ABI,
+          functionName: 'cancelListing',
+          args: [tokenId],
+        });
+
+        // Update database after successful on-chain transaction
+        updateListingMutation.mutate({
+          nftId: nft.id,
+          updates: { isForSale: 0 }
+        });
+
+      } catch (error: any) {
+        console.error("Cancel listing error:", error);
+        toast({
+          title: "Cancel Failed",
+          description: error.message || "Failed to cancel NFT listing",
+          variant: "destructive",
+        });
+      }
     } else {
-      // Add to sale - NO APPROVAL NEEDED! Smart contract uses internal _transfer()
+      // 🔒 SECURITY: Create on-chain listing
       if (!price || parseFloat(price) <= 0) {
         toast({
           title: "Invalid Price",
@@ -344,25 +394,35 @@ export default function MyNFTs() {
         return;
       }
 
-      if (!nft.tokenId) {
+      try {
+        const priceWei = parseUnits(price, 6); // USDC has 6 decimals
+
         toast({
-          title: "Cannot List NFT",
-          description: "This NFT is not ready for listing. Please try again later.",
+          title: "📝 Creating Listing",
+          description: `Listing NFT #${nft.tokenId} for ${price} USDC on-chain...`,
+        });
+
+        await writeContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: TRAVEL_NFT_ABI,
+          functionName: 'listNFT',
+          args: [tokenId, priceWei],
+        });
+
+        // Update database after successful on-chain transaction
+        updateListingMutation.mutate({
+          nftId: nft.id,
+          updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
+        });
+
+      } catch (error: any) {
+        console.error("List NFT error:", error);
+        toast({
+          title: "Listing Failed",
+          description: error.message || "Failed to list NFT for sale",
           variant: "destructive",
         });
-        return;
       }
-
-      // Directly update database - smart contract doesn't need NFT approval
-      toast({
-        title: "📝 Listing NFT",
-        description: "Adding your NFT to the marketplace...",
-      });
-
-      updateListingMutation.mutate({
-        nftId: nft.id,
-        updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
-      });
     }
   };
 
