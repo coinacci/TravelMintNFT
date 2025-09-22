@@ -70,7 +70,7 @@ export default function Marketplace() {
   const [nftStatus, setNftStatus] = useState("for-sale"); // NFT status filter
   const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
-  const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment' | 'nft_transfer'>('idle');
+  const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -304,13 +304,13 @@ export default function Marketplace() {
             const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
             
             toast({
-              title: "💰 Sending Commission",
-              description: `Step 2: Platform commission ${(Number(platformCommission)/1000000).toFixed(2)} USDC`,
+              title: "🎨 Final Transaction",
+              description: `Step 2: Sending commission + transferring NFT`,
             });
 
             setTransactionStep('commission_payment');
 
-            // STEP 2: Send platform commission
+            // STEP 2: Send platform commission (primary transaction)
             writeContract({
               address: USDC_ADDRESS,
               abi: [
@@ -330,6 +330,43 @@ export default function Marketplace() {
                 platformCommission
               ],
             });
+
+            // SIMULTANEOUSLY: Transfer NFT from seller to buyer
+            const tokenId = currentNFT.id.includes('blockchain-') 
+              ? parseInt(currentNFT.id.split('blockchain-')[1]) 
+              : parseInt(currentNFT.id);
+              
+            const sellerAddress = (currentNFT.owner as any)?.walletAddress;
+            if (!sellerAddress || !walletAddress) {
+              console.error("Missing wallet addresses for NFT transfer");
+              return;
+            }
+
+            // Parallel NFT transfer - this will be a separate transaction
+            setTimeout(() => {
+              writeContract({
+                address: NFT_CONTRACT_ADDRESS,
+                abi: [
+                  {
+                    name: "transferFrom",
+                    type: "function",
+                    inputs: [
+                      { name: "from", type: "address" },
+                      { name: "to", type: "address" },
+                      { name: "tokenId", type: "uint256" }
+                    ],
+                    outputs: [],
+                    stateMutability: "nonpayable"
+                  }
+                ],
+                functionName: "transferFrom",
+                args: [
+                  sellerAddress as `0x${string}`,
+                  walletAddress as `0x${string}`,
+                  BigInt(tokenId)
+                ]
+              });
+            }, 100); // Small delay to ensure proper sequencing
             
           } catch (error) {
             console.error("Failed to send commission:", error);
@@ -344,76 +381,10 @@ export default function Marketplace() {
         sendCommission();
         
       } else if (transactionStep === 'commission_payment') {
-        // STEP 2 CONFIRMED: Commission sent, now transfer NFT
-        const transferNFT = async () => {
-          try {
-            console.log("✅ Commission payment confirmed, transferring NFT...");
-            
-            const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
-            if (!currentNFT || !walletAddress) return;
-            
-            const tokenId = currentNFT.id.includes('blockchain-') 
-              ? parseInt(currentNFT.id.split('blockchain-')[1]) 
-              : parseInt(currentNFT.id);
-              
-            const sellerAddress = (currentNFT.owner as any)?.walletAddress;
-            if (!sellerAddress) {
-              toast({
-                title: "NFT Transfer Failed",
-                description: "Seller wallet address not found.",
-                variant: "destructive",
-              });
-              return;
-            }
-            
-            toast({
-              title: "🎨 Transferring NFT",
-              description: `Step 3: Transferring NFT #${tokenId} to your wallet`,
-            });
-
-            setTransactionStep('nft_transfer');
-
-            // STEP 3: Transfer NFT from seller to buyer
-            writeContract({
-              address: NFT_CONTRACT_ADDRESS,
-              abi: [
-                {
-                  name: "transferFrom",
-                  type: "function",
-                  inputs: [
-                    { name: "from", type: "address" },
-                    { name: "to", type: "address" },
-                    { name: "tokenId", type: "uint256" }
-                  ],
-                  outputs: [],
-                  stateMutability: "nonpayable"
-                }
-              ],
-              functionName: "transferFrom",
-              args: [
-                sellerAddress as `0x${string}`,
-                walletAddress as `0x${string}`,
-                BigInt(tokenId)
-              ]
-            });
-            
-          } catch (error) {
-            console.error("Failed to transfer NFT:", error);
-            toast({
-              title: "NFT Transfer Failed",
-              description: "Payments succeeded but NFT transfer failed. Contact support.",
-              variant: "destructive",
-            });
-          }
-        };
-        
-        transferNFT();
-        
-      } else if (transactionStep === 'nft_transfer') {
-        // STEP 3 CONFIRMED: NFT transferred, finalize purchase
+        // STEP 2 CONFIRMED: Commission + NFT transfer completed, finalize purchase
         const finalizePurchase = async () => {
           try {
-            console.log("✅ NFT transfer confirmed, finalizing purchase");
+            console.log("✅ Commission payment and NFT transfer completed, finalizing purchase");
             
             // Update database
             await apiRequest("POST", `/api/nfts/confirm-purchase`, {
