@@ -539,12 +539,72 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update NFT
+  // Update NFT with Ownership Verification
   app.patch("/api/nfts/:id", async (req, res) => {
     try {
-      const nft = await storage.updateNFT(req.params.id, req.body);
-      if (!nft) {
+      const { walletAddress, ...updates } = req.body;
+      
+      // 🔒 SECURITY: Require wallet address for ownership verification
+      if (!walletAddress) {
+        return res.status(400).json({ message: "Wallet address is required for NFT updates" });
+      }
+      
+      // 🔒 SECURITY: Validate wallet address format
+      if (!ethers.isAddress(walletAddress)) {
+        return res.status(400).json({ message: "Invalid wallet address format" });
+      }
+      
+      // 🔒 SECURITY: Get current NFT to verify ownership
+      const currentNFT = await storage.getNFT(req.params.id);
+      if (!currentNFT) {
         return res.status(404).json({ message: "NFT not found" });
+      }
+      
+      // 🔒 SECURITY: Verify ownership using blockchain as source of truth
+      const tokenId = currentNFT.id.replace("blockchain-", "");
+      if (!tokenId || isNaN(Number(tokenId))) {
+        return res.status(400).json({ message: "Invalid NFT token ID format" });
+      }
+      
+      console.log(`🔍 Verifying blockchain ownership for token #${tokenId}...`);
+      
+      try {
+        // Get current owner directly from smart contract
+        const blockchainNFT = await blockchainService.getNFTByTokenId(tokenId);
+        
+        if (!blockchainNFT) {
+          console.warn(`🚨 NFT #${tokenId} not found on blockchain`);
+          return res.status(404).json({ 
+            message: "NFT not found on blockchain",
+            code: "BLOCKCHAIN_VERIFICATION_FAILED" 
+          });
+        }
+        
+        // Compare blockchain owner with request wallet
+        if (blockchainNFT.owner.toLowerCase() !== walletAddress.toLowerCase()) {
+          console.warn(`🚨 Blockchain ownership mismatch for NFT #${tokenId}: actual owner ${blockchainNFT.owner}, claimed owner ${walletAddress}`);
+          return res.status(403).json({ 
+            message: "Blockchain verification failed: You don't own this NFT",
+            code: "BLOCKCHAIN_OWNERSHIP_VERIFICATION_FAILED",
+            actualOwner: blockchainNFT.owner,
+            claimedOwner: walletAddress
+          });
+        }
+        
+        console.log(`✅ Blockchain ownership verified for NFT #${tokenId} - owner: ${blockchainNFT.owner}`);
+        
+      } catch (blockchainError) {
+        console.error(`❌ Blockchain verification failed for NFT #${tokenId}:`, blockchainError);
+        return res.status(500).json({ 
+          message: "Unable to verify ownership on blockchain. Please try again.",
+          code: "BLOCKCHAIN_VERIFICATION_ERROR" 
+        });
+      }
+      
+      // Update NFT with only the allowed updates (no wallet address in updates)
+      const nft = await storage.updateNFT(req.params.id, updates);
+      if (!nft) {
+        return res.status(500).json({ message: "Failed to update NFT" });
       }
       
       // Clear cache after NFT update
@@ -554,6 +614,7 @@ export async function registerRoutes(app: Express) {
       
       res.json(nft);
     } catch (error) {
+      console.error('Error updating NFT:', error);
       res.status(500).json({ message: "Failed to update NFT" });
     }
   });
@@ -1080,103 +1141,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Debug: Check NFT on-chain listing status and log results
-  app.get("/api/nfts/:id/debug-listing", async (req, res) => {
-    try {
-      const { id: nftId } = req.params;
-      
-      // Extract tokenId from blockchain ID (e.g., "blockchain-47" -> 47)
-      const tokenId = nftId.includes('blockchain-') 
-        ? parseInt(nftId.split('blockchain-')[1]) 
-        : parseInt(nftId);
-      
-      if (isNaN(tokenId)) {
-        console.log(`❌ Invalid token ID: ${nftId}`);
-        return res.status(400).json({ message: "Invalid token ID" });
-      }
-      
-      console.log(`\n🔍 ===== DEBUGGING NFT #${tokenId} ON-CHAIN STATUS =====`);
-      
-      // Use nftContract from blockchain.ts 
-      const { nftContract } = await import('./blockchain.js');
-      
-      console.log(`📋 Step 1: Checking listing status...`);
-      const listing = await nftContract.listings(tokenId);
-      console.log(`📋 Listing data:`, {
-        seller: listing.seller,
-        price: listing.price?.toString(),
-        active: listing.active
-      });
-      
-      console.log(`🔑 Step 2: Checking NFT approval...`);
-      const approvedAddress = await nftContract.getApproved(tokenId);
-      console.log(`🔑 Approved address: ${approvedAddress}`);
-      
-      console.log(`👤 Step 3: Checking NFT owner...`);
-      const currentOwner = await nftContract.ownerOf(tokenId);
-      console.log(`👤 Current owner: ${currentOwner}`);
-      
-      // Check if marketplace is approved
-      const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
-      const marketplaceApproved = approvedAddress.toLowerCase() === NFT_CONTRACT_ADDRESS.toLowerCase();
-      console.log(`✅ Marketplace approved: ${marketplaceApproved}`);
-      
-      const canPurchase = listing.active && marketplaceApproved;
-      
-      console.log(`\n🎯 ===== DIAGNOSIS =====`);
-      console.log(`- Listed on-chain: ${listing.active}`);
-      console.log(`- Marketplace approved: ${marketplaceApproved}`);
-      console.log(`- Can purchase: ${canPurchase}`);
-      console.log(`- Current owner: ${currentOwner}`);
-      console.log(`- Listing seller: ${listing.seller}`);
-      console.log(`- Owner matches seller: ${currentOwner.toLowerCase() === listing.seller.toLowerCase()}`);
-      
-      if (!listing.active) {
-        console.log(`❌ PROBLEM: NFT is not listed on-chain (listing.active = false)`);
-      }
-      if (!marketplaceApproved) {
-        console.log(`❌ PROBLEM: Marketplace not approved to transfer NFT`);
-      }
-      if (listing.active && marketplaceApproved) {
-        console.log(`✅ GOOD: NFT should be purchasable!`);
-      }
-      console.log(`===== END DEBUGGING =====\n`);
-      
-      const result = {
-        success: true,
-        tokenId,
-        onChainListing: {
-          seller: listing.seller,
-          price: listing.price?.toString(),
-          active: listing.active
-        },
-        approval: {
-          approvedAddress,
-          marketplaceApproved,
-          NFT_CONTRACT_ADDRESS
-        },
-        ownership: {
-          currentOwner
-        },
-        diagnosis: {
-          isListedOnChain: listing.active,
-          isMarketplaceApproved: marketplaceApproved,
-          canPurchase,
-          ownerMatchesSeller: currentOwner.toLowerCase() === listing.seller.toLowerCase()
-        }
-      };
-      
-      res.json(result);
-      
-    } catch (error: any) {
-      console.error(`❌ Debug listing error for NFT ${req.params.id}:`, error.message);
-      res.status(500).json({ 
-        message: "Failed to check on-chain listing", 
-        error: error.message 
-      });
-    }
-  });
-
   // Purchase NFT with onchain USDC payment
   app.post("/api/nfts/:id/purchase", async (req, res) => {
     try {
@@ -1208,17 +1172,56 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
 
-      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
+      // ✅ ROBUST tokenId extraction and validation
       const tokenId = nft.id.replace("blockchain-", "");
-      if (!tokenId || isNaN(Number(tokenId))) {
-        return res.status(400).json({ message: "Invalid NFT token ID" });
+      const numericTokenId = parseInt(tokenId);
+      
+      if (!tokenId || isNaN(numericTokenId) || numericTokenId <= 0) {
+        console.error(`❌ Invalid tokenId extraction: NFT.id=${nft.id}, extracted=${tokenId}, numeric=${numericTokenId}`);
+        return res.status(400).json({ message: "Invalid NFT token ID format" });
       }
       
       console.log(`🔄 Generating onchain purchase transaction for NFT #${tokenId}`);
       
+      // ✅ ENHANCED validation before blockchain call
+      if (!nft.price || isNaN(parseFloat(nft.price)) || parseFloat(nft.price) <= 0) {
+        console.error(`❌ Invalid NFT price: ${nft.price}`);
+        return res.status(400).json({ message: "Invalid NFT price" });
+      }
+      
+      console.log(`🔄 Generating onchain purchase transaction for NFT #${numericTokenId} at ${nft.price} USDC`);
+      
+      // 🚨 CRITICAL: Verify on-chain owner matches listing before preparation
+      console.log(`🔍 Verifying on-chain ownership before purchase prep...`);
+      try {
+        const onChainOwner = await blockchainService.getNFTOwner(tokenId);
+        if (!onChainOwner) {
+          console.error(`❌ Could not verify on-chain owner for NFT #${numericTokenId}`);
+          return res.status(400).json({ message: "Could not verify NFT ownership on blockchain" });
+        }
+        
+        if (onChainOwner.toLowerCase() !== nft.ownerAddress.toLowerCase()) {
+          console.error(`❌ Ownership mismatch! DB owner: ${nft.ownerAddress}, On-chain: ${onChainOwner}`);
+          return res.status(409).json({ 
+            message: "NFT ownership has changed. Please refresh and try again.",
+            type: "OWNERSHIP_MISMATCH",
+            dbOwner: nft.ownerAddress,
+            onChainOwner: onChainOwner
+          });
+        }
+        
+        console.log(`✅ On-chain ownership verified: ${onChainOwner}`);
+      } catch (ownershipError: any) {
+        console.error(`❌ Ownership verification failed:`, ownershipError);
+        return res.status(400).json({ 
+          message: "Failed to verify NFT ownership on blockchain",
+          type: "BLOCKCHAIN_ERROR"
+        });
+      }
+      
       // Generate onchain purchase transaction data
       const purchaseData = await blockchainService.generatePurchaseTransaction(
-        tokenId,
+        tokenId, // String for blockchain service
         buyerId.toLowerCase(),
         nft.ownerAddress.toLowerCase(),
         nft.price // Pass actual NFT price
@@ -1233,17 +1236,26 @@ export async function registerRoutes(app: Express) {
       
       console.log(`✅ Generated purchase transaction data for NFT #${tokenId}`);
       
-      // Return transaction data for frontend to execute
-      res.json({ 
+      // ✅ GUARANTEED RESPONSE FORMAT for frontend safety
+      const response = { 
         message: "Purchase transaction prepared",
         requiresOnchainPayment: true,
         transactionData: purchaseData,
         nftId: nftId,
-        tokenId: tokenId,
+        tokenId: numericTokenId.toString(), // String format for consistency
         buyer: buyerId.toLowerCase(),
         seller: nft.ownerAddress.toLowerCase(),
-        priceUSDC: nft.price // Use actual NFT price
+        priceUSDC: nft.price // Exact NFT price - no fallbacks allowed
+      };
+      
+      console.log(`✅ Returning verified purchase data:`, {
+        tokenId: response.tokenId,
+        priceUSDC: response.priceUSDC,
+        buyer: response.buyer,
+        seller: response.seller
       });
+      
+      res.json(response);
       
     } catch (error) {
       console.error("Purchase preparation error:", error);
@@ -1251,7 +1263,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Confirm purchase after USDC payment transaction
+  // Confirm purchase after smart contract transaction
   app.post("/api/nfts/confirm-purchase", async (req, res) => {
     try {
       const { buyerId, transactionHash, nftId } = req.body;
@@ -1260,7 +1272,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Buyer ID and transaction hash are required" });
       }
       
-      console.log(`🔄 Confirming purchase with USDC payment tx: ${transactionHash} for NFT: ${nftId}`);
+      console.log(`🔍 Verifying smart contract purchase tx: ${transactionHash} for NFT: ${nftId}`);
       
       // Find the specific NFT being purchased
       let nftToUpdate;
@@ -1279,6 +1291,30 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found for purchase confirmation" });
       }
       
+      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
+      const tokenId = nftToUpdate.id.replace("blockchain-", "");
+      if (!tokenId || isNaN(Number(tokenId))) {
+        return res.status(400).json({ message: "Invalid NFT token ID" });
+      }
+      
+      // 🛡️ CRITICAL: Verify the blockchain transaction before updating database
+      const verification = await blockchainService.verifyPurchaseTransaction(
+        transactionHash,
+        tokenId,
+        buyerId.toLowerCase()
+      );
+      
+      if (!verification.success) {
+        console.log(`❌ Transaction verification failed: ${verification.error}`);
+        return res.status(400).json({ 
+          message: "Transaction verification failed",
+          error: verification.error,
+          type: "VERIFICATION_FAILED"
+        });
+      }
+      
+      console.log(`✅ Transaction verified! Proceeding with database update for NFT ${nftToUpdate.id}`);
+      
       // Check if NFT is for sale
       if (nftToUpdate.isForSale !== 1) {
         return res.status(400).json({ message: "NFT is not for sale" });
@@ -1288,8 +1324,6 @@ export async function registerRoutes(app: Express) {
       if (nftToUpdate.ownerAddress.toLowerCase() === buyerId.toLowerCase()) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
-      
-      console.log(`✅ Confirming purchase of NFT ${nftToUpdate.id} for buyer ${buyerId}`);
       
       // Get or create buyer and seller users
       let buyer = await storage.getUserByWalletAddress(buyerId.toLowerCase());
@@ -1310,18 +1344,17 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Calculate commission split
+      // Note: Balance updates are handled by smart contract
+      // Smart contract automatically transfers USDC from buyer to seller (95%) and platform (5%)
+      // We don't need to update local balances since real balances are on blockchain
+      
       const purchasePrice = parseFloat(nftToUpdate.price);
-      const platformFee = purchasePrice * 0.05; // 5% platform fee
+      const platformFee = purchasePrice * 0.05;
       const sellerAmount = purchasePrice - platformFee;
       
-      // Update balances
-      const buyerNewBalance = (parseFloat(buyer.balance) - purchasePrice).toString();
-      const sellerNewBalance = (parseFloat(seller.balance) + sellerAmount).toString();
+      console.log(`💰 Smart contract handled: ${sellerAmount} USDC to seller, ${platformFee} USDC platform fee`);
       
-      console.log(`💰 Balance updates: Buyer ${buyerNewBalance} USDC, Seller ${sellerNewBalance} USDC`);
-      
-      // Get or create platform user for commission tracking
+      // Get or create platform user for record keeping
       let platformUser = await storage.getUserByWalletAddress(PLATFORM_WALLET);
       if (!platformUser) {
         platformUser = await storage.createUser({
@@ -1331,19 +1364,15 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      const platformNewBalance = (parseFloat(platformUser.balance) + platformFee).toString();
-      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (Balance: ${platformNewBalance} USDC)`);
-      
-      // Update all balances
-      await storage.updateUserBalance(buyer.id, buyerNewBalance);
-      await storage.updateUserBalance(seller.id, sellerNewBalance);
-      await storage.updateUserBalance(platformUser.id, platformNewBalance);
+      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (handled by smart contract)`);
       
       // Update NFT ownership and remove from sale
-      await storage.updateNFT(nftToUpdate.id, {
+      console.log(`🔄 Updating NFT ${nftToUpdate.id} ownership: ${nftToUpdate.ownerAddress} → ${buyerId.toLowerCase()}`);
+      const updateResult = await storage.updateNFT(nftToUpdate.id, {
         ownerAddress: buyerId.toLowerCase(),
         isForSale: 0,
       });
+      console.log(`✅ NFT ownership update result:`, updateResult ? 'SUCCESS' : 'FAILED');
       
       // Create transaction records for platform distribution flow
       await storage.createTransaction({
@@ -1997,6 +2026,36 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Backfill failed", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Admin endpoint for syncing ALL weekly points with all-time points (for same week)
+  app.post("/api/admin/sync-weekly", async (req, res) => {
+    try {
+      // Check admin secret (use environment variable or default for development)
+      const adminSecret = process.env.ADMIN_SECRET || 'dev-admin-secret-2024';
+      const providedSecret = req.headers.authorization || req.headers['x-admin-secret'];
+      
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin secret" });
+      }
+
+      console.log('🔄 Admin sync requested - syncing weekly points with all-time...');
+      const result = await storage.syncWeeklyWithAllTime();
+      
+      console.log('✅ Admin sync completed:', result);
+      res.json({
+        success: true,
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Admin sync failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Sync failed", 
         error: error.message 
       });
     }

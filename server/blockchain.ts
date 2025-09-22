@@ -830,44 +830,45 @@ export class BlockchainService {
       
       console.log(`💰 Commission split: Seller ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC, Platform ${(Number(platformFee) / 1000000).toFixed(6)} USDC`);
 
+      // Use smart contract's purchaseNFT function - handles everything atomically
       return {
         success: true,
-        transactions: [
-          {
-            type: "USDC_TRANSFER",
-            to: USDC_CONTRACT_ADDRESS,
-            data: usdcContract.interface.encodeFunctionData("transfer", [
-              sellerAddress,
-              sellerAmount // 95% to seller
-            ]),
-            description: `Transfer ${(Number(sellerAmount) / 1000000).toFixed(6)} USDC to seller`
-          },
-          {
-            type: "USDC_COMMISSION_TRANSFER",
-            to: USDC_CONTRACT_ADDRESS,
-            data: usdcContract.interface.encodeFunctionData("transfer", [
-              PLATFORM_WALLET, // 5% commission to platform
-              platformFee
-            ]),
-            description: `Transfer ${(Number(platformFee) / 1000000).toFixed(6)} USDC platform commission`
-          },
-          {
-            type: "NFT_TRANSFER", 
-            to: NFT_CONTRACT_ADDRESS,
-            data: nftContract.interface.encodeFunctionData("transferFrom", [
-              sellerAddress,
-              buyerAddress,
-              tokenId
-            ]),
-            description: `Transfer NFT #${tokenId} to buyer`
-          }
-        ],
+        // Primary transaction: Smart contract's purchaseNFT function
+        transaction: {
+          type: "PURCHASE_NFT",
+          to: NFT_CONTRACT_ADDRESS,
+          data: nftContract.interface.encodeFunctionData("purchaseNFT", [
+            tokenId,
+            purchasePrice // Price in USDC (6 decimals)
+          ]),
+          description: `Purchase NFT #${tokenId} for ${price} USDC (includes automatic commission)`
+        },
+        // Keep for backward compatibility with frontend
+        transactions: [{
+          type: "PURCHASE_NFT",
+          to: NFT_CONTRACT_ADDRESS,
+          data: nftContract.interface.encodeFunctionData("purchaseNFT", [
+            tokenId,
+            purchasePrice
+          ]),
+          description: `Purchase NFT #${tokenId} for ${price} USDC (atomic transaction)`
+        }],
+        // Transaction details for confirmation
         tokenId,
         buyerAddress,
         sellerAddress,
         priceUSDC: price,
         sellerAmount: (Number(sellerAmount) / 1000000).toFixed(6),
-        platformFee: (Number(platformFee) / 1000000).toFixed(6)
+        platformFee: (Number(platformFee) / 1000000).toFixed(6),
+        // Additional info for USDC approval (if needed)
+        approvalData: {
+          to: USDC_CONTRACT_ADDRESS,
+          data: usdcContract.interface.encodeFunctionData("approve", [
+            NFT_CONTRACT_ADDRESS,
+            purchasePrice
+          ]),
+          description: `Approve ${price} USDC spending for NFT purchase`
+        }
       };
 
     } catch (error: any) {
@@ -876,6 +877,77 @@ export class BlockchainService {
         success: false,
         error: error.message || "Failed to generate purchase transaction"
       };
+    }
+  }
+
+  // Verify NFT purchase transaction
+  async verifyPurchaseTransaction(transactionHash: string, expectedTokenId: string, expectedBuyer: string): Promise<{success: boolean, error?: string, details?: any}> {
+    try {
+      console.log(`🔍 Verifying purchase transaction: ${transactionHash}`);
+      
+      // Get transaction receipt
+      const receipt = await withRetry(() => provider.getTransactionReceipt(transactionHash));
+      
+      if (!receipt) {
+        return { success: false, error: "Transaction not found or still pending" };
+      }
+      
+      // Check if transaction was successful
+      if (receipt.status !== 1) {
+        return { success: false, error: "Transaction failed on blockchain" };
+      }
+      
+      // Check if transaction was sent to our NFT contract
+      if (receipt.to?.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) {
+        return { success: false, error: "Transaction was not sent to the NFT contract" };
+      }
+      
+      // Parse transaction to verify it called purchaseNFT function
+      const transaction = await withRetry(() => provider.getTransaction(transactionHash));
+      if (!transaction || !transaction.data) {
+        return { success: false, error: "Could not retrieve transaction data" };
+      }
+      
+      // Decode transaction data to verify function call
+      try {
+        const decodedData = nftContract.interface.parseTransaction({ data: transaction.data });
+        
+        // Verify it's a purchaseNFT function call
+        if (decodedData?.name !== "purchaseNFT") {
+          return { success: false, error: `Transaction called ${decodedData?.name || 'unknown'} function, not purchaseNFT` };
+        }
+        
+        // Verify token ID matches
+        const transactionTokenId = decodedData.args[0].toString();
+        if (transactionTokenId !== expectedTokenId) {
+          return { success: false, error: `Token ID mismatch: expected ${expectedTokenId}, got ${transactionTokenId}` };
+        }
+        
+        // Verify buyer matches (transaction sender)
+        if (transaction.from?.toLowerCase() !== expectedBuyer.toLowerCase()) {
+          return { success: false, error: `Buyer mismatch: expected ${expectedBuyer}, got ${transaction.from}` };
+        }
+        
+        console.log(`✅ Purchase transaction verified: NFT #${transactionTokenId} purchased by ${transaction.from}`);
+        
+        return {
+          success: true,
+          details: {
+            tokenId: transactionTokenId,
+            buyer: transaction.from,
+            price: decodedData.args[1].toString(),
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed.toString()
+          }
+        };
+        
+      } catch (parseError) {
+        return { success: false, error: "Could not parse transaction data - may not be a valid NFT purchase" };
+      }
+      
+    } catch (error: any) {
+      console.error("Error verifying purchase transaction:", error);
+      return { success: false, error: error.message || "Failed to verify transaction" };
     }
   }
 
@@ -932,6 +1004,19 @@ export class BlockchainService {
     } catch (error) {
       console.error(`❌ Error checking Base transactions for ${walletAddress}:`, error);
       return false;
+    }
+  }
+
+  // 🆕 Get current on-chain owner of an NFT  
+  async getNFTOwner(tokenId: string): Promise<string | null> {
+    try {
+      console.log(`🔍 Getting on-chain owner for NFT #${tokenId}`);
+      const owner = await withRetry(() => nftContract.ownerOf(tokenId));
+      console.log(`✅ NFT #${tokenId} owner: ${owner}`);
+      return owner;
+    } catch (error: any) {
+      console.error(`❌ Failed to get owner for NFT #${tokenId}:`, error);
+      return null;
     }
   }
 

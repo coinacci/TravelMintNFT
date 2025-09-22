@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSimulateContract, useSwitchChain } from "wagmi";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MapPin, User, Clock, Eye, Loader2, Share2, Wallet, Users } from "lucide-react";
-import { parseAbi } from "viem";
+import { MapPin, User, Clock, Eye, Send, Loader2, Share2, Wallet, Users } from "lucide-react";
+import { isAddress, parseAbi, formatEther } from "viem";
+import { base } from "wagmi/chains";
 import sdk from "@farcaster/frame-sdk";
 
 interface NFT {
@@ -55,6 +56,10 @@ export default function MyNFTs() {
   const [sortBy, setSortBy] = useState("recent");
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferToAddress, setTransferToAddress] = useState("");
+  const [transferNFT, setTransferNFT] = useState<NFT | null>(null);
+  const [showGasEstimate, setShowGasEstimate] = useState(false);
   const [isGeneratingFrame, setIsGeneratingFrame] = useState(false);
   const [showAllWallets, setShowAllWallets] = useState(true); // Default to show all wallets
   const [farcasterUser, setFarcasterUser] = useState<{
@@ -63,17 +68,21 @@ export default function MyNFTs() {
     displayName: string;
     pfpUrl?: string;
   } | null>(null);
+  const [listingNFTId, setListingNFTId] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { address, isConnected, connector } = useAccount();
+  const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
+  const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
   
-  
+  // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
   // NFT Contract Configuration
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
+  const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084" as const; // Platform wallet for marketplace transactions
   const TRAVEL_NFT_ABI = parseAbi([
     "function safeTransferFrom(address from, address to, uint256 tokenId)",
     "function ownerOf(uint256 tokenId) view returns (address)",
@@ -81,6 +90,18 @@ export default function MyNFTs() {
     "function getApproved(uint256 tokenId) view returns (address)"
   ]);
   
+  // Gas estimation for transfer
+  const { data: simulateData, isLoading: isSimulating, error: simulateError } = useSimulateContract({
+    address: NFT_CONTRACT_ADDRESS,
+    abi: TRAVEL_NFT_ABI,
+    functionName: 'safeTransferFrom',
+    args: transferNFT && transferToAddress && address && isAddress(transferToAddress) ? 
+      [address, transferToAddress as `0x${string}`, BigInt(transferNFT.tokenId || '0')] : 
+      undefined,
+    query: {
+      enabled: !!transferNFT && !!transferToAddress && !!address && isAddress(transferToAddress) && !!transferNFT.tokenId
+    }
+  });
   const syncedAddressRef = useRef<string | null>(null);
 
   // Initialize Farcaster context
@@ -202,6 +223,36 @@ export default function MyNFTs() {
     },
   });
 
+  const updateListingMutation = useMutation({
+    mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
+      // 🔒 SECURITY: Include wallet address for ownership verification
+      const updatesWithAuth = {
+        ...updates,
+        walletAddress: address
+      };
+      return apiRequest("PATCH", `/api/nfts/${nftId}`, updatesWithAuth);
+    },
+    onSuccess: () => {
+      toast({
+        title: "NFT Updated",
+        description: "Your NFT listing has been updated successfully.",
+      });
+      // Invalidate both single wallet and multi-wallet queries
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      if (farcasterUser) {
+        queryClient.invalidateQueries({ queryKey: [`/api/user/${farcasterUser.fid}/all-nfts`] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update NFT",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Only sync once per wallet connection and reset on disconnect
   React.useEffect(() => {
@@ -219,9 +270,39 @@ export default function MyNFTs() {
     }
   }, [address, isConnected]); // Remove nfts.length dependency to prevent loops
 
+  // Handle transfer success
+  React.useEffect(() => {
+    if (isTransferSuccess && transferHash) {
+      toast({
+        title: "Transfer Successful",
+        description: `NFT transferred successfully! Transaction: ${transferHash}`,
+      });
+      setIsTransferModalOpen(false);
+      setTransferToAddress("");
+      setTransferNFT(null);
+      // Invalidate queries and trigger sync
+      queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      // Trigger blockchain sync
+      if (address) {
+        apiRequest("POST", `/api/sync/wallet/${address}`, {});
+      }
+    }
+  }, [isTransferSuccess, transferHash, toast, queryClient, address]);
 
+  // Handle transfer error
+  React.useEffect(() => {
+    if (transferError) {
+      toast({
+        title: "Transfer Failed",
+        description: transferError.message || "Failed to transfer NFT",
+        variant: "destructive",
+      });
+    }
+  }, [transferError, toast]);
 
-
+  // REMOVED: All approval-related useEffect hooks - not needed for smart contract with internal _transfer()
 
   // Log for troubleshooting
   if (isError) {
@@ -245,6 +326,45 @@ export default function MyNFTs() {
     );
   }
 
+  const handleToggleListing = (nft: NFT, price?: string) => {
+    if (nft.isForSale === 1) {
+      // Remove from sale - just update database
+      updateListingMutation.mutate({
+        nftId: nft.id,
+        updates: { isForSale: 0 }
+      });
+    } else {
+      // Add to sale - NO APPROVAL NEEDED! Smart contract uses internal _transfer()
+      if (!price || parseFloat(price) <= 0) {
+        toast({
+          title: "Invalid Price",
+          description: "Please enter a valid price to list your NFT",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!nft.tokenId) {
+        toast({
+          title: "Cannot List NFT",
+          description: "This NFT is not ready for listing. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Directly update database - smart contract doesn't need NFT approval
+      toast({
+        title: "📝 Listing NFT",
+        description: "Adding your NFT to the marketplace...",
+      });
+
+      updateListingMutation.mutate({
+        nftId: nft.id,
+        updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
+      });
+    }
+  };
 
   const handleNFTClick = (nft: NFT) => {
     setSelectedNFT(nft);
@@ -252,9 +372,97 @@ export default function MyNFTs() {
   };
 
 
+  const handleTransferClick = (nft: NFT) => {
+    // Check if NFT has tokenId before allowing transfer
+    if (!nft.tokenId) {
+      toast({
+        title: "Cannot Transfer NFT",
+        description: "This NFT is not ready for transfer. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTransferNFT(nft);
+    setTransferToAddress("");
+    setShowGasEstimate(false);
+    setIsTransferModalOpen(true);
+  };
 
+  const handleNetworkCheck = async () => {
+    // Check if on Base network
+    const chainId = await window.ethereum?.request({ method: 'eth_chainId' });
+    if (chainId !== base.id.toString(16)) {
+      try {
+        await switchChain({ chainId: base.id });
+      } catch (error: any) {
+        toast({
+          title: "Network Switch Required",
+          description: "Please switch to Base network to transfer NFTs",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    return true;
+  };
 
+  const handleEstimateGas = async () => {
+    if (!transferNFT || !transferToAddress || !address) {
+      toast({
+        title: "Invalid Transfer",
+        description: "Please check all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    // Validate recipient address
+    if (!isAddress(transferToAddress)) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid Ethereum address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevent self-transfer
+    if (transferToAddress.toLowerCase() === address.toLowerCase()) {
+      toast({
+        title: "Invalid Transfer",
+        description: "Cannot transfer to your own address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check network
+    const networkOk = await handleNetworkCheck();
+    if (!networkOk) return;
+
+    setShowGasEstimate(true);
+  };
+
+  const handleTransferSubmit = async () => {
+    if (!transferNFT || !transferToAddress || !address || !transferNFT.tokenId) {
+      return;
+    }
+
+    try {
+      await writeContract({
+        address: NFT_CONTRACT_ADDRESS,
+        abi: TRAVEL_NFT_ABI,
+        functionName: 'safeTransferFrom',
+        args: [address, transferToAddress as `0x${string}`, BigInt(transferNFT.tokenId)],
+      });
+    } catch (error: any) {
+      toast({
+        title: "Transfer Failed",
+        description: error.message || "Failed to initiate transfer",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleShareNFT = async (nft: NFT) => {
     if (!nft.tokenId) {
@@ -330,6 +538,8 @@ export default function MyNFTs() {
         return parseFloat(a.price) - parseFloat(b.price);
       case "price-high":
         return parseFloat(b.price) - parseFloat(a.price);
+      case "for-sale":
+        return b.isForSale - a.isForSale;
       default:
         return 0; // Recent (default order)
     }
@@ -366,6 +576,7 @@ export default function MyNFTs() {
               <SelectItem value="recent">Recently Created</SelectItem>
               <SelectItem value="price-low">Price: Low to High</SelectItem>
               <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="for-sale">Listed First</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -391,19 +602,126 @@ export default function MyNFTs() {
                 />
                 
                 <Card className="p-3 bg-muted/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Travel Memory #{nft.tokenId || 'Pending'}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
-                      data-testid={`open-${nft.id}`}
-                      className="text-muted-foreground hover:text-foreground"
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {nft.isForSale === 1 ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-green-600">Listed for {parseFloat(nft.price).toFixed(2)} USDC</span>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
+                            data-testid={`open-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {/* Share button temporarily hidden
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
+                            disabled={isGeneratingFrame}
+                            data-testid={`share-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Share as Frame"
+                          >
+                            {isGeneratingFrame ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Share2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                          */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleTransferClick(nft); }}
+                            data-testid={`transfer-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleToggleListing(nft)}
+                            disabled={updateListingMutation.isPending}
+                            data-testid={`unlist-${nft.id}`}
+                          >
+                            Remove from Sale
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          placeholder="Price in USDC"
+                          className="flex-1"
+                          id={`price-${nft.id}`}
+                          data-testid={`price-input-${nft.id}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleNFTClick(nft); }}
+                          data-testid={`open-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {/* Share button temporarily hidden
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
+                          disabled={isGeneratingFrame}
+                          data-testid={`share-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          title="Share as Frame"
+                        >
+                          {isGeneratingFrame ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Share2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                        */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); handleTransferClick(nft); }}
+                          data-testid={`transfer-${nft.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const priceInput = document.getElementById(`price-${nft.id}`) as HTMLInputElement;
+                            handleToggleListing(nft, priceInput?.value);
+                          }}
+                          disabled={
+                            updateListingMutation.isPending || 
+                            listingNFTId === nft.id
+                          }
+                          data-testid={`list-${nft.id}`}
+                        >
+                          {listingNFTId === nft.id ? (
+                            "📝 Listing..."
+                          ) : (
+                            "List for Sale"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               </div>
             ))}
