@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Trophy, Medal, Award, Crown, Target, Calendar, TrendingUp } from "lucide-react";
+import { Trophy, Medal, Award, Target, Calendar, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -199,7 +199,7 @@ export default function Leaderboard() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all-time" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="all-time" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 All Time
@@ -207,10 +207,6 @@ export default function Leaderboard() {
               <TabsTrigger value="weekly" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Weekly
-              </TabsTrigger>
-              <TabsTrigger value="champions" className="flex items-center gap-2">
-                <Crown className="h-4 w-4" />
-                Champions
               </TabsTrigger>
             </TabsList>
             
@@ -320,52 +316,6 @@ export default function Leaderboard() {
                       <div className="text-right">
                         <div className="font-bold" data-testid={`weekly-row-${entry.rank}-points`}>{pointsToDisplay(entry.weeklyPoints || 0)}</div>
                         <div className="text-sm text-muted-foreground">weekly points</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="champions">
-              {weeklyChampions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Crown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No champions yet. Be the first to win a weekly championship!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {weeklyChampions.map((champion) => (
-                    <div
-                      key={`${champion.farcasterFid}-${champion.weekNumber}-${champion.year}`}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors border border-primary/20"
-                      data-testid={`champion-row-${champion.weekNumber}-${champion.year}`}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <WeeklyChampionBadge
-                          weekNumber={champion.weekNumber}
-                          year={champion.year}
-                          weekStartDate={champion.weekStartDate}
-                          weekEndDate={champion.weekEndDate}
-                          className="h-10 w-10"
-                        />
-                        <div>
-                          <p className="font-medium" data-testid={`champion-username-${champion.weekNumber}`}>
-                            @{champion.farcasterUsername}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Week {champion.weekNumber}, {champion.year} Champion
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(champion.weekStartDate).toLocaleDateString()} - {new Date(champion.weekEndDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-lg" data-testid={`champion-points-${champion.weekNumber}`}>
-                          {pointsToDisplay(champion.weeklyPoints)}
-                        </div>
-                        <div className="text-sm text-muted-foreground">winning points</div>
                       </div>
                     </div>
                   ))}
