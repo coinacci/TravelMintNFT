@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ethers } from "ethers";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -384,6 +385,126 @@ export default function Marketplace() {
       buyer: walletAddress,
       seller: nft.owner?.id
     });
+
+    // 🔍 ON-CHAIN DEBUG: Check contract status before purchase
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const marketplaceAddress = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+      
+      // USDC Contract for balance/allowance checks
+      const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+      const USDC_ABI = [
+        "function balanceOf(address) view returns (uint256)",
+        "function allowance(address owner, address spender) view returns (uint256)"
+      ];
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, provider);
+      
+      // NFT Contract for listing checks
+      const NFT_ABI = [
+        "function listings(uint256) view returns (address seller, uint256 price, bool active)",
+        "function getApproved(uint256 tokenId) view returns (address)",
+        "function ownerOf(uint256 tokenId) view returns (address)"
+      ];
+      const nftContract = new ethers.Contract(marketplaceAddress, NFT_ABI, provider);
+      
+      // Extract token ID
+      const tokenId = nft.id.replace("blockchain-", "");
+      console.log(`\n🔍 ===== ON-CHAIN DEBUG FOR NFT #${tokenId} =====`);
+      
+      // Check USDC balance and allowance
+      const buyerBalance = await usdcContract.balanceOf(walletAddress);
+      const requiredAmount = ethers.parseUnits(nft.price, 6);
+      const allowance = await usdcContract.allowance(walletAddress, marketplaceAddress);
+      
+      const balanceFormatted = ethers.formatUnits(buyerBalance, 6);
+      const allowanceFormatted = ethers.formatUnits(allowance, 6);
+      const requiredFormatted = ethers.formatUnits(requiredAmount, 6);
+      
+      console.log(`💰 Balance check:`, {
+        buyer: walletAddress,
+        balance: balanceFormatted,
+        required: requiredFormatted,
+        allowance: allowanceFormatted,
+        hasSufficientBalance: buyerBalance >= requiredAmount,
+        hasSufficientAllowance: allowance >= requiredAmount
+      });
+      
+      // Check on-chain listing status
+      const listing = await nftContract.listings(tokenId);
+      const approvedAddress = await nftContract.getApproved(tokenId);
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      
+      console.log(`📋 Listing data:`, {
+        seller: listing.seller,
+        price: listing.price.toString(),
+        active: listing.active
+      });
+      console.log(`🔑 Approved address:`, approvedAddress);
+      console.log(`👤 Current owner:`, currentOwner);
+      console.log(`✅ Marketplace approved:`, approvedAddress.toLowerCase() === marketplaceAddress.toLowerCase());
+      
+      console.log(`\n🎯 ===== DIAGNOSIS =====`);
+      console.log(`- Listed on-chain: ${listing.active}`);
+      console.log(`- Marketplace approved: ${approvedAddress.toLowerCase() === marketplaceAddress.toLowerCase()}`);
+      console.log(`- Owner matches seller: ${currentOwner.toLowerCase() === listing.seller.toLowerCase()}`);
+      console.log(`- Can purchase: ${listing.active && (approvedAddress.toLowerCase() === marketplaceAddress.toLowerCase())}`);
+      
+      // Check for issues and show detailed errors
+      if (buyerBalance < requiredAmount) {
+        toast({
+          title: "Insufficient Balance",
+          description: `You need ${requiredFormatted} USDC but only have ${balanceFormatted} USDC`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!listing.active) {
+        console.log(`❌ PROBLEM: NFT #${tokenId} is not listed on-chain (listing.active = false)`);
+        console.log(`   → Seller needs to call listNFT(${tokenId}, price) on the contract`);
+        toast({
+          title: "NFT Not Listed",
+          description: "This NFT is not currently listed for sale on the blockchain. The seller needs to list it first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (approvedAddress.toLowerCase() !== marketplaceAddress.toLowerCase()) {
+        console.log(`❌ PROBLEM: Marketplace not approved to transfer NFT #${tokenId}`);
+        console.log(`   → Seller needs to call approve(${marketplaceAddress}, ${tokenId}) or setApprovalForAll(${marketplaceAddress}, true)`);
+        toast({
+          title: "Transfer Not Approved",
+          description: "The seller hasn't approved the marketplace to transfer this NFT. They need to approve it first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (currentOwner.toLowerCase() !== listing.seller.toLowerCase()) {
+        console.log(`❌ PROBLEM: Owner mismatch for NFT #${tokenId}`);
+        console.log(`   → Current owner: ${currentOwner}`);
+        console.log(`   → Listed seller: ${listing.seller}`);
+        toast({
+          title: "Ownership Error", 
+          description: "The current owner doesn't match the listing seller. The listing is stale.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log(`✅ All on-chain checks passed for NFT #${tokenId}! Purchase should work.`);
+      console.log(`===== END ON-CHAIN DEBUG =====\n`);
+      
+    } catch (debugError: any) {
+      console.error("❌ On-chain debug error:", debugError);
+      toast({
+        title: "Blockchain Check Failed",
+        description: `Failed to verify NFT status: ${debugError.message}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     toast({
       title: "Preparing Purchase...",

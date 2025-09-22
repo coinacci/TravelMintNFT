@@ -1080,6 +1080,103 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Debug: Check NFT on-chain listing status and log results
+  app.get("/api/nfts/:id/debug-listing", async (req, res) => {
+    try {
+      const { id: nftId } = req.params;
+      
+      // Extract tokenId from blockchain ID (e.g., "blockchain-47" -> 47)
+      const tokenId = nftId.includes('blockchain-') 
+        ? parseInt(nftId.split('blockchain-')[1]) 
+        : parseInt(nftId);
+      
+      if (isNaN(tokenId)) {
+        console.log(`❌ Invalid token ID: ${nftId}`);
+        return res.status(400).json({ message: "Invalid token ID" });
+      }
+      
+      console.log(`\n🔍 ===== DEBUGGING NFT #${tokenId} ON-CHAIN STATUS =====`);
+      
+      // Use nftContract from blockchain.ts 
+      const { nftContract } = await import('./blockchain.js');
+      
+      console.log(`📋 Step 1: Checking listing status...`);
+      const listing = await nftContract.listings(tokenId);
+      console.log(`📋 Listing data:`, {
+        seller: listing.seller,
+        price: listing.price?.toString(),
+        active: listing.active
+      });
+      
+      console.log(`🔑 Step 2: Checking NFT approval...`);
+      const approvedAddress = await nftContract.getApproved(tokenId);
+      console.log(`🔑 Approved address: ${approvedAddress}`);
+      
+      console.log(`👤 Step 3: Checking NFT owner...`);
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      console.log(`👤 Current owner: ${currentOwner}`);
+      
+      // Check if marketplace is approved
+      const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+      const marketplaceApproved = approvedAddress.toLowerCase() === NFT_CONTRACT_ADDRESS.toLowerCase();
+      console.log(`✅ Marketplace approved: ${marketplaceApproved}`);
+      
+      const canPurchase = listing.active && marketplaceApproved;
+      
+      console.log(`\n🎯 ===== DIAGNOSIS =====`);
+      console.log(`- Listed on-chain: ${listing.active}`);
+      console.log(`- Marketplace approved: ${marketplaceApproved}`);
+      console.log(`- Can purchase: ${canPurchase}`);
+      console.log(`- Current owner: ${currentOwner}`);
+      console.log(`- Listing seller: ${listing.seller}`);
+      console.log(`- Owner matches seller: ${currentOwner.toLowerCase() === listing.seller.toLowerCase()}`);
+      
+      if (!listing.active) {
+        console.log(`❌ PROBLEM: NFT is not listed on-chain (listing.active = false)`);
+      }
+      if (!marketplaceApproved) {
+        console.log(`❌ PROBLEM: Marketplace not approved to transfer NFT`);
+      }
+      if (listing.active && marketplaceApproved) {
+        console.log(`✅ GOOD: NFT should be purchasable!`);
+      }
+      console.log(`===== END DEBUGGING =====\n`);
+      
+      const result = {
+        success: true,
+        tokenId,
+        onChainListing: {
+          seller: listing.seller,
+          price: listing.price?.toString(),
+          active: listing.active
+        },
+        approval: {
+          approvedAddress,
+          marketplaceApproved,
+          NFT_CONTRACT_ADDRESS
+        },
+        ownership: {
+          currentOwner
+        },
+        diagnosis: {
+          isListedOnChain: listing.active,
+          isMarketplaceApproved: marketplaceApproved,
+          canPurchase,
+          ownerMatchesSeller: currentOwner.toLowerCase() === listing.seller.toLowerCase()
+        }
+      };
+      
+      res.json(result);
+      
+    } catch (error: any) {
+      console.error(`❌ Debug listing error for NFT ${req.params.id}:`, error.message);
+      res.status(500).json({ 
+        message: "Failed to check on-chain listing", 
+        error: error.message 
+      });
+    }
+  });
+
   // Purchase NFT with onchain USDC payment
   app.post("/api/nfts/:id/purchase", async (req, res) => {
     try {
