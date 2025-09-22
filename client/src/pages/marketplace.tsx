@@ -113,7 +113,7 @@ export default function Marketplace() {
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 
-  // TravelNFT Contract ABI - includes purchaseNFT function for single-transaction purchases
+  // TravelNFT Contract ABI - includes both purchaseNFT and transferNFTOnly functions
   const NFT_ABI = [
     {
       name: 'purchaseNFT',
@@ -122,6 +122,17 @@ export default function Marketplace() {
       inputs: [
         { name: 'tokenId', type: 'uint256' },
         { name: 'price', type: 'uint256' }
+      ],
+      outputs: []
+    },
+    {
+      name: 'transferNFTOnly',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'from', type: 'address' },
+        { name: 'to', type: 'address' }
       ],
       outputs: []
     }
@@ -366,12 +377,14 @@ export default function Marketplace() {
 
             setTransactionStep('nft_transfer');
 
-            // STEP 3: Call smart contract purchaseNFT function
+            // STEP 3: Call smart contract transferNFTOnly function (no payment processing)
+            const sellerAddress = (currentNFT.owner?.id || '0x0') as `0x${string}`;
+            
             writeContract({
               address: NFT_CONTRACT_ADDRESS,
               abi: NFT_ABI,
-              functionName: "purchaseNFT",
-              args: [BigInt(tokenId), priceWei],
+              functionName: "transferNFTOnly",
+              args: [BigInt(tokenId), sellerAddress, walletAddress as `0x${string}`],
             });
             
           } catch (error) {
