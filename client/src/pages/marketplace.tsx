@@ -261,24 +261,15 @@ export default function Marketplace() {
           description: "Single transaction: payment + NFT transfer",
         });
 
-        console.log("💰 FRESH BALANCE CHECK - USDC Analysis:", {
-          walletAddress,
-          tokenId,
-          totalPrice: priceUSDC,
-          priceWei: priceWei.toString(),
-          system: "purchaseNFT - all in one",
-          rawUsdcBalance: usdcBalance,
-          usdcBalanceString: usdcBalance?.toString(),
-          usdcAllowance: usdcAllowance?.toString(),
-          balanceInUSDC: usdcBalance ? (Number(usdcBalance) / 1000000).toFixed(6) : "0",
-          allowanceInUSDC: usdcAllowance ? (Number(usdcAllowance) / 1000000).toFixed(6) : "0",
-          requiredUSDC: (Number(priceWei) / 1000000).toFixed(6),
-          balanceCheck: {
-            hasEnoughBalance: usdcBalance ? BigInt(usdcBalance.toString()) >= priceWei : false,
-            hasEnoughAllowance: usdcAllowance ? BigInt(usdcAllowance.toString()) >= priceWei : false,
-            deficit: usdcBalance ? (Number(priceWei) - Number(usdcBalance)) / 1000000 : 0
-          }
-        });
+        // Simplified debug logging to avoid stringify errors
+        console.log("💰 WALLET BALANCE DEBUG:");
+        console.log("👤 Wallet:", walletAddress);
+        console.log("💵 Raw USDC Balance:", usdcBalance?.toString());
+        console.log("🏦 USDC Balance (formatted):", usdcBalance ? (Number(usdcBalance) / 1000000).toFixed(6) + " USDC" : "0 USDC");
+        console.log("✅ USDC Allowance:", usdcAllowance ? (Number(usdcAllowance) / 1000000).toFixed(6) + " USDC" : "0 USDC");
+        console.log("💰 Required for NFT:", (Number(priceWei) / 1000000).toFixed(6) + " USDC");
+        console.log("🔍 Has Enough Balance?", usdcBalance ? BigInt(usdcBalance.toString()) >= priceWei : false);
+        console.log("🔍 Has Enough Allowance?", usdcAllowance ? BigInt(usdcAllowance.toString()) >= priceWei : false);
 
         // Check NFT approval for marketplace
         console.log("🔍 Checking NFT approval status for gas estimation...");
