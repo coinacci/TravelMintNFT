@@ -681,7 +681,6 @@ export default function MyNFTs() {
                   {nft.isForSale === 1 ? (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-green-600">Listed for {parseFloat(nft.price).toFixed(2)} USDC</span>
                         <div className="flex items-center space-x-2">
                           <Button
                             size="sm"
@@ -734,13 +733,6 @@ export default function MyNFTs() {
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Input
-                          type="number"
-                          placeholder="Price in USDC"
-                          className="flex-1"
-                          id={`price-${nft.id}`}
-                          data-testid={`price-input-${nft.id}`}
-                        />
                         <Button
                           size="sm"
                           variant="ghost"
@@ -864,10 +856,6 @@ export default function MyNFTs() {
                     <span className="text-sm text-muted-foreground">{nftDetails.category}</span>
                   </div>
                   
-                  <div>
-                    <h4 className="font-medium mb-1">Price</h4>
-                    <span className="text-sm font-semibold text-primary">{parseFloat(nftDetails.price).toFixed(2)} USDC</span>
-                  </div>
                   
                   <div>
                     <h4 className="font-medium mb-1">Status</h4>
