@@ -232,8 +232,27 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentTransactions(limit: number = 20): Promise<Transaction[]> {
     return await db
-      .select()
+      .select({
+        id: transactions.id,
+        nftId: transactions.nftId,
+        fromAddress: transactions.fromAddress,
+        toAddress: transactions.toAddress,
+        transactionType: transactions.transactionType,
+        amount: transactions.amount,
+        platformFee: transactions.platformFee,
+        blockchainTxHash: transactions.blockchainTxHash,
+        createdAt: transactions.createdAt,
+        // Include NFT details
+        nft: {
+          id: nfts.id,
+          title: nfts.title,
+          imageUrl: nfts.imageUrl,
+          location: nfts.location,
+          price: nfts.price
+        }
+      })
       .from(transactions)
+      .leftJoin(nfts, eq(transactions.nftId, nfts.id))
       .where(sql`${transactions.transactionType} = 'purchase'`) // Only show purchase activities
       .orderBy(sql`${transactions.createdAt} DESC`)
       .limit(limit);

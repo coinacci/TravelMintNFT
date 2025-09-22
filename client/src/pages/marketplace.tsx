@@ -51,6 +51,13 @@ interface RecentTransaction {
   platformFee: string;
   blockchainTxHash: string | null;
   createdAt: string;
+  nft?: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    location: string;
+    price: string;
+  };
 }
 
 interface User {
@@ -482,9 +489,6 @@ export default function Marketplace() {
               {/* NFT Grid */}
               <div className="lg:w-3/4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl md:text-4xl font-bold" data-testid="marketplace-title">
-                {nftStatus === "all" ? "Browse All NFTs" : "Browse Listed NFTs"}
-              </h2>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48" data-testid="sort-select">
                   <SelectValue />
@@ -544,21 +548,19 @@ export default function Marketplace() {
           
           <TabsContent value="recent-activity" className="space-y-6">
             <div className="space-y-6">
-              <h2 className="text-2xl md:text-4xl font-bold text-center" data-testid="recent-activity-title">Recent Activity</h2>
               
               {isLoadingActivity ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
                     <Card key={i} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
-                          <div className="space-y-1">
-                            <div className="h-4 bg-muted rounded w-32 animate-pulse"></div>
-                            <div className="h-3 bg-muted rounded w-24 animate-pulse"></div>
-                          </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-muted rounded-lg animate-pulse flex-shrink-0"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded w-32 animate-pulse"></div>
+                          <div className="h-3 bg-muted rounded w-24 animate-pulse"></div>
+                          <div className="h-3 bg-muted rounded w-28 animate-pulse"></div>
                         </div>
-                        <div className="text-right space-y-1">
+                        <div className="text-right space-y-1 flex-shrink-0">
                           <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
                           <div className="h-3 bg-muted rounded w-16 animate-pulse"></div>
                         </div>
@@ -570,22 +572,40 @@ export default function Marketplace() {
                 <div className="space-y-3">
                   {recentTransactions.map((transaction) => (
                     <Card key={transaction.id} className="p-4 hover:bg-muted/50 transition-colors" data-testid={`transaction-${transaction.id}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                            <span className="text-green-600 dark:text-green-400 text-sm font-bold">💰</span>
+                      <div className="flex items-center gap-4">
+                        {/* NFT Image */}
+                        {transaction.nft?.imageUrl ? (
+                          <div className="flex-shrink-0">
+                            <img
+                              src={transaction.nft.imageUrl}
+                              alt={transaction.nft.title}
+                              className="w-12 h-12 object-cover rounded-lg"
+                              loading="lazy"
+                              data-testid={`transaction-nft-image-${transaction.id}`}
+                            />
                           </div>
-                          <div>
-                            <p className="font-medium text-sm" data-testid={`transaction-type-${transaction.id}`}>
-                              {transaction.transactionType === 'purchase' ? 'NFT Purchase' : transaction.transactionType}
-                            </p>
-                            <p className="text-xs text-muted-foreground" data-testid={`transaction-addresses-${transaction.id}`}>
-                              {transaction.fromAddress ? `${formatWalletAddress(transaction.fromAddress)} → ` : ''}
-                              {formatWalletAddress(transaction.toAddress)}
-                            </p>
+                        ) : (
+                          <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-muted-foreground text-lg">🖼️</span>
                           </div>
+                        )}
+                        
+                        {/* Transaction Details */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate" data-testid={`transaction-nft-title-${transaction.id}`}>
+                            {transaction.nft?.title || 'Unknown NFT'}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate" data-testid={`transaction-location-${transaction.id}`}>
+                            📍 {transaction.nft?.location || 'Unknown location'}
+                          </p>
+                          <p className="text-xs text-muted-foreground" data-testid={`transaction-addresses-${transaction.id}`}>
+                            {transaction.fromAddress ? `${formatWalletAddress(transaction.fromAddress)} → ` : ''}
+                            {formatWalletAddress(transaction.toAddress)}
+                          </p>
                         </div>
-                        <div className="text-right">
+                        
+                        {/* Price and Time */}
+                        <div className="text-right flex-shrink-0">
                           <p className="font-semibold text-sm text-green-600 dark:text-green-400" data-testid={`transaction-amount-${transaction.id}`}>
                             {parseFloat(transaction.amount).toFixed(2)} USDC
                           </p>
