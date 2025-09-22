@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import sdk from "@farcaster/frame-sdk";
 import { useAccount } from "wagmi";
 import ComposeCastButton from "@/components/ComposeCastButton";
-import WeeklyChampionBadge from "@/components/WeeklyChampionBadge";
 
 // Helper function to convert fixed-point values (stored as integers * 100) to display format
 const pointsToDisplay = (points: number): string => {
@@ -265,21 +264,21 @@ export default function Leaderboard() {
                 const hasWeekEnded = today > championWeekEnd;
                 
                 return hasWeekEnded && (
-                  <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
+                  <div className="mb-6 p-3 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-lg">Previous Weekly Champion</h3>
-                        <p className="text-sm text-muted-foreground">@{weeklyChampions[0].farcasterUsername}</p>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full">
+                          <Crown className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg">@{weeklyChampions[0].farcasterUsername}</h3>
+                        </div>
                       </div>
-                      <WeeklyChampionBadge
-                        weekNumber={weeklyChampions[0].weekNumber}
-                        year={weeklyChampions[0].year}
-                        weekStartDate={weeklyChampions[0].weekStartDate}
-                        weekEndDate={weeklyChampions[0].weekEndDate}
-                      />
-                    </div>
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      Won with {pointsToDisplay(weeklyChampions[0].weeklyPoints)} points
+                      <div className="text-right">
+                        <div className="font-bold text-xl text-yellow-600 dark:text-yellow-400">
+                          {pointsToDisplay(weeklyChampions[0].weeklyPoints)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -334,38 +333,27 @@ export default function Leaderboard() {
                   <p className="text-muted-foreground">No champions yet. Be the first to win a weekly championship!</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {weeklyChampions.map((champion) => (
                     <div
                       key={`${champion.farcasterFid}-${champion.weekNumber}-${champion.year}`}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors border border-primary/20"
+                      className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-700"
                       data-testid={`champion-row-${champion.weekNumber}-${champion.year}`}
                     >
-                      <div className="flex items-center space-x-4">
-                        <WeeklyChampionBadge
-                          weekNumber={champion.weekNumber}
-                          year={champion.year}
-                          weekStartDate={champion.weekStartDate}
-                          weekEndDate={champion.weekEndDate}
-                          className="h-10 w-10"
-                        />
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full">
+                          <Crown className="w-4 h-4 text-white" />
+                        </div>
                         <div>
-                          <p className="font-medium" data-testid={`champion-username-${champion.weekNumber}`}>
+                          <p className="font-bold text-lg" data-testid={`champion-username-${champion.weekNumber}`}>
                             @{champion.farcasterUsername}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Week {champion.weekNumber}, {champion.year} Champion
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(champion.weekStartDate).toLocaleDateString()} - {new Date(champion.weekEndDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-lg" data-testid={`champion-points-${champion.weekNumber}`}>
+                        <div className="font-bold text-xl text-yellow-600 dark:text-yellow-400" data-testid={`champion-points-${champion.weekNumber}`}>
                           {pointsToDisplay(champion.weeklyPoints)}
                         </div>
-                        <div className="text-sm text-muted-foreground">winning points</div>
                       </div>
                     </div>
                   ))}
