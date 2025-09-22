@@ -26,6 +26,9 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     event TravelNFTMinted(address indexed to, uint256 indexed tokenId, string location);
     event RoyaltyPaid(uint256 indexed tokenId, address indexed recipient, uint256 amount);
     event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
+    event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price);
+    event NFTUnlisted(uint256 indexed tokenId, address indexed seller);
+    event PriceUpdated(uint256 indexed tokenId, address indexed seller, uint256 oldPrice, uint256 newPrice);
     
     // Struct for NFT metadata
     struct TravelMetadata {
@@ -38,6 +41,15 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     }
     
     mapping(uint256 => TravelMetadata) public travelMetadata;
+    
+    // 🔒 SECURITY FIX: On-chain listing system
+    struct Listing {
+        address seller;
+        uint256 price;
+        bool active;
+    }
+    
+    mapping(uint256 => Listing) public listings;
     
     constructor(address initialOwner) 
         ERC721("TravelMint NFT", "TRAVEL") 
@@ -154,15 +166,72 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev Purchase NFT with USDC - handles commission split automatically
-     * @param tokenId The NFT token ID to purchase
+     * @dev List NFT for sale - SECURITY FIX: Only owner can list with stored price
+     * @param tokenId The NFT token ID to list
      * @param price The price in USDC (with 6 decimals)
      */
-    function purchaseNFT(uint256 tokenId, uint256 price) external nonReentrant {
+    function listNFT(uint256 tokenId, uint256 price) external {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        address seller = ownerOf(tokenId);
-        require(seller != msg.sender, "Cannot buy your own NFT");
+        require(ownerOf(tokenId) == msg.sender, "Only NFT owner can list");
         require(price > 0, "Price must be greater than 0");
+        
+        listings[tokenId] = Listing({
+            seller: msg.sender,
+            price: price,
+            active: true
+        });
+        
+        emit NFTListed(tokenId, msg.sender, price);
+    }
+    
+    /**
+     * @dev Cancel NFT listing - Only seller can cancel
+     * @param tokenId The NFT token ID to unlist
+     */
+    function cancelListing(uint256 tokenId) external {
+        Listing storage listing = listings[tokenId];
+        require(listing.active, "NFT is not listed");
+        require(listing.seller == msg.sender, "Only seller can cancel listing");
+        
+        listing.active = false;
+        emit NFTUnlisted(tokenId, msg.sender);
+    }
+    
+    /**
+     * @dev Update NFT price - Only seller can update
+     * @param tokenId The NFT token ID to update price for
+     * @param newPrice The new price in USDC (with 6 decimals)
+     */
+    function updatePrice(uint256 tokenId, uint256 newPrice) external {
+        Listing storage listing = listings[tokenId];
+        require(listing.active, "NFT is not listed");
+        require(listing.seller == msg.sender, "Only seller can update price");
+        require(newPrice > 0, "Price must be greater than 0");
+        
+        uint256 oldPrice = listing.price;
+        listing.price = newPrice;
+        
+        emit PriceUpdated(tokenId, msg.sender, oldPrice, newPrice);
+    }
+    
+    /**
+     * @dev Purchase NFT with USDC - SECURITY FIX: Uses stored price and requires active listing
+     * @param tokenId The NFT token ID to purchase
+     */
+    function purchaseNFT(uint256 tokenId) external nonReentrant {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        
+        // 🔒 SECURITY FIX: Check listing exists and is active
+        Listing storage listing = listings[tokenId];
+        require(listing.active, "NFT is not listed for sale");
+        
+        address seller = ownerOf(tokenId);
+        require(seller == listing.seller, "Listing seller mismatch");
+        require(seller != msg.sender, "Cannot buy your own NFT");
+        
+        // 🔒 SECURITY FIX: Use stored price, not buyer-provided price
+        uint256 price = listing.price;
+        require(price > 0, "Invalid listing price");
         
         // Calculate commission split
         uint256 platformFee = (price * PLATFORM_FEE_PERCENT) / 100;
@@ -178,6 +247,9 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         
         // Transfer NFT from seller to buyer
         _transfer(seller, msg.sender, tokenId);
+        
+        // 🔒 SECURITY FIX: Clear listing after successful purchase
+        listing.active = false;
         
         emit NFTPurchased(tokenId, msg.sender, seller, price, platformFee);
     }
