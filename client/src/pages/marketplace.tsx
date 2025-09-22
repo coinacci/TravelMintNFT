@@ -112,17 +112,16 @@ export default function Marketplace() {
   // Contract addresses
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+  const MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c";
 
-  // TravelNFT Contract ABI - includes purchaseNFT function for single-transaction purchases
-  // 🔒 SECURITY FIX: Updated with new listing system
-  const NFT_ABI = [
+  // TravelMarketplace Contract ABI - marketplace functions
+  const MARKETPLACE_ABI = [
     {
       name: 'purchaseNFT',
       type: 'function',
       stateMutability: 'nonpayable',
       inputs: [
         { name: 'tokenId', type: 'uint256' }
-        // price parameter removed - uses stored price now
       ],
       outputs: []
     },
@@ -157,6 +156,20 @@ export default function Marketplace() {
     }
   ] as const;
 
+  // NFT Contract ABI - for approvals only
+  const NFT_ABI = [
+    {
+      name: 'setApprovalForAll',
+      type: 'function',
+      stateMutability: 'nonpayable',
+      inputs: [
+        { name: 'operator', type: 'address' },
+        { name: 'approved', type: 'bool' }
+      ],
+      outputs: []
+    }
+  ] as const;
+
   // Check USDC balance (for direct transfers)
   const { data: usdcBalance } = useReadContract({
     address: USDC_ADDRESS,
@@ -177,7 +190,7 @@ export default function Marketplace() {
     }
   });
 
-  // Check USDC allowance for NFT contract
+  // Check USDC allowance for Marketplace contract
   const { data: usdcAllowance } = useReadContract({
     address: USDC_ADDRESS,
     abi: [
@@ -192,7 +205,7 @@ export default function Marketplace() {
       }
     ],
     functionName: "allowance",
-    args: [walletAddress as `0x${string}`, NFT_CONTRACT_ADDRESS as `0x${string}`],
+    args: [walletAddress as `0x${string}`, MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`],
     query: {
       enabled: !!walletAddress
     }
@@ -277,10 +290,10 @@ export default function Marketplace() {
         });
         
         if (currentAllowance < priceWei) {
-          // STEP 1: Approve USDC for NFT contract
+          // STEP 1: Approve USDC for Marketplace contract
           toast({
             title: "💰 Approving USDC", 
-            description: `Step 1: Approving ${priceUSDC} USDC for smart contract`,
+            description: `Step 1: Approving ${priceUSDC} USDC for marketplace contract`,
           });
 
           setTransactionStep('usdc_approval');
@@ -300,7 +313,7 @@ export default function Marketplace() {
             ],
             functionName: "approve",
             args: [
-              NFT_CONTRACT_ADDRESS as `0x${string}`,
+              MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
               priceWei
             ],
           });
@@ -315,8 +328,8 @@ export default function Marketplace() {
           
           // 🔒 SECURITY FIX: Price is now stored on-chain, no need to pass it
           writeContract({
-            address: NFT_CONTRACT_ADDRESS,
-            abi: NFT_ABI,
+            address: MARKETPLACE_CONTRACT_ADDRESS,
+            abi: MARKETPLACE_ABI,
             functionName: "purchaseNFT",
             args: [
               BigInt(tokenId)
