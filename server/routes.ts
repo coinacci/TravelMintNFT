@@ -560,16 +560,46 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found" });
       }
       
-      // 🔒 SECURITY: Verify that the requester owns the NFT
-      if (currentNFT.ownerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-        console.warn(`🚨 Unauthorized NFT update attempt: ${walletAddress} tried to update NFT owned by ${currentNFT.ownerAddress}`);
-        return res.status(403).json({ 
-          message: "Only the NFT owner can update listing status",
-          code: "OWNERSHIP_VERIFICATION_FAILED" 
-        });
+      // 🔒 SECURITY: Verify ownership using blockchain as source of truth
+      const tokenId = currentNFT.id.replace("blockchain-", "");
+      if (!tokenId || isNaN(Number(tokenId))) {
+        return res.status(400).json({ message: "Invalid NFT token ID format" });
       }
       
-      console.log(`🔒 Ownership verified for NFT ${req.params.id} - proceeding with update`);
+      console.log(`🔍 Verifying blockchain ownership for token #${tokenId}...`);
+      
+      try {
+        // Get current owner directly from smart contract
+        const blockchainNFT = await blockchainService.getNFTByTokenId(tokenId);
+        
+        if (!blockchainNFT) {
+          console.warn(`🚨 NFT #${tokenId} not found on blockchain`);
+          return res.status(404).json({ 
+            message: "NFT not found on blockchain",
+            code: "BLOCKCHAIN_VERIFICATION_FAILED" 
+          });
+        }
+        
+        // Compare blockchain owner with request wallet
+        if (blockchainNFT.owner.toLowerCase() !== walletAddress.toLowerCase()) {
+          console.warn(`🚨 Blockchain ownership mismatch for NFT #${tokenId}: actual owner ${blockchainNFT.owner}, claimed owner ${walletAddress}`);
+          return res.status(403).json({ 
+            message: "Blockchain verification failed: You don't own this NFT",
+            code: "BLOCKCHAIN_OWNERSHIP_VERIFICATION_FAILED",
+            actualOwner: blockchainNFT.owner,
+            claimedOwner: walletAddress
+          });
+        }
+        
+        console.log(`✅ Blockchain ownership verified for NFT #${tokenId} - owner: ${blockchainNFT.owner}`);
+        
+      } catch (blockchainError) {
+        console.error(`❌ Blockchain verification failed for NFT #${tokenId}:`, blockchainError);
+        return res.status(500).json({ 
+          message: "Unable to verify ownership on blockchain. Please try again.",
+          code: "BLOCKCHAIN_VERIFICATION_ERROR" 
+        });
+      }
       
       // Update NFT with only the allowed updates (no wallet address in updates)
       const nft = await storage.updateNFT(req.params.id, updates);
