@@ -380,12 +380,18 @@ export class DatabaseStorage implements IStorage {
     // Show all-time leaderboard until next Tuesday 00:00 UTC
     if (!hasReachedNextTuesday) {
       console.log('🎆 Before next Tuesday reset - showing all-time leaderboard');
-      return await db
+      const allTimeData = await db
         .select()
         .from(userStats)
         .where(sql`${userStats.totalPoints} > 0`)
         .orderBy(sql`${userStats.totalPoints} DESC`)
         .limit(limit);
+      
+      // 🎯 CRITICAL FIX: Set weeklyPoints = totalPoints so frontend Weekly tab shows correct data
+      return allTimeData.map(entry => ({
+        ...entry,
+        weeklyPoints: entry.totalPoints // Frontend weekly tab shows weeklyPoints
+      }));
     }
     
     // After next Tuesday 00:00 UTC, show weekly leaderboard
@@ -402,12 +408,18 @@ export class DatabaseStorage implements IStorage {
     // If no weekly points yet after reset, fallback to all-time temporarily
     if (count === 0) {
       console.log('🔄 No weekly points yet - showing all-time as fallback');
-      return await db
+      const allTimeData = await db
         .select()
         .from(userStats)
         .where(sql`${userStats.totalPoints} > 0`)
         .orderBy(sql`${userStats.totalPoints} DESC`)
         .limit(limit);
+      
+      // 🎯 CRITICAL FIX: Set weeklyPoints = totalPoints so frontend Weekly tab shows correct data
+      return allTimeData.map(entry => ({
+        ...entry,
+        weeklyPoints: entry.totalPoints // Frontend weekly tab shows weeklyPoints
+      }));
     }
     
     // Show actual weekly leaderboard
