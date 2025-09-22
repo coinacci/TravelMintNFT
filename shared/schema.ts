@@ -231,7 +231,18 @@ export function getCurrentWeekStart(date: Date = new Date()): string {
   const current = new Date(date);
   // Get Tuesday of current week (0 = Sunday, 1 = Monday, 2 = Tuesday)
   const dayOfWeek = current.getDay();
-  const tuesdayOffset = dayOfWeek === 0 ? -5 : 2 - dayOfWeek; // If Sunday, go back 5 days to Tuesday
+  
+  let tuesdayOffset;
+  if (dayOfWeek === 0) { // Sunday - go back 5 days to Tuesday
+    tuesdayOffset = -5;
+  } else if (dayOfWeek === 1) { // Monday - go back 5 days to this week's Tuesday 
+    tuesdayOffset = -5;
+  } else if (dayOfWeek === 2) { // Tuesday - stay on Tuesday
+    tuesdayOffset = 0;
+  } else { // Wed(3), Thu(4), Fri(5), Sat(6) - go back to this week's Tuesday
+    tuesdayOffset = 2 - dayOfWeek;
+  }
+  
   current.setDate(current.getDate() + tuesdayOffset);
   return current.toISOString().split('T')[0];
 }
