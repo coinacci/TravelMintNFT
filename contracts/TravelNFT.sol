@@ -26,6 +26,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     event TravelNFTMinted(address indexed to, uint256 indexed tokenId, string location);
     event RoyaltyPaid(uint256 indexed tokenId, address indexed recipient, uint256 amount);
     event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
+    event PaymentProcessed(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
     event NFTTransferOnly(uint256 indexed tokenId, address indexed from, address indexed to, uint256 timestamp);
     
     // Struct for NFT metadata
@@ -181,6 +182,32 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         transferFrom(seller, msg.sender, tokenId);
         
         emit NFTPurchased(tokenId, msg.sender, seller, price, platformFee);
+    }
+
+    /**
+     * @dev Handle payments only - no NFT transfer (for two-transaction system)
+     * @param tokenId The NFT token ID being purchased (for verification)
+     * @param price The price in USDC (with 6 decimals)
+     */
+    function paymentOnly(uint256 tokenId, uint256 price) external nonReentrant {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        address seller = ownerOf(tokenId);
+        require(seller != msg.sender, "Cannot buy your own NFT");
+        require(price > 0, "Price must be greater than 0");
+        
+        // Calculate commission split
+        uint256 platformFee = (price * PLATFORM_FEE_PERCENT) / 100;
+        uint256 sellerAmount = price - platformFee;
+        
+        // Transfer USDC from buyer to seller (95%)
+        bool sellerSuccess = USDC.transferFrom(msg.sender, seller, sellerAmount);
+        require(sellerSuccess, "USDC transfer to seller failed");
+        
+        // Transfer platform commission (5%)
+        bool platformSuccess = USDC.transferFrom(msg.sender, PLATFORM_WALLET, platformFee);
+        require(platformSuccess, "USDC transfer to platform failed");
+        
+        emit PaymentProcessed(tokenId, msg.sender, seller, price, platformFee);
     }
 
     /**
