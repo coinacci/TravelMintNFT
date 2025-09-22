@@ -751,10 +751,22 @@ export default function MyNFTs() {
                             const priceInput = document.getElementById(`price-${nft.id}`) as HTMLInputElement;
                             handleToggleListing(nft, priceInput?.value);
                           }}
-                          disabled={updateListingMutation.isPending}
+                          disabled={
+                            updateListingMutation.isPending || 
+                            approvingNFTId === nft.id || 
+                            listingNFTId === nft.id ||
+                            isApprovalPending ||
+                            isApprovalLoading
+                          }
                           data-testid={`list-${nft.id}`}
                         >
-                          List for Sale
+                          {approvingNFTId === nft.id ? (
+                            isApprovalPending || isApprovalLoading ? "🔐 Approving..." : "🔐 Approval Required"
+                          ) : listingNFTId === nft.id ? (
+                            "📝 Listing..."
+                          ) : (
+                            "List for Sale"
+                          )}
                         </Button>
                       </div>
                     </div>
