@@ -1154,7 +1154,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Confirm purchase after USDC payment transaction
+  // Confirm purchase after smart contract transaction
   app.post("/api/nfts/confirm-purchase", async (req, res) => {
     try {
       const { buyerId, transactionHash, nftId } = req.body;
@@ -1163,7 +1163,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Buyer ID and transaction hash are required" });
       }
       
-      console.log(`🔄 Confirming purchase with USDC payment tx: ${transactionHash} for NFT: ${nftId}`);
+      console.log(`🔍 Verifying smart contract purchase tx: ${transactionHash} for NFT: ${nftId}`);
       
       // Find the specific NFT being purchased
       let nftToUpdate;
@@ -1182,6 +1182,30 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found for purchase confirmation" });
       }
       
+      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
+      const tokenId = nftToUpdate.id.replace("blockchain-", "");
+      if (!tokenId || isNaN(Number(tokenId))) {
+        return res.status(400).json({ message: "Invalid NFT token ID" });
+      }
+      
+      // 🛡️ CRITICAL: Verify the blockchain transaction before updating database
+      const verification = await blockchainService.verifyPurchaseTransaction(
+        transactionHash,
+        tokenId,
+        buyerId.toLowerCase()
+      );
+      
+      if (!verification.success) {
+        console.log(`❌ Transaction verification failed: ${verification.error}`);
+        return res.status(400).json({ 
+          message: "Transaction verification failed",
+          error: verification.error,
+          type: "VERIFICATION_FAILED"
+        });
+      }
+      
+      console.log(`✅ Transaction verified! Proceeding with database update for NFT ${nftToUpdate.id}`);
+      
       // Check if NFT is for sale
       if (nftToUpdate.isForSale !== 1) {
         return res.status(400).json({ message: "NFT is not for sale" });
@@ -1191,8 +1215,6 @@ export async function registerRoutes(app: Express) {
       if (nftToUpdate.ownerAddress.toLowerCase() === buyerId.toLowerCase()) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
-      
-      console.log(`✅ Confirming purchase of NFT ${nftToUpdate.id} for buyer ${buyerId}`);
       
       // Get or create buyer and seller users
       let buyer = await storage.getUserByWalletAddress(buyerId.toLowerCase());
