@@ -1983,6 +1983,36 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin endpoint for syncing ALL weekly points with all-time points (for same week)
+  app.post("/api/admin/sync-weekly", async (req, res) => {
+    try {
+      // Check admin secret (use environment variable or default for development)
+      const adminSecret = process.env.ADMIN_SECRET || 'dev-admin-secret-2024';
+      const providedSecret = req.headers.authorization || req.headers['x-admin-secret'];
+      
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin secret" });
+      }
+
+      console.log('🔄 Admin sync requested - syncing weekly points with all-time...');
+      const result = await storage.syncWeeklyWithAllTime();
+      
+      console.log('✅ Admin sync completed:', result);
+      res.json({
+        success: true,
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Admin sync failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Sync failed", 
+        error: error.message 
+      });
+    }
+  });
+
   // Cron endpoint for automated weekly reset - SECRET PROTECTED
   app.post("/api/cron/weekly-reset", async (req, res) => {
     try {

@@ -44,6 +44,7 @@ export interface IStorage {
   getWeeklyChampions(limit?: number): Promise<WeeklyChampion[]>;
   getCurrentWeekChampion(): Promise<WeeklyChampion | null>;
   backfillWeeklyPointsFromTotal(): Promise<{ updated: number; message: string }>;
+  syncWeeklyWithAllTime(): Promise<{ updated: number; message: string }>;
   
   // Multi-wallet operations
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
@@ -829,6 +830,33 @@ export class DatabaseStorage implements IStorage {
       return {
         updated: updatedCount,
         message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
+      };
+    });
+  }
+
+  // NEW: Sync ALL weekly points with total points (for same week)
+  async syncWeeklyWithAllTime(): Promise<{ updated: number; message: string }> {
+    return await db.transaction(async (tx) => {
+      const currentWeekStart = getCurrentWeekStart();
+      
+      console.log(`🔄 Syncing ALL weekly points with total points for week starting ${currentWeekStart}`);
+      
+      // Update ALL users to have weeklyPoints = totalPoints for current week
+      const result = await tx
+        .update(userStats)
+        .set({
+          weeklyPoints: sql`${userStats.totalPoints}`, // Copy totalPoints to weeklyPoints
+          weeklyResetDate: currentWeekStart, // Mark as current week
+          updatedAt: new Date(),
+        })
+        .where(sql`${userStats.totalPoints} > 0`); // Only users with points
+
+      const updatedCount = result.rowCount || 0;
+      
+      console.log(`✅ Synced weekly points with all-time for ${updatedCount} users`);
+      return {
+        updated: updatedCount,
+        message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
       };
     });
   }
