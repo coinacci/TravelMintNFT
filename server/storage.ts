@@ -346,27 +346,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
-    // 🎯 FIXED: Use time-based logic instead of points-based logic
-    // Show all-time leaderboard until Tuesday 00:00 UTC, then switch to weekly
+    // 🎯 FIXED: Show all-time until NEXT Tuesday 00:00 UTC, then switch to weekly
+    // Week starts on Tuesday, so show all-time data until next Tuesday reset
     
-    const currentWeekStart = getCurrentWeekStart();
     const today = new Date();
-    const weekStartDate = new Date(currentWeekStart);
+    const currentDayOfWeek = today.getUTCDay(); // 0=Sunday, 1=Monday, 2=Tuesday, etc.
     
-    // Check if we've reached the Tuesday 00:00 UTC reset point
-    const hasWeekReset = today >= weekStartDate;
+    // Calculate next Tuesday 00:00 UTC
+    let daysUntilNextTuesday;
+    if (currentDayOfWeek === 2) { // Today is Tuesday
+      daysUntilNextTuesday = 7; // Next Tuesday is in 7 days
+    } else if (currentDayOfWeek < 2) { // Sunday or Monday  
+      daysUntilNextTuesday = 2 - currentDayOfWeek; // Days until this Tuesday
+    } else { // Wednesday, Thursday, Friday, Saturday
+      daysUntilNextTuesday = 7 - currentDayOfWeek + 2; // Days until next Tuesday
+    }
+    
+    const nextTuesday = new Date(today);
+    nextTuesday.setUTCDate(today.getUTCDate() + daysUntilNextTuesday);
+    nextTuesday.setUTCHours(0, 0, 0, 0); // Set to 00:00 UTC
+    
+    const hasReachedNextTuesday = today >= nextTuesday;
     
     console.log('📅 Weekly leaderboard timing check:', {
-      currentWeekStart,
       today: today.toISOString(),
-      weekStartDate: weekStartDate.toISOString(),
-      hasWeekReset,
-      shouldShowWeekly: hasWeekReset
+      currentDayOfWeek,
+      daysUntilNextTuesday,
+      nextTuesday: nextTuesday.toISOString(),
+      hasReachedNextTuesday,
+      shouldShowAllTime: !hasReachedNextTuesday
     });
     
-    // If we haven't reached Tuesday 00:00 UTC yet, show all-time leaderboard
-    if (!hasWeekReset) {
-      console.log('🎆 Before Tuesday reset - showing all-time leaderboard');
+    // Show all-time leaderboard until next Tuesday 00:00 UTC
+    if (!hasReachedNextTuesday) {
+      console.log('🎆 Before next Tuesday reset - showing all-time leaderboard');
       return await db
         .select()
         .from(userStats)
@@ -375,10 +388,10 @@ export class DatabaseStorage implements IStorage {
         .limit(limit);
     }
     
-    // After Tuesday 00:00 UTC, show weekly leaderboard
+    // After next Tuesday 00:00 UTC, show weekly leaderboard
     console.log('📆 After Tuesday reset - showing weekly leaderboard');
     
-    // Check if any users have weekly points (in case of early week)
+    // Check if any users have weekly points
     const weeklyPointsCount = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(userStats)
@@ -386,7 +399,7 @@ export class DatabaseStorage implements IStorage {
     
     const count = Number(weeklyPointsCount[0]?.count || 0);
     
-    // If still no weekly points after reset, fallback to all-time temporarily
+    // If no weekly points yet after reset, fallback to all-time temporarily
     if (count === 0) {
       console.log('🔄 No weekly points yet - showing all-time as fallback');
       return await db
