@@ -267,7 +267,21 @@ export default function Marketplace() {
           priceWei: priceWei.toString(),
           system: "purchaseNFT - all in one",
           usdcBalance: usdcBalance?.toString(),
-          usdcAllowance: usdcAllowance?.toString()
+          usdcAllowance: usdcAllowance?.toString(),
+          allowanceCheck: {
+            required: priceWei.toString(),
+            available: usdcAllowance?.toString(),
+            sufficient: usdcAllowance ? BigInt(usdcAllowance.toString()) >= priceWei : false
+          }
+        });
+
+        // Check NFT approval for marketplace
+        console.log("🔍 Checking NFT approval status for gas estimation...");
+        console.log("📋 Contract addresses:", {
+          nftContract: NFT_CONTRACT_ADDRESS,
+          seller: (purchaseData as any).sellerAddress || "unknown",
+          marketplace: NFT_CONTRACT_ADDRESS,
+          tokenId
         });
 
         // Check USDC allowance first
