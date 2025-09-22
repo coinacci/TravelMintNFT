@@ -26,6 +26,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     event TravelNFTMinted(address indexed to, uint256 indexed tokenId, string location);
     event RoyaltyPaid(uint256 indexed tokenId, address indexed recipient, uint256 amount);
     event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
+    event NFTTransferOnly(uint256 indexed tokenId, address indexed from, address indexed to, uint256 timestamp);
     
     // Struct for NFT metadata
     struct TravelMetadata {
@@ -180,6 +181,32 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         transferFrom(seller, msg.sender, tokenId);
         
         emit NFTPurchased(tokenId, msg.sender, seller, price, platformFee);
+    }
+
+    /**
+     * @dev Transfer NFT only - no payment processing (for two-transaction system)
+     * @param tokenId The NFT token ID to transfer
+     * @param from The current owner (seller)
+     * @param to The new owner (buyer)
+     */
+    function transferNFTOnly(uint256 tokenId, address from, address to) external nonReentrant {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        require(from != to, "Cannot transfer to same address");
+        require(ownerOf(tokenId) == from, "From address is not the owner");
+        require(to != address(0), "Cannot transfer to zero address");
+        
+        // Verify caller is authorized (buyer or approved)
+        require(
+            msg.sender == to || 
+            getApproved(tokenId) == msg.sender || 
+            isApprovedForAll(from, msg.sender),
+            "Caller not authorized to transfer"
+        );
+        
+        // Transfer NFT from seller to buyer (requires seller approval)
+        transferFrom(from, to, tokenId);
+        
+        emit NFTTransferOnly(tokenId, from, to, block.timestamp);
     }
 
     /**
