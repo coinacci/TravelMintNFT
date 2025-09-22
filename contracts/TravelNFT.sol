@@ -28,6 +28,8 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
     event PaymentProcessed(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee);
     event NFTTransferOnly(uint256 indexed tokenId, address indexed from, address indexed to, uint256 timestamp);
+    event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price);
+    event NFTListingCancelled(uint256 indexed tokenId, address indexed seller);
     
     // Struct for NFT metadata
     struct TravelMetadata {
@@ -40,6 +42,14 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     }
     
     mapping(uint256 => TravelMetadata) public travelMetadata;
+    
+    // NFT listings with prices
+    struct Listing {
+        address seller;
+        uint256 price;
+        bool active;
+    }
+    mapping(uint256 => Listing) public listings;
     
     constructor(address initialOwner) 
         ERC721("TravelMint NFT", "TRAVEL") 
@@ -156,15 +166,59 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev Purchase NFT with USDC - handles commission split automatically
-     * @param tokenId The NFT token ID to purchase
+     * @dev List NFT for sale (only owner)
+     * @param tokenId The NFT token ID to list
      * @param price The price in USDC (with 6 decimals)
      */
-    function purchaseNFT(uint256 tokenId, uint256 price) external nonReentrant {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        address seller = ownerOf(tokenId);
-        require(seller != msg.sender, "Cannot buy your own NFT");
+    function listNFT(uint256 tokenId, uint256 price) external nonReentrant {
+        require(ownerOf(tokenId) == msg.sender, "Only owner can list NFT");
         require(price > 0, "Price must be greater than 0");
+        
+        listings[tokenId] = Listing({
+            seller: msg.sender,
+            price: price,
+            active: true
+        });
+        
+        emit NFTListed(tokenId, msg.sender, price);
+    }
+    
+    /**
+     * @dev Cancel NFT listing (only owner)
+     * @param tokenId The NFT token ID to cancel
+     */
+    function cancelListing(uint256 tokenId) external nonReentrant {
+        require(listings[tokenId].seller == msg.sender, "Only seller can cancel listing");
+        require(listings[tokenId].active, "Listing not active");
+        
+        delete listings[tokenId];
+        
+        emit NFTListingCancelled(tokenId, msg.sender);
+    }
+
+    /**
+     * @dev Purchase NFT with USDC - uses stored listing price
+     * @param tokenId The NFT token ID to purchase
+     */
+    function purchaseNFT(uint256 tokenId) external nonReentrant {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        
+        // Check listing exists and is active
+        Listing memory listing = listings[tokenId];
+        require(listing.active, "NFT not listed for sale");
+        require(listing.seller == ownerOf(tokenId), "Listing seller mismatch");
+        require(listing.price > 0, "Invalid listing price");
+        
+        address seller = listing.seller;
+        uint256 price = listing.price;
+        require(seller != msg.sender, "Cannot buy your own NFT");
+        
+        // Check marketplace approval before attempting transfers (prevents gas waste)
+        require(
+            getApproved(tokenId) == address(this) || 
+            isApprovedForAll(seller, address(this)), 
+            "Marketplace not approved to transfer NFT"
+        );
         
         // Calculate commission split
         uint256 platformFee = (price * PLATFORM_FEE_PERCENT) / 100;
@@ -178,8 +232,11 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         bool platformSuccess = USDC.transferFrom(msg.sender, PLATFORM_WALLET, platformFee);
         require(platformSuccess, "USDC transfer to platform failed");
         
-        // Transfer NFT from seller to buyer (requires seller approval)
+        // Transfer NFT from seller to buyer (requires seller approval of marketplace)
         transferFrom(seller, msg.sender, tokenId);
+        
+        // Deactivate listing after successful purchase
+        delete listings[tokenId];
         
         emit NFTPurchased(tokenId, msg.sender, seller, price, platformFee);
     }
@@ -270,6 +327,22 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     
     // New event for Base reward claims
     event BaseRewardClaimed(address indexed user, uint256 amount, uint256 timestamp);
+
+    // Auto-invalidate listings on NFT transfers (prevents stale listings)
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override
+        returns (address)
+    {
+        address from = _ownerOf(tokenId);
+        
+        // Auto-delete listing if NFT is transferred (prevents stale listings)
+        if (from != address(0) && to != address(0) && from != to) {
+            delete listings[tokenId];
+        }
+        
+        return super._update(to, tokenId, auth);
+    }
 
     // Required overrides
     function tokenURI(uint256 tokenId)
