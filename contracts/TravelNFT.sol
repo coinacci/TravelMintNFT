@@ -176,8 +176,8 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         bool platformSuccess = USDC.transferFrom(msg.sender, PLATFORM_WALLET, platformFee);
         require(platformSuccess, "USDC transfer to platform failed");
         
-        // Transfer NFT from seller to buyer
-        _transfer(seller, msg.sender, tokenId);
+        // Transfer NFT from seller to buyer (requires seller approval)
+        transferFrom(seller, msg.sender, tokenId);
         
         emit NFTPurchased(tokenId, msg.sender, seller, price, platformFee);
     }
