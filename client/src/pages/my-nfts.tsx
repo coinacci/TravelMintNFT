@@ -393,7 +393,7 @@ export default function MyNFTs() {
 
       // Store the NFT ID and price for later use after approval
       setApprovingNFTId(nft.id);
-      setPendingPrice(parseFloat(price).toFixed(6));
+      setPendingPrice(parseFloat(price).toFixed(2));
       
       // Step 1: Approve the platform to transfer this NFT
       toast({
