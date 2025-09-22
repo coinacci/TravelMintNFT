@@ -391,6 +391,26 @@ export default function Marketplace() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const marketplaceAddress = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
       
+      // Check network first
+      const network = await provider.getNetwork();
+      console.log(`🌐 Connected to network:`, {
+        chainId: network.chainId.toString(),
+        name: network.name,
+        isBase: network.chainId === BigInt(8453)
+      });
+      
+      if (network.chainId !== BigInt(8453)) {
+        console.log(`❌ WRONG NETWORK: Connected to ${network.chainId}, need Base (8453)`);
+        toast({
+          title: "Wrong Network",
+          description: "Please switch to Base network to purchase NFTs. Current network: " + network.name,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log(`✅ Correct network: Base (${network.chainId})`);
+      
       // USDC Contract for balance/allowance checks
       const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
       const USDC_ABI = [
