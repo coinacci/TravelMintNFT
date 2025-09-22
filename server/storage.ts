@@ -346,16 +346,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
-    // Check if any users have weekly points (active week)
-    const weeklyPointsCount = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(userStats)
-      .where(sql`${userStats.weeklyPoints} > 0`);
+    // 🎯 FIXED: Use time-based logic instead of points-based logic
+    // Show all-time leaderboard until Tuesday 00:00 UTC, then switch to weekly
     
-    const count = Number(weeklyPointsCount[0]?.count || 0);
+    const currentWeekStart = getCurrentWeekStart();
+    const today = new Date();
+    const weekStartDate = new Date(currentWeekStart);
     
-    // If no users have weekly points yet (first week), show all-time leaderboard
-    if (count === 0) {
+    // Check if we've reached the Tuesday 00:00 UTC reset point
+    const hasWeekReset = today >= weekStartDate;
+    
+    console.log('📅 Weekly leaderboard timing check:', {
+      currentWeekStart,
+      today: today.toISOString(),
+      weekStartDate: weekStartDate.toISOString(),
+      hasWeekReset,
+      shouldShowWeekly: hasWeekReset
+    });
+    
+    // If we haven't reached Tuesday 00:00 UTC yet, show all-time leaderboard
+    if (!hasWeekReset) {
+      console.log('🎆 Before Tuesday reset - showing all-time leaderboard');
       return await db
         .select()
         .from(userStats)
@@ -364,7 +375,29 @@ export class DatabaseStorage implements IStorage {
         .limit(limit);
     }
     
-    // Otherwise, show weekly leaderboard
+    // After Tuesday 00:00 UTC, show weekly leaderboard
+    console.log('📆 After Tuesday reset - showing weekly leaderboard');
+    
+    // Check if any users have weekly points (in case of early week)
+    const weeklyPointsCount = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(userStats)
+      .where(sql`${userStats.weeklyPoints} > 0`);
+    
+    const count = Number(weeklyPointsCount[0]?.count || 0);
+    
+    // If still no weekly points after reset, fallback to all-time temporarily
+    if (count === 0) {
+      console.log('🔄 No weekly points yet - showing all-time as fallback');
+      return await db
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.totalPoints} > 0`)
+        .orderBy(sql`${userStats.totalPoints} DESC`)
+        .limit(limit);
+    }
+    
+    // Show actual weekly leaderboard
     return await db
       .select()
       .from(userStats)
