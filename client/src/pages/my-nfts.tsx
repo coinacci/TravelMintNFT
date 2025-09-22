@@ -225,7 +225,12 @@ export default function MyNFTs() {
 
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
-      return apiRequest("PATCH", `/api/nfts/${nftId}`, updates);
+      // 🔒 SECURITY: Include wallet address for ownership verification
+      const updatesWithAuth = {
+        ...updates,
+        walletAddress: address
+      };
+      return apiRequest("PATCH", `/api/nfts/${nftId}`, updatesWithAuth);
     },
     onSuccess: () => {
       toast({

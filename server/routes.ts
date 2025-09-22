@@ -539,12 +539,42 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update NFT
+  // Update NFT with Ownership Verification
   app.patch("/api/nfts/:id", async (req, res) => {
     try {
-      const nft = await storage.updateNFT(req.params.id, req.body);
-      if (!nft) {
+      const { walletAddress, ...updates } = req.body;
+      
+      // 🔒 SECURITY: Require wallet address for ownership verification
+      if (!walletAddress) {
+        return res.status(400).json({ message: "Wallet address is required for NFT updates" });
+      }
+      
+      // 🔒 SECURITY: Validate wallet address format
+      if (!ethers.isAddress(walletAddress)) {
+        return res.status(400).json({ message: "Invalid wallet address format" });
+      }
+      
+      // 🔒 SECURITY: Get current NFT to verify ownership
+      const currentNFT = await storage.getNFT(req.params.id);
+      if (!currentNFT) {
         return res.status(404).json({ message: "NFT not found" });
+      }
+      
+      // 🔒 SECURITY: Verify that the requester owns the NFT
+      if (currentNFT.ownerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        console.warn(`🚨 Unauthorized NFT update attempt: ${walletAddress} tried to update NFT owned by ${currentNFT.ownerAddress}`);
+        return res.status(403).json({ 
+          message: "Only the NFT owner can update listing status",
+          code: "OWNERSHIP_VERIFICATION_FAILED" 
+        });
+      }
+      
+      console.log(`🔒 Ownership verified for NFT ${req.params.id} - proceeding with update`);
+      
+      // Update NFT with only the allowed updates (no wallet address in updates)
+      const nft = await storage.updateNFT(req.params.id, updates);
+      if (!nft) {
+        return res.status(500).json({ message: "Failed to update NFT" });
       }
       
       // Clear cache after NFT update
@@ -554,6 +584,7 @@ export async function registerRoutes(app: Express) {
       
       res.json(nft);
     } catch (error) {
+      console.error('Error updating NFT:', error);
       res.status(500).json({ message: "Failed to update NFT" });
     }
   });
