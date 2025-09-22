@@ -68,13 +68,21 @@ export default function MyNFTs() {
     displayName: string;
     pfpUrl?: string;
   } | null>(null);
+  const [pendingListingNFT, setPendingListingNFT] = useState<{nft: NFT, price: string} | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { address, isConnected, connector } = useAccount();
-  const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
+  
+  // Transfer-related hooks
+  const { writeContract: writeTransfer, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
   const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
+  
+  // Approval-related hooks for listing
+  const { writeContract: writeApproval, data: approvalHash, isPending: isApprovalPending, error: approvalError } = useWriteContract();
+  const { isLoading: isApprovalLoading, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({ hash: approvalHash });
+  
   const { switchChain } = useSwitchChain();
 
   // NFT Contract Configuration
@@ -282,6 +290,28 @@ export default function MyNFTs() {
     }
   }, [isTransferSuccess, transferHash, toast, queryClient, address]);
 
+  // Handle approval success for listing
+  React.useEffect(() => {
+    if (isApprovalSuccess && approvalHash && pendingListingNFT) {
+      toast({
+        title: "Approval Successful",
+        description: "Step 2: Updating marketplace listing...",
+      });
+
+      // Update database to list NFT for sale
+      updateListingMutation.mutate({
+        nftId: pendingListingNFT.nft.id,
+        updates: { 
+          isForSale: 1, 
+          price: parseFloat(pendingListingNFT.price).toFixed(6) 
+        }
+      });
+
+      // Clear pending listing data
+      setPendingListingNFT(null);
+    }
+  }, [isApprovalSuccess, approvalHash, pendingListingNFT, toast, updateListingMutation]);
+
   // Handle transfer error
   React.useEffect(() => {
     if (transferError) {
@@ -292,6 +322,19 @@ export default function MyNFTs() {
       });
     }
   }, [transferError, toast]);
+
+  // Handle approval error
+  React.useEffect(() => {
+    if (approvalError) {
+      toast({
+        title: "Approval Failed",
+        description: approvalError.message || "Failed to approve NFT for listing",
+        variant: "destructive",
+      });
+      // Clear pending listing data on error
+      setPendingListingNFT(null);
+    }
+  }, [approvalError, toast]);
 
   // Log for troubleshooting
   if (isError) {
@@ -315,7 +358,7 @@ export default function MyNFTs() {
     );
   }
 
-  const handleToggleListing = (nft: NFT, price?: string) => {
+  const handleToggleListing = async (nft: NFT, price?: string) => {
     if (nft.isForSale === 1) {
       // Remove from sale
       updateListingMutation.mutate({
@@ -323,7 +366,7 @@ export default function MyNFTs() {
         updates: { isForSale: 0 }
       });
     } else {
-      // Add to sale
+      // Add to sale - requires approval first
       if (!price || parseFloat(price) <= 0) {
         toast({
           title: "Invalid Price",
@@ -332,10 +375,40 @@ export default function MyNFTs() {
         });
         return;
       }
-      updateListingMutation.mutate({
-        nftId: nft.id,
-        updates: { isForSale: 1, price: parseFloat(price).toFixed(6) }
-      });
+      
+      if (!nft.tokenId) {
+        toast({
+          title: "Cannot List NFT",
+          description: "This NFT is not ready for listing. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        // Step 1: Approve NFT contract to transfer this NFT
+        toast({
+          title: "Listing NFT",
+          description: "Step 1: Approving NFT contract to transfer your NFT...",
+        });
+
+        // Store pending listing data
+        setPendingListingNFT({ nft, price });
+
+        writeApproval({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: TRAVEL_NFT_ABI,
+          functionName: "approve",
+          args: [NFT_CONTRACT_ADDRESS, BigInt(nft.tokenId)]
+        });
+        
+      } catch (error: any) {
+        toast({
+          title: "Approval Failed",
+          description: error.message || "Failed to approve NFT for listing",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -422,7 +495,7 @@ export default function MyNFTs() {
     }
 
     try {
-      await writeContract({
+      await writeTransfer({
         address: NFT_CONTRACT_ADDRESS,
         abi: TRAVEL_NFT_ABI,
         functionName: 'safeTransferFrom',
