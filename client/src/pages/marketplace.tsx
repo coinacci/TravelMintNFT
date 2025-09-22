@@ -70,7 +70,7 @@ export default function Marketplace() {
   const [nftStatus, setNftStatus] = useState("for-sale"); // NFT status filter
   const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
-  const [transactionStep, setTransactionStep] = useState<'idle' | 'seller_payment' | 'commission_payment'>('idle');
+  const [transactionStep, setTransactionStep] = useState<'idle' | 'usdc_approval' | 'nft_purchase'>('idle');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -147,6 +147,27 @@ export default function Marketplace() {
     }
   });
 
+  // Check USDC allowance for NFT contract
+  const { data: usdcAllowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: [
+      {
+        name: "allowance",
+        type: "function",
+        inputs: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" }
+        ],
+        outputs: [{ name: "", type: "uint256" }]
+      }
+    ],
+    functionName: "allowance",
+    args: [walletAddress as `0x${string}`, NFT_CONTRACT_ADDRESS as `0x${string}`],
+    query: {
+      enabled: !!walletAddress
+    }
+  });
+
   const purchaseMutation = useMutation({
     mutationFn: async ({ nftId, buyerId }: { nftId: string; buyerId: string }) => {
       console.log("🚀 Single-transaction purchase for NFT:", nftId, "buyer:", buyerId);
@@ -184,67 +205,70 @@ export default function Marketplace() {
           ? parseInt(nftId.split('blockchain-')[1]) 
           : parseInt(nftId);
         
-        // Calculate commission split first
-        const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
-        const sellerAmount = priceWei - platformCommission; // 95%
-        
-        console.log("💰 Single-contract purchase:", {
+        console.log("🎯 Smart contract purchase:", {
           tokenId,
           priceUSDC,
           priceWei: priceWei.toString(),
           currentBalance: usdcBalance?.toString()
         });
         
-        toast({
-          title: "💰 Sending Payment", 
-          description: `Step 1: Paying seller ${(Number(sellerAmount) / 1000000).toFixed(2)} USDC (95%)`,
-        });
+        // Check if USDC allowance is sufficient for NFT contract
+        const currentAllowance = (usdcAllowance as bigint) || BigInt(0);
+        
+        if (currentAllowance < priceWei) {
+          // STEP 1: Approve USDC for NFT contract
+          toast({
+            title: "💰 Approving USDC", 
+            description: `Step 1: Approving ${priceUSDC} USDC for smart contract`,
+          });
 
-        // BACK TO WORKING SYSTEM: Manual USDC transfers + NFT transfer
-        
-        console.log("💰 Manual payment system:", {
-          tokenId: tokenId,
-          totalPrice: priceUSDC,
-          sellerAmount: (Number(sellerAmount) / 1000000).toString() + " USDC",
-          platformCommission: (Number(platformCommission) / 1000000).toString() + " USDC"
-        });
+          setTransactionStep('usdc_approval');
+          
+          writeContract({
+            address: USDC_ADDRESS,
+            abi: [
+              {
+                name: "approve",
+                type: "function",
+                inputs: [
+                  { name: "spender", type: "address" },
+                  { name: "amount", type: "uint256" }
+                ],
+                outputs: [{ name: "", type: "bool" }]
+              }
+            ],
+            functionName: "approve",
+            args: [
+              NFT_CONTRACT_ADDRESS as `0x${string}`,
+              priceWei
+            ],
+          });
+        } else {
+          // STEP 2: Call purchaseNFT directly (allowance sufficient)
+          toast({
+            title: "🎨 Purchasing NFT", 
+            description: `Buying NFT #${tokenId} for ${priceUSDC} USDC (you will receive 1 NFT)`,
+          });
 
-        // STEP 1: Pay seller directly (95%)
-        setTransactionStep('seller_payment');
+          setTransactionStep('nft_purchase');
+          
+          writeContract({
+            address: NFT_CONTRACT_ADDRESS,
+            abi: NFT_ABI,
+            functionName: "purchaseNFT",
+            args: [
+              BigInt(tokenId),
+              priceWei
+            ],
+          });
+        }
         
-        writeContract({
-          address: USDC_ADDRESS,
-          abi: [
-            {
-              name: "transfer",
-              type: "function",
-              inputs: [
-                { name: "to", type: "address" },
-                { name: "amount", type: "uint256" }
-              ],
-              outputs: [{ name: "", type: "bool" }]
-            }
-          ],
-          functionName: "transfer",
-          args: [
-            (purchaseData as any).transactionData.sellerAddress as `0x${string}`,
-            sellerAmount // 95% to seller
-          ],
-        });
-        
-        console.log("🚀 Reliable dual-payment system initiated");
-        
-        // Optimistic UI update
-        const currentNFTId = (purchaseData as any).nftId;
-        queryClient.setQueryData(["/api/nfts/for-sale"], (oldNFTs: NFT[] | undefined) => {
-          if (!oldNFTs) return oldNFTs;
-          return oldNFTs.filter(nft => nft.id !== currentNFTId);
-        });
+        console.log("🚀 Smart contract purchase system initiated");
         
       } catch (error: any) {
-        console.error("Contract purchase error:", error);
+        console.error("Smart contract purchase error:", error);
         toast({
-          title: "Contract Purchase Failed",
+          title: "Purchase Failed",
           description: error.message || "Could not execute purchase transaction",
           variant: "destructive",
         });
@@ -288,103 +312,58 @@ export default function Marketplace() {
     purchaseMutation.mutate({ nftId: nft.id, buyerId: walletAddress });
   };
 
-  // Handle transaction confirmations - 3-step process + NFT transfer
+  // Handle transaction confirmations - Smart contract flow
   React.useEffect(() => {
     if (txHash && !isConfirming) {
-      if (transactionStep === 'seller_payment') {
-        // STEP 1 CONFIRMED: Seller payment done, now send commission
-        const sendCommission = async () => {
+      if (transactionStep === 'usdc_approval') {
+        // STEP 1 CONFIRMED: USDC approved, now call purchaseNFT
+        const purchaseNFT = async () => {
           try {
-            console.log("✅ Seller payment confirmed, sending platform commission");
+            console.log("✅ USDC approval confirmed, calling purchaseNFT");
             
             const currentNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
             if (!currentNFT) return;
             
             const priceWei = parseUnits(currentNFT.price, 6);
-            const platformCommission = priceWei * BigInt(5) / BigInt(100); // 5%
-            
-            toast({
-              title: "🎨 Final Transaction",
-              description: `Step 2: Sending commission + transferring NFT`,
-            });
-
-            setTransactionStep('commission_payment');
-
-            // STEP 2: Send platform commission (primary transaction)
-            writeContract({
-              address: USDC_ADDRESS,
-              abi: [
-                {
-                  name: "transfer",
-                  type: "function",
-                  inputs: [
-                    { name: "to", type: "address" },
-                    { name: "amount", type: "uint256" }
-                  ],
-                  outputs: [{ name: "", type: "bool" }]
-                }
-              ],
-              functionName: "transfer",
-              args: [
-                "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`,
-                platformCommission
-              ],
-            });
-
-            // SIMULTANEOUSLY: Transfer NFT from seller to buyer
             const tokenId = currentNFT.id.includes('blockchain-') 
               ? parseInt(currentNFT.id.split('blockchain-')[1]) 
               : parseInt(currentNFT.id);
-              
-            const sellerAddress = (currentNFT.owner as any)?.walletAddress;
-            if (!sellerAddress || !walletAddress) {
-              console.error("Missing wallet addresses for NFT transfer");
-              return;
-            }
+            
+            toast({
+              title: "🎨 Purchasing NFT",
+              description: `Step 2: Buying NFT #${tokenId} for ${currentNFT.price} USDC (you will receive 1 NFT)`,
+            });
 
-            // Parallel NFT transfer - this will be a separate transaction
-            setTimeout(() => {
-              writeContract({
-                address: NFT_CONTRACT_ADDRESS,
-                abi: [
-                  {
-                    name: "transferFrom",
-                    type: "function",
-                    inputs: [
-                      { name: "from", type: "address" },
-                      { name: "to", type: "address" },
-                      { name: "tokenId", type: "uint256" }
-                    ],
-                    outputs: [],
-                    stateMutability: "nonpayable"
-                  }
-                ],
-                functionName: "transferFrom",
-                args: [
-                  sellerAddress as `0x${string}`,
-                  walletAddress as `0x${string}`,
-                  BigInt(tokenId)
-                ]
-              });
-            }, 100); // Small delay to ensure proper sequencing
+            setTransactionStep('nft_purchase');
+
+            // STEP 2: Call smart contract purchaseNFT function
+            writeContract({
+              address: NFT_CONTRACT_ADDRESS,
+              abi: NFT_ABI,
+              functionName: "purchaseNFT",
+              args: [
+                BigInt(tokenId),
+                priceWei
+              ],
+            });
             
           } catch (error) {
-            console.error("Failed to send commission:", error);
+            console.error("Failed to call purchaseNFT:", error);
             toast({
-              title: "Commission Transfer Failed",
-              description: "Seller payment succeeded but commission failed. Contact support.",
+              title: "NFT Purchase Failed",
+              description: "USDC approval succeeded but NFT purchase failed. Contact support.",
               variant: "destructive",
             });
           }
         };
         
-        sendCommission();
+        purchaseNFT();
         
-      } else if (transactionStep === 'commission_payment') {
-        // STEP 2 CONFIRMED: Commission + NFT transfer completed, finalize purchase
+      } else if (transactionStep === 'nft_purchase') {
+        // STEP 2 CONFIRMED: Smart contract purchase completed, finalize in database
         const finalizePurchase = async () => {
           try {
-            console.log("✅ Commission payment and NFT transfer completed, finalizing purchase");
+            console.log("✅ Smart contract purchase completed, finalizing in database");
             
             // Update database
             await apiRequest("POST", `/api/nfts/confirm-purchase`, {
@@ -395,12 +374,18 @@ export default function Marketplace() {
             
             toast({
               title: "🎉 Purchase Complete!",
-              description: "NFT purchased! Seller paid, platform commission collected.",
+              description: "NFT purchased successfully! USDC split between seller (95%) and platform (5%), NFT transferred to you.",
             });
             
             // Reset state
             setTransactionStep('idle');
             setCurrentPurchaseNftId(null);
+            
+            // Optimistic UI update - remove NFT from marketplace
+            queryClient.setQueryData(["/api/nfts/for-sale"], (oldNFTs: NFT[] | undefined) => {
+              if (!oldNFTs) return oldNFTs;
+              return oldNFTs.filter(nft => nft.id !== currentPurchaseNftId);
+            });
             
             // Refresh all data
             queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
@@ -413,7 +398,7 @@ export default function Marketplace() {
             console.error("Failed to finalize purchase:", error);
             toast({
               title: "Purchase Finalization Failed",
-              description: "Payments succeeded but database update failed. Contact support.",
+              description: "Smart contract purchase succeeded but database update failed. Your NFT was transferred successfully.",
               variant: "destructive",
             });
           }
