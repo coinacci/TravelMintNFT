@@ -13,6 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { User, Clock, MapPin } from "lucide-react";
 
 interface NFT {
@@ -406,36 +407,43 @@ export default function Marketplace() {
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       <div className="container mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-1/4">
-            <Card className="bg-card border border-border">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4" data-testid="filters-title">Filters</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">NFT Status</Label>
-                    <Select value={nftStatus} onValueChange={setNftStatus}>
-                      <SelectTrigger className="w-full mt-2" data-testid="nft-status-select">
-                        <SelectValue placeholder="All NFTs" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="for-sale">Listed</SelectItem>
-                        <SelectItem value="all">All NFTs</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <Tabs defaultValue="browse-nfts" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="browse-nfts" data-testid="tab-browse-nfts">Browse NFTs</TabsTrigger>
+            <TabsTrigger value="recent-activity" data-testid="tab-recent-activity">Recent Activity</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="browse-nfts" className="space-y-6">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Filters Sidebar */}
+              <div className="lg:w-1/4">
+                <Card className="bg-card border border-border">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-4" data-testid="filters-title">Filters</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">NFT Status</Label>
+                        <Select value={nftStatus} onValueChange={setNftStatus}>
+                          <SelectTrigger className="w-full mt-2" data-testid="nft-status-select">
+                            <SelectValue placeholder="All NFTs" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="for-sale">Listed</SelectItem>
+                            <SelectItem value="all">All NFTs</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* NFT Grid */}
-          <div className="lg:w-3/4">
+              {/* NFT Grid */}
+              <div className="lg:w-3/4">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl md:text-4xl font-bold" data-testid="marketplace-title">
-                {nftStatus === "all" ? "Browse All NFTs" : "Browse NFTs for Sale"}
+                {nftStatus === "all" ? "Browse All NFTs" : "Browse Listed NFTs"}
               </h2>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48" data-testid="sort-select">
@@ -490,8 +498,17 @@ export default function Marketplace() {
                 <p className="text-muted-foreground" data-testid="no-nfts-message">No NFTs found matching your criteria</p>
               </div>
             )}
-          </div>
-        </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="recent-activity" className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl md:text-4xl font-bold mb-6" data-testid="recent-activity-title">Recent Activity</h2>
+              <p className="text-muted-foreground">Recent marketplace purchases and sales will appear here</p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* NFT Detail Modal */}
