@@ -539,72 +539,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update NFT with Ownership Verification
+  // Update NFT
   app.patch("/api/nfts/:id", async (req, res) => {
     try {
-      const { walletAddress, ...updates } = req.body;
-      
-      // 🔒 SECURITY: Require wallet address for ownership verification
-      if (!walletAddress) {
-        return res.status(400).json({ message: "Wallet address is required for NFT updates" });
-      }
-      
-      // 🔒 SECURITY: Validate wallet address format
-      if (!ethers.isAddress(walletAddress)) {
-        return res.status(400).json({ message: "Invalid wallet address format" });
-      }
-      
-      // 🔒 SECURITY: Get current NFT to verify ownership
-      const currentNFT = await storage.getNFT(req.params.id);
-      if (!currentNFT) {
-        return res.status(404).json({ message: "NFT not found" });
-      }
-      
-      // 🔒 SECURITY: Verify ownership using blockchain as source of truth
-      const tokenId = currentNFT.id.replace("blockchain-", "");
-      if (!tokenId || isNaN(Number(tokenId))) {
-        return res.status(400).json({ message: "Invalid NFT token ID format" });
-      }
-      
-      console.log(`🔍 Verifying blockchain ownership for token #${tokenId}...`);
-      
-      try {
-        // Get current owner directly from smart contract
-        const blockchainNFT = await blockchainService.getNFTByTokenId(tokenId);
-        
-        if (!blockchainNFT) {
-          console.warn(`🚨 NFT #${tokenId} not found on blockchain`);
-          return res.status(404).json({ 
-            message: "NFT not found on blockchain",
-            code: "BLOCKCHAIN_VERIFICATION_FAILED" 
-          });
-        }
-        
-        // Compare blockchain owner with request wallet
-        if (blockchainNFT.owner.toLowerCase() !== walletAddress.toLowerCase()) {
-          console.warn(`🚨 Blockchain ownership mismatch for NFT #${tokenId}: actual owner ${blockchainNFT.owner}, claimed owner ${walletAddress}`);
-          return res.status(403).json({ 
-            message: "Blockchain verification failed: You don't own this NFT",
-            code: "BLOCKCHAIN_OWNERSHIP_VERIFICATION_FAILED",
-            actualOwner: blockchainNFT.owner,
-            claimedOwner: walletAddress
-          });
-        }
-        
-        console.log(`✅ Blockchain ownership verified for NFT #${tokenId} - owner: ${blockchainNFT.owner}`);
-        
-      } catch (blockchainError) {
-        console.error(`❌ Blockchain verification failed for NFT #${tokenId}:`, blockchainError);
-        return res.status(500).json({ 
-          message: "Unable to verify ownership on blockchain. Please try again.",
-          code: "BLOCKCHAIN_VERIFICATION_ERROR" 
-        });
-      }
-      
-      // Update NFT with only the allowed updates (no wallet address in updates)
-      const nft = await storage.updateNFT(req.params.id, updates);
+      const nft = await storage.updateNFT(req.params.id, req.body);
       if (!nft) {
-        return res.status(500).json({ message: "Failed to update NFT" });
+        return res.status(404).json({ message: "NFT not found" });
       }
       
       // Clear cache after NFT update
@@ -614,7 +554,6 @@ export async function registerRoutes(app: Express) {
       
       res.json(nft);
     } catch (error) {
-      console.error('Error updating NFT:', error);
       res.status(500).json({ message: "Failed to update NFT" });
     }
   });
@@ -1172,56 +1111,17 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
 
-      // ✅ ROBUST tokenId extraction and validation
+      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
       const tokenId = nft.id.replace("blockchain-", "");
-      const numericTokenId = parseInt(tokenId);
-      
-      if (!tokenId || isNaN(numericTokenId) || numericTokenId <= 0) {
-        console.error(`❌ Invalid tokenId extraction: NFT.id=${nft.id}, extracted=${tokenId}, numeric=${numericTokenId}`);
-        return res.status(400).json({ message: "Invalid NFT token ID format" });
+      if (!tokenId || isNaN(Number(tokenId))) {
+        return res.status(400).json({ message: "Invalid NFT token ID" });
       }
       
       console.log(`🔄 Generating onchain purchase transaction for NFT #${tokenId}`);
       
-      // ✅ ENHANCED validation before blockchain call
-      if (!nft.price || isNaN(parseFloat(nft.price)) || parseFloat(nft.price) <= 0) {
-        console.error(`❌ Invalid NFT price: ${nft.price}`);
-        return res.status(400).json({ message: "Invalid NFT price" });
-      }
-      
-      console.log(`🔄 Generating onchain purchase transaction for NFT #${numericTokenId} at ${nft.price} USDC`);
-      
-      // 🚨 CRITICAL: Verify on-chain owner matches listing before preparation
-      console.log(`🔍 Verifying on-chain ownership before purchase prep...`);
-      try {
-        const onChainOwner = await blockchainService.getNFTOwner(tokenId);
-        if (!onChainOwner) {
-          console.error(`❌ Could not verify on-chain owner for NFT #${numericTokenId}`);
-          return res.status(400).json({ message: "Could not verify NFT ownership on blockchain" });
-        }
-        
-        if (onChainOwner.toLowerCase() !== nft.ownerAddress.toLowerCase()) {
-          console.error(`❌ Ownership mismatch! DB owner: ${nft.ownerAddress}, On-chain: ${onChainOwner}`);
-          return res.status(409).json({ 
-            message: "NFT ownership has changed. Please refresh and try again.",
-            type: "OWNERSHIP_MISMATCH",
-            dbOwner: nft.ownerAddress,
-            onChainOwner: onChainOwner
-          });
-        }
-        
-        console.log(`✅ On-chain ownership verified: ${onChainOwner}`);
-      } catch (ownershipError: any) {
-        console.error(`❌ Ownership verification failed:`, ownershipError);
-        return res.status(400).json({ 
-          message: "Failed to verify NFT ownership on blockchain",
-          type: "BLOCKCHAIN_ERROR"
-        });
-      }
-      
       // Generate onchain purchase transaction data
       const purchaseData = await blockchainService.generatePurchaseTransaction(
-        tokenId, // String for blockchain service
+        tokenId,
         buyerId.toLowerCase(),
         nft.ownerAddress.toLowerCase(),
         nft.price // Pass actual NFT price
@@ -1236,26 +1136,17 @@ export async function registerRoutes(app: Express) {
       
       console.log(`✅ Generated purchase transaction data for NFT #${tokenId}`);
       
-      // ✅ GUARANTEED RESPONSE FORMAT for frontend safety
-      const response = { 
+      // Return transaction data for frontend to execute
+      res.json({ 
         message: "Purchase transaction prepared",
         requiresOnchainPayment: true,
         transactionData: purchaseData,
         nftId: nftId,
-        tokenId: numericTokenId.toString(), // String format for consistency
+        tokenId: tokenId,
         buyer: buyerId.toLowerCase(),
         seller: nft.ownerAddress.toLowerCase(),
-        priceUSDC: nft.price // Exact NFT price - no fallbacks allowed
-      };
-      
-      console.log(`✅ Returning verified purchase data:`, {
-        tokenId: response.tokenId,
-        priceUSDC: response.priceUSDC,
-        buyer: response.buyer,
-        seller: response.seller
+        priceUSDC: nft.price // Use actual NFT price
       });
-      
-      res.json(response);
       
     } catch (error) {
       console.error("Purchase preparation error:", error);
@@ -1263,7 +1154,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Confirm purchase after smart contract transaction
+  // Confirm purchase after USDC payment transaction
   app.post("/api/nfts/confirm-purchase", async (req, res) => {
     try {
       const { buyerId, transactionHash, nftId } = req.body;
@@ -1272,7 +1163,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Buyer ID and transaction hash are required" });
       }
       
-      console.log(`🔍 Verifying smart contract purchase tx: ${transactionHash} for NFT: ${nftId}`);
+      console.log(`🔄 Confirming purchase with USDC payment tx: ${transactionHash} for NFT: ${nftId}`);
       
       // Find the specific NFT being purchased
       let nftToUpdate;
@@ -1291,30 +1182,6 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found for purchase confirmation" });
       }
       
-      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
-      const tokenId = nftToUpdate.id.replace("blockchain-", "");
-      if (!tokenId || isNaN(Number(tokenId))) {
-        return res.status(400).json({ message: "Invalid NFT token ID" });
-      }
-      
-      // 🛡️ CRITICAL: Verify the blockchain transaction before updating database
-      const verification = await blockchainService.verifyPurchaseTransaction(
-        transactionHash,
-        tokenId,
-        buyerId.toLowerCase()
-      );
-      
-      if (!verification.success) {
-        console.log(`❌ Transaction verification failed: ${verification.error}`);
-        return res.status(400).json({ 
-          message: "Transaction verification failed",
-          error: verification.error,
-          type: "VERIFICATION_FAILED"
-        });
-      }
-      
-      console.log(`✅ Transaction verified! Proceeding with database update for NFT ${nftToUpdate.id}`);
-      
       // Check if NFT is for sale
       if (nftToUpdate.isForSale !== 1) {
         return res.status(400).json({ message: "NFT is not for sale" });
@@ -1324,6 +1191,8 @@ export async function registerRoutes(app: Express) {
       if (nftToUpdate.ownerAddress.toLowerCase() === buyerId.toLowerCase()) {
         return res.status(400).json({ message: "You cannot buy your own NFT" });
       }
+      
+      console.log(`✅ Confirming purchase of NFT ${nftToUpdate.id} for buyer ${buyerId}`);
       
       // Get or create buyer and seller users
       let buyer = await storage.getUserByWalletAddress(buyerId.toLowerCase());
@@ -1344,17 +1213,18 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Note: Balance updates are handled by smart contract
-      // Smart contract automatically transfers USDC from buyer to seller (95%) and platform (5%)
-      // We don't need to update local balances since real balances are on blockchain
-      
+      // Calculate commission split
       const purchasePrice = parseFloat(nftToUpdate.price);
-      const platformFee = purchasePrice * 0.05;
+      const platformFee = purchasePrice * 0.05; // 5% platform fee
       const sellerAmount = purchasePrice - platformFee;
       
-      console.log(`💰 Smart contract handled: ${sellerAmount} USDC to seller, ${platformFee} USDC platform fee`);
+      // Update balances
+      const buyerNewBalance = (parseFloat(buyer.balance) - purchasePrice).toString();
+      const sellerNewBalance = (parseFloat(seller.balance) + sellerAmount).toString();
       
-      // Get or create platform user for record keeping
+      console.log(`💰 Balance updates: Buyer ${buyerNewBalance} USDC, Seller ${sellerNewBalance} USDC`);
+      
+      // Get or create platform user for commission tracking
       let platformUser = await storage.getUserByWalletAddress(PLATFORM_WALLET);
       if (!platformUser) {
         platformUser = await storage.createUser({
@@ -1364,15 +1234,19 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (handled by smart contract)`);
+      const platformNewBalance = (parseFloat(platformUser.balance) + platformFee).toString();
+      console.log(`💰 Platform commission: ${platformFee} USDC to ${PLATFORM_WALLET} (Balance: ${platformNewBalance} USDC)`);
+      
+      // Update all balances
+      await storage.updateUserBalance(buyer.id, buyerNewBalance);
+      await storage.updateUserBalance(seller.id, sellerNewBalance);
+      await storage.updateUserBalance(platformUser.id, platformNewBalance);
       
       // Update NFT ownership and remove from sale
-      console.log(`🔄 Updating NFT ${nftToUpdate.id} ownership: ${nftToUpdate.ownerAddress} → ${buyerId.toLowerCase()}`);
-      const updateResult = await storage.updateNFT(nftToUpdate.id, {
+      await storage.updateNFT(nftToUpdate.id, {
         ownerAddress: buyerId.toLowerCase(),
         isForSale: 0,
       });
-      console.log(`✅ NFT ownership update result:`, updateResult ? 'SUCCESS' : 'FAILED');
       
       // Create transaction records for platform distribution flow
       await storage.createTransaction({
@@ -1946,10 +1820,6 @@ export async function registerRoutes(app: Express) {
   // Get weekly leaderboard - SECURED
   app.get("/api/leaderboard/weekly", async (req, res) => {
     try {
-      // ✅ CRITICAL FIX: Idempotent weekly reset guard
-      console.log('🔄 Weekly leaderboard requested - ensuring week is current...');
-      await storage.performWeeklyReset();
-      
       // Validate query parameters
       const validationResult = leaderboardQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
@@ -1965,11 +1835,14 @@ export async function registerRoutes(app: Express) {
       // Filter out @coinacci from leaderboard for testing purposes
       const filteredLeaderboard = weeklyLeaderboard.filter(entry => entry.farcasterUsername !== 'coinacci');
       
-      // Add rank to each entry and use totalPoints fallback for users with 0 weekly points
+      // Check if this is first week (no one has weekly points yet)
+      const hasActiveWeeklyPoints = weeklyLeaderboard.some(entry => entry.weeklyPoints > 0);
+      
+      // Add rank to each entry and handle first week display
       const rankedLeaderboard = filteredLeaderboard.map((entry, index) => ({
         ...entry,
-        // If user has 0 weekly points, show totalPoints instead (read-only fallback)
-        weeklyPoints: entry.weeklyPoints > 0 ? entry.weeklyPoints : entry.totalPoints,
+        // For first week, show totalPoints as weeklyPoints so frontend displays correctly
+        weeklyPoints: hasActiveWeeklyPoints ? entry.weeklyPoints : entry.totalPoints,
         rank: index + 1
       }));
       
@@ -1983,10 +1856,6 @@ export async function registerRoutes(app: Express) {
   // Get weekly champions - SECURED
   app.get("/api/weekly-champions", async (req, res) => {
     try {
-      // ✅ CRITICAL FIX: Idempotent weekly reset guard
-      console.log('🏆 Weekly champions requested - ensuring week is current...');
-      await storage.performWeeklyReset();
-      
       // Validate query parameters
       const validationResult = leaderboardQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
@@ -2036,36 +1905,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Admin endpoint for syncing ALL weekly points with all-time points (for same week)
-  app.post("/api/admin/sync-weekly", async (req, res) => {
-    try {
-      // Check admin secret (use environment variable or default for development)
-      const adminSecret = process.env.ADMIN_SECRET || 'dev-admin-secret-2024';
-      const providedSecret = req.headers.authorization || req.headers['x-admin-secret'];
-      
-      if (!providedSecret || providedSecret !== adminSecret) {
-        return res.status(401).json({ message: "Unauthorized - invalid admin secret" });
-      }
-
-      console.log('🔄 Admin sync requested - syncing weekly points with all-time...');
-      const result = await storage.syncWeeklyWithAllTime();
-      
-      console.log('✅ Admin sync completed:', result);
-      res.json({
-        success: true,
-        ...result,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error: any) {
-      console.error('❌ Admin sync failed:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Sync failed", 
-        error: error.message 
-      });
-    }
-  });
-
   // Cron endpoint for automated weekly reset - SECRET PROTECTED
   app.post("/api/cron/weekly-reset", async (req, res) => {
     try {
@@ -2099,10 +1938,6 @@ export async function registerRoutes(app: Express) {
   // SECURED Claim quest reward - CRITICAL SECURITY FIX
   app.post("/api/quest-claim", async (req, res) => {
     try {
-      // ✅ CRITICAL FIX: Idempotent weekly reset guard
-      console.log('🎯 Quest claim requested - ensuring week is current...');
-      await storage.performWeeklyReset();
-      
       // 🔒 SECURITY: Validate all input with Zod schema
       const validationResult = questClaimSchema.safeParse(req.body);
       if (!validationResult.success) {

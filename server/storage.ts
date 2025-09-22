@@ -44,7 +44,6 @@ export interface IStorage {
   getWeeklyChampions(limit?: number): Promise<WeeklyChampion[]>;
   getCurrentWeekChampion(): Promise<WeeklyChampion | null>;
   backfillWeeklyPointsFromTotal(): Promise<{ updated: number; message: string }>;
-  syncWeeklyWithAllTime(): Promise<{ updated: number; message: string }>;
   
   // Multi-wallet operations
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
@@ -346,13 +345,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
-    // Always return all users for weekly leaderboard
-    // API endpoint will handle fallback logic (weeklyPoints > 0 ? weeklyPoints : totalPoints)
+    // Check if any users have weekly points (active week)
+    const weeklyPointsCount = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(userStats)
+      .where(sql`${userStats.weeklyPoints} > 0`);
+    
+    const count = Number(weeklyPointsCount[0]?.count || 0);
+    
+    // If no users have weekly points yet (first week), show all-time leaderboard
+    if (count === 0) {
+      return await db
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.totalPoints} > 0`)
+        .orderBy(sql`${userStats.totalPoints} DESC`)
+        .limit(limit);
+    }
+    
+    // Otherwise, show weekly leaderboard
     return await db
       .select()
       .from(userStats)
-      .where(sql`${userStats.totalPoints} > 0`) // Only users with some activity
-      .orderBy(sql`${userStats.weeklyPoints} DESC, ${userStats.totalPoints} DESC`) // Sort by weekly first, then total
+      .where(sql`${userStats.weeklyPoints} > 0`)
+      .orderBy(sql`${userStats.weeklyPoints} DESC`)
       .limit(limit);
   }
 
@@ -813,33 +829,6 @@ export class DatabaseStorage implements IStorage {
       return {
         updated: updatedCount,
         message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
-      };
-    });
-  }
-
-  // NEW: Sync ALL weekly points with total points (for same week)
-  async syncWeeklyWithAllTime(): Promise<{ updated: number; message: string }> {
-    return await db.transaction(async (tx) => {
-      const currentWeekStart = getCurrentWeekStart();
-      
-      console.log(`🔄 Syncing ALL weekly points with total points for week starting ${currentWeekStart}`);
-      
-      // Update ALL users to have weeklyPoints = totalPoints for current week
-      const result = await tx
-        .update(userStats)
-        .set({
-          weeklyPoints: sql`${userStats.totalPoints}`, // Copy totalPoints to weeklyPoints
-          weeklyResetDate: currentWeekStart, // Mark as current week
-          updatedAt: new Date(),
-        })
-        .where(sql`${userStats.totalPoints} > 0`); // Only users with points
-
-      const updatedCount = result.rowCount || 0;
-      
-      console.log(`✅ Synced weekly points with all-time for ${updatedCount} users`);
-      return {
-        updated: updatedCount,
-        message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
       };
     });
   }

@@ -68,7 +68,6 @@ export default function MyNFTs() {
     displayName: string;
     pfpUrl?: string;
   } | null>(null);
-  const [listingNFTId, setListingNFTId] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -76,13 +75,10 @@ export default function MyNFTs() {
   const { address, isConnected, connector } = useAccount();
   const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
   const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
-  
-  // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
   // NFT Contract Configuration
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
-  const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084" as const; // Platform wallet for marketplace transactions
   const TRAVEL_NFT_ABI = parseAbi([
     "function safeTransferFrom(address from, address to, uint256 tokenId)",
     "function ownerOf(uint256 tokenId) view returns (address)",
@@ -225,12 +221,7 @@ export default function MyNFTs() {
 
   const updateListingMutation = useMutation({
     mutationFn: async ({ nftId, updates }: { nftId: string; updates: any }) => {
-      // 🔒 SECURITY: Include wallet address for ownership verification
-      const updatesWithAuth = {
-        ...updates,
-        walletAddress: address
-      };
-      return apiRequest("PATCH", `/api/nfts/${nftId}`, updatesWithAuth);
+      return apiRequest("PATCH", `/api/nfts/${nftId}`, updates);
     },
     onSuccess: () => {
       toast({
@@ -302,8 +293,6 @@ export default function MyNFTs() {
     }
   }, [transferError, toast]);
 
-  // REMOVED: All approval-related useEffect hooks - not needed for smart contract with internal _transfer()
-
   // Log for troubleshooting
   if (isError) {
     console.log('NFT fetch error:', error?.message);
@@ -328,13 +317,13 @@ export default function MyNFTs() {
 
   const handleToggleListing = (nft: NFT, price?: string) => {
     if (nft.isForSale === 1) {
-      // Remove from sale - just update database
+      // Remove from sale
       updateListingMutation.mutate({
         nftId: nft.id,
         updates: { isForSale: 0 }
       });
     } else {
-      // Add to sale - NO APPROVAL NEEDED! Smart contract uses internal _transfer()
+      // Add to sale
       if (!price || parseFloat(price) <= 0) {
         toast({
           title: "Invalid Price",
@@ -343,25 +332,9 @@ export default function MyNFTs() {
         });
         return;
       }
-
-      if (!nft.tokenId) {
-        toast({
-          title: "Cannot List NFT",
-          description: "This NFT is not ready for listing. Please try again later.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Directly update database - smart contract doesn't need NFT approval
-      toast({
-        title: "📝 Listing NFT",
-        description: "Adding your NFT to the marketplace...",
-      });
-
       updateListingMutation.mutate({
         nftId: nft.id,
-        updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
+        updates: { isForSale: 1, price: parseFloat(price).toFixed(6) }
       });
     }
   };
@@ -707,17 +680,10 @@ export default function MyNFTs() {
                             const priceInput = document.getElementById(`price-${nft.id}`) as HTMLInputElement;
                             handleToggleListing(nft, priceInput?.value);
                           }}
-                          disabled={
-                            updateListingMutation.isPending || 
-                            listingNFTId === nft.id
-                          }
+                          disabled={updateListingMutation.isPending}
                           data-testid={`list-${nft.id}`}
                         >
-                          {listingNFTId === nft.id ? (
-                            "📝 Listing..."
-                          ) : (
-                            "List for Sale"
-                          )}
+                          List for Sale
                         </Button>
                       </div>
                     </div>
