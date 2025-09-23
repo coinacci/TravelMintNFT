@@ -73,6 +73,7 @@
     "multer": "^2.0.2",
     "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
+    "nft.storage": "^7.2.0",
     "node-fetch": "^3.3.2",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",

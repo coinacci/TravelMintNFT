@@ -1,7 +1,7 @@
 // IPFS API routes for TravelMint
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { pinataService } from '../ipfs';
+import { nftStorageService } from '../ipfs';
 import { createIPFSUrl, type NFTMetadata } from '@shared/ipfs';
 
 const router = Router();
@@ -28,9 +28,9 @@ router.post('/upload-image', upload.single('file'), async (req: Request & { file
       return res.status(400).json({ error: 'No file provided' });
     }
 
-    console.log('📤 Uploading image to IPFS via Pinata:', req.file.originalname);
+    console.log('📤 Uploading image to IPFS via NFT.Storage:', req.file.originalname);
 
-    const result = await pinataService.uploadFile(
+    const result = await nftStorageService.uploadFile(
       req.file.buffer,
       req.file.originalname,
       req.file.mimetype
@@ -63,9 +63,9 @@ router.post('/upload-metadata', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No metadata provided' });
     }
 
-    console.log('📤 Uploading metadata to IPFS via Pinata:', name);
+    console.log('📤 Uploading metadata to IPFS via NFT.Storage:', name);
 
-    const result = await pinataService.uploadJSON(metadata as NFTMetadata, name);
+    const result = await nftStorageService.uploadJSON(metadata as NFTMetadata, name);
 
     console.log('✅ Metadata uploaded successfully:', result.IpfsHash);
 
@@ -85,29 +85,29 @@ router.post('/upload-metadata', async (req: Request, res: Response) => {
   }
 });
 
-// Test Pinata connection
+// Test NFT.Storage connection
 router.get('/test', async (req: Request, res: Response) => {
   try {
-    console.log('🔗 Testing Pinata connection...');
+    console.log('🔗 Testing NFT.Storage connection...');
     
-    const isConnected = await pinataService.testConnection();
+    const isConnected = await nftStorageService.testConnection();
     
     if (isConnected) {
-      console.log('✅ Pinata connection successful');
+      console.log('✅ NFT.Storage connection successful');
       res.json({ 
         status: 'connected',
-        message: 'Pinata IPFS service is working correctly'
+        message: 'NFT.Storage IPFS service is working correctly'
       });
     } else {
-      console.log('❌ Pinata connection failed');
+      console.log('❌ NFT.Storage connection failed');
       res.status(500).json({ 
         status: 'error',
-        message: 'Failed to connect to Pinata IPFS service'
+        message: 'Failed to connect to NFT.Storage IPFS service'
       });
     }
 
   } catch (error) {
-    console.error('❌ Error testing Pinata connection:', error);
+    console.error('❌ Error testing NFT.Storage connection:', error);
     res.status(500).json({ 
       status: 'error',
       message: 'Error testing IPFS connection',
