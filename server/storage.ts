@@ -397,36 +397,12 @@ export class DatabaseStorage implements IStorage {
     // After Tuesday 00:00 UTC reset, show weekly leaderboard
     console.log('📆 After Tuesday reset - showing weekly leaderboard');
     
-    // Check if any users have weekly points
-    const weeklyPointsCount = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(userStats)
-      .where(sql`${userStats.weeklyPoints} > 0`);
-    
-    const count = Number(weeklyPointsCount[0]?.count || 0);
-    
-    // If no weekly points yet after reset, fallback to all-time temporarily
-    if (count === 0) {
-      console.log('🔄 No weekly points yet - showing all-time as fallback');
-      const allTimeData = await db
-        .select()
-        .from(userStats)
-        .where(sql`${userStats.totalPoints} > 0`)
-        .orderBy(sql`${userStats.totalPoints} DESC`)
-        .limit(limit);
-      
-      // 🎯 CRITICAL FIX: Set weeklyPoints = totalPoints so frontend Weekly tab shows correct data
-      return allTimeData.map(entry => ({
-        ...entry,
-        weeklyPoints: entry.totalPoints // Frontend weekly tab shows weeklyPoints
-      }));
-    }
-    
-    // Show actual weekly leaderboard
+    // Show actual weekly leaderboard - include all users, even with 0 weekly points
+    console.log('📊 Showing weekly leaderboard with actual weekly points');
     return await db
       .select()
       .from(userStats)
-      .where(sql`${userStats.weeklyPoints} > 0`)
+      .where(sql`${userStats.farcasterUsername} IS NOT NULL AND ${userStats.farcasterUsername} != ''`)
       .orderBy(sql`${userStats.weeklyPoints} DESC`)
       .limit(limit);
   }
