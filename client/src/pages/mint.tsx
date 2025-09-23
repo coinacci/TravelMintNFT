@@ -196,7 +196,7 @@ export default function Mint() {
             metadata: {
               name: title,
               description: description || "Travel NFT minted on TravelMint",
-              image: imageIpfsUrl,
+              image: imageIpfsUrl || imageObjectStorageUrl,
               attributes: [
                 { trait_type: "Category", value: category },
                 { trait_type: "Location", value: useManualLocation ? manualLocation : (location?.city || "Unknown City") },
@@ -274,7 +274,7 @@ export default function Mint() {
           const nftData = {
             title,
             description: description || "Travel NFT minted on TravelMint",
-            imageUrl: imageIpfsUrl,
+            imageUrl: imageIpfsUrl || imageObjectStorageUrl,
             location: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
             latitude: useManualLocation ? (selectedCoords?.lat.toString() || "0") : (location?.latitude.toString() || "0"),
             longitude: useManualLocation ? (selectedCoords?.lng.toString() || "0") : (location?.longitude.toString() || "0"),
@@ -288,7 +288,7 @@ export default function Mint() {
             metadata: {
               name: title,
               description: description || "Travel NFT minted on TravelMint",
-              image: imageIpfsUrl,
+              image: imageIpfsUrl || imageObjectStorageUrl,
               attributes: [
                 { trait_type: "Category", value: category },
                 { trait_type: "Location", value: useManualLocation ? manualLocation : (location?.city || "Unknown City") },
@@ -439,12 +439,12 @@ export default function Mint() {
     };
     reader.readAsDataURL(file);
 
-    // Upload to both IPFS and Object Storage simultaneously
+    // Upload to Object Storage (required) and IPFS (optional)
     try {
       setMintingStep('uploading-image');
-      setUploadProgress('Uploading image to IPFS and Object Storage...');
+      setUploadProgress('Uploading image...');
       
-      console.log('📤 Starting dual upload (IPFS + Object Storage)...');
+      console.log('📤 Starting image upload...');
       
       // Prepare form data for Object Storage
       const formData = new FormData();
@@ -452,24 +452,39 @@ export default function Mint() {
       formData.append('fileName', file.name);
       formData.append('mimeType', file.type);
       
-      // Upload to both services in parallel
-      const [ipfsUrl, objectStorageResult] = await Promise.all([
-        ipfsClient.uploadImage(file),
-        fetch('/api/object-storage/upload', {
+      // Upload to Object Storage (required)
+      let objectStorageResult;
+      try {
+        setUploadProgress('Uploading to Object Storage...');
+        const response = await fetch('/api/object-storage/upload', {
           method: 'POST',
           body: formData
-        }).then(res => res.json())
-      ]);
+        });
+        objectStorageResult = await response.json();
+        setImageObjectStorageUrl(objectStorageResult.objectUrl);
+        console.log('✅ Image uploaded to Object Storage:', objectStorageResult.objectUrl);
+      } catch (objectError) {
+        console.error('❌ Object Storage upload failed:', objectError);
+        throw new Error('Failed to upload to Object Storage');
+      }
       
-      setImageIpfsUrl(ipfsUrl);
-      setImageObjectStorageUrl(objectStorageResult.objectUrl);
-      
-      console.log('✅ Image uploaded to IPFS:', ipfsUrl);
-      console.log('✅ Image uploaded to Object Storage:', objectStorageResult.objectUrl);
+      // Upload to IPFS (optional - don't fail if this fails)
+      let ipfsUrl = null;
+      try {
+        setUploadProgress('Uploading to IPFS...');
+        ipfsUrl = await ipfsClient.uploadImage(file);
+        setImageIpfsUrl(ipfsUrl);
+        console.log('✅ Image uploaded to IPFS:', ipfsUrl);
+      } catch (ipfsError) {
+        console.warn('⚠️ IPFS upload failed (continuing without IPFS):', ipfsError);
+        setImageIpfsUrl(null);
+      }
       
       toast({
         title: "✅ Image Uploaded",
-        description: "Your image has been uploaded to IPFS and Object Storage successfully!",
+        description: ipfsUrl 
+          ? "Your image has been uploaded to IPFS and Object Storage successfully!"
+          : "Your image has been uploaded to Object Storage successfully! (IPFS unavailable)",
         variant: "default",
       });
       
@@ -575,15 +590,15 @@ export default function Mint() {
     });
     
     try {
-      // Step 1: Upload metadata to IPFS
+      // Step 1: Create metadata and upload to IPFS (with fallback)
       setMintingStep('uploading-metadata');
-      setUploadProgress('Creating metadata and uploading to IPFS...');
+      setUploadProgress('Creating metadata...');
       
       console.log('📋 Creating NFT metadata...');
       const metadata = createNFTMetadata({
         title,
         description: description || "Travel NFT",
-        imageIpfsUrl: imageIpfsUrl || "",
+        imageIpfsUrl: imageIpfsUrl || imageObjectStorageUrl || "", // Use IPFS or fallback to Object Storage
         category,
         location: {
           city: useManualLocation ? manualLocation : (location?.city || "Unknown City"),
@@ -592,19 +607,31 @@ export default function Mint() {
         }
       });
       
-      console.log('📤 Uploading metadata to IPFS...');
-      const metadataIpfsUrl = await ipfsClient.uploadMetadata(metadata);
-      setMetadataIpfsUrl(metadataIpfsUrl);
+      // Try to upload metadata to IPFS (optional)
+      let metadataUrl = null;
+      try {
+        console.log('📤 Uploading metadata to IPFS...');
+        metadataUrl = await ipfsClient.uploadMetadata(metadata);
+        setMetadataIpfsUrl(metadataUrl);
+        console.log('✅ Metadata uploaded to IPFS:', metadataUrl);
+      } catch (metadataError) {
+        console.warn('⚠️ IPFS metadata upload failed, creating fallback URL...', metadataError);
+        
+        // Fallback: Create a data URL with metadata for blockchain (UTF-8 safe)
+        const jsonString = JSON.stringify(metadata);
+        const base64String = btoa(unescape(encodeURIComponent(jsonString)));
+        metadataUrl = `data:application/json;base64,${base64String}`;
+        setMetadataIpfsUrl(metadataUrl);
+        console.log('✅ Using fallback metadata URL:', metadataUrl);
+      }
       
-      console.log('✅ Metadata uploaded to IPFS:', metadataIpfsUrl);
-      
-      // Step 2: Batch approve + mint with IPFS metadata URL
+      // Step 2: Batch approve + mint with metadata URL
       setMintingStep('approving');
       setUploadProgress('');
-      console.log('🎯 Creating batch transaction: approve + mint with IPFS metadata');
+      console.log('🎯 Creating batch transaction: approve + mint with metadata');
       
       // 🚀 REAL BLOCKCHAIN: Batch approve + mint in ONE Farcaster confirmation!
-      console.log('⚡ STARTING REAL BLOCKCHAIN MINT WITH IPFS...');
+      console.log('⚡ STARTING REAL BLOCKCHAIN MINT...');
       
       await sendCalls({
         calls: [
@@ -617,7 +644,7 @@ export default function Mint() {
               args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
             })
           },
-          // 2. Mint NFT with IPFS metadata URL
+          // 2. Mint NFT with metadata URL
           {
             to: NFT_CONTRACT_ADDRESS,
             data: encodeFunctionData({
@@ -629,20 +656,20 @@ export default function Mint() {
                 useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
                 useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
                 category,
-                metadataIpfsUrl // IPFS metadata URL instead of base64
+                metadataUrl // Metadata URL (IPFS or fallback)
               ]
             })
           }
         ]
       });
       
-      console.log('✅ Blockchain transaction batch sent with IPFS metadata!');
+      console.log('✅ Blockchain transaction batch sent with metadata!');
       console.log('⏳ Waiting for transaction confirmation...');
       
       // Transaction sent successfully - UI will update when confirmed via useWaitForTransactionReceipt
       
     } catch (error) {
-      console.error('❌ IPFS mint failed:', error);
+      console.error('❌ Mint failed:', error);
       setMintingStep('idle');
       setUploadProgress('');
       
