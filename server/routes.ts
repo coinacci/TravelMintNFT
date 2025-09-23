@@ -1761,14 +1761,19 @@ export async function registerRoutes(app: Express) {
       }
       
       const objectStorageService = new ObjectStorageService();
-      const objectUrl = await objectStorageService.uploadFileBuffer(
+      const relativeObjectUrl = await objectStorageService.uploadFileBuffer(
         file.buffer,
         fileName || file.originalname,
         mimeType || file.mimetype
       );
       
-      console.log('\u2705 Object uploaded successfully:', objectUrl);
-      res.json({ objectUrl });
+      // Convert relative URL to full URL for OpenSea compatibility
+      const protocol = req.protocol || 'https';
+      const host = req.get('host') || req.headers.host;
+      const fullObjectUrl = `${protocol}://${host}${relativeObjectUrl}`;
+      
+      console.log('\u2705 Object uploaded successfully:', fullObjectUrl);
+      res.json({ objectUrl: fullObjectUrl });
     } catch (error) {
       console.error('\u274c Object upload failed:', error);
       res.status(500).json({ error: "Upload failed" });
