@@ -76,8 +76,11 @@ export default function MyNFTs() {
   const queryClient = useQueryClient();
 
   const { address, isConnected, connector } = useAccount();
-  const { writeContract, data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
-  const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
+  const { writeContract, data: hash, isPending: isTransactionPending, error: transactionError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({ 
+    hash,
+    confirmations: 1
+  });
   
   // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
@@ -137,6 +140,93 @@ export default function MyNFTs() {
     }
   });
   const syncedAddressRef = useRef<string | null>(null);
+
+  // ✅ CRITICAL: Handle transaction confirmations
+  useEffect(() => {
+    if (isConfirmed && hash && (window as any).pendingListing) {
+      const pendingData = (window as any).pendingListing;
+      
+      if (pendingData.step === 'approval_sent') {
+        // Approval confirmed, now list NFT
+        console.log("✅ Approval confirmed, now listing NFT...");
+        
+        toast({
+          title: "✅ Step 1 Complete",
+          description: "NFT approved! Now listing on marketplace...",
+        });
+        
+        const listNFT = async () => {
+          try {
+            console.log("📝 Listing NFT on marketplace:", {
+              tokenId: pendingData.tokenId.toString(),
+              priceWei: pendingData.priceWei.toString(),
+              priceUSDC: pendingData.price
+            });
+
+            const listingTx = await writeContract({
+              address: MARKETPLACE_CONTRACT_ADDRESS,
+              abi: MARKETPLACE_ABI,
+              functionName: 'listNFT',
+              args: [pendingData.tokenId, pendingData.priceWei],
+            });
+
+            // Update pending data for next confirmation
+            (window as any).pendingListing = {
+              ...pendingData,
+              step: 'listing_sent'
+            };
+
+            toast({
+              title: "📝 Step 2: Listing Transaction Sent",
+              description: "Waiting for marketplace listing confirmation...",
+            });
+
+          } catch (error: any) {
+            console.error("Listing error:", error);
+            toast({
+              title: "Listing Failed",
+              description: error.message || "Failed to list NFT on marketplace",
+              variant: "destructive",
+            });
+            setListingNFTId(null);
+            delete (window as any).pendingListing;
+          }
+        };
+        
+        listNFT();
+        
+      } else if (pendingData.step === 'listing_sent') {
+        // Listing confirmed, update database
+        console.log("✅ Listing confirmed, updating database...");
+        
+        toast({
+          title: "✅ NFT Listed Successfully!",
+          description: `Your NFT is now for sale at ${pendingData.price} USDC (you'll receive ${pendingData.sellerAmount.toFixed(2)} USDC)`,
+        });
+
+        // ✅ STEP 4: Update database ONLY after successful on-chain transaction
+        updateListingMutation.mutate({
+          nftId: pendingData.nft.id,
+          updates: { isForSale: 1, price: parseFloat(pendingData.price).toFixed(2) }
+        });
+
+        // Clean up
+        setListingNFTId(null);
+        delete (window as any).pendingListing;
+      }
+    }
+    
+    if (confirmError) {
+      console.error("Transaction confirmation error:", confirmError);
+      toast({
+        title: "Transaction Failed",
+        description: "Blockchain transaction failed to confirm",
+        variant: "destructive",
+      });
+      setListingNFTId(null);
+      delete (window as any).pendingListing;
+    }
+  }, [isConfirmed, confirmError, hash, writeContract, updateListingMutation, toast]);
 
   // Initialize Farcaster context
   useEffect(() => {
@@ -465,42 +555,41 @@ export default function MyNFTs() {
           tokenId: nft.tokenId
         });
 
-        await writeContract({
+        toast({
+          title: "🔐 Step 1: NFT Approval",
+          description: "Approving NFT for marketplace...",
+        });
+
+        const approvalTx = await writeContract({
           address: NFT_CONTRACT_ADDRESS,
           abi: TRAVEL_NFT_ABI,
           functionName: 'setApprovalForAll',
           args: [MARKETPLACE_CONTRACT_ADDRESS, true],
         });
 
+        // Wait for approval confirmation
+        console.log("⏳ Waiting for approval confirmation...");
+        
+        // This will wait for the receipt to be available
+        // The useWaitForTransactionReceipt hook will handle this automatically
+        
         toast({
-          title: "🔐 Approval Confirmed",
-          description: "Now listing your NFT on marketplace...",
+          title: "🔐 Approval Transaction Sent",
+          description: "Waiting for blockchain confirmation...",
         });
         
-        // ✅ STEP 3: List NFT on marketplace
-        console.log("📝 Listing NFT on marketplace:", {
-          tokenId: tokenId.toString(),
-          priceWei: priceWei.toString(),
-          priceUSDC: price
-        });
-
-        await writeContract({
-          address: MARKETPLACE_CONTRACT_ADDRESS,
-          abi: MARKETPLACE_ABI,
-          functionName: 'listNFT',
-          args: [tokenId, priceWei],
-        });
-
-        toast({
-          title: "✅ NFT Listed Successfully!",
-          description: `Your NFT is now for sale at ${price} USDC (you'll receive ${sellerAmount.toFixed(2)} USDC)`,
-        });
-
-        // ✅ STEP 4: Update database after successful on-chain transaction
-        updateListingMutation.mutate({
-          nftId: nft.id,
-          updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
-        });
+        // ✅ STEP 3: List NFT on marketplace (will be triggered by useEffect when approval is confirmed)
+        setListingNFTId(nft.id); // Keep showing loading state
+        
+        // Store the listing data for later use
+        (window as any).pendingListing = {
+          nft,
+          tokenId,
+          priceWei,
+          price,
+          sellerAmount,
+          step: 'approval_sent'
+        };
 
       } catch (error: any) {
         console.error("List NFT error:", error);
