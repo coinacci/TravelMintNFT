@@ -908,9 +908,9 @@ export class BlockchainService {
         return { success: false, error: "Transaction failed on blockchain" };
       }
       
-      // Check if transaction was sent to our NFT contract
-      if (receipt.to?.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) {
-        return { success: false, error: "Transaction was not sent to the NFT contract" };
+      // Check if transaction was sent to our MARKETPLACE contract (purchase happens via marketplace)
+      if (receipt.to?.toLowerCase() !== MARKETPLACE_CONTRACT_ADDRESS.toLowerCase()) {
+        return { success: false, error: "Transaction was not sent to the marketplace contract" };
       }
       
       // Parse transaction to verify it called purchaseNFT function
@@ -921,7 +921,7 @@ export class BlockchainService {
       
       // Decode transaction data to verify function call
       try {
-        const decodedData = nftContract.interface.parseTransaction({ data: transaction.data });
+        const decodedData = marketplaceContract.interface.parseTransaction({ data: transaction.data });
         
         // Verify it's a purchaseNFT function call
         if (decodedData?.name !== "purchaseNFT") {
