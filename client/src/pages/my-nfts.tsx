@@ -379,7 +379,7 @@ export default function MyNFTs() {
             address: MARKETPLACE_CONTRACT_ADDRESS,
             abi: MARKETPLACE_ABI,
             functionName: 'listNFT',
-            args: [BigInt(tokenId), priceWei],
+            args: [tokenId, priceWei],
           });
           
           toast({
@@ -519,7 +519,7 @@ export default function MyNFTs() {
       return;
     }
 
-    const tokenId = nft.tokenId; // Keep as string for pendingListing
+    const tokenId = BigInt(nft.tokenId);
     setListingNFTId(nft.id); // Set loading state
 
     if (nft.isForSale === 1) {
@@ -535,7 +535,7 @@ export default function MyNFTs() {
           address: MARKETPLACE_CONTRACT_ADDRESS,
           abi: MARKETPLACE_ABI,
           functionName: 'cancelListing',
-          args: [BigInt(tokenId)],
+          args: [tokenId],
         });
 
         toast({

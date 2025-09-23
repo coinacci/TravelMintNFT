@@ -827,8 +827,8 @@ export async function registerRoutes(app: Express) {
         const existing = await storage.getNFT(dbFormat.id);
         
         if (!existing) {
-          // Create new NFT record (using upsert for duplicate handling)
-          const nft = await storage.upsertNFTByTokenId(dbFormat);
+          // Create new NFT record
+          const nft = await storage.createNFT(dbFormat);
           dbNFTs.push(nft);
           syncedCount++;
           
@@ -1492,7 +1492,7 @@ export async function registerRoutes(app: Express) {
             console.log(`🆕 Found new token ${tokenId} owned by ${blockchainNFT.owner}`);
             
             const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
-            await storage.upsertNFTByTokenId(dbFormat);
+            await storage.createNFT(dbFormat);
             newNFTsAdded++;
             
             console.log(`✅ Added fresh minted NFT #${tokenId} to database`);
