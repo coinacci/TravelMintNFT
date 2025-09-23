@@ -360,6 +360,7 @@ export default function MyNFTs() {
     }
 
     const tokenId = BigInt(nft.tokenId);
+    setListingNFTId(nft.id); // Set loading state
 
     if (nft.isForSale === 1) {
       // 🔒 SECURITY: Cancel on-chain listing
@@ -369,11 +370,17 @@ export default function MyNFTs() {
           description: "Removing your NFT from marketplace...",
         });
 
+        // Wait for transaction confirmation
         await writeContract({
           address: MARKETPLACE_CONTRACT_ADDRESS,
           abi: MARKETPLACE_ABI,
           functionName: 'cancelListing',
           args: [tokenId],
+        });
+
+        toast({
+          title: "✅ Transaction Confirmed",
+          description: "NFT successfully removed from marketplace",
         });
 
         // Update database after successful on-chain transaction
@@ -384,11 +391,23 @@ export default function MyNFTs() {
 
       } catch (error: any) {
         console.error("Cancel listing error:", error);
-        toast({
-          title: "Cancel Failed",
-          description: error.message || "Failed to cancel NFT listing",
-          variant: "destructive",
-        });
+        
+        // Check if user rejected transaction
+        if (error.message?.includes('User rejected') || error.message?.includes('denied')) {
+          toast({
+            title: "Transaction Cancelled",
+            description: "You cancelled the transaction",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Cancel Failed",
+            description: error.message || "Failed to cancel NFT listing",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setListingNFTId(null);
       }
     } else {
       // 🔒 SECURITY: Create on-chain listing
@@ -404,9 +423,12 @@ export default function MyNFTs() {
       try {
         const priceWei = parseUnits(price, 6); // USDC has 6 decimals
 
+        const platformFee = parseFloat(price) * 0.05; // 5% platform fee
+        const sellerAmount = parseFloat(price) - platformFee;
+
         toast({
           title: "📝 Creating Listing",
-          description: `Listing NFT #${nft.tokenId} for ${price} USDC on-chain...`,
+          description: `Listing NFT #${nft.tokenId} for ${price} USDC. You'll receive ${sellerAmount.toFixed(2)} USDC after 5% platform fee.`,
         });
 
         // First ensure NFT is approved for marketplace
@@ -415,6 +437,11 @@ export default function MyNFTs() {
           abi: TRAVEL_NFT_ABI,
           functionName: 'setApprovalForAll',
           args: [MARKETPLACE_CONTRACT_ADDRESS, true],
+        });
+
+        toast({
+          title: "🔐 Approval Confirmed",
+          description: "Now listing your NFT on marketplace...",
         });
         
         // Then list the NFT on marketplace
@@ -425,6 +452,11 @@ export default function MyNFTs() {
           args: [tokenId, priceWei],
         });
 
+        toast({
+          title: "✅ NFT Listed Successfully!",
+          description: `Your NFT is now for sale at ${price} USDC (you'll receive ${sellerAmount.toFixed(2)} USDC)`,
+        });
+
         // Update database after successful on-chain transaction
         updateListingMutation.mutate({
           nftId: nft.id,
@@ -433,11 +465,23 @@ export default function MyNFTs() {
 
       } catch (error: any) {
         console.error("List NFT error:", error);
-        toast({
-          title: "Listing Failed",
-          description: error.message || "Failed to list NFT for sale",
-          variant: "destructive",
-        });
+        
+        // Check if user rejected transaction
+        if (error.message?.includes('User rejected') || error.message?.includes('denied')) {
+          toast({
+            title: "Transaction Cancelled",
+            description: "You cancelled the listing transaction",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Listing Failed",
+            description: error.message || "Failed to list NFT for sale",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setListingNFTId(null);
       }
     }
   };
