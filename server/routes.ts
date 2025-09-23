@@ -827,8 +827,8 @@ export async function registerRoutes(app: Express) {
         const existing = await storage.getNFT(dbFormat.id);
         
         if (!existing) {
-          // Create new NFT record
-          const nft = await storage.createNFT(dbFormat);
+          // Create new NFT record (using upsert for duplicate handling)
+          const nft = await storage.upsertNFTByTokenId(dbFormat);
           dbNFTs.push(nft);
           syncedCount++;
           
