@@ -1,0 +1,257 @@
+1. Smart Contract Entegrasyonu (2-3 Gün)
+Mevcut Mini App'ine NFT marketplace işlevselliğini eklemek için bir Solidity smart contract’ına ihtiyacın var. Bu contract, NFT listelemeyi, satın almayı ve %5 platform fee’sini yönetecek.
+
+Contract Geliştirme:
+
+
+Amaç: ERC-721/1155 NFT’ler için onchain listing, satın alma ve fee split.
+
+
+Temel Fonksiyonlar:
+
+createListing(tokenId, price): Kullanıcı NFT’sini approve eder, contract’ta listelenir (event emit et).
+buyNFT(tokenId): Alıcı ETH gönderir, %95 satıcıya, %5 platforma gider, NFT alıcıya transfer olur.
+cancelListing(tokenId): Listing iptali için (opsiyonel).
+
+
+
+Örnek Kod: OpenZeppelin’in ERC-721 tabanlı marketplace contract’ını uyarla. Aşağıda minimal bir örnek:
+solidity// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract NFTMarketplace is ReentrancyGuard {
+    address public platformAddress; // %5 fee'nin gideceği adres
+    uint256 public constant FEE_PERCENT = 5; // %5 platform fee
+
+    struct Listing {
+        address seller;
+        uint256 price;
+        bool active;
+    }
+
+    mapping(uint256 => Listing) public listings;
+    IERC721 public nftContract;
+
+    constructor(address _nftContract, address _platformAddress) {
+        nftContract = IERC721(_nftContract);
+        platformAddress = _platformAddress;
+    }
+
+    function createListing(uint256 tokenId, uint256 price) external {
+        require(nftContract.ownerOf(tokenId) == msg.sender, "Not owner");
+        require(nftContract.isApprovedForAll(msg.sender, address(this)), "Not approved");
+        listings[tokenId] = Listing(msg.sender, price, true);
+        emit Listed(tokenId, msg.sender, price);
+    }
+
+    function buyNFT(uint256 tokenId) external payable nonReentrant {
+        Listing memory listing = listings[tokenId];
+        require(listing.active, "Not listed");
+        require(msg.value >= listing.price, "Insufficient funds");
+
+        uint256 fee = (listing.price * FEE_PERCENT) / 100;
+        uint256 sellerAmount = listing.price - fee;
+
+        listings[tokenId].active = false;
+        payable(listing.seller).transfer(sellerAmount);
+        payable(platformAddress).transfer(fee);
+        nftContract.safeTransferFrom(listing.seller, msg.sender, tokenId);
+
+        emit Sold(tokenId, msg.sender, listing.price);
+    }
+
+    event Listed(uint256 tokenId, address seller, uint256 price);
+    event Sold(uint256 tokenId, address buyer, uint256 price);
+}
+
+
+Tools: Hardhat/Remix ile geliştir, Base testnet’te (Sepolia) test et, ardından Base mainnet’e deploy et.
+
+Deploy için: Alchemy/Infura’dan Base RPC endpoint al, npx hardhat run scripts/deploy.js --network base.
+
+
+
+Güvenlik: ReentrancyGuard ekle, fee split’ini test et. Audit için OpenZeppelin Defender kullan (opsiyonel).
+
+
+
+Mevcut App ile Entegrasyon:
+
+
+Contract’ın ABI’sini Mini App’ine ekle (JSON formatında, Hardhat deploy’dan çıkar).
+
+
+Viem veya ethers.js ile contract’ı çağır. Örnek (Viem ile):
+javascriptimport { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
+import nftMarketplaceABI from './NFTMarketplace.json';
+
+const client = createPublicClient({
+  chain: base,
+  transport: http('https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY'),
+});
+
+const contract = getContract({
+  address: 'YOUR_CONTRACT_ADDRESS',
+  abi: nftMarketplaceABI,
+  client,
+});
+
+
+
+
+
+2. Wallet ve Farcaster Auth Entegrasyonu (1-2 Gün)
+Mevcut Mini App’inde muhtemelen bir wallet bağlantısı var (örneğin, Privy veya WalletConnect). Eğer yoksa veya Farcaster’a özel değilse, SIWF (Sign-In With Farcaster) ekle.
+
+Privy ile Farcaster Login:
+
+Mevcut app’inde Privy kullanıyorsan, sadece Farcaster login’i enable et:
+javascriptimport { PrivyProvider, usePrivy } from '@privy-io/react-auth';
+
+function App() {
+  return (
+    <PrivyProvider appId="YOUR_PRIVY_APP_ID" config={{ loginMethods: ['farcaster'] }}>
+      <YourApp />
+    </PrivyProvider>
+  );
+}
+
+function YourComponent() {
+  const { login, authenticated, user } = usePrivy();
+  return (
+    <button onClick={login}>Sign in with Farcaster</button>
+  );
+}
+
+Farcaster SDK ile Mini App’e bağla:
+javascriptimport { miniapp } from '@farcaster/miniapp-sdk';
+
+miniapp.actions.ready(); // Splash screen'i kapat
+miniapp.actions.signIn({ nonce: 'YOUR_NONCE' }); // Privy ile eşleşen nonce
+
+Kaynak: Privy Farcaster Docs.
+
+
+Onchain Transactions:
+
+Kullanıcı NFT listelemek için createListing çağırır (approve + transaction).
+Satın alma için buyNFT – Transaction Frame ile Warpcast feed’inde buton ekle:
+javascriptimport { Frame, Button } from '@farcaster/miniapp-sdk';
+
+const frame = new Frame({
+  buttons: [
+    new Button({
+      label: 'Buy NFT',
+      action: async () => {
+        await contract.write.buyNFT([tokenId], { value: price });
+      },
+    }),
+  ],
+});
+miniapp.actions.sendFrame(frame);
+
+
+
+
+
+3. Frontend Entegrasyonu (2-3 Gün)
+Mevcut Mini App UI’na marketplace özelliklerini ekle. Varsayıyorum ki Next.js veya React tabanlı bir setup’ın var.
+
+UI Eklemeleri:
+
+Listing Formu: Kullanıcı NFT’sini seçsin (tokenId), fiyat girsin, createListing çağır.
+javascriptfunction ListNFT() {
+  const [tokenId, setTokenId] = useState('');
+  const [price, setPrice] = useState('');
+
+  const handleList = async () => {
+    await contract.write.createListing([tokenId, parseEther(price)]);
+    alert('NFT Listed!');
+  };
+
+  return (
+    <div>
+      <input type="text" placeholder="Token ID" onChange={(e) => setTokenId(e.target.value)} />
+      <input type="text" placeholder="Price (ETH)" onChange={(e) => setPrice(e.target.value)} />
+      <button onClick={handleList}>List NFT</button>
+    </div>
+  );
+}
+
+Marketplace Listesi: Aktif listing’leri contract’tan çek (event veya subgraph ile).
+javascriptasync function fetchListings() {
+  const logs = await client.getLogs({
+    address: contract.address,
+    event: 'Listed',
+    fromBlock: 'earliest',
+  });
+  return logs.map(log => ({
+    tokenId: log.args.tokenId,
+    seller: log.args.seller,
+    price: log.args.price,
+  }));
+}
+
+Satın Alma Butonu: buyNFT için Transaction Frame veya direkt button.
+
+
+Veri Fetch: Hız için The Graph ile listing’leri indexle:
+
+Subgraph oluştur: The Graph Docs.
+Örnek query:
+graphqlquery {
+  listings(where: { active: true }) {
+    tokenId
+    seller
+    price
+  }
+}
+
+
+
+Farcaster Sosyal Entegrasyon: Listing veya satın alma sonrası cast paylaş:
+javascriptminiapp.actions.sendCast({ text: `Just listed NFT #${tokenId} for ${price} ETH!` });
+
+
+
+4. Test ve Deploy (1-2 Gün)
+
+Test:
+
+Contract’ı Base testnet’te deploy et, Hardhat ile test yaz:
+javascriptit("should list and buy NFT", async () => {
+  await nftContract.approve(marketplace.address, tokenId);
+  await marketplace.createListing(tokenId, parseEther("1"));
+  await marketplace.buyNFT(tokenId, { value: parseEther("1") });
+  expect(await nftContract.ownerOf(tokenId)).to.equal(buyer.address);
+});
+
+Mini App’ini local’da test et (npm run dev), Warpcast’te preview’la.
+
+
+Deploy:
+
+Contract’ı Base mainnet’e deploy et.
+Mevcut app’ini güncelle, Vercel/Netlify’ye redeploy et.
+Farcaster metadata’sını güncelle (app discoverable kalsın).
+
+
+
+
+5. Ek İpuçları
+
+Gas Optimizasyonu: Listing’leri event-based tut, storage’ı minimize et.
+Güvenlik: buyNFT için nonReentrant modifier’ı unutma, fee transfer’lerini test et.
+Kullanıcı Deneyimi: Transaction loading states ekle (Privy ile kolay). Örnek:
+javascriptconst { sendTransaction } = usePrivy();
+const tx = await sendTransaction({
+  to: contract.address,
+  data: contract.interface.encodeFunctionData('buyNFT', [tokenId]),
+  value: parseEther(price),
+});
+
+Viralite: Her listing/satış için otomatik cast paylaş, Farcaster sosyal graph’ını kullan.
