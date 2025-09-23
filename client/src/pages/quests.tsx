@@ -155,30 +155,6 @@ export default function Quests() {
     }
   });
 
-  // Streak bonus mutation
-  const streakBonusMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: String(farcasterUser.fid),
-      questType: 'streak_bonus',
-      farcasterUsername: farcasterUser.username
-    }),
-    onSuccess: () => {
-      toast({
-        title: "Streak bonus claimed! 🔥",
-        description: "+7.00 points earned for 7-day streak!"
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to claim streak bonus",
-        description: "Please try again later",
-        variant: "destructive"
-      });
-    }
-  });
-
   // Social post quest mutation
   const socialPostMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
@@ -268,8 +244,6 @@ export default function Quests() {
   const hasClaimedHolderBonus = todayQuests.some(q => q.questType === 'holder_bonus');
   const hasClaimedBaseTransaction = todayQuests.some(q => q.questType === 'base_transaction');
   const hasClaimedSocialPost = todayQuests.some(q => q.questType === 'social_post');
-  const canClaimStreakBonus = userStats && userStats.currentStreak >= 7 && 
-    (!userStats.lastStreakClaim || getQuestDay(new Date(userStats.lastStreakClaim)) !== today);
 
 
   return (
@@ -514,61 +488,6 @@ export default function Quests() {
             </CardContent>
           </Card>
         )}
-
-        {/* 7-Day Streak Bonus */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Flame className="h-6 w-6 text-red-500" />
-                <div>
-                  <CardTitle>7-Day Streak Bonus</CardTitle>
-                  <CardDescription>Claim bonus after 7 consecutive days</CardDescription>
-                </div>
-              </div>
-              <Badge variant={canClaimStreakBonus ? "default" : "secondary"}>
-                +7 Points
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Streak Progress</span>
-                  <span>{Math.min(userStats?.currentStreak || 0, 7)}/7 days</span>
-                </div>
-                <Progress 
-                  value={(Math.min(userStats?.currentStreak || 0, 7) / 7) * 100} 
-                  className="h-2"
-                />
-              </div>
-              <Button
-                onClick={() => farcasterUser && streakBonusMutation.mutate()}
-                disabled={!farcasterUser || !canClaimStreakBonus || streakBonusMutation.isPending}
-                className="w-full mb-3"
-                data-testid="button-streak-bonus"
-              >
-                {!farcasterUser ? "Connect via Farcaster First"
-                 : !canClaimStreakBonus ? `Need ${7 - (userStats?.currentStreak || 0)} more days` 
-                 : "Claim Streak Bonus"}
-              </Button>
-              
-              {/* Share button - temporarily hidden
-              {false && userStats && typeof userStats.currentStreak === 'number' && userStats.currentStreak >= 7 && (
-                <ComposeCastButton
-                  type="quest"
-                  questName="7-Day Streak Bonus"
-                  questPoints={7.00}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                />
-              )}
-              */}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

@@ -369,21 +369,15 @@ export default function Leaderboard() {
             
             <TabsContent value="champions">
               {(() => {
-                // 🎯 FIXED: Filter champions to only show those from completed weeks
+                // Show all champions with valid usernames
                 const validChampions = weeklyChampions.filter(champion => {
-                  const championWeekEnd = new Date(champion.weekEndDate);
-                  const nextTuesday = new Date(championWeekEnd);
-                  nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1); // Next Tuesday
-                  nextTuesday.setUTCHours(0, 0, 0, 0); // 00:00 UTC
-                  
-                  const today = new Date();
-                  return today >= nextTuesday;
+                  return champion.farcasterUsername && champion.farcasterUsername.trim() !== '';
                 });
                 
                 return validChampions.length === 0 ? (
                   <div className="text-center py-8">
                     <Crown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No champions yet. Winners are determined every Tuesday at 00:00 UTC!</p>
+                    <p className="text-muted-foreground">No champions yet. Complete quests to become the weekly champion!</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
