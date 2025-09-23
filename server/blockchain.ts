@@ -45,7 +45,7 @@ const MARKETPLACE_ABI = [
   "function cancelListing(uint256 tokenId)", 
   "function updatePrice(uint256 tokenId, uint256 newPrice)",
   "function purchaseNFT(uint256 tokenId)",
-  "function getListing(uint256 tokenId) view returns (tuple(address seller, uint256 price, bool active, uint256 listedAt))",
+  "function getListing(uint256 tokenId) view returns (tuple(address seller, uint256 price, bool active))",
   "function isListed(uint256 tokenId) view returns (bool)",
   "function getSellerVolume(address seller) view returns (uint256)",
   "function totalVolume() view returns (uint256)",
@@ -1181,7 +1181,7 @@ export class BlockchainService {
         seller: listing.seller,
         price: ethers.formatUnits(listing.price, 6), // Convert to USDC
         priceWei: listing.price.toString(),
-        listedAt: new Date(Number(listing.listedAt) * 1000).toISOString(),
+        listedAt: new Date().toISOString(), // Use current time since contract doesn't store listedAt
         active: listing.active
       };
 
