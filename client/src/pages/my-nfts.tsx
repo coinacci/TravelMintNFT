@@ -722,34 +722,48 @@ export default function MyNFTs() {
                     </div>
                   ) : (
                     <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {/* Share button temporarily hidden
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
+                            disabled={isGeneratingFrame}
+                            data-testid={`share-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Share as Frame"
+                          >
+                            {isGeneratingFrame ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Share2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                          */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); handleTransferClick(nft); }}
+                            data-testid={`transfer-${nft.id}`}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Price input and List button */}
                       <div className="flex items-center space-x-2">
-                        {/* Share button temporarily hidden
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
-                          disabled={isGeneratingFrame}
-                          data-testid={`share-${nft.id}`}
-                          className="text-muted-foreground hover:text-foreground"
-                          title="Share as Frame"
-                        >
-                          {isGeneratingFrame ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Share2 className="w-4 h-4" />
-                          )}
-                        </Button>
-                        */}
-                        {/* Trading features temporarily hidden
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => { e.stopPropagation(); handleTransferClick(nft); }}
-                          data-testid={`transfer-${nft.id}`}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          <Send className="w-4 h-4" />
-                        </Button>
+                        <Input
+                          id={`price-${nft.id}`}
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="Enter price in USDC"
+                          className="flex-1"
+                          data-testid={`price-input-${nft.id}`}
+                        />
                         <Button
                           size="sm"
                           onClick={() => {
@@ -768,7 +782,6 @@ export default function MyNFTs() {
                             "List for Sale"
                           )}
                         </Button>
-                        */}
                       </div>
                     </div>
                   )}
