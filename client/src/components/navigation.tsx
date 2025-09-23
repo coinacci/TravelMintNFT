@@ -40,7 +40,7 @@ export default function Navigation() {
   const baseNavItems = [
     { path: "/", label: "Home", icon: Home },
     { path: "/explore", label: "Explore", icon: Globe },
-    // { path: "/marketplace", label: "Marketplace", icon: Store }, // Hidden temporarily
+    { path: "/marketplace", label: "Marketplace", icon: Store },
     { path: "/my-nfts", label: "My NFTs", icon: User },
   ];
   
