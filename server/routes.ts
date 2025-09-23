@@ -1492,7 +1492,7 @@ export async function registerRoutes(app: Express) {
             console.log(`🆕 Found new token ${tokenId} owned by ${blockchainNFT.owner}`);
             
             const dbFormat = await blockchainService.blockchainNFTToDBFormat(blockchainNFT);
-            await storage.createNFT(dbFormat);
+            await storage.upsertNFTByTokenId(dbFormat);
             newNFTsAdded++;
             
             console.log(`✅ Added fresh minted NFT #${tokenId} to database`);
