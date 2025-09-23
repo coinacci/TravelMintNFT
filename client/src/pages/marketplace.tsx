@@ -67,7 +67,7 @@ interface User {
 }
 
 export default function Marketplace() {
-  const [nftStatus, setNftStatus] = useState("for-sale"); // NFT status filter
+  const [nftStatus, setNftStatus] = useState("all"); // NFT status filter - default to All NFTs
   const [sortBy, setSortBy] = useState("price-low");
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const [transactionStep, setTransactionStep] = useState<'idle' | 'usdc_approval' | 'nft_purchase'>('idle');
