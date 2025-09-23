@@ -82,6 +82,27 @@ export default function MyNFTs() {
   // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
+  // Base network check helper
+  const ensureBaseNetwork = async () => {
+    try {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (parseInt(chainId, 16) !== base.id) {
+          await switchChain({ chainId: base.id });
+          return true;
+        }
+      }
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Network Switch Required",
+        description: "Please switch to Base network to list NFTs",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   // Contract Configuration
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
   const MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c" as const;
@@ -421,8 +442,14 @@ export default function MyNFTs() {
       }
 
       try {
-        const priceWei = parseUnits(price, 6); // USDC has 6 decimals
+        // ✅ STEP 1: Ensure Base network
+        const networkOk = await ensureBaseNetwork();
+        if (!networkOk) {
+          setListingNFTId(null);
+          return;
+        }
 
+        const priceWei = parseUnits(price, 6); // USDC has 6 decimals
         const platformFee = parseFloat(price) * 0.05; // 5% platform fee
         const sellerAmount = parseFloat(price) - platformFee;
 
@@ -431,7 +458,13 @@ export default function MyNFTs() {
           description: `Listing NFT #${nft.tokenId} for ${price} USDC. You'll receive ${sellerAmount.toFixed(2)} USDC after 5% platform fee.`,
         });
 
-        // First ensure NFT is approved for marketplace
+        // ✅ STEP 2: Approve NFT for marketplace (CRITICAL)
+        console.log("🔐 Approving NFT for marketplace:", {
+          nftContract: NFT_CONTRACT_ADDRESS,
+          marketplace: MARKETPLACE_CONTRACT_ADDRESS,
+          tokenId: nft.tokenId
+        });
+
         await writeContract({
           address: NFT_CONTRACT_ADDRESS,
           abi: TRAVEL_NFT_ABI,
@@ -444,7 +477,13 @@ export default function MyNFTs() {
           description: "Now listing your NFT on marketplace...",
         });
         
-        // Then list the NFT on marketplace
+        // ✅ STEP 3: List NFT on marketplace
+        console.log("📝 Listing NFT on marketplace:", {
+          tokenId: tokenId.toString(),
+          priceWei: priceWei.toString(),
+          priceUSDC: price
+        });
+
         await writeContract({
           address: MARKETPLACE_CONTRACT_ADDRESS,
           abi: MARKETPLACE_ABI,
@@ -457,7 +496,7 @@ export default function MyNFTs() {
           description: `Your NFT is now for sale at ${price} USDC (you'll receive ${sellerAmount.toFixed(2)} USDC)`,
         });
 
-        // Update database after successful on-chain transaction
+        // ✅ STEP 4: Update database after successful on-chain transaction
         updateListingMutation.mutate({
           nftId: nft.id,
           updates: { isForSale: 1, price: parseFloat(price).toFixed(2) }
@@ -797,8 +836,7 @@ export default function MyNFTs() {
                         </div>
                       </div>
                       
-                      {/* Price input and List button - TEMPORARILY HIDDEN */}
-                      {/* 
+                      {/* ✅ Price input and List button - NOW ENABLED WITH ON-CHAIN FLOW */}
                       <div className="flex items-center space-x-2">
                         <Input
                           id={`price-${nft.id}`}
@@ -828,7 +866,6 @@ export default function MyNFTs() {
                           )}
                         </Button>
                       </div>
-                      */}
                     </div>
                   )}
                 </Card>

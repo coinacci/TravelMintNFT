@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain } from "wagmi";
 import { parseUnits } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -77,6 +77,28 @@ export default function Marketplace() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { address: walletAddress, isConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
+
+  // Base network check helper
+  const ensureBaseNetwork = async () => {
+    try {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (parseInt(chainId, 16) !== 8453) { // Base mainnet chainId
+          await switchChain({ chainId: 8453 });
+          return true;
+        }
+      }
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Network Switch Required",
+        description: "Please switch to Base network to purchase NFTs",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   // Dynamic API endpoint based on NFT status filter
   const apiEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
@@ -156,33 +178,39 @@ export default function Marketplace() {
     }
   ] as const;
 
-  // NFT Contract ABI - for approvals only
-  const NFT_ABI = [
+  // USDC Contract ABI - for approvals and transfers
+  const USDC_ABI = [
     {
-      name: 'setApprovalForAll',
-      type: 'function',
-      stateMutability: 'nonpayable',
+      name: "balanceOf",
+      type: "function",
+      inputs: [{ name: "account", type: "address" }],
+      outputs: [{ name: "", type: "uint256" }]
+    },
+    {
+      name: "allowance",
+      type: "function",
       inputs: [
-        { name: 'operator', type: 'address' },
-        { name: 'approved', type: 'bool' }
+        { name: "owner", type: "address" },
+        { name: "spender", type: "address" }
       ],
-      outputs: []
+      outputs: [{ name: "", type: "uint256" }]
+    },
+    {
+      name: "approve",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "spender", type: "address" },
+        { name: "amount", type: "uint256" }
+      ],
+      outputs: [{ name: "", type: "bool" }]
     }
   ] as const;
 
-  // Check USDC balance (for direct transfers)
+  // Check USDC balance
   const { data: usdcBalance } = useReadContract({
     address: USDC_ADDRESS,
-    abi: [
-      {
-        name: "balanceOf",
-        type: "function",
-        inputs: [
-          { name: "account", type: "address" }
-        ],
-        outputs: [{ name: "", type: "uint256" }]
-      }
-    ],
+    abi: USDC_ABI,
     functionName: "balanceOf",
     args: [walletAddress as `0x${string}`],
     query: {
@@ -193,17 +221,7 @@ export default function Marketplace() {
   // Check USDC allowance for Marketplace contract
   const { data: usdcAllowance } = useReadContract({
     address: USDC_ADDRESS,
-    abi: [
-      {
-        name: "allowance",
-        type: "function",
-        inputs: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" }
-        ],
-        outputs: [{ name: "", type: "uint256" }]
-      }
-    ],
+    abi: USDC_ABI,
     functionName: "allowance",
     args: [walletAddress as `0x${string}`, MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`],
     query: {
@@ -259,8 +277,14 @@ export default function Marketplace() {
         const currentBalance = (usdcBalance as bigint) || BigInt(0);
         const currentAllowance = (usdcAllowance as bigint) || BigInt(0);
         
-        // ✅ CRITICAL WARNING: Chain verification needed
-        console.log("🎯 ENHANCED Smart contract purchase debug:", {
+        // ✅ STEP 1: Ensure Base network
+        const networkOk = await ensureBaseNetwork();
+        if (!networkOk) {
+          throw new Error("Network switch required to Base mainnet");
+        }
+
+        // ✅ STEP 2: Balance and allowance checks
+        console.log("🎯 Smart contract purchase debug:", {
           tokenId,
           priceUSDC,
           priceWei: priceWei.toString(),
@@ -269,6 +293,7 @@ export default function Marketplace() {
           walletAddress,
           nftContract: NFT_CONTRACT_ADDRESS,
           usdcContract: USDC_ADDRESS,
+          marketplace: MARKETPLACE_CONTRACT_ADDRESS,
           nftOwner: backendData.transactionData?.sellerAddress,
           // Critical checks
           hasEnoughBalance: currentBalance >= priceWei,
@@ -298,45 +323,41 @@ export default function Marketplace() {
 
           setTransactionStep('usdc_approval');
           
-          writeContract({
+          await writeContract({
             address: USDC_ADDRESS,
-            abi: [
-              {
-                name: "approve",
-                type: "function",
-                inputs: [
-                  { name: "spender", type: "address" },
-                  { name: "amount", type: "uint256" }
-                ],
-                outputs: [{ name: "", type: "bool" }]
-              }
-            ],
+            abi: USDC_ABI,
             functionName: "approve",
             args: [
               MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
               priceWei
             ],
           });
-        } else {
-          // STEP 2: Call purchaseNFT directly (allowance sufficient)
-          toast({
-            title: "🎨 Purchasing NFT", 
-            description: `Buying NFT #${tokenId} for ${priceUSDC} USDC (you will receive 1 NFT)`,
-          });
 
-          setTransactionStep('nft_purchase');
-          
-          // 🔒 SECURITY FIX: Price is now stored on-chain, no need to pass it
-          writeContract({
-            address: MARKETPLACE_CONTRACT_ADDRESS,
-            abi: MARKETPLACE_ABI,
-            functionName: "purchaseNFT",
-            args: [
-              BigInt(tokenId)
-              // priceWei removed - contract uses stored price now
-            ],
+          toast({
+            title: "✅ USDC Approved", 
+            description: "Approval confirmed, now purchasing NFT...",
           });
         }
+
+        // ✅ STEP 3: Execute purchase (after approval if needed)
+        toast({
+          title: "🎨 Purchasing NFT", 
+          description: `Buying NFT #${tokenId} for ${priceUSDC} USDC...`,
+        });
+
+        setTransactionStep('nft_purchase');
+        
+        await writeContract({
+          address: MARKETPLACE_CONTRACT_ADDRESS,
+          abi: MARKETPLACE_ABI,
+          functionName: "purchaseNFT",
+          args: [BigInt(tokenId)],
+        });
+
+        toast({
+          title: "✅ Purchase Successful!",
+          description: `You successfully bought NFT #${tokenId} for ${priceUSDC} USDC!`,
+        });
         
         console.log("🚀 Smart contract purchase system initiated");
         
@@ -370,8 +391,10 @@ export default function Marketplace() {
     }
     
     // ✅ CRITICAL: Enforce Base network (chainId 8453)
-    // TODO: Add proper chain detection and enforce Base network
-    console.log("🔗 Network check: Assuming Base network (8453) - TODO: Add chain validation");
+    const networkOk = await ensureBaseNetwork();
+    if (!networkOk) {
+      return;
+    }
 
     console.log("💳 Purchase attempt:", {
       nftId: nft.id,
