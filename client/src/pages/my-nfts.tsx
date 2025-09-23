@@ -86,6 +86,12 @@ export default function MyNFTs() {
   const { data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
   const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
   
+  // Approval hooks (for NFT listing)
+  const { data: approvalHash, writeContract: writeApprovalContract } = useWriteContract();
+  const { isLoading: isApprovalConfirming, isSuccess: isApprovalConfirmed, error: approvalError } = useWaitForTransactionReceipt({ 
+    hash: approvalHash 
+  });
+
   // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
@@ -345,6 +351,130 @@ export default function MyNFTs() {
     }
   }, [transferError, toast]);
 
+  // Handle approval confirmation and trigger listNFT
+  React.useEffect(() => {
+    if (isApprovalConfirmed && approvalHash) {
+      console.log("✅ Approval confirmed, proceeding to listNFT...");
+      
+      // Retrieve pending listing data
+      const pendingListing = (window as any).pendingListing;
+      
+      if (pendingListing && pendingListing.step === 'approval_sent') {
+        const { nft, tokenId, priceWei, price, sellerAmount } = pendingListing;
+        
+        toast({
+          title: "🔐 Step 2: Creating Listing",
+          description: "Approval confirmed! Now listing NFT on marketplace...",
+        });
+        
+        // Update pending listing step
+        (window as any).pendingListing = {
+          ...pendingListing,
+          step: 'listing_sent'
+        };
+        
+        // Step 2: List NFT on marketplace
+        try {
+          writeContract({
+            address: MARKETPLACE_CONTRACT_ADDRESS,
+            abi: MARKETPLACE_ABI,
+            functionName: 'listNFT',
+            args: [tokenId, priceWei],
+          });
+          
+          toast({
+            title: "📝 Listing Transaction Sent",
+            description: "Waiting for blockchain confirmation...",
+          });
+        } catch (error: any) {
+          console.error("ListNFT error:", error);
+          
+          // Clear pending state on error
+          delete (window as any).pendingListing;
+          setListingNFTId(null);
+          
+          if (error.message?.includes('User rejected') || error.message?.includes('denied')) {
+            toast({
+              title: "Transaction Cancelled",
+              description: "You cancelled the listing transaction",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Listing Failed",
+              description: error.message || "Failed to list NFT on marketplace",
+              variant: "destructive",
+            });
+          }
+        }
+      }
+    }
+  }, [isApprovalConfirmed, approvalHash, writeContract, toast]);
+
+  // Handle successful listNFT completion
+  React.useEffect(() => {
+    if (isConfirmed && hash) {
+      const pendingListing = (window as any).pendingListing;
+      
+      if (pendingListing && pendingListing.step === 'listing_sent') {
+        console.log("✅ ListNFT confirmed, updating database...");
+        
+        const { nft, price, sellerAmount } = pendingListing;
+        
+        // Update database after successful on-chain transaction
+        updateListingMutation.mutate({
+          nftId: nft.id,
+          updates: { 
+            isForSale: 1, 
+            price: parseFloat(price) 
+          }
+        });
+
+        toast({
+          title: "🎉 NFT Listed Successfully!",
+          description: `Your NFT is now listed for ${price} USDC. You'll receive ${sellerAmount.toFixed(2)} USDC after sale.`,
+        });
+
+        // Clear pending state
+        delete (window as any).pendingListing;
+        setListingNFTId(null);
+        
+        // Invalidate queries for fresh data
+        queryClient.invalidateQueries({ queryKey: [`/api/wallet/${address}/nfts`] });
+        if (farcasterUser) {
+          queryClient.invalidateQueries({ queryKey: [`/api/user/${farcasterUser.fid}/all-nfts`] });
+        }
+        queryClient.invalidateQueries({ queryKey: ["/api/nfts/for-sale"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      }
+    }
+  }, [isConfirmed, hash, updateListingMutation, toast, queryClient, address, farcasterUser]);
+
+  // Handle approval error
+  React.useEffect(() => {
+    if (approvalError) {
+      console.error("Approval error:", approvalError);
+      
+      // Clear pending state on approval error
+      delete (window as any).pendingListing;
+      setListingNFTId(null);
+      
+      if (approvalError.message?.includes('User rejected') || approvalError.message?.includes('denied')) {
+        toast({
+          title: "Transaction Cancelled",
+          description: "You cancelled the approval transaction",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Approval Failed",
+          description: approvalError.message || "Failed to approve NFT for marketplace",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [approvalError, toast]);
+
   // REMOVED: All approval-related useEffect hooks - not needed for smart contract with internal _transfer()
 
   // Log for troubleshooting
@@ -479,7 +609,7 @@ export default function MyNFTs() {
           description: "Approving NFT for marketplace...",
         });
 
-        const approvalTx = await writeContract({
+        writeApprovalContract({
           address: NFT_CONTRACT_ADDRESS,
           abi: TRAVEL_NFT_ABI,
           functionName: 'setApprovalForAll',
