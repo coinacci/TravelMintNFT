@@ -82,6 +82,10 @@ export default function MyNFTs() {
     confirmations: 1
   });
   
+  // Transfer hooks (separate from listing)
+  const { data: transferHash, isPending: isTransferPending, error: transferError } = useWriteContract();
+  const { isLoading: isTransferLoading, isSuccess: isTransferSuccess } = useWaitForTransactionReceipt({ hash: transferHash });
+  
   // Removed: NFT approval hooks - not needed for smart contract with internal _transfer()
   const { switchChain } = useSwitchChain();
 
@@ -141,92 +145,7 @@ export default function MyNFTs() {
   });
   const syncedAddressRef = useRef<string | null>(null);
 
-  // ✅ CRITICAL: Handle transaction confirmations
-  useEffect(() => {
-    if (isConfirmed && hash && (window as any).pendingListing) {
-      const pendingData = (window as any).pendingListing;
-      
-      if (pendingData.step === 'approval_sent') {
-        // Approval confirmed, now list NFT
-        console.log("✅ Approval confirmed, now listing NFT...");
-        
-        toast({
-          title: "✅ Step 1 Complete",
-          description: "NFT approved! Now listing on marketplace...",
-        });
-        
-        const listNFT = async () => {
-          try {
-            console.log("📝 Listing NFT on marketplace:", {
-              tokenId: pendingData.tokenId.toString(),
-              priceWei: pendingData.priceWei.toString(),
-              priceUSDC: pendingData.price
-            });
-
-            const listingTx = await writeContract({
-              address: MARKETPLACE_CONTRACT_ADDRESS,
-              abi: MARKETPLACE_ABI,
-              functionName: 'listNFT',
-              args: [pendingData.tokenId, pendingData.priceWei],
-            });
-
-            // Update pending data for next confirmation
-            (window as any).pendingListing = {
-              ...pendingData,
-              step: 'listing_sent'
-            };
-
-            toast({
-              title: "📝 Step 2: Listing Transaction Sent",
-              description: "Waiting for marketplace listing confirmation...",
-            });
-
-          } catch (error: any) {
-            console.error("Listing error:", error);
-            toast({
-              title: "Listing Failed",
-              description: error.message || "Failed to list NFT on marketplace",
-              variant: "destructive",
-            });
-            setListingNFTId(null);
-            delete (window as any).pendingListing;
-          }
-        };
-        
-        listNFT();
-        
-      } else if (pendingData.step === 'listing_sent') {
-        // Listing confirmed, update database
-        console.log("✅ Listing confirmed, updating database...");
-        
-        toast({
-          title: "✅ NFT Listed Successfully!",
-          description: `Your NFT is now for sale at ${pendingData.price} USDC (you'll receive ${pendingData.sellerAmount.toFixed(2)} USDC)`,
-        });
-
-        // ✅ STEP 4: Update database ONLY after successful on-chain transaction
-        updateListingMutation.mutate({
-          nftId: pendingData.nft.id,
-          updates: { isForSale: 1, price: parseFloat(pendingData.price).toFixed(2) }
-        });
-
-        // Clean up
-        setListingNFTId(null);
-        delete (window as any).pendingListing;
-      }
-    }
-    
-    if (confirmError) {
-      console.error("Transaction confirmation error:", confirmError);
-      toast({
-        title: "Transaction Failed",
-        description: "Blockchain transaction failed to confirm",
-        variant: "destructive",
-      });
-      setListingNFTId(null);
-      delete (window as any).pendingListing;
-    }
-  }, [isConfirmed, confirmError, hash, writeContract, updateListingMutation, toast]);
+  // ✅ MOVED: Transaction confirmation handler will be placed AFTER updateListingMutation is defined
 
   // Initialize Farcaster context
   useEffect(() => {
