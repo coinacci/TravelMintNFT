@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -346,32 +346,89 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
-    // 🎯 Show only users who earned points TODAY
-    const todayDate = getQuestDay(); // Get today's date in YYYY-MM-DD format
+    // 🎯 FIXED: Show weekly leaderboard after Tuesday 00:00 UTC reset
+    // Week starts on Tuesday, so show weekly data after Tuesday 00:00 UTC of current week
     
-    console.log('📅 Daily leaderboard for:', todayDate);
+    const today = new Date();
+    const currentDayOfWeek = today.getUTCDay(); // 0=Sunday, 1=Monday, 2=Tuesday, etc.
     
-    // Query quest completions for today and sum points by user
-    const todaysLeaderboard = await db
-      .select({
-        farcasterFid: questCompletions.farcasterFid,
-        totalPointsToday: sql<number>`SUM(${questCompletions.pointsEarned})`,
-        userStats: userStats
-      })
-      .from(questCompletions)
-      .innerJoin(userStats, eq(questCompletions.farcasterFid, userStats.farcasterFid))
-      .where(eq(questCompletions.completionDate, todayDate))
-      .groupBy(questCompletions.farcasterFid, userStats.id, userStats.farcasterFid, userStats.farcasterUsername, userStats.farcasterPfpUrl, userStats.walletAddress, userStats.totalPoints, userStats.weeklyPoints, userStats.currentStreak, userStats.lastCheckIn, userStats.lastStreakClaim, userStats.weeklyResetDate, userStats.createdAt, userStats.updatedAt)
-      .orderBy(sql`SUM(${questCompletions.pointsEarned}) DESC`)
+    // Calculate THIS Tuesday 00:00 UTC (start of current week)
+    let daysToThisTuesday;
+    if (currentDayOfWeek === 2) { // Today is Tuesday
+      daysToThisTuesday = 0; // This Tuesday is today
+    } else if (currentDayOfWeek < 2) { // Sunday or Monday  
+      daysToThisTuesday = 2 - currentDayOfWeek; // Days until this Tuesday
+    } else { // Wednesday, Thursday, Friday, Saturday
+      daysToThisTuesday = 2 - currentDayOfWeek; // Days back to this Tuesday (negative)
+    }
+    
+    const thisTuesday = new Date(today);
+    thisTuesday.setUTCDate(today.getUTCDate() + daysToThisTuesday);
+    thisTuesday.setUTCHours(0, 0, 0, 0); // Set to 00:00 UTC
+    
+    const hasPassedTuesdayReset = today >= thisTuesday;
+    
+    console.log('📅 Weekly leaderboard timing check:', {
+      today: today.toISOString(),
+      currentDayOfWeek,
+      daysToThisTuesday,
+      thisTuesday: thisTuesday.toISOString(),
+      hasPassedTuesdayReset,
+      shouldShowWeekly: hasPassedTuesdayReset
+    });
+    
+    // Show all-time leaderboard until Tuesday 00:00 UTC reset
+    if (!hasPassedTuesdayReset) {
+      console.log('🎆 Before Tuesday reset - showing all-time leaderboard');
+      const allTimeData = await db
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.totalPoints} > 0`)
+        .orderBy(sql`${userStats.totalPoints} DESC`)
+        .limit(limit);
+      
+      // 🎯 CRITICAL FIX: Set weeklyPoints = totalPoints so frontend Weekly tab shows correct data
+      return allTimeData.map(entry => ({
+        ...entry,
+        weeklyPoints: entry.totalPoints // Frontend weekly tab shows weeklyPoints
+      }));
+    }
+    
+    // After Tuesday 00:00 UTC reset, show weekly leaderboard
+    console.log('📆 After Tuesday reset - showing weekly leaderboard');
+    
+    // Check if any users have weekly points
+    const weeklyPointsCount = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(userStats)
+      .where(sql`${userStats.weeklyPoints} > 0`);
+    
+    const count = Number(weeklyPointsCount[0]?.count || 0);
+    
+    // If no weekly points yet after reset, fallback to all-time temporarily
+    if (count === 0) {
+      console.log('🔄 No weekly points yet - showing all-time as fallback');
+      const allTimeData = await db
+        .select()
+        .from(userStats)
+        .where(sql`${userStats.totalPoints} > 0`)
+        .orderBy(sql`${userStats.totalPoints} DESC`)
+        .limit(limit);
+      
+      // 🎯 CRITICAL FIX: Set weeklyPoints = totalPoints so frontend Weekly tab shows correct data
+      return allTimeData.map(entry => ({
+        ...entry,
+        weeklyPoints: entry.totalPoints // Frontend weekly tab shows weeklyPoints
+      }));
+    }
+    
+    // Show actual weekly leaderboard
+    return await db
+      .select()
+      .from(userStats)
+      .where(sql`${userStats.weeklyPoints} > 0`)
+      .orderBy(sql`${userStats.weeklyPoints} DESC`)
       .limit(limit);
-    
-    console.log(`📊 Found ${todaysLeaderboard.length} users with points today`);
-    
-    // Map the results to UserStats format with weeklyPoints showing today's points
-    return todaysLeaderboard.map(row => ({
-      ...row.userStats,
-      weeklyPoints: row.totalPointsToday // Show today's points in weeklyPoints field
-    }));
   }
 
   async checkHolderStatus(walletAddress: string): Promise<{ isHolder: boolean; nftCount: number }> {
