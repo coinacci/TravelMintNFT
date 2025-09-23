@@ -671,7 +671,7 @@ export class DatabaseStorage implements IStorage {
     farcasterPfpUrl?: string;
     walletAddress?: string;
     castUrl?: string;
-    questType: 'daily_checkin' | 'holder_bonus' | 'streak_bonus' | 'base_transaction' | 'social_post';
+    questType: 'daily_checkin' | 'holder_bonus' | 'base_transaction' | 'social_post';
     pointsEarned: number;
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
@@ -714,7 +714,7 @@ export class DatabaseStorage implements IStorage {
             weeklyPoints: Math.round(data.pointsEarned * 100), // Same as totalPoints for new users
             currentStreak: data.questType === 'daily_checkin' ? 1 : 0,
             lastCheckIn: data.questType === 'daily_checkin' ? new Date() : null,
-            lastStreakClaim: data.questType === 'streak_bonus' ? new Date() : null,
+            lastStreakClaim: null,
             weeklyResetDate: currentWeekStart, // Track current week
           })
           .returning();

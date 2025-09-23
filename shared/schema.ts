@@ -97,7 +97,7 @@ export const userStats = pgTable("user_stats", {
 export const questCompletions = pgTable("quest_completions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
-  questType: text("quest_type").notNull(), // 'daily_checkin', 'holder_bonus', 'streak_bonus', 'social_post'
+  questType: text("quest_type").notNull(), // 'daily_checkin', 'holder_bonus', 'base_transaction', 'social_post'
   pointsEarned: integer("points_earned").notNull(), // Stored as fixed-point (points * 100)
   completionDate: text("completion_date").notNull(), // YYYY-MM-DD format for daily uniqueness
   castUrl: text("cast_url"), // Farcaster cast URL for social_post quests
@@ -151,7 +151,7 @@ export type UserWallet = typeof userWallets.$inferSelect;
 // Quest API Validation Schemas
 export const questClaimSchema = z.object({
   farcasterFid: z.string().min(1, "Farcaster FID is required"),
-  questType: z.enum(['daily_checkin', 'holder_bonus', 'streak_bonus', 'base_transaction', 'social_post'], {
+  questType: z.enum(['daily_checkin', 'holder_bonus', 'base_transaction', 'social_post'], {
     errorMap: () => ({ message: "Invalid quest type" })
   }),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address").optional(),
