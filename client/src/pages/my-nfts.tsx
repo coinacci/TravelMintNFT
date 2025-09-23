@@ -797,7 +797,8 @@ export default function MyNFTs() {
                         </div>
                       </div>
                       
-                      {/* Price input and List button */}
+                      {/* Price input and List button - TEMPORARILY HIDDEN */}
+                      {/* 
                       <div className="flex items-center space-x-2">
                         <Input
                           id={`price-${nft.id}`}
@@ -827,6 +828,7 @@ export default function MyNFTs() {
                           )}
                         </Button>
                       </div>
+                      */}
                     </div>
                   )}
                 </Card>
