@@ -379,7 +379,7 @@ export default function MyNFTs() {
             address: MARKETPLACE_CONTRACT_ADDRESS,
             abi: MARKETPLACE_ABI,
             functionName: 'listNFT',
-            args: [tokenId, priceWei],
+            args: [BigInt(tokenId), priceWei],
           });
           
           toast({
