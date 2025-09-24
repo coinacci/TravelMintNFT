@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
