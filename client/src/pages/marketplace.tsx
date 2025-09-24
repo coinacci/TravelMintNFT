@@ -68,7 +68,7 @@ interface User {
 
 export default function Marketplace() {
   const [nftStatus, setNftStatus] = useState("all"); // NFT status filter - default to All NFTs
-  const [sortBy, setSortBy] = useState("price-low");
+  const [sortBy, setSortBy] = useState("popular"); // Default to Most Popular for All NFTs
   const [currentPurchaseNftId, setCurrentPurchaseNftId] = useState<string | null>(null);
   const [transactionStep, setTransactionStep] = useState<'idle' | 'usdc_approval' | 'nft_purchase'>('idle');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
@@ -78,6 +78,15 @@ export default function Marketplace() {
   const queryClient = useQueryClient();
   const { address: walletAddress, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
+
+  // Update sorting when NFT status changes
+  useEffect(() => {
+    if (nftStatus === "all") {
+      setSortBy("popular"); // Most Popular for All NFTs
+    } else if (nftStatus === "for-sale") {
+      setSortBy("price-low"); // Price: Low to High for Listed NFTs
+    }
+  }, [nftStatus]);
 
   // Base network check helper
   const ensureBaseNetwork = async () => {
