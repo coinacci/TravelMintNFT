@@ -561,7 +561,7 @@ export async function registerRoutes(app: Express) {
       }
       
       // 🔒 SECURITY: Verify ownership using blockchain as source of truth
-      const tokenId = currentNFT.id.replace("blockchain-", "");
+      const tokenId = currentNFT.tokenId;
       if (!tokenId || isNaN(Number(tokenId))) {
         return res.status(400).json({ message: "Invalid NFT token ID format" });
       }
