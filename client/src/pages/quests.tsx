@@ -62,7 +62,7 @@ export default function Quests() {
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
-  // Get Farcaster user context
+  // Get Farcaster user context and update timezone
   useEffect(() => {
     const getFarcasterContext = async () => {
       try {
@@ -70,12 +70,28 @@ export default function Quests() {
           try {
             const context = await Promise.resolve(sdk.context);
             if (context?.user) {
-              setFarcasterUser({
+              const userData = {
                 fid: context.user.fid,
                 username: context.user.username,
                 displayName: context.user.displayName,
                 pfpUrl: context.user.pfpUrl
-              });
+              };
+              setFarcasterUser(userData);
+
+              // Auto-detect and update user timezone
+              const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              console.log('🌍 Detected user timezone:', userTimezone);
+              
+              try {
+                await apiRequest('POST', '/api/update-user-timezone', {
+                  farcasterFid: String(userData.fid),
+                  timezone: userTimezone,
+                  farcasterUsername: userData.username
+                });
+                console.log('✅ User timezone updated successfully');
+              } catch (timezoneError) {
+                console.warn('⚠️ Failed to update user timezone:', timezoneError);
+              }
             }
           } catch (contextError) {
             console.log('No Farcaster context available');

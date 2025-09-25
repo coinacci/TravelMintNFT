@@ -84,6 +84,7 @@ export const userStats = pgTable("user_stats", {
   farcasterUsername: text("farcaster_username").notNull(),
   farcasterPfpUrl: text("farcaster_pfp_url"), // Farcaster profile picture URL
   walletAddress: text("wallet_address"), // Nullable - only required for holder bonus
+  timezone: text("timezone").default("UTC"), // User's timezone (e.g., "America/New_York", "Europe/London")
   totalPoints: integer("total_points").default(0).notNull(), // Stored as fixed-point (points * 100)
   weeklyPoints: integer("weekly_points").default(0).notNull(), // Weekly points - resets every Monday
   currentStreak: integer("current_streak").default(0).notNull(),
@@ -123,6 +124,21 @@ export const userWallets = pgTable("user_wallets", {
   };
 });
 
+// Quest Reminder Tracking Table - prevent duplicate daily notifications
+export const questReminders = pgTable("quest_reminders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  reminderDate: text("reminder_date").notNull(), // YYYY-MM-DD format
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  timezone: text("timezone").notNull(), // User's timezone when reminder was sent
+  localTime: text("local_time").notNull(), // Local time when sent (e.g., "14:00")
+}, (table) => {
+  return {
+    // Unique constraint: one reminder per user per day
+    uniqueReminderPerDay: sql`UNIQUE (farcaster_fid, reminder_date)`,
+  };
+});
+
 export const insertUserStatsSchema = createInsertSchema(userStats).omit({
   id: true,
   createdAt: true,
@@ -139,6 +155,11 @@ export const insertUserWalletSchema = createInsertSchema(userWallets).omit({
   createdAt: true,
 });
 
+export const insertQuestReminderSchema = createInsertSchema(questReminders).omit({
+  id: true,
+  sentAt: true,
+});
+
 export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
 export type UserStats = typeof userStats.$inferSelect;
 
@@ -147,6 +168,9 @@ export type QuestCompletion = typeof questCompletions.$inferSelect;
 
 export type InsertUserWallet = z.infer<typeof insertUserWalletSchema>;
 export type UserWallet = typeof userWallets.$inferSelect;
+
+export type InsertQuestReminder = z.infer<typeof insertQuestReminderSchema>;
+export type QuestReminder = typeof questReminders.$inferSelect;
 
 // Quest API Validation Schemas
 export const questClaimSchema = z.object({
