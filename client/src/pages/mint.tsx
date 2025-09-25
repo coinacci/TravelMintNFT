@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "@/hooks/use-location";
 import { MapPin, Upload, Wallet, Eye, CheckCircle, Share2 } from "lucide-react";
@@ -111,6 +112,7 @@ export default function Mint() {
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { sendNFTMintNotification } = useFarcasterNotifications();
   const queryClient = useQueryClient();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
@@ -221,6 +223,10 @@ export default function Mint() {
               description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
+
+            // Send Farcaster notification for successful NFT mint
+            const nftLocation = useManualLocation ? manualLocation : (location?.city || "Unknown City");
+            await sendNFTMintNotification(title, nftLocation);
             
             // Refresh data and reset form - clear both client and server cache
             await fetch('/api/cache/clear', { method: 'POST' }).catch(console.warn); // Force server cache refresh
@@ -313,6 +319,10 @@ export default function Mint() {
               description: `"${title}" has been minted on blockchain and added to marketplace`,
               variant: "default",
             });
+
+            // Send Farcaster notification for successful NFT mint
+            const nftLocation = useManualLocation ? manualLocation : (location?.city || "Unknown City");
+            await sendNFTMintNotification(title, nftLocation);
             
             // Refresh data and reset form
             queryClient.invalidateQueries({ queryKey: ['/api/nfts'] });
