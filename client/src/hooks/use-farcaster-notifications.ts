@@ -155,8 +155,63 @@ export const useFarcasterNotifications = () => {
         }
 
         // If not available, prompt user to add frame
+        console.log('⏳ Prompting user to add frame for notifications...');
         await sdk.actions.addFrame();
-        return false; // User needs to add frame, notifications will be enabled via webhook/event
+        
+        // Wait a bit and re-check context after frame is added
+        console.log('🔄 Re-checking context after frame addition...');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds for user interaction
+        
+        // Try to get notification details again after frame addition
+        if (sdk.context && typeof sdk.context === 'object') {
+          try {
+            const contextAfterFrame = await Promise.resolve(sdk.context);
+            console.log('📋 Context after frame addition:', !!contextAfterFrame);
+            console.log('📋 Context client after frame:', !!contextAfterFrame?.client);
+            console.log('📋 Notification details after frame:', !!contextAfterFrame?.client?.notificationDetails);
+            
+            if (contextAfterFrame?.client?.notificationDetails) {
+              console.log('🎯 Found notification details after frame addition, storing...');
+              await storeNotificationDetails(contextAfterFrame.client.notificationDetails, farcasterFid, farcasterUsername);
+              console.log('✅ Notification details captured successfully after frame addition');
+              return true;
+            } else {
+              console.log('ℹ️ No notification details available after frame addition - user may need to enable notifications in frame');
+            }
+          } catch (contextError) {
+            console.log('⚠️ Error reading context after frame addition:', contextError);
+          }
+        }
+        
+        // Additional polling fallback for notification permission changes
+        console.log('🔄 Setting up polling for notification details (fallback)...');
+        const pollForNotifications = async (attempts = 3) => {
+          for (let i = 0; i < attempts; i++) {
+            console.log(`📡 Polling attempt ${i + 1}/${attempts} for notification details...`);
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds between attempts
+            
+            try {
+              if (sdk.context && typeof sdk.context === 'object') {
+                const polledContext = await Promise.resolve(sdk.context);
+                if (polledContext?.client?.notificationDetails) {
+                  console.log('🎯 Notification details found via polling, storing...');
+                  await storeNotificationDetails(polledContext.client.notificationDetails, farcasterFid, farcasterUsername);
+                  console.log('✅ Notification details captured successfully via polling');
+                  break; // Stop polling once found
+                }
+              }
+            } catch (pollError) {
+              console.log(`⚠️ Polling attempt ${i + 1} failed:`, pollError);
+            }
+          }
+        };
+        
+        // Start background polling (non-blocking)
+        pollForNotifications(3).catch(error => 
+          console.log('⚠️ Background polling failed:', error)
+        );
+        
+        return false; // Frame added but notifications may not be immediately available
       }
       return false;
     } catch (error) {
