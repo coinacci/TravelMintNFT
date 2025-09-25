@@ -32,11 +32,37 @@ export const useFarcasterNotifications = () => {
     }
   };
 
-  // Store notification details to localStorage
-  const storeNotificationDetails = (details: NotificationDetails): void => {
+  // Store notification details to localStorage and database
+  const storeNotificationDetails = async (details: NotificationDetails, farcasterFid?: string, farcasterUsername?: string): Promise<void> => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('farcaster_notification_details', JSON.stringify(details));
-      console.log('✅ Farcaster notification details stored');
+      console.log('✅ Farcaster notification details stored to localStorage');
+
+      // Also save to database for server-side quest reminders
+      if (farcasterFid) {
+        try {
+          const response = await fetch('/api/update-user-notifications', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              farcasterFid,
+              notificationUrl: details.url,
+              notificationToken: details.token,
+              farcasterUsername
+            }),
+          });
+
+          if (response.ok) {
+            console.log('✅ Farcaster notification details synced to database');
+          } else {
+            console.warn('⚠️ Failed to sync notification details to database:', response.status);
+          }
+        } catch (error) {
+          console.error('❌ Failed to sync notification details to database:', error);
+        }
+      }
     }
   };
 
@@ -90,13 +116,17 @@ export const useFarcasterNotifications = () => {
   };
 
   // Prompt user to add frame and enable notifications
-  const enableFarcasterNotifications = async (): Promise<boolean> => {
+  const enableFarcasterNotifications = async (farcasterFid?: string, farcasterUsername?: string): Promise<boolean> => {
     try {
       if (typeof window !== 'undefined' && sdk?.actions) {
         // Check if user already has notification details stored
         const existing = getStoredNotificationDetails();
         if (existing) {
           console.log('ℹ️ Farcaster notifications already enabled');
+          // Still sync to database if user details provided
+          if (farcasterFid) {
+            await storeNotificationDetails(existing, farcasterFid, farcasterUsername);
+          }
           return true;
         }
 
@@ -104,7 +134,7 @@ export const useFarcasterNotifications = () => {
         if (sdk.context && typeof sdk.context === 'object') {
           const context = await Promise.resolve(sdk.context);
           if (context?.client?.notificationDetails) {
-            storeNotificationDetails(context.client.notificationDetails);
+            await storeNotificationDetails(context.client.notificationDetails, farcasterFid, farcasterUsername);
             return true;
           }
         }

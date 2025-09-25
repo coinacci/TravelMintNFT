@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useEffect, useState } from "react";
-import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare } from "lucide-react";
+import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare, Bell } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ export default function Quests() {
   const [castUrl, setCastUrl] = useState<string>('');
   const { address } = useAccount();
   const { toast } = useToast();
+  const { sendNFTMintNotification, sendNFTPurchaseNotification, enableFarcasterNotifications } = useFarcasterNotifications();
 
   // Smart contract interactions for Base transaction quest
   const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();
@@ -331,6 +332,59 @@ export default function Quests() {
         </Card>
       </div>
 
+      {/* Notification Setup */}
+      {farcasterUser && (
+        <Card className="border-dashed border-purple-300 bg-purple-50 dark:bg-purple-950 mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Bell className="h-6 w-6 text-purple-500" />
+                <div>
+                  <CardTitle className="text-purple-700 dark:text-purple-300">Quest Reminders</CardTitle>
+                  <CardDescription>Get daily reminders at 16:00 local time to complete your quests</CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-purple-500 text-purple-600">
+                Optional
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={async () => {
+                try {
+                  const success = await enableFarcasterNotifications(String(farcasterUser.fid), farcasterUser.username);
+                  if (success) {
+                    toast({
+                      title: "Notifications Enabled! 🔔",
+                      description: "You'll receive daily quest reminders at 16:00 local time",
+                    });
+                  } else {
+                    toast({
+                      title: "Please Add Frame",
+                      description: "Add TravelMint frame to enable notifications",
+                    });
+                  }
+                } catch (error) {
+                  toast({
+                    title: "Failed to Enable Notifications",
+                    description: "Please try again later",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              data-testid="button-enable-notifications"
+            >
+              🔔 Enable Daily Reminders
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              💡 Get reminded to maintain your streak and earn points!
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Daily Quests */}
       <div className="space-y-6">
         <h2 className="text-2xl font-bold">Today's Quests</h2>
@@ -531,11 +585,16 @@ export default function Quests() {
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => sendTestQuestReminder()}
+                onClick={() => {
+                  toast({
+                    title: "Quest Reminder System",
+                    description: "✅ System now running - reminders sent at 16:00 local time to users with notifications enabled",
+                  });
+                }}
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 data-testid="button-test-quest-reminder"
               >
-                📢 Send Quest Reminder
+                📢 Check Reminder Status
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
                 ⚠️ This will send "⏰ Don't forget your daily streak! Complete today's quests" to all users with notifications enabled

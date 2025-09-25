@@ -2719,6 +2719,34 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Update User Notification Details API
+  app.post("/api/update-user-notifications", async (req: Request, res: Response) => {
+    try {
+      const { farcasterFid, notificationUrl, notificationToken, farcasterUsername } = req.body;
+
+      if (!farcasterFid || !notificationUrl || !notificationToken) {
+        return res.status(400).json({ message: "Farcaster FID, notification URL, and token are required" });
+      }
+
+      console.log(`📱 Updating notification details for user ${farcasterFid}`);
+
+      // Update or create user stats with notification details
+      await storage.updateUserNotificationDetails(farcasterFid, notificationUrl, notificationToken, farcasterUsername);
+
+      res.json({ 
+        success: true, 
+        message: "User notification details updated successfully"
+      });
+
+    } catch (error) {
+      console.error("❌ Failed to update user notification details:", error);
+      res.status(500).json({ 
+        message: "Failed to update user notification details",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Quest Reminder API - Send test reminder to all users with notifications enabled
   app.post("/api/send-quest-reminder", async (req: Request, res: Response) => {
     try {

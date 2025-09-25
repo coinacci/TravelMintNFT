@@ -4,7 +4,7 @@ import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 import fetch from "node-fetch";
 
-// Quest reminder scheduler - runs every hour to check for 14:00 local time notifications
+// Quest reminder scheduler - runs every hour to check for 16:00 local time notifications
 export class QuestReminderScheduler {
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;

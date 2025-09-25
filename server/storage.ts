@@ -35,6 +35,7 @@ export interface IStorage {
   createOrUpdateUserStats(stats: InsertUserStats): Promise<UserStats>;
   updateUserStats(farcasterFid: string, updates: Partial<UserStats>): Promise<UserStats | undefined>;
   updateUserTimezone(farcasterFid: string, timezone: string, farcasterUsername?: string): Promise<UserStats | undefined>;
+  updateUserNotificationDetails(farcasterFid: string, notificationUrl: string, notificationToken: string, farcasterUsername?: string): Promise<UserStats | undefined>;
   getQuestCompletions(farcasterFid: string, date?: string): Promise<QuestCompletion[]>;
   createQuestCompletion(completion: InsertQuestCompletion): Promise<QuestCompletion>;
   getLeaderboard(limit?: number): Promise<UserStats[]>;
@@ -354,6 +355,54 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       console.error(`Failed to update timezone for ${farcasterFid}:`, error);
+      return undefined;
+    }
+  }
+
+  async updateUserNotificationDetails(
+    farcasterFid: string, 
+    notificationUrl: string, 
+    notificationToken: string,
+    farcasterUsername?: string
+  ): Promise<UserStats | undefined> {
+    try {
+      // First check if user stats exist
+      const existing = await this.getUserStats(farcasterFid);
+      
+      if (existing) {
+        // Update existing user's notification details
+        const [updated] = await db
+          .update(userStats)
+          .set({ 
+            farcasterNotificationUrl: notificationUrl,
+            farcasterNotificationToken: notificationToken,
+            updatedAt: new Date()
+          })
+          .where(eq(userStats.farcasterFid, farcasterFid))
+          .returning();
+        return updated || undefined;
+      } else if (farcasterUsername) {
+        // Create new user stats with notification details
+        const [created] = await db
+          .insert(userStats)
+          .values({
+            farcasterFid,
+            farcasterUsername,
+            farcasterNotificationUrl: notificationUrl,
+            farcasterNotificationToken: notificationToken,
+            totalPoints: 0,
+            weeklyPoints: 0,
+            currentStreak: 0,
+            weeklyResetDate: getCurrentWeekStart(),
+          })
+          .returning();
+        return created;
+      } else {
+        console.warn(`Cannot create user stats for ${farcasterFid} - missing username`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`Failed to update notification details for ${farcasterFid}:`, error);
       return undefined;
     }
   }
