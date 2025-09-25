@@ -3,20 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
 import sdk from "@farcaster/frame-sdk";
 
-// Farcaster SDK interface
-interface FarcasterSDK {
-  context?: {
-    client?: {
-      notificationDetails?: NotificationDetails;
-    };
-  };
-  actions?: {
-    addFrame: () => Promise<void>;
-  };
-  on?: (event: string, callback: () => Promise<void>) => void;
-  off?: (event: string, callback: () => Promise<void>) => void;
-}
-
 // Farcaster Notification Context Type
 export type MiniAppLocationNotificationContext = {
   type: 'notification';
@@ -34,7 +20,7 @@ export type NotificationDetails = {
 };
 
 // Helper function: Check if SDK feature is available
-const isSDKFeatureAvailable = (sdk: FarcasterSDK, feature: keyof FarcasterSDK): boolean => {
+const isSDKFeatureAvailable = (sdk: any, feature: string): boolean => {
   return typeof sdk[feature] !== 'undefined';
 };
 
@@ -185,9 +171,17 @@ export const useFarcasterNotifications = () => {
         return true;
       }
 
-      if (isSDKFeatureAvailable(sdk, 'context') && sdk.context?.client?.notificationDetails) {
-        await storeNotificationDetails(sdk.context.client.notificationDetails, farcasterFid, farcasterUsername);
-        return true;
+      // Check if context is available and get notification details
+      if (isSDKFeatureAvailable(sdk, 'context')) {
+        try {
+          const context = await Promise.resolve(sdk.context);
+          if (context?.client?.notificationDetails) {
+            await storeNotificationDetails(context.client.notificationDetails, farcasterFid, farcasterUsername);
+            return true;
+          }
+        } catch (error) {
+          console.log('ℹ️ Could not get Farcaster context:', error);
+        }
       }
 
       console.log('⏳ Prompting user to add frame for notifications...');
@@ -198,8 +192,9 @@ export const useFarcasterNotifications = () => {
         if (isSDKFeatureAvailable(sdk, 'on')) {
           const handler = async () => {
             try {
-              if (sdk.context?.client?.notificationDetails) {
-                await storeNotificationDetails(sdk.context.client.notificationDetails, farcasterFid, farcasterUsername);
+              const context = await Promise.resolve(sdk.context);
+              if (context?.client?.notificationDetails) {
+                await storeNotificationDetails(context.client.notificationDetails, farcasterFid, farcasterUsername);
                 resolve(true);
               } else {
                 console.log('ℹ️ No notification details available after frame addition');
@@ -211,12 +206,12 @@ export const useFarcasterNotifications = () => {
             }
           };
 
-          sdk.on!('context-changed', handler);
+          (sdk as any).on('context-changed', handler);
 
           // Clean up listener after 10 seconds to prevent memory leaks
           setTimeout(() => {
             if (isSDKFeatureAvailable(sdk, 'off')) {
-              sdk.off!('context-changed', handler);
+              (sdk as any).off('context-changed', handler);
             }
             resolve(false);
           }, 10000);
@@ -241,7 +236,7 @@ export const useFarcasterNotifications = () => {
     return () => {
       if (isSDKFeatureAvailable(sdk, 'off') && isSDKFeatureAvailable(sdk, 'on')) {
         // Remove all listeners for 'context-changed' to prevent memory leaks
-        sdk.off!('context-changed', () => {});
+        (sdk as any).off('context-changed', () => {});
       }
     };
   }, []);
