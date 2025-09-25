@@ -41,14 +41,14 @@ export class QuestReminderScheduler {
     console.log("🛑 Quest reminder scheduler stopped");
   }
 
-  // Check current time across timezones and send reminders for 14:30 local time
+  // Check current time across timezones and send reminders for 14:50 local time
   private async checkAndSendReminders(): Promise<void> {
     try {
-      console.log("🔍 Checking for users at 14:30 local time...");
+      console.log("🔍 Checking for users at 14:50 local time...");
       
       const currentUTC = new Date();
-      const targetLocalHour = 14; // 2:30 PM local time
-      const targetLocalMinute = 30;
+      const targetLocalHour = 14; // 2:50 PM local time
+      const targetLocalMinute = 50;
       const todayDateString = currentUTC.toISOString().split('T')[0]; // YYYY-MM-DD
 
       // Get all users with their timezones
@@ -92,8 +92,9 @@ export class QuestReminderScheduler {
           
           console.log(`🔍 User ${userStat.farcasterUsername} (${userTimezone}): UTC ${currentUTC.toLocaleTimeString()} → Local ${userLocalTime.toLocaleTimeString()} (${userLocalHour}:${userLocalMinute})`);
 
-          // Check if it's 14:30-14:35 (2:30-2:35 PM) in user's local time (5 minute window)
-          if (userLocalHour === targetLocalHour && userLocalMinute >= targetLocalMinute && userLocalMinute < targetLocalMinute + 5) {
+          // Check if it's 14:50-15:00 (2:50-3:00 PM) in user's local time (10 minute window)
+          if ((userLocalHour === targetLocalHour && userLocalMinute >= targetLocalMinute) || 
+              (userLocalHour === targetLocalHour + 1 && userLocalMinute === 0)) {
             console.log(`🎯 Sending reminder to user ${userStat.farcasterUsername} (${userTimezone}) - Local time: ${userLocalTime.toLocaleTimeString()}`);
             
             // Send reminder notification
@@ -126,7 +127,7 @@ export class QuestReminderScheduler {
           farcasterFid,
           reminderDate,
           timezone,
-          localTime: "14:30"
+          localTime: "14:50"
         });
 
       // In a real implementation, here you would:
