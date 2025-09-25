@@ -42,14 +42,14 @@ export class QuestReminderScheduler {
     console.log("🛑 Quest reminder scheduler stopped");
   }
 
-  // Check current time across timezones and send reminders for 15:30 local time
+  // Check current time across timezones and send reminders for 16:00 local time
   private async checkAndSendReminders(): Promise<void> {
     try {
-      console.log("🔍 Checking for users at 15:30 local time...");
+      console.log("🔍 Checking for users at 16:00 local time...");
       
       const currentUTC = new Date();
-      const targetLocalHour = 15; // 3:30 PM local time
-      const targetLocalMinute = 30;
+      const targetLocalHour = 16; // 4:00 PM local time
+      const targetLocalMinute = 0;
       const todayDateString = currentUTC.toISOString().split('T')[0]; // YYYY-MM-DD
 
       // Get all users with their timezones
@@ -93,7 +93,7 @@ export class QuestReminderScheduler {
           
           console.log(`🔍 User ${userStat.farcasterUsername} (${userTimezone}): UTC ${currentUTC.toLocaleTimeString()} → Local ${userLocalTime.toLocaleTimeString()} (${userLocalHour}:${userLocalMinute})`);
 
-          // Check if it's 15:30-15:45 (3:30-3:45 PM) in user's local time (15 minute window)
+          // Check if it's 16:00-16:15 (4:00-4:15 PM) in user's local time (15 minute window)
           if (userLocalHour === targetLocalHour && userLocalMinute >= targetLocalMinute && userLocalMinute < targetLocalMinute + 15) {
             console.log(`🎯 Sending reminder to user ${userStat.farcasterUsername} (${userTimezone}) - Local time: ${userLocalTime.toLocaleTimeString()}`);
             
@@ -127,7 +127,7 @@ export class QuestReminderScheduler {
           farcasterFid,
           reminderDate,
           timezone,
-          localTime: "15:30"
+          localTime: "16:00"
         });
 
       // Send actual Farcaster notification if user has notification details
