@@ -7,8 +7,16 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByWalletAddress(walletAddress: string): Promise<User | undefined>;
+  getUserByFarcasterFid(farcasterFid: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserBalance(id: string, balance: string): Promise<User | undefined>;
+  updateUserNotifications(farcasterFid: string, updates: {
+    notificationUrl?: string;
+    notificationToken?: string;
+    farcasterUsername?: string;
+    miniAppNotificationsEnabled?: boolean;
+  }): Promise<User | undefined>;
+  getUsersWithNotificationsEnabled(): Promise<User[]>;
 
   // NFT operations
   getNFT(id: string): Promise<NFT | undefined>;
@@ -96,6 +104,47 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user || undefined;
+  }
+
+  async getUserByFarcasterFid(farcasterFid: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.farcasterFid, farcasterFid));
+    return user || undefined;
+  }
+
+  async updateUserNotifications(farcasterFid: string, updates: {
+    notificationUrl?: string;
+    notificationToken?: string;
+    farcasterUsername?: string;
+    miniAppNotificationsEnabled?: boolean;
+  }): Promise<User | undefined> {
+    const updateData: any = {};
+    
+    if (updates.notificationUrl !== undefined) updateData.notificationUrl = updates.notificationUrl;
+    if (updates.notificationToken !== undefined) updateData.notificationToken = updates.notificationToken;
+    if (updates.farcasterUsername !== undefined) updateData.farcasterUsername = updates.farcasterUsername;
+    if (updates.miniAppNotificationsEnabled !== undefined) {
+      updateData.miniAppNotificationsEnabled = updates.miniAppNotificationsEnabled ? 1 : 0;
+    }
+
+    if (Object.keys(updateData).length === 0) return undefined;
+
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.farcasterFid, farcasterFid))
+      .returning();
+    return user || undefined;
+  }
+
+  async getUsersWithNotificationsEnabled(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(and(
+        sql`${users.notificationUrl} IS NOT NULL`,
+        sql`${users.notificationToken} IS NOT NULL`,
+        eq(users.miniAppNotificationsEnabled, 1)
+      ));
   }
 
   // NFT operations
