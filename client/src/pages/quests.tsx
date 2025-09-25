@@ -55,7 +55,6 @@ export default function Quests() {
   const [castUrl, setCastUrl] = useState<string>('');
   const { address } = useAccount();
   const { toast } = useToast();
-  const { sendTestQuestReminder } = useFarcasterNotifications();
 
   // Smart contract interactions for Base transaction quest
   const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();

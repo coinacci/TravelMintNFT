@@ -53,6 +53,57 @@ function clearAllCache(): void {
   console.log("🗑️ All cache cleared for fresh sync");
 }
 
+// Notification broadcasting functions
+async function broadcastNFTMintNotification(nftTitle: string, location: string, minterUsername?: string): Promise<void> {
+  try {
+    console.log(`📢 Broadcasting mint notification: "${nftTitle}" in ${location}`);
+    
+    // Get all users with Farcaster notification details (except the minter)
+    const allUsers = await storage.getAllUserStats();
+    const usersWithNotifications = allUsers.filter((user: any) => 
+      user.farcasterFid && 
+      user.farcasterUsername &&
+      user.farcasterUsername !== minterUsername // Exclude the minter
+    );
+    
+    console.log(`📊 Found ${usersWithNotifications.length} users to notify about mint (excluding minter)`);
+    
+    // In a real implementation, send actual Farcaster notifications here
+    // For now, we'll log the notifications that would be sent
+    for (const user of usersWithNotifications) {
+      console.log(`📱 [MOCK] Mint notification to ${user.farcasterUsername}: "${nftTitle}" travel NFT'i ${location} lokasyonunda${minterUsername ? ` ${minterUsername} tarafından` : ''} mintlendi!`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Failed to broadcast mint notification:', error);
+  }
+}
+
+async function broadcastNFTPurchaseNotification(nftTitle: string, location: string, price: string, buyerUsername?: string): Promise<void> {
+  try {
+    console.log(`📢 Broadcasting purchase notification: "${nftTitle}" in ${location} for ${price} USDC`);
+    
+    // Get all users with Farcaster notification details (except the buyer)
+    const allUsers = await storage.getAllUserStats();
+    const usersWithNotifications = allUsers.filter((user: any) => 
+      user.farcasterFid && 
+      user.farcasterUsername &&
+      user.farcasterUsername !== buyerUsername // Exclude the buyer
+    );
+    
+    console.log(`📊 Found ${usersWithNotifications.length} users to notify about purchase (excluding buyer)`);
+    
+    // In a real implementation, send actual Farcaster notifications here
+    // For now, we'll log the notifications that would be sent
+    for (const user of usersWithNotifications) {
+      console.log(`📱 [MOCK] Purchase notification to ${user.farcasterUsername}: ${location} lokasyonundan "${nftTitle}" travel NFT'i ${price} USDC'ye${buyerUsername ? ` ${buyerUsername} tarafından` : ''} satın alındı!`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Failed to broadcast purchase notification:', error);
+  }
+}
+
 // Helper function to create user objects with Farcaster usernames
 function createUserObject(walletAddress: string, farcasterUsername?: string | null, farcasterFid?: string | null) {
   if (farcasterUsername) {
@@ -531,6 +582,13 @@ export async function registerRoutes(app: Express) {
       console.log('🔄 New NFT created - invalidating cache for immediate visibility');
       delete nftCache['all-nfts'];
       delete nftCache['for-sale'];
+      
+      // 📢 Broadcast mint notification to all other users
+      await broadcastNFTMintNotification(
+        nft.title, 
+        nft.location, 
+        nft.farcasterCreatorUsername || undefined
+      );
       
       res.status(201).json(nft);
     } catch (error) {
@@ -1413,6 +1471,26 @@ export async function registerRoutes(app: Express) {
       });
       
       console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Platform distribution completed)`);
+      
+      // Get buyer's username for notification exclusion
+      let buyerUsername: string | undefined;
+      try {
+        const buyerUser = await storage.getUserByWalletAddress(buyerId.toLowerCase());
+        if (buyerUser?.username && buyerUser.username.includes('@')) {
+          // Extract Farcaster username if it's in @username format
+          buyerUsername = buyerUser.username.replace('@', '');
+        }
+      } catch (error) {
+        console.log('Could not fetch buyer username for notification exclusion:', error);
+      }
+      
+      // 📢 Broadcast purchase notification to all other users (excluding buyer)
+      await broadcastNFTPurchaseNotification(
+        nftToUpdate.title, 
+        nftToUpdate.location, 
+        nftToUpdate.price, 
+        buyerUsername
+      );
       
       res.json({
         success: true,

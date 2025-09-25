@@ -31,6 +31,7 @@ export interface IStorage {
 
   // Quest system operations
   getUserStats(farcasterFid: string): Promise<UserStats | undefined>;
+  getAllUserStats(): Promise<UserStats[]>;
   createOrUpdateUserStats(stats: InsertUserStats): Promise<UserStats>;
   updateUserStats(farcasterFid: string, updates: Partial<UserStats>): Promise<UserStats | undefined>;
   updateUserTimezone(farcasterFid: string, timezone: string, farcasterUsername?: string): Promise<UserStats | undefined>;
@@ -272,6 +273,11 @@ export class DatabaseStorage implements IStorage {
   async getUserStats(farcasterFid: string): Promise<UserStats | undefined> {
     const [stats] = await db.select().from(userStats).where(eq(userStats.farcasterFid, farcasterFid));
     return stats || undefined;
+  }
+
+  async getAllUserStats(): Promise<UserStats[]> {
+    const allStats = await db.select().from(userStats);
+    return allStats;
   }
 
   async createOrUpdateUserStats(insertStats: InsertUserStats): Promise<UserStats> {
