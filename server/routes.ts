@@ -21,6 +21,8 @@ import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { farcasterCastValidator } from "./farcaster-validation";
+import { NotificationService } from "./notificationService";
+import { QuestScheduler } from "./questScheduler";
 import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -51,57 +53,6 @@ function setCacheEntry(key: string, data: any[]): void {
 function clearAllCache(): void {
   Object.keys(nftCache).forEach(key => delete nftCache[key]);
   console.log("🗑️ All cache cleared for fresh sync");
-}
-
-// Notification broadcasting functions
-async function broadcastNFTMintNotification(nftTitle: string, location: string, minterUsername?: string): Promise<void> {
-  try {
-    console.log(`📢 Broadcasting mint notification: "${nftTitle}" in ${location}`);
-    
-    // Get all users with Farcaster notification details (except the minter)
-    const allUsers = await storage.getAllUserStats();
-    const usersWithNotifications = allUsers.filter((user: any) => 
-      user.farcasterFid && 
-      user.farcasterUsername &&
-      user.farcasterUsername !== minterUsername // Exclude the minter
-    );
-    
-    console.log(`📊 Found ${usersWithNotifications.length} users to notify about mint (excluding minter)`);
-    
-    // In a real implementation, send actual Farcaster notifications here
-    // For now, we'll log the notifications that would be sent
-    for (const user of usersWithNotifications) {
-      console.log(`📱 [MOCK] Mint notification to ${user.farcasterUsername}: "${nftTitle}" travel NFT was minted in ${location}${minterUsername ? ` by ${minterUsername}` : ''}!`);
-    }
-    
-  } catch (error) {
-    console.error('❌ Failed to broadcast mint notification:', error);
-  }
-}
-
-async function broadcastNFTPurchaseNotification(nftTitle: string, location: string, price: string, buyerUsername?: string): Promise<void> {
-  try {
-    console.log(`📢 Broadcasting purchase notification: "${nftTitle}" in ${location} for ${price} USDC`);
-    
-    // Get all users with Farcaster notification details (except the buyer)
-    const allUsers = await storage.getAllUserStats();
-    const usersWithNotifications = allUsers.filter((user: any) => 
-      user.farcasterFid && 
-      user.farcasterUsername &&
-      user.farcasterUsername !== buyerUsername // Exclude the buyer
-    );
-    
-    console.log(`📊 Found ${usersWithNotifications.length} users to notify about purchase (excluding buyer)`);
-    
-    // In a real implementation, send actual Farcaster notifications here
-    // For now, we'll log the notifications that would be sent
-    for (const user of usersWithNotifications) {
-      console.log(`📱 [MOCK] Purchase notification to ${user.farcasterUsername}: "${nftTitle}" travel NFT from ${location} was purchased for ${price} USDC${buyerUsername ? ` by ${buyerUsername}` : ''}!`);
-    }
-    
-  } catch (error) {
-    console.error('❌ Failed to broadcast purchase notification:', error);
-  }
 }
 
 // Helper function to create user objects with Farcaster usernames
@@ -137,6 +88,15 @@ export async function registerRoutes(app: Express) {
     console.log('✅ Weekly reset check completed');
   } catch (error) {
     console.error('❌ Weekly reset check failed:', error);
+  }
+
+  // Start quest reminder scheduler
+  console.log('🎯 Starting quest reminder scheduler...');
+  try {
+    QuestScheduler.start();
+    console.log('✅ Quest reminder scheduler started successfully');
+  } catch (error) {
+    console.error('❌ Failed to start quest reminder scheduler:', error);
   }
 
   // Health check
@@ -583,12 +543,19 @@ export async function registerRoutes(app: Express) {
       delete nftCache['all-nfts'];
       delete nftCache['for-sale'];
       
-      // 📢 Broadcast mint notification to all other users
-      await broadcastNFTMintNotification(
-        nft.title, 
-        nft.location, 
-        nft.farcasterCreatorUsername || undefined
-      );
+      // 📢 Send Farcaster notification for new NFT mint
+      try {
+        const minterUsername = nft.farcasterCreatorUsername || nft.farcasterOwnerUsername;
+        const result = await NotificationService.sendNFTMintNotification(
+          nft.title,
+          nft.location,
+          minterUsername || undefined
+        );
+        console.log(`📢 NFT mint notification sent: ${result.sent} users notified, ${result.failed} failed`);
+      } catch (notificationError) {
+        console.error('⚠️ Failed to send mint notification:', notificationError);
+        // Don't fail the mint if notification fails
+      }
       
       res.status(201).json(nft);
     } catch (error) {
@@ -1038,6 +1005,62 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Update user notification settings
+  app.post("/api/update-user-notifications", async (req, res) => {
+    try {
+      const { farcasterFid, notificationUrl, notificationToken, farcasterUsername } = req.body;
+
+      if (!farcasterFid) {
+        return res.status(400).json({
+          error: "farcasterFid is required"
+        });
+      }
+
+      // Check if user exists, create if not
+      let user = await storage.getUserByFarcasterFid(farcasterFid);
+      
+      if (!user) {
+        // Create new user with notification details
+        const newUserData = {
+          username: farcasterUsername || `user_${farcasterFid}`,
+          farcasterFid,
+          farcasterUsername,
+          notificationUrl,
+          notificationToken,
+          miniAppNotificationsEnabled: 1 // Convert boolean to integer for database
+        };
+        
+        user = await storage.createUser(newUserData);
+        console.log(`✅ Created new user with Farcaster notifications: ${farcasterFid}`);
+      } else {
+        // Update existing user notification settings
+        user = await storage.updateUserNotifications(farcasterFid, {
+          notificationUrl,
+          notificationToken,
+          farcasterUsername,
+          miniAppNotificationsEnabled: true
+        });
+        console.log(`✅ Updated notification settings for user: ${farcasterFid}`);
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Notification settings updated successfully",
+        user: {
+          farcasterFid: user?.farcasterFid,
+          farcasterUsername: user?.farcasterUsername,
+          notificationsEnabled: user?.miniAppNotificationsEnabled === 1
+        }
+      });
+    } catch (error: any) {
+      console.error("❌ Failed to update user notification settings:", error);
+      res.status(500).json({ 
+        error: "Failed to update notification settings", 
+        details: error.message 
+      });
+    }
+  });
+
   // Location to country mapping (same as frontend)
   const locationToCountry: Record<string, string> = {
     // Turkey
@@ -1472,25 +1495,20 @@ export async function registerRoutes(app: Express) {
       
       console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Platform distribution completed)`);
       
-      // Get buyer's username for notification exclusion
-      let buyerUsername: string | undefined;
+      // 📢 Send Farcaster notification for NFT sale
       try {
-        const buyerUser = await storage.getUserByWalletAddress(buyerId.toLowerCase());
-        if (buyerUser?.username && buyerUser.username.includes('@')) {
-          // Extract Farcaster username if it's in @username format
-          buyerUsername = buyerUser.username.replace('@', '');
-        }
-      } catch (error) {
-        console.log('Could not fetch buyer username for notification exclusion:', error);
+        const buyerUsername = buyer.farcasterUsername || buyer.username;
+        const result = await NotificationService.sendNFTPurchaseNotification(
+          nftToUpdate.title,
+          nftToUpdate.location,
+          nftToUpdate.price,
+          buyerUsername.startsWith('@') ? buyerUsername.slice(1) : buyerUsername
+        );
+        console.log(`📢 NFT purchase notification sent: ${result.sent} users notified, ${result.failed} failed`);
+      } catch (notificationError) {
+        console.error('⚠️ Failed to send purchase notification:', notificationError);
+        // Don't fail the purchase if notification fails
       }
-      
-      // 📢 Broadcast purchase notification to all other users (excluding buyer)
-      await broadcastNFTPurchaseNotification(
-        nftToUpdate.title, 
-        nftToUpdate.location, 
-        nftToUpdate.price, 
-        buyerUsername
-      );
       
       res.json({
         success: true,
@@ -2254,7 +2272,7 @@ export async function registerRoutes(app: Express) {
           pointsEarned = combinedHolderStatus.nftCount;
           break;
           
-        case 'streak_bonus' as any:
+        case 'social_post': // Changed from 'streak_bonus' to match allowed types
           if (!existingUserStats) {
             return res.status(400).json({ 
               message: "Must complete daily check-ins first to claim streak bonus" 
@@ -2690,111 +2708,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update User Timezone API
-  app.post("/api/update-user-timezone", async (req: Request, res: Response) => {
+  // Quest scheduler status endpoint
+  app.get("/api/quest-scheduler/status", (req, res) => {
     try {
-      const { farcasterFid, timezone, farcasterUsername } = req.body;
-
-      if (!farcasterFid || !timezone) {
-        return res.status(400).json({ message: "Farcaster FID and timezone are required" });
-      }
-
-      console.log(`🌍 Updating timezone for user ${farcasterFid}: ${timezone}`);
-
-      // Update or create user stats with timezone
-      await storage.updateUserTimezone(farcasterFid, timezone, farcasterUsername);
-
-      res.json({ 
-        success: true, 
-        message: "User timezone updated successfully",
-        timezone: timezone
+      const status = QuestScheduler.getStatus();
+      res.json({
+        success: true,
+        scheduler: status,
+        message: "Quest scheduler status retrieved"
       });
-
     } catch (error) {
-      console.error("❌ Failed to update user timezone:", error);
-      res.status(500).json({ 
-        message: "Failed to update user timezone",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Update User Notification Details API
-  app.post("/api/update-user-notifications", async (req: Request, res: Response) => {
-    try {
-      const { farcasterFid, notificationUrl, notificationToken, farcasterUsername } = req.body;
-
-      console.log(`🔔 Notification update request received:`, {
-        farcasterFid,
-        farcasterUsername,
-        hasUrl: !!notificationUrl,
-        hasToken: !!notificationToken,
-        urlStart: notificationUrl ? notificationUrl.substring(0, 50) + '...' : 'none',
-        tokenStart: notificationToken ? notificationToken.substring(0, 20) + '...' : 'none'
-      });
-
-      if (!farcasterFid || !notificationUrl || !notificationToken) {
-        console.warn(`⚠️ Missing required fields for notification update:`, {
-          farcasterFid: !!farcasterFid,
-          notificationUrl: !!notificationUrl,
-          notificationToken: !!notificationToken
-        });
-        return res.status(400).json({ message: "Farcaster FID, notification URL, and token are required" });
-      }
-
-      console.log(`📱 Updating notification details for user ${farcasterFid} (${farcasterUsername})`);
-
-      // Update or create user stats with notification details
-      await storage.updateUserNotificationDetails(farcasterFid, notificationUrl, notificationToken, farcasterUsername);
-
-      console.log(`✅ Notification details successfully stored in database for user ${farcasterFid}`);
-
-      res.json({ 
-        success: true, 
-        message: "User notification details updated successfully"
-      });
-
-    } catch (error) {
-      console.error("❌ Failed to update user notification details:", error);
-      res.status(500).json({ 
-        message: "Failed to update user notification details",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Quest Reminder API - Send test reminder to all users with notifications enabled
-  app.post("/api/send-quest-reminder", async (req: Request, res: Response) => {
-    try {
-      console.log("📢 Quest reminder request received");
-
-      // Test notification payload
-      const reminderPayload = {
-        notificationId: `quest-reminder-${Date.now()}`,
-        title: "TravelMint Daily Quest",
-        body: "⏰ Don't forget your daily streak! Complete today's quests",
-        targetUrl: process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : undefined,
-      };
-
-      // For demo purposes, we'll just return success
-      // In a real implementation, you would:
-      // 1. Get all users who have enabled notifications
-      // 2. Send notifications to each user's stored notification details
-      
-      console.log("✅ Quest reminder notification payload prepared:", reminderPayload);
-
-      res.json({ 
-        success: true, 
-        message: "Quest reminder sent successfully",
-        payload: reminderPayload
-      });
-
-    } catch (error) {
-      console.error("❌ Failed to send quest reminder:", error);
-      res.status(500).json({ 
-        message: "Failed to send quest reminder",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+      console.error("Get quest scheduler status error:", error);
+      res.status(500).json({ message: "Failed to get quest scheduler status" });
     }
   });
 

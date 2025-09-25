@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -533,7 +532,6 @@ export default function Marketplace() {
               title: "🎉 Purchase Complete!",
               description: "NFT purchased successfully! USDC split between seller (95%) and platform (5%), NFT transferred to you.",
             });
-
             
             // Reset state
             setTransactionStep('idle');

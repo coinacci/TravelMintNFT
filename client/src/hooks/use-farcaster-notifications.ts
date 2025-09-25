@@ -1,5 +1,21 @@
+import { useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
 import sdk from "@farcaster/frame-sdk";
+
+// Farcaster SDK interface
+interface FarcasterSDK {
+  context?: {
+    client?: {
+      notificationDetails?: NotificationDetails;
+    };
+  };
+  actions?: {
+    addFrame: () => Promise<void>;
+  };
+  on?: (event: string, callback: () => Promise<void>) => void;
+  off?: (event: string, callback: () => Promise<void>) => void;
+}
 
 // Farcaster Notification Context Type
 export type MiniAppLocationNotificationContext = {
@@ -17,6 +33,16 @@ export type NotificationDetails = {
   token: string;
 };
 
+// Helper function: Check if SDK feature is available
+const isSDKFeatureAvailable = (sdk: FarcasterSDK, feature: keyof FarcasterSDK): boolean => {
+  return typeof sdk[feature] !== 'undefined';
+};
+
+// Helper function: Get target URL
+const getTargetUrl = (): string | undefined => {
+  return typeof window !== 'undefined' ? window.location.origin : undefined;
+};
+
 export const useFarcasterNotifications = () => {
   const { toast } = useToast();
 
@@ -27,42 +53,57 @@ export const useFarcasterNotifications = () => {
     try {
       const stored = localStorage.getItem('farcaster_notification_details');
       return stored ? JSON.parse(stored) : null;
-    } catch {
+    } catch (error) {
+      console.error('❌ Failed to parse stored notification details:', error);
       return null;
     }
   };
 
   // Store notification details to localStorage and database
-  const storeNotificationDetails = async (details: NotificationDetails, farcasterFid?: string, farcasterUsername?: string): Promise<void> => {
-    if (typeof window !== 'undefined') {
+  const storeNotificationDetails = async (
+    details: NotificationDetails,
+    farcasterFid?: string,
+    farcasterUsername?: string
+  ): Promise<void> => {
+    if (typeof window === 'undefined') return;
+
+    try {
       localStorage.setItem('farcaster_notification_details', JSON.stringify(details));
       console.log('✅ Farcaster notification details stored to localStorage');
 
-      // Also save to database for server-side quest reminders
       if (farcasterFid) {
-        try {
-          const response = await fetch('/api/update-user-notifications', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              farcasterFid,
-              notificationUrl: details.url,
-              notificationToken: details.token,
-              farcasterUsername
-            }),
-          });
+        const response = await fetch('/api/update-user-notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            farcasterFid,
+            notificationUrl: details.url,
+            notificationToken: details.token,
+            farcasterUsername,
+          }),
+        });
 
-          if (response.ok) {
-            console.log('✅ Farcaster notification details synced to database');
-          } else {
-            console.warn('⚠️ Failed to sync notification details to database:', response.status);
-          }
-        } catch (error) {
-          console.error('❌ Failed to sync notification details to database:', error);
+        if (response.ok) {
+          console.log('✅ Farcaster notification details synced to database');
+        } else {
+          const errorData = await response.json();
+          console.warn('⚠️ Failed to sync notification details to database:', response.status, errorData);
+          toast({
+            title: 'Database Sync Error',
+            description: 'Failed to sync notification settings. Please try again.',
+            variant: 'destructive',
+          });
         }
       }
+    } catch (error) {
+      console.error('❌ Failed to store notification details:', error);
+      toast({
+        title: 'Storage Error',
+        description: 'Failed to save notification settings. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -74,180 +115,181 @@ export const useFarcasterNotifications = () => {
     type: 'success' | 'info' | 'error' = 'success'
   ): Promise<void> => {
     try {
-      // Always show local toast notification
+      // Show local toast notification
       toast({
         title,
         description: body,
         variant: type === 'error' ? 'destructive' : 'default',
       });
 
-      // Try to send Farcaster notification if user has enabled notifications
       const notificationDetails = getStoredNotificationDetails();
-      
-      if (notificationDetails) {
-        const notificationPayload = {
-          notificationId,
-          title,
-          body,
-          targetUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
-        };
-
-        const response = await fetch(notificationDetails.url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${notificationDetails.token}`,
-          },
-          body: JSON.stringify(notificationPayload),
-        });
-
-        if (response.ok) {
-          console.log('✅ Farcaster notification sent:', title);
-        } else {
-          console.warn('⚠️ Farcaster notification failed:', response.status);
-        }
-      } else {
+      if (!notificationDetails) {
         console.log('ℹ️ No Farcaster notification details available - user may not have enabled notifications');
+        return;
+      }
+
+      const notificationPayload = {
+        notificationId,
+        title,
+        body,
+        targetUrl: getTargetUrl(),
+      };
+
+      const response = await fetch(notificationDetails.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${notificationDetails.token}`,
+        },
+        body: JSON.stringify(notificationPayload),
+      });
+
+      if (response.ok) {
+        console.log('✅ Farcaster notification sent:', title);
+      } else {
+        const errorData = await response.json();
+        console.warn('⚠️ Farcaster notification failed:', response.status, errorData);
+        toast({
+          title: 'Notification Error',
+          description: 'Failed to send notification. Please try again.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('❌ Failed to send Farcaster notification:', error);
-      // Notification failure shouldn't break the app flow
+      toast({
+        title: 'Notification Error',
+        description: 'Failed to send notification. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
   // Prompt user to add frame and enable notifications
-  const enableFarcasterNotifications = async (farcasterFid?: string, farcasterUsername?: string): Promise<boolean> => {
-    try {
-      if (typeof window !== 'undefined' && sdk?.actions) {
-        // Check if user already has notification details stored
-        const existing = getStoredNotificationDetails();
-        if (existing) {
-          console.log('ℹ️ Farcaster notifications already enabled');
-          // Still sync to database if user details provided
-          if (farcasterFid) {
-            await storeNotificationDetails(existing, farcasterFid, farcasterUsername);
-          }
-          return true;
-        }
-
-        // Try to get from current context first
-        console.log('🔍 Checking Farcaster context for notification details...');
-        if (sdk.context && typeof sdk.context === 'object') {
-          try {
-            const context = await Promise.resolve(sdk.context);
-            console.log('📋 Farcaster context available:', !!context);
-            console.log('📋 Context client:', !!context?.client);
-            console.log('📋 Notification details:', !!context?.client?.notificationDetails);
-            
-            if (context?.client?.notificationDetails) {
-              console.log('🎯 Found notification details in context, storing...');
-              await storeNotificationDetails(context.client.notificationDetails, farcasterFid, farcasterUsername);
-              console.log('✅ Notification details stored from context');
-              return true;
-            } else {
-              console.log('ℹ️ No notification details found in context');
-            }
-          } catch (contextError) {
-            console.log('⚠️ Error reading Farcaster context:', contextError);
-          }
-        } else {
-          console.log('ℹ️ No Farcaster context available');
-        }
-
-        // If not available, prompt user to add frame
-        console.log('⏳ Prompting user to add frame for notifications...');
-        await sdk.actions.addFrame();
-        
-        // Wait a bit and re-check context after frame is added
-        console.log('🔄 Re-checking context after frame addition...');
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds for user interaction
-        
-        // Try to get notification details again after frame addition
-        if (sdk.context && typeof sdk.context === 'object') {
-          try {
-            const contextAfterFrame = await Promise.resolve(sdk.context);
-            console.log('📋 Context after frame addition:', !!contextAfterFrame);
-            console.log('📋 Context client after frame:', !!contextAfterFrame?.client);
-            console.log('📋 Notification details after frame:', !!contextAfterFrame?.client?.notificationDetails);
-            
-            if (contextAfterFrame?.client?.notificationDetails) {
-              console.log('🎯 Found notification details after frame addition, storing...');
-              await storeNotificationDetails(contextAfterFrame.client.notificationDetails, farcasterFid, farcasterUsername);
-              console.log('✅ Notification details captured successfully after frame addition');
-              return true;
-            } else {
-              console.log('ℹ️ No notification details available after frame addition - user may need to enable notifications in frame');
-            }
-          } catch (contextError) {
-            console.log('⚠️ Error reading context after frame addition:', contextError);
-          }
-        }
-        
-        // Additional polling fallback for notification permission changes
-        console.log('🔄 Setting up polling for notification details (fallback)...');
-        const pollForNotifications = async (attempts = 3) => {
-          for (let i = 0; i < attempts; i++) {
-            console.log(`📡 Polling attempt ${i + 1}/${attempts} for notification details...`);
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds between attempts
-            
-            try {
-              if (sdk.context && typeof sdk.context === 'object') {
-                const polledContext = await Promise.resolve(sdk.context);
-                if (polledContext?.client?.notificationDetails) {
-                  console.log('🎯 Notification details found via polling, storing...');
-                  await storeNotificationDetails(polledContext.client.notificationDetails, farcasterFid, farcasterUsername);
-                  console.log('✅ Notification details captured successfully via polling');
-                  break; // Stop polling once found
-                }
-              }
-            } catch (pollError) {
-              console.log(`⚠️ Polling attempt ${i + 1} failed:`, pollError);
-            }
-          }
-        };
-        
-        // Start background polling (non-blocking)
-        pollForNotifications(3).catch(error => 
-          console.log('⚠️ Background polling failed:', error)
-        );
-        
-        return false; // Frame added but notifications may not be immediately available
-      }
+  const enableFarcasterNotifications = async (
+    farcasterFid?: string,
+    farcasterUsername?: string
+  ): Promise<boolean> => {
+    if (typeof window === 'undefined' || !isSDKFeatureAvailable(sdk, 'actions')) {
+      console.log('ℹ️ Farcaster notifications not available in this environment');
       return false;
+    }
+
+    try {
+      const existing = getStoredNotificationDetails();
+      if (existing) {
+        console.log('ℹ️ Farcaster notifications already enabled');
+        if (farcasterFid) {
+          await storeNotificationDetails(existing, farcasterFid, farcasterUsername);
+        }
+        return true;
+      }
+
+      if (isSDKFeatureAvailable(sdk, 'context') && sdk.context?.client?.notificationDetails) {
+        await storeNotificationDetails(sdk.context.client.notificationDetails, farcasterFid, farcasterUsername);
+        return true;
+      }
+
+      console.log('⏳ Prompting user to add frame for notifications...');
+      await sdk.actions!.addFrame();
+      console.log('✅ Frame addition requested');
+
+      return new Promise((resolve) => {
+        if (isSDKFeatureAvailable(sdk, 'on')) {
+          const handler = async () => {
+            try {
+              if (sdk.context?.client?.notificationDetails) {
+                await storeNotificationDetails(sdk.context.client.notificationDetails, farcasterFid, farcasterUsername);
+                resolve(true);
+              } else {
+                console.log('ℹ️ No notification details available after frame addition');
+                resolve(false);
+              }
+            } catch (error) {
+              console.error('⚠️ Error handling context change:', error);
+              resolve(false);
+            }
+          };
+
+          sdk.on!('context-changed', handler);
+
+          // Clean up listener after 10 seconds to prevent memory leaks
+          setTimeout(() => {
+            if (isSDKFeatureAvailable(sdk, 'off')) {
+              sdk.off!('context-changed', handler);
+            }
+            resolve(false);
+          }, 10000);
+        } else {
+          console.log('ℹ️ SDK does not support event listeners');
+          resolve(false);
+        }
+      });
     } catch (error) {
       console.error('❌ Failed to enable Farcaster notifications:', error);
+      toast({
+        title: 'Notification Setup Failed',
+        description: 'Could not enable notifications. Please try again.',
+        variant: 'destructive',
+      });
       return false;
     }
   };
 
-  // NFT Mint notification (when others mint)
-  const sendNFTMintNotification = async (nftName: string, location: string, minterUsername?: string): Promise<void> => {
-    const minterText = minterUsername ? ` by ${minterUsername}` : '';
+  // Clean up event listeners on component unmount
+  useEffect(() => {
+    return () => {
+      if (isSDKFeatureAvailable(sdk, 'off') && isSDKFeatureAvailable(sdk, 'on')) {
+        // Remove all listeners for 'context-changed' to prevent memory leaks
+        sdk.off!('context-changed', () => {});
+      }
+    };
+  }, []);
+
+  // NFT Mint notification - English message as requested
+  const sendNFTMintNotification = async (
+    nftName: string,
+    location: string,
+    minterUsername?: string
+  ): Promise<void> => {
     await sendNotification(
-      `nft_mint_${Date.now()}`,
-      '🎨 New NFT Minted!',
-      `"${nftName}" travel NFT was minted in ${location}${minterText}!`,
+      `nft_mint_${uuidv4()}`,
+      'New TravelMint NFT minted!',
+      `"${nftName}" travel NFT was minted in ${location}${minterUsername ? ` by ${minterUsername}` : ''}!`,
       'success'
     );
   };
 
-  // NFT Purchase notification (when others purchase)
-  const sendNFTPurchaseNotification = async (nftName: string, location: string, price: string, buyerUsername?: string): Promise<void> => {
-    const buyerText = buyerUsername ? ` by ${buyerUsername}` : '';
+  // NFT Purchase notification - English message as requested
+  const sendNFTPurchaseNotification = async (
+    nftName: string,
+    location: string,
+    price: string,
+    buyerUsername?: string
+  ): Promise<void> => {
     await sendNotification(
-      `nft_purchase_${Date.now()}`,
-      '💰 NFT Sold!',
-      `"${nftName}" travel NFT from ${location} was purchased for ${price} USDC${buyerText}!`,
+      `nft_purchase_${uuidv4()}`,
+      'TravelMint NFT sold',
+      `"${nftName}" travel NFT from ${location} was sold for ${price} USDC${buyerUsername ? ` to ${buyerUsername}` : ''}!`,
       'success'
     );
   };
 
-
+  // Quest reminder notification - English message as requested
+  const sendQuestReminderNotification = async (): Promise<void> => {
+    await sendNotification(
+      `quest_reminder_${uuidv4()}`,
+      '🎯 Complete your daily mint quest!',
+      'Don\'t forget to mint a travel NFT today and earn rewards!',
+      'info'
+    );
+  };
 
   return {
     sendNotification,
     sendNFTMintNotification,
     sendNFTPurchaseNotification,
+    sendQuestReminderNotification,
     enableFarcasterNotifications,
     getStoredNotificationDetails,
   };
