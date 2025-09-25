@@ -122,22 +122,22 @@ export const useFarcasterNotifications = () => {
 
   // NFT Mint notification (when others mint)
   const sendNFTMintNotification = async (nftName: string, location: string, minterUsername?: string): Promise<void> => {
-    const minterText = minterUsername ? ` ${minterUsername} tarafından` : '';
+    const minterText = minterUsername ? ` by ${minterUsername}` : '';
     await sendNotification(
       `nft_mint_${Date.now()}`,
-      '🎨 Yeni NFT Mintlendi!',
-      `"${nftName}" travel NFT'i ${location} lokasyonunda${minterText} mintlendi!`,
+      '🎨 New NFT Minted!',
+      `"${nftName}" travel NFT was minted in ${location}${minterText}!`,
       'success'
     );
   };
 
   // NFT Purchase notification (when others purchase)
   const sendNFTPurchaseNotification = async (nftName: string, location: string, price: string, buyerUsername?: string): Promise<void> => {
-    const buyerText = buyerUsername ? ` ${buyerUsername} tarafından` : '';
+    const buyerText = buyerUsername ? ` by ${buyerUsername}` : '';
     await sendNotification(
       `nft_purchase_${Date.now()}`,
-      '💰 NFT Satıldı!',
-      `${location} lokasyonundan "${nftName}" travel NFT'i ${price} USDC'ye${buyerText} satın alındı!`,
+      '💰 NFT Sold!',
+      `"${nftName}" travel NFT from ${location} was purchased for ${price} USDC${buyerText}!`,
       'success'
     );
   };

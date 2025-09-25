@@ -71,7 +71,7 @@ async function broadcastNFTMintNotification(nftTitle: string, location: string, 
     // In a real implementation, send actual Farcaster notifications here
     // For now, we'll log the notifications that would be sent
     for (const user of usersWithNotifications) {
-      console.log(`📱 [MOCK] Mint notification to ${user.farcasterUsername}: "${nftTitle}" travel NFT'i ${location} lokasyonunda${minterUsername ? ` ${minterUsername} tarafından` : ''} mintlendi!`);
+      console.log(`📱 [MOCK] Mint notification to ${user.farcasterUsername}: "${nftTitle}" travel NFT was minted in ${location}${minterUsername ? ` by ${minterUsername}` : ''}!`);
     }
     
   } catch (error) {
@@ -96,7 +96,7 @@ async function broadcastNFTPurchaseNotification(nftTitle: string, location: stri
     // In a real implementation, send actual Farcaster notifications here
     // For now, we'll log the notifications that would be sent
     for (const user of usersWithNotifications) {
-      console.log(`📱 [MOCK] Purchase notification to ${user.farcasterUsername}: ${location} lokasyonundan "${nftTitle}" travel NFT'i ${price} USDC'ye${buyerUsername ? ` ${buyerUsername} tarafından` : ''} satın alındı!`);
+      console.log(`📱 [MOCK] Purchase notification to ${user.farcasterUsername}: "${nftTitle}" travel NFT from ${location} was purchased for ${price} USDC${buyerUsername ? ` by ${buyerUsername}` : ''}!`);
     }
     
   } catch (error) {
