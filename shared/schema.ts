@@ -9,12 +9,6 @@ export const users = pgTable("users", {
   walletAddress: text("wallet_address"),
   balance: decimal("balance", { precision: 18, scale: 6 }).default("0").notNull(),
   avatar: text("avatar"),
-  // Farcaster notification fields
-  farcasterFid: text("farcaster_fid"),
-  farcasterUsername: text("farcaster_username"),
-  notificationUrl: text("notification_url"),
-  notificationToken: text("notification_token"),
-  miniAppNotificationsEnabled: integer("mini_app_notifications_enabled").default(1).notNull(), // 0 = false, 1 = true
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

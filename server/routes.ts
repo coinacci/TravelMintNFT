@@ -21,8 +21,6 @@ import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { farcasterCastValidator } from "./farcaster-validation";
-import { NotificationService } from "./notificationService";
-import { QuestScheduler } from "./questScheduler";
 import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -88,15 +86,6 @@ export async function registerRoutes(app: Express) {
     console.log('✅ Weekly reset check completed');
   } catch (error) {
     console.error('❌ Weekly reset check failed:', error);
-  }
-
-  // Start quest reminder scheduler
-  console.log('🎯 Starting quest reminder scheduler...');
-  try {
-    QuestScheduler.start();
-    console.log('✅ Quest reminder scheduler started successfully');
-  } catch (error) {
-    console.error('❌ Failed to start quest reminder scheduler:', error);
   }
 
   // Health check
@@ -386,8 +375,8 @@ export async function registerRoutes(app: Express) {
               }
               
               // Check if coordinates are missing (0,0) and metadata has coordinates
-              const currentLat = parseFloat(existsInDb.latitude || "0");
-              const currentLng = parseFloat(existsInDb.longitude || "0");
+              const currentLat = parseFloat(existsInDb.latitude);
+              const currentLng = parseFloat(existsInDb.longitude);
               
               if ((currentLat === 0 && currentLng === 0) && blockchainNFT.metadata) {
                 const metadata = blockchainNFT.metadata;
@@ -542,20 +531,6 @@ export async function registerRoutes(app: Express) {
       console.log('🔄 New NFT created - invalidating cache for immediate visibility');
       delete nftCache['all-nfts'];
       delete nftCache['for-sale'];
-      
-      // 📢 Send Farcaster notification for new NFT mint
-      try {
-        const minterUsername = nft.farcasterCreatorUsername || nft.farcasterOwnerUsername;
-        const result = await NotificationService.sendNFTMintNotification(
-          nft.title,
-          nft.location,
-          minterUsername || undefined
-        );
-        console.log(`📢 NFT mint notification sent: ${result.sent} users notified, ${result.failed} failed`);
-      } catch (notificationError) {
-        console.error('⚠️ Failed to send mint notification:', notificationError);
-        // Don't fail the mint if notification fails
-      }
       
       res.status(201).json(nft);
     } catch (error) {
@@ -1005,62 +980,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update user notification settings
-  app.post("/api/update-user-notifications", async (req, res) => {
-    try {
-      const { farcasterFid, notificationUrl, notificationToken, farcasterUsername } = req.body;
-
-      if (!farcasterFid) {
-        return res.status(400).json({
-          error: "farcasterFid is required"
-        });
-      }
-
-      // Check if user exists, create if not
-      let user = await storage.getUserByFarcasterFid(farcasterFid);
-      
-      if (!user) {
-        // Create new user with notification details
-        const newUserData = {
-          username: farcasterUsername || `user_${farcasterFid}`,
-          farcasterFid,
-          farcasterUsername,
-          notificationUrl,
-          notificationToken,
-          miniAppNotificationsEnabled: 1 // Convert boolean to integer for database
-        };
-        
-        user = await storage.createUser(newUserData);
-        console.log(`✅ Created new user with Farcaster notifications: ${farcasterFid}`);
-      } else {
-        // Update existing user notification settings
-        user = await storage.updateUserNotifications(farcasterFid, {
-          notificationUrl,
-          notificationToken,
-          farcasterUsername,
-          miniAppNotificationsEnabled: true
-        });
-        console.log(`✅ Updated notification settings for user: ${farcasterFid}`);
-      }
-
-      res.json({ 
-        success: true, 
-        message: "Notification settings updated successfully",
-        user: {
-          farcasterFid: user?.farcasterFid,
-          farcasterUsername: user?.farcasterUsername,
-          notificationsEnabled: user?.miniAppNotificationsEnabled === 1
-        }
-      });
-    } catch (error: any) {
-      console.error("❌ Failed to update user notification settings:", error);
-      res.status(500).json({ 
-        error: "Failed to update notification settings", 
-        details: error.message 
-      });
-    }
-  });
-
   // Location to country mapping (same as frontend)
   const locationToCountry: Record<string, string> = {
     // Turkey
@@ -1495,21 +1414,6 @@ export async function registerRoutes(app: Express) {
       
       console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Platform distribution completed)`);
       
-      // 📢 Send Farcaster notification for NFT sale
-      try {
-        const buyerUsername = buyer.farcasterUsername || buyer.username;
-        const result = await NotificationService.sendNFTPurchaseNotification(
-          nftToUpdate.title,
-          nftToUpdate.location,
-          nftToUpdate.price,
-          buyerUsername.startsWith('@') ? buyerUsername.slice(1) : buyerUsername
-        );
-        console.log(`📢 NFT purchase notification sent: ${result.sent} users notified, ${result.failed} failed`);
-      } catch (notificationError) {
-        console.error('⚠️ Failed to send purchase notification:', notificationError);
-        // Don't fail the purchase if notification fails
-      }
-      
       res.json({
         success: true,
         message: "Purchase confirmed successfully",
@@ -1741,8 +1645,8 @@ export async function registerRoutes(app: Express) {
             );
             
             if (latAttr && lngAttr && latAttr.value !== "0" && lngAttr.value !== "0") {
-              const currentLat = parseFloat(existsInDb.latitude || "0");
-              const currentLng = parseFloat(existsInDb.longitude || "0");
+              const currentLat = parseFloat(existsInDb.latitude);
+              const currentLng = parseFloat(existsInDb.longitude);
               
               // Update if coordinates are missing (0,0) or different from metadata
               if ((currentLat === 0 && currentLng === 0) || 
@@ -2272,7 +2176,7 @@ export async function registerRoutes(app: Express) {
           pointsEarned = combinedHolderStatus.nftCount;
           break;
           
-        case 'social_post': // Changed from 'streak_bonus' to match allowed types
+        case 'streak_bonus':
           if (!existingUserStats) {
             return res.status(400).json({ 
               message: "Must complete daily check-ins first to claim streak bonus" 
@@ -2705,21 +2609,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Get marketplace stats error:", error);
       res.status(500).json({ message: "Failed to get marketplace statistics" });
-    }
-  });
-
-  // Quest scheduler status endpoint
-  app.get("/api/quest-scheduler/status", (req, res) => {
-    try {
-      const status = QuestScheduler.getStatus();
-      res.json({
-        success: true,
-        scheduler: status,
-        message: "Quest scheduler status retrieved"
-      });
-    } catch (error) {
-      console.error("Get quest scheduler status error:", error);
-      res.status(500).json({ message: "Failed to get quest scheduler status" });
     }
   });
 

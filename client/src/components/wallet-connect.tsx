@@ -220,7 +220,7 @@ export function WalletConnect() {
           )}
           {connectors.map((connector) => {
             const isLoading = isPending;
-            console.log('Available connector:', connector.name, connector.type);
+            console.log('Available connector:', connector.name, connector.type, connector);
             
             return (
               <Button
