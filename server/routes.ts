@@ -1173,7 +1173,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // ✅ ROBUST tokenId extraction and validation
-      const tokenId = nft.id.replace("blockchain-", "");
+      const tokenId = nft.tokenId;
       const numericTokenId = parseInt(tokenId);
       
       if (!tokenId || isNaN(numericTokenId) || numericTokenId <= 0) {
@@ -1307,8 +1307,8 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found for purchase confirmation" });
       }
       
-      // Extract token ID from NFT ID (format: "blockchain-{tokenId}")
-      const tokenId = nftToUpdate.id.replace("blockchain-", "");
+      // Extract token ID from NFT tokenId field
+      const tokenId = nftToUpdate.tokenId;
       if (!tokenId || isNaN(Number(tokenId))) {
         return res.status(400).json({ message: "Invalid NFT token ID" });
       }
