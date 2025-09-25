@@ -95,9 +95,15 @@ export default function Quests() {
 
               // Auto-capture Farcaster notification details if available
               try {
-                await enableFarcasterNotifications(String(userData.fid), userData.username);
+                console.log('🔔 Attempting auto-capture of Farcaster notification details...');
+                const success = await enableFarcasterNotifications(String(userData.fid), userData.username);
+                if (success) {
+                  console.log('✅ Farcaster notification details captured automatically');
+                } else {
+                  console.log('ℹ️ Farcaster notification details not available - user may need to add frame first');
+                }
               } catch (notificationError) {
-                console.log('ℹ️ Notification details not available or already captured');
+                console.log('ℹ️ Notification auto-capture failed:', notificationError);
               }
             }
           } catch (contextError) {

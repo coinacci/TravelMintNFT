@@ -131,12 +131,27 @@ export const useFarcasterNotifications = () => {
         }
 
         // Try to get from current context first
+        console.log('🔍 Checking Farcaster context for notification details...');
         if (sdk.context && typeof sdk.context === 'object') {
-          const context = await Promise.resolve(sdk.context);
-          if (context?.client?.notificationDetails) {
-            await storeNotificationDetails(context.client.notificationDetails, farcasterFid, farcasterUsername);
-            return true;
+          try {
+            const context = await Promise.resolve(sdk.context);
+            console.log('📋 Farcaster context available:', !!context);
+            console.log('📋 Context client:', !!context?.client);
+            console.log('📋 Notification details:', !!context?.client?.notificationDetails);
+            
+            if (context?.client?.notificationDetails) {
+              console.log('🎯 Found notification details in context, storing...');
+              await storeNotificationDetails(context.client.notificationDetails, farcasterFid, farcasterUsername);
+              console.log('✅ Notification details stored from context');
+              return true;
+            } else {
+              console.log('ℹ️ No notification details found in context');
+            }
+          } catch (contextError) {
+            console.log('⚠️ Error reading Farcaster context:', contextError);
           }
+        } else {
+          console.log('ℹ️ No Farcaster context available');
         }
 
         // If not available, prompt user to add frame

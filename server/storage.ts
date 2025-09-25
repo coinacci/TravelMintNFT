@@ -366,11 +366,15 @@ export class DatabaseStorage implements IStorage {
     farcasterUsername?: string
   ): Promise<UserStats | undefined> {
     try {
+      console.log(`🔍 Updating notification details in database for user ${farcasterFid}...`);
+      
       // First check if user stats exist
       const existing = await this.getUserStats(farcasterFid);
+      console.log(`📊 Existing user stats found: ${!!existing}`);
       
       if (existing) {
         // Update existing user's notification details
+        console.log(`🔄 Updating existing user stats for ${farcasterFid}`);
         const [updated] = await db
           .update(userStats)
           .set({ 
@@ -380,9 +384,18 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(userStats.farcasterFid, farcasterFid))
           .returning();
+        
+        console.log(`✅ Database update successful for user ${farcasterFid}:`, {
+          hasNotificationUrl: !!updated?.farcasterNotificationUrl,
+          hasNotificationToken: !!updated?.farcasterNotificationToken,
+          urlLength: updated?.farcasterNotificationUrl?.length || 0,
+          tokenLength: updated?.farcasterNotificationToken?.length || 0
+        });
+        
         return updated || undefined;
       } else if (farcasterUsername) {
         // Create new user stats with notification details
+        console.log(`🆕 Creating new user stats for ${farcasterFid} (${farcasterUsername})`);
         const [created] = await db
           .insert(userStats)
           .values({
@@ -396,13 +409,21 @@ export class DatabaseStorage implements IStorage {
             weeklyResetDate: getCurrentWeekStart(),
           })
           .returning();
+        
+        console.log(`✅ Database insert successful for new user ${farcasterFid}:`, {
+          hasNotificationUrl: !!created?.farcasterNotificationUrl,
+          hasNotificationToken: !!created?.farcasterNotificationToken,
+          urlLength: created?.farcasterNotificationUrl?.length || 0,
+          tokenLength: created?.farcasterNotificationToken?.length || 0
+        });
+        
         return created;
       } else {
-        console.warn(`Cannot create user stats for ${farcasterFid} - missing username`);
+        console.warn(`❌ Cannot create user stats for ${farcasterFid} - missing username`);
         return undefined;
       }
     } catch (error) {
-      console.error(`Failed to update notification details for ${farcasterFid}:`, error);
+      console.error(`❌ Database operation failed for ${farcasterFid}:`, error);
       return undefined;
     }
   }

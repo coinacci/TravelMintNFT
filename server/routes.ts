@@ -2724,14 +2724,30 @@ export async function registerRoutes(app: Express) {
     try {
       const { farcasterFid, notificationUrl, notificationToken, farcasterUsername } = req.body;
 
+      console.log(`🔔 Notification update request received:`, {
+        farcasterFid,
+        farcasterUsername,
+        hasUrl: !!notificationUrl,
+        hasToken: !!notificationToken,
+        urlStart: notificationUrl ? notificationUrl.substring(0, 50) + '...' : 'none',
+        tokenStart: notificationToken ? notificationToken.substring(0, 20) + '...' : 'none'
+      });
+
       if (!farcasterFid || !notificationUrl || !notificationToken) {
+        console.warn(`⚠️ Missing required fields for notification update:`, {
+          farcasterFid: !!farcasterFid,
+          notificationUrl: !!notificationUrl,
+          notificationToken: !!notificationToken
+        });
         return res.status(400).json({ message: "Farcaster FID, notification URL, and token are required" });
       }
 
-      console.log(`📱 Updating notification details for user ${farcasterFid}`);
+      console.log(`📱 Updating notification details for user ${farcasterFid} (${farcasterUsername})`);
 
       // Update or create user stats with notification details
       await storage.updateUserNotificationDetails(farcasterFid, notificationUrl, notificationToken, farcasterUsername);
+
+      console.log(`✅ Notification details successfully stored in database for user ${farcasterFid}`);
 
       res.json({ 
         success: true, 
