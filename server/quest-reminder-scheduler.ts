@@ -2,6 +2,7 @@ import { storage } from "./storage";
 import { questReminders, userStats } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
+import fetch from "node-fetch";
 
 // Quest reminder scheduler - runs every hour to check for 14:00 local time notifications
 export class QuestReminderScheduler {
@@ -41,14 +42,14 @@ export class QuestReminderScheduler {
     console.log("🛑 Quest reminder scheduler stopped");
   }
 
-  // Check current time across timezones and send reminders for 14:50 local time
+  // Check current time across timezones and send reminders for 15:30 local time
   private async checkAndSendReminders(): Promise<void> {
     try {
-      console.log("🔍 Checking for users at 14:50 local time...");
+      console.log("🔍 Checking for users at 15:30 local time...");
       
       const currentUTC = new Date();
-      const targetLocalHour = 14; // 2:50 PM local time
-      const targetLocalMinute = 50;
+      const targetLocalHour = 15; // 3:30 PM local time
+      const targetLocalMinute = 30;
       const todayDateString = currentUTC.toISOString().split('T')[0]; // YYYY-MM-DD
 
       // Get all users with their timezones
@@ -92,9 +93,8 @@ export class QuestReminderScheduler {
           
           console.log(`🔍 User ${userStat.farcasterUsername} (${userTimezone}): UTC ${currentUTC.toLocaleTimeString()} → Local ${userLocalTime.toLocaleTimeString()} (${userLocalHour}:${userLocalMinute})`);
 
-          // Check if it's 14:50-15:00 (2:50-3:00 PM) in user's local time (10 minute window)
-          if ((userLocalHour === targetLocalHour && userLocalMinute >= targetLocalMinute) || 
-              (userLocalHour === targetLocalHour + 1 && userLocalMinute === 0)) {
+          // Check if it's 15:30-15:45 (3:30-3:45 PM) in user's local time (15 minute window)
+          if (userLocalHour === targetLocalHour && userLocalMinute >= targetLocalMinute && userLocalMinute < targetLocalMinute + 15) {
             console.log(`🎯 Sending reminder to user ${userStat.farcasterUsername} (${userTimezone}) - Local time: ${userLocalTime.toLocaleTimeString()}`);
             
             // Send reminder notification
@@ -127,26 +127,68 @@ export class QuestReminderScheduler {
           farcasterFid,
           reminderDate,
           timezone,
-          localTime: "14:50"
+          localTime: "15:30"
         });
 
-      // In a real implementation, here you would:
-      // 1. Get user's stored Farcaster notification details
-      // 2. Send actual Farcaster notification via HTTP API
-      // For now, we'll just log it
-      console.log(`📢 Quest reminder sent to ${farcasterUsername} (${farcasterFid}) in ${timezone}`);
+      // Send actual Farcaster notification if user has notification details
+      await this.sendFarcasterNotification(farcasterFid, farcasterUsername, timezone);
       
-      // TODO: Implement actual Farcaster notification sending
-      // const notificationPayload = {
-      //   notificationId: `quest-reminder-${farcasterFid}-${Date.now()}`,
-      //   title: "TravelMint Daily Quest",
-      //   body: "⏰ Don't forget your daily streak! Complete today's quests",
-      //   targetUrl: process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : undefined,
-      // };
-      // await sendFarcasterNotification(notificationDetails, notificationPayload);
+      console.log(`📢 Quest reminder sent to ${farcasterUsername} (${farcasterFid}) in ${timezone}`);
 
     } catch (error) {
       console.error(`❌ Failed to send quest reminder to ${farcasterFid}:`, error);
+    }
+  }
+
+  // Send actual Farcaster notification via API
+  private async sendFarcasterNotification(
+    farcasterFid: string, 
+    farcasterUsername: string, 
+    timezone: string
+  ): Promise<void> {
+    try {
+      // Get user's stored notification details from database
+      const userStat = await db
+        .select()
+        .from(userStats)
+        .where(eq(userStats.farcasterFid, farcasterFid))
+        .limit(1);
+
+      if (userStat.length === 0 || !userStat[0].farcasterNotificationUrl || !userStat[0].farcasterNotificationToken) {
+        console.log(`⚠️ No Farcaster notification details for user ${farcasterUsername} - using mock notification`);
+        return;
+      }
+
+      const notificationDetails = {
+        url: userStat[0].farcasterNotificationUrl,
+        token: userStat[0].farcasterNotificationToken
+      };
+
+      const notificationPayload = {
+        notificationId: `quest-reminder-${farcasterFid}-${Date.now()}`,
+        title: "TravelMint Daily Quest",
+        body: "⏰ Don't forget your daily streak! Complete today's quests",
+        targetUrl: process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : undefined,
+      };
+
+      const response = await fetch(notificationDetails.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${notificationDetails.token}`,
+        },
+        body: JSON.stringify(notificationPayload),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Farcaster notification sent to ${farcasterUsername}`);
+      } else {
+        console.warn(`⚠️ Farcaster notification failed for ${farcasterUsername}:`, response.status);
+      }
+
+    } catch (error) {
+      console.error(`❌ Failed to send Farcaster notification to ${farcasterUsername}:`, error);
+      // Don't throw error, continue with other users
     }
   }
 

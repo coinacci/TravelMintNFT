@@ -85,6 +85,9 @@ export const userStats = pgTable("user_stats", {
   farcasterPfpUrl: text("farcaster_pfp_url"), // Farcaster profile picture URL
   walletAddress: text("wallet_address"), // Nullable - only required for holder bonus
   timezone: text("timezone").default("UTC"), // User's timezone (e.g., "America/New_York", "Europe/London")
+  // Farcaster notification details for quest reminders
+  farcasterNotificationUrl: text("farcaster_notification_url"), // Webhook URL for notifications
+  farcasterNotificationToken: text("farcaster_notification_token"), // Auth token for notifications
   totalPoints: integer("total_points").default(0).notNull(), // Stored as fixed-point (points * 100)
   weeklyPoints: integer("weekly_points").default(0).notNull(), // Weekly points - resets every Monday
   currentStreak: integer("current_streak").default(0).notNull(),
