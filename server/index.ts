@@ -89,9 +89,9 @@ if (!process.env.VERCEL) {
     }, () => {
       log(`serving on port ${port}`);
       
-      // Start the quest reminder scheduler
-      questReminderScheduler.start();
-      log("🕒 Quest reminder scheduler started");
+      // Quest reminder scheduler disabled per user request
+      // questReminderScheduler.start();
+      // log("🕒 Quest reminder scheduler started");
     });
   })();
 }

@@ -17,28 +17,8 @@ export type NotificationDetails = {
   token: string;
 };
 
-// Daily quest notification tracking
-const QUEST_NOTIFICATION_KEY = 'travelmint_quest_notification_date';
-
 export const useFarcasterNotifications = () => {
   const { toast } = useToast();
-
-  // Helper to check if quest notification was already sent today
-  const hasQuestNotificationSentToday = (): boolean => {
-    if (typeof window === 'undefined') return false;
-    
-    const lastSentDate = localStorage.getItem(QUEST_NOTIFICATION_KEY);
-    const today = new Date().toDateString();
-    
-    return lastSentDate === today;
-  };
-
-  // Helper to mark quest notification as sent for today
-  const markQuestNotificationSent = (): void => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(QUEST_NOTIFICATION_KEY, new Date().toDateString());
-    }
-  };
 
   // Get stored notification details from localStorage
   const getStoredNotificationDetails = (): NotificationDetails | null => {
@@ -169,7 +149,6 @@ export const useFarcasterNotifications = () => {
     sendNFTMintNotification,
     sendNFTPurchaseNotification,
     enableFarcasterNotifications,
-    hasQuestNotificationSentToday,
     getStoredNotificationDetails,
   };
 };
