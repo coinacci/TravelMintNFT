@@ -2612,6 +2612,35 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Update User Timezone API
+  app.post("/api/update-user-timezone", async (req: Request, res: Response) => {
+    try {
+      const { farcasterFid, timezone, farcasterUsername } = req.body;
+
+      if (!farcasterFid || !timezone) {
+        return res.status(400).json({ message: "Farcaster FID and timezone are required" });
+      }
+
+      console.log(`🌍 Updating timezone for user ${farcasterFid}: ${timezone}`);
+
+      // Update or create user stats with timezone
+      await storage.updateUserTimezone(farcasterFid, timezone, farcasterUsername);
+
+      res.json({ 
+        success: true, 
+        message: "User timezone updated successfully",
+        timezone: timezone
+      });
+
+    } catch (error) {
+      console.error("❌ Failed to update user timezone:", error);
+      res.status(500).json({ 
+        message: "Failed to update user timezone",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Quest Reminder API - Send test reminder to all users with notifications enabled
   app.post("/api/send-quest-reminder", async (req: Request, res: Response) => {
     try {
