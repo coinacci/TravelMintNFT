@@ -84,12 +84,16 @@ export class QuestReminderScheduler {
 
           // Calculate current local time for this user
           const userTimezone = userStat.timezone || 'UTC';
+          
+          // Better timezone conversion using toLocaleString
           const userLocalTime = new Date(currentUTC.toLocaleString("en-US", { timeZone: userTimezone }));
           const userLocalHour = userLocalTime.getHours();
-
-          // Check if it's exactly 14:30 (2:30 PM) in user's local time
           const userLocalMinute = userLocalTime.getMinutes();
-          if (userLocalHour === targetLocalHour && userLocalMinute === targetLocalMinute) {
+          
+          console.log(`🔍 User ${userStat.farcasterUsername} (${userTimezone}): UTC ${currentUTC.toLocaleTimeString()} → Local ${userLocalTime.toLocaleTimeString()} (${userLocalHour}:${userLocalMinute})`);
+
+          // Check if it's 14:30-14:35 (2:30-2:35 PM) in user's local time (5 minute window)
+          if (userLocalHour === targetLocalHour && userLocalMinute >= targetLocalMinute && userLocalMinute < targetLocalMinute + 5) {
             console.log(`🎯 Sending reminder to user ${userStat.farcasterUsername} (${userTimezone}) - Local time: ${userLocalTime.toLocaleTimeString()}`);
             
             // Send reminder notification
