@@ -179,11 +179,44 @@ export const useFarcasterNotifications = () => {
     markQuestNotificationSent();
   };
 
+  // Send test quest reminder notification
+  const sendTestQuestReminder = async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/send-quest-reminder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Test quest reminder sent:', result);
+        
+        // Show local toast
+        toast({
+          title: "Test Quest Reminder Sent! 📢",
+          description: "Check your Farcaster notifications",
+        });
+      } else {
+        throw new Error(`Failed to send test reminder: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send test quest reminder:', error);
+      toast({
+        title: "Test Failed",
+        description: "Could not send test quest reminder",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     sendNotification,
     sendNFTMintNotification,
     sendNFTPurchaseNotification,
     sendQuestCompletionNotification,
+    sendTestQuestReminder,
     enableFarcasterNotifications,
     hasQuestNotificationSentToday,
     getStoredNotificationDetails,

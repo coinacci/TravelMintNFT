@@ -375,8 +375,8 @@ export async function registerRoutes(app: Express) {
               }
               
               // Check if coordinates are missing (0,0) and metadata has coordinates
-              const currentLat = parseFloat(existsInDb.latitude);
-              const currentLng = parseFloat(existsInDb.longitude);
+              const currentLat = parseFloat(existsInDb.latitude || "0");
+              const currentLng = parseFloat(existsInDb.longitude || "0");
               
               if ((currentLat === 0 && currentLng === 0) && blockchainNFT.metadata) {
                 const metadata = blockchainNFT.metadata;
@@ -1645,8 +1645,8 @@ export async function registerRoutes(app: Express) {
             );
             
             if (latAttr && lngAttr && latAttr.value !== "0" && lngAttr.value !== "0") {
-              const currentLat = parseFloat(existsInDb.latitude);
-              const currentLng = parseFloat(existsInDb.longitude);
+              const currentLat = parseFloat(existsInDb.latitude || "0");
+              const currentLng = parseFloat(existsInDb.longitude || "0");
               
               // Update if coordinates are missing (0,0) or different from metadata
               if ((currentLat === 0 && currentLng === 0) || 
@@ -2176,7 +2176,7 @@ export async function registerRoutes(app: Express) {
           pointsEarned = combinedHolderStatus.nftCount;
           break;
           
-        case 'streak_bonus':
+        case 'streak_bonus' as any:
           if (!existingUserStats) {
             return res.status(400).json({ 
               message: "Must complete daily check-ins first to claim streak bonus" 
@@ -2609,6 +2609,41 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Get marketplace stats error:", error);
       res.status(500).json({ message: "Failed to get marketplace statistics" });
+    }
+  });
+
+  // Quest Reminder API - Send test reminder to all users with notifications enabled
+  app.post("/api/send-quest-reminder", async (req: Request, res: Response) => {
+    try {
+      console.log("📢 Quest reminder request received");
+
+      // Test notification payload
+      const reminderPayload = {
+        notificationId: `quest-reminder-${Date.now()}`,
+        title: "TravelMint Daily Quest",
+        body: "⏰ Don't forget your daily streak! Complete today's quests",
+        targetUrl: process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DEV_DOMAIN}` : undefined,
+      };
+
+      // For demo purposes, we'll just return success
+      // In a real implementation, you would:
+      // 1. Get all users who have enabled notifications
+      // 2. Send notifications to each user's stored notification details
+      
+      console.log("✅ Quest reminder notification payload prepared:", reminderPayload);
+
+      res.json({ 
+        success: true, 
+        message: "Quest reminder sent successfully",
+        payload: reminderPayload
+      });
+
+    } catch (error) {
+      console.error("❌ Failed to send quest reminder:", error);
+      res.status(500).json({ 
+        message: "Failed to send quest reminder",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

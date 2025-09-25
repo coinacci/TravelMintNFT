@@ -55,7 +55,7 @@ export default function Quests() {
   const [castUrl, setCastUrl] = useState<string>('');
   const { address } = useAccount();
   const { toast } = useToast();
-  const { sendQuestCompletionNotification } = useFarcasterNotifications();
+  const { sendQuestCompletionNotification, sendTestQuestReminder } = useFarcasterNotifications();
 
   // Smart contract interactions for Base transaction quest
   const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();
@@ -499,6 +499,38 @@ export default function Quests() {
                   💡 Create a cast mentioning "TravelMint" to claim points! (App link optional)
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Test Quest Reminder Button */}
+        {farcasterUser && (
+          <Card className="border-dashed border-blue-300 bg-blue-50 dark:bg-blue-950">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Zap className="h-6 w-6 text-blue-500" />
+                  <div>
+                    <CardTitle className="text-blue-700 dark:text-blue-300">Test Quest Reminder</CardTitle>
+                    <CardDescription>Send test quest notification to all users</CardDescription>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-blue-500 text-blue-600">
+                  Test Only
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => sendTestQuestReminder()}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                data-testid="button-test-quest-reminder"
+              >
+                📢 Send Quest Reminder
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                ⚠️ This will send "⏰ Don't forget your daily streak! Complete today's quests" to all users with notifications enabled
+              </p>
             </CardContent>
           </Card>
         )}
