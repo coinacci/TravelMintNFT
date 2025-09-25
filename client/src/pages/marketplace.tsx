@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
 import NFTCard from "@/components/nft-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,7 @@ export default function Marketplace() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { sendNFTPurchaseNotification } = useFarcasterNotifications();
   const queryClient = useQueryClient();
   const { address: walletAddress, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -532,6 +534,12 @@ export default function Marketplace() {
               title: "🎉 Purchase Complete!",
               description: "NFT purchased successfully! USDC split between seller (95%) and platform (5%), NFT transferred to you.",
             });
+
+            // Send Farcaster notification for successful NFT purchase
+            const purchasedNFT = nfts.find(nft => nft.id === currentPurchaseNftId);
+            if (purchasedNFT) {
+              await sendNFTPurchaseNotification(purchasedNFT.title, purchasedNFT.location, purchasedNFT.price);
+            }
             
             // Reset state
             setTransactionStep('idle');
