@@ -140,44 +140,28 @@ export const useFarcasterNotifications = () => {
     }
   };
 
-  // NFT Mint notification
-  const sendNFTMintNotification = async (nftName: string, location: string): Promise<void> => {
+  // NFT Mint notification (when others mint)
+  const sendNFTMintNotification = async (nftName: string, location: string, minterUsername?: string): Promise<void> => {
+    const minterText = minterUsername ? ` ${minterUsername} tarafından` : '';
     await sendNotification(
       `nft_mint_${Date.now()}`,
-      '🎨 NFT Mint başarılı!',
-      `"${nftName}" travel NFT'ini ${location} lokasyonunda başarıyla mint ettiniz!`,
+      '🎨 Yeni NFT Mintlendi!',
+      `"${nftName}" travel NFT'i ${location} lokasyonunda${minterText} mintlendi!`,
       'success'
     );
   };
 
-  // NFT Purchase notification
-  const sendNFTPurchaseNotification = async (nftName: string, location: string, price: string): Promise<void> => {
+  // NFT Purchase notification (when others purchase)
+  const sendNFTPurchaseNotification = async (nftName: string, location: string, price: string, buyerUsername?: string): Promise<void> => {
+    const buyerText = buyerUsername ? ` ${buyerUsername} tarafından` : '';
     await sendNotification(
       `nft_purchase_${Date.now()}`,
-      '💰 NFT Satın Alma Başarılı!',
-      `${location} lokasyonundan "${nftName}" travel NFT'ini ${price} USDC'ye satın aldınız!`,
+      '💰 NFT Satıldı!',
+      `${location} lokasyonundan "${nftName}" travel NFT'i ${price} USDC'ye${buyerText} satın alındı!`,
       'success'
     );
   };
 
-  // Quest completion notification (daily limit)
-  const sendQuestCompletionNotification = async (questName: string, points: number): Promise<void> => {
-    // Check if quest notification was already sent today
-    if (hasQuestNotificationSentToday()) {
-      console.log('ℹ️ Quest notification already sent today, skipping...');
-      return;
-    }
-
-    await sendNotification(
-      `quest_completion_${Date.now()}`,
-      '🎯 Quest Tamamlandı!',
-      `"${questName}" quest'ini tamamlayarak ${points} puan kazandınız!`,
-      'success'
-    );
-
-    // Mark as sent for today
-    markQuestNotificationSent();
-  };
 
   // Send test quest reminder notification
   const sendTestQuestReminder = async (): Promise<void> => {
@@ -215,7 +199,6 @@ export const useFarcasterNotifications = () => {
     sendNotification,
     sendNFTMintNotification,
     sendNFTPurchaseNotification,
-    sendQuestCompletionNotification,
     sendTestQuestReminder,
     enableFarcasterNotifications,
     hasQuestNotificationSentToday,

@@ -55,7 +55,7 @@ export default function Quests() {
   const [castUrl, setCastUrl] = useState<string>('');
   const { address } = useAccount();
   const { toast } = useToast();
-  const { sendQuestCompletionNotification, sendTestQuestReminder } = useFarcasterNotifications();
+  const { sendTestQuestReminder } = useFarcasterNotifications();
 
   // Smart contract interactions for Base transaction quest
   const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();
@@ -136,8 +136,6 @@ export default function Quests() {
         description: "+1.00 points earned"
       });
       
-      // Send Farcaster quest completion notification (daily limit)
-      await sendQuestCompletionNotification("Daily Check-in", 1);
       
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -165,8 +163,6 @@ export default function Quests() {
         description: `+${nftCount}.00 point${nftCount > 1 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
       
-      // Send Farcaster quest completion notification (daily limit)
-      await sendQuestCompletionNotification("Holder Bonus", nftCount);
       
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -195,8 +191,6 @@ export default function Quests() {
         description: "+0.50 points earned for sharing TravelMint!"
       });
       
-      // Send Farcaster quest completion notification (daily limit)
-      await sendQuestCompletionNotification("Social Post Quest", 0.5);
       
       setCastUrl(''); // Clear the input
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
