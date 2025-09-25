@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
 import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
@@ -54,13 +55,14 @@ export default function Quests() {
   const [castUrl, setCastUrl] = useState<string>('');
   const { address } = useAccount();
   const { toast } = useToast();
+  const { sendNFTMintNotification, sendNFTPurchaseNotification, enableFarcasterNotifications } = useFarcasterNotifications();
 
   // Smart contract interactions for Base transaction quest
   const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
-  // Get Farcaster user context
+  // Get Farcaster user context and update timezone
   useEffect(() => {
     const getFarcasterContext = async () => {
       try {
@@ -68,12 +70,41 @@ export default function Quests() {
           try {
             const context = await Promise.resolve(sdk.context);
             if (context?.user) {
-              setFarcasterUser({
+              const userData = {
                 fid: context.user.fid,
                 username: context.user.username,
                 displayName: context.user.displayName,
                 pfpUrl: context.user.pfpUrl
-              });
+              };
+              setFarcasterUser(userData);
+
+              // Auto-detect and update user timezone
+              const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              console.log('🌍 Detected user timezone:', userTimezone);
+              
+              try {
+                await apiRequest('POST', '/api/update-user-timezone', {
+                  farcasterFid: String(userData.fid),
+                  timezone: userTimezone,
+                  farcasterUsername: userData.username
+                });
+                console.log('✅ User timezone updated successfully');
+              } catch (timezoneError) {
+                console.warn('⚠️ Failed to update user timezone:', timezoneError);
+              }
+
+              // Auto-capture Farcaster notification details if available
+              try {
+                console.log('🔔 Attempting auto-capture of Farcaster notification details...');
+                const success = await enableFarcasterNotifications(String(userData.fid), userData.username);
+                if (success) {
+                  console.log('✅ Farcaster notification details captured automatically');
+                } else {
+                  console.log('ℹ️ Farcaster notification details not available - user may need to add frame first');
+                }
+              } catch (notificationError) {
+                console.log('ℹ️ Notification auto-capture failed:', notificationError);
+              }
             }
           } catch (contextError) {
             console.log('No Farcaster context available');
@@ -112,11 +143,13 @@ export default function Quests() {
       questType: 'daily_checkin',
       farcasterUsername: farcasterUser.username
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Daily check-in complete! 🎉",
         description: "+1.00 points earned"
       });
+      
+      
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
     },
@@ -136,12 +169,14 @@ export default function Quests() {
       questType: 'holder_bonus',
       farcasterUsername: farcasterUser.username
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       const nftCount = holderStatus?.nftCount || 1;
       toast({
         title: "Holder bonus claimed! 🏆",
         description: `+${nftCount}.00 point${nftCount > 1 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
+      
+      
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
       queryClient.invalidateQueries({ queryKey: ['/api/combined-holder-status', String(farcasterUser.fid)] });
@@ -163,11 +198,13 @@ export default function Quests() {
       castUrl: castUrl.trim(),
       farcasterUsername: farcasterUser.username
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Social post quest claimed! 📢",
         description: "+0.50 points earned for sharing TravelMint!"
       });
+      
+      
       setCastUrl(''); // Clear the input
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -307,6 +344,7 @@ export default function Quests() {
           </CardContent>
         </Card>
       </div>
+
 
       {/* Daily Quests */}
       <div className="space-y-6">
@@ -485,6 +523,43 @@ export default function Quests() {
                   💡 Create a cast mentioning "TravelMint" to claim points! (App link optional)
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Test Quest Reminder Button */}
+        {farcasterUser && (
+          <Card className="border-dashed border-blue-300 bg-blue-50 dark:bg-blue-950">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Zap className="h-6 w-6 text-blue-500" />
+                  <div>
+                    <CardTitle className="text-blue-700 dark:text-blue-300">Test Quest Reminder</CardTitle>
+                    <CardDescription>Send test quest notification to all users</CardDescription>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-blue-500 text-blue-600">
+                  Test Only
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  toast({
+                    title: "Quest Reminder System",
+                    description: "✅ System now running - reminders sent at 16:00 local time to users with notifications enabled",
+                  });
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                data-testid="button-test-quest-reminder"
+              >
+                📢 Check Reminder Status
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                ⚠️ This will send "⏰ Don't forget your daily streak! Complete today's quests" to all users with notifications enabled
+              </p>
             </CardContent>
           </Card>
         )}

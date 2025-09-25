@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { questReminderScheduler } from "./quest-reminder-scheduler";
 import { setupVite, serveStatic, log } from "./vite";
 import { createApp } from "./createApp";
 
@@ -87,6 +88,10 @@ if (!process.env.VERCEL) {
       reusePort: true,
     }, () => {
       log(`serving on port ${port}`);
+      
+      // Start quest reminder scheduler for daily 14:30 reminders
+      questReminderScheduler.start();
+      log("🕒 Quest reminder scheduler started");
     });
   })();
 }

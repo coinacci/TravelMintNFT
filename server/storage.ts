@@ -7,16 +7,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByWalletAddress(walletAddress: string): Promise<User | undefined>;
-  getUserByFarcasterFid(farcasterFid: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserBalance(id: string, balance: string): Promise<User | undefined>;
-  updateUserNotifications(farcasterFid: string, updates: {
-    notificationUrl?: string;
-    notificationToken?: string;
-    farcasterUsername?: string;
-    miniAppNotificationsEnabled?: boolean;
-  }): Promise<User | undefined>;
-  getUsersWithNotificationsEnabled(): Promise<User[]>;
 
   // NFT operations
   getNFT(id: string): Promise<NFT | undefined>;
@@ -39,8 +31,11 @@ export interface IStorage {
 
   // Quest system operations
   getUserStats(farcasterFid: string): Promise<UserStats | undefined>;
+  getAllUserStats(): Promise<UserStats[]>;
   createOrUpdateUserStats(stats: InsertUserStats): Promise<UserStats>;
   updateUserStats(farcasterFid: string, updates: Partial<UserStats>): Promise<UserStats | undefined>;
+  updateUserTimezone(farcasterFid: string, timezone: string, farcasterUsername?: string): Promise<UserStats | undefined>;
+  updateUserNotificationDetails(farcasterFid: string, notificationUrl: string, notificationToken: string, farcasterUsername?: string): Promise<UserStats | undefined>;
   getQuestCompletions(farcasterFid: string, date?: string): Promise<QuestCompletion[]>;
   createQuestCompletion(completion: InsertQuestCompletion): Promise<QuestCompletion>;
   getLeaderboard(limit?: number): Promise<UserStats[]>;
@@ -104,47 +99,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user || undefined;
-  }
-
-  async getUserByFarcasterFid(farcasterFid: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.farcasterFid, farcasterFid));
-    return user || undefined;
-  }
-
-  async updateUserNotifications(farcasterFid: string, updates: {
-    notificationUrl?: string;
-    notificationToken?: string;
-    farcasterUsername?: string;
-    miniAppNotificationsEnabled?: boolean;
-  }): Promise<User | undefined> {
-    const updateData: any = {};
-    
-    if (updates.notificationUrl !== undefined) updateData.notificationUrl = updates.notificationUrl;
-    if (updates.notificationToken !== undefined) updateData.notificationToken = updates.notificationToken;
-    if (updates.farcasterUsername !== undefined) updateData.farcasterUsername = updates.farcasterUsername;
-    if (updates.miniAppNotificationsEnabled !== undefined) {
-      updateData.miniAppNotificationsEnabled = updates.miniAppNotificationsEnabled ? 1 : 0;
-    }
-
-    if (Object.keys(updateData).length === 0) return undefined;
-
-    const [user] = await db
-      .update(users)
-      .set(updateData)
-      .where(eq(users.farcasterFid, farcasterFid))
-      .returning();
-    return user || undefined;
-  }
-
-  async getUsersWithNotificationsEnabled(): Promise<User[]> {
-    return await db
-      .select()
-      .from(users)
-      .where(and(
-        sql`${users.notificationUrl} IS NOT NULL`,
-        sql`${users.notificationToken} IS NOT NULL`,
-        eq(users.miniAppNotificationsEnabled, 1)
-      ));
   }
 
   // NFT operations
@@ -322,6 +276,11 @@ export class DatabaseStorage implements IStorage {
     return stats || undefined;
   }
 
+  async getAllUserStats(): Promise<UserStats[]> {
+    const allStats = await db.select().from(userStats);
+    return allStats;
+  }
+
   async createOrUpdateUserStats(insertStats: InsertUserStats): Promise<UserStats> {
     // Try to find existing user stats
     const existing = await this.getUserStats(insertStats.farcasterFid);
@@ -357,6 +316,116 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userStats.farcasterFid, farcasterFid))
       .returning();
     return updated || undefined;
+  }
+
+  async updateUserTimezone(farcasterFid: string, timezone: string, farcasterUsername?: string): Promise<UserStats | undefined> {
+    try {
+      // First check if user stats exist
+      const existing = await this.getUserStats(farcasterFid);
+      
+      if (existing) {
+        // Update existing user's timezone
+        const [updated] = await db
+          .update(userStats)
+          .set({ 
+            timezone,
+            updatedAt: new Date()
+          })
+          .where(eq(userStats.farcasterFid, farcasterFid))
+          .returning();
+        return updated || undefined;
+      } else if (farcasterUsername) {
+        // Create new user stats with timezone
+        const [created] = await db
+          .insert(userStats)
+          .values({
+            farcasterFid,
+            farcasterUsername,
+            timezone,
+            totalPoints: 0,
+            weeklyPoints: 0,
+            currentStreak: 0,
+            weeklyResetDate: getCurrentWeekStart(),
+          })
+          .returning();
+        return created;
+      } else {
+        console.warn(`Cannot create user stats for ${farcasterFid} - missing username`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`Failed to update timezone for ${farcasterFid}:`, error);
+      return undefined;
+    }
+  }
+
+  async updateUserNotificationDetails(
+    farcasterFid: string, 
+    notificationUrl: string, 
+    notificationToken: string,
+    farcasterUsername?: string
+  ): Promise<UserStats | undefined> {
+    try {
+      console.log(`🔍 Updating notification details in database for user ${farcasterFid}...`);
+      
+      // First check if user stats exist
+      const existing = await this.getUserStats(farcasterFid);
+      console.log(`📊 Existing user stats found: ${!!existing}`);
+      
+      if (existing) {
+        // Update existing user's notification details
+        console.log(`🔄 Updating existing user stats for ${farcasterFid}`);
+        const [updated] = await db
+          .update(userStats)
+          .set({ 
+            farcasterNotificationUrl: notificationUrl,
+            farcasterNotificationToken: notificationToken,
+            updatedAt: new Date()
+          })
+          .where(eq(userStats.farcasterFid, farcasterFid))
+          .returning();
+        
+        console.log(`✅ Database update successful for user ${farcasterFid}:`, {
+          hasNotificationUrl: !!updated?.farcasterNotificationUrl,
+          hasNotificationToken: !!updated?.farcasterNotificationToken,
+          urlLength: updated?.farcasterNotificationUrl?.length || 0,
+          tokenLength: updated?.farcasterNotificationToken?.length || 0
+        });
+        
+        return updated || undefined;
+      } else if (farcasterUsername) {
+        // Create new user stats with notification details
+        console.log(`🆕 Creating new user stats for ${farcasterFid} (${farcasterUsername})`);
+        const [created] = await db
+          .insert(userStats)
+          .values({
+            farcasterFid,
+            farcasterUsername,
+            farcasterNotificationUrl: notificationUrl,
+            farcasterNotificationToken: notificationToken,
+            totalPoints: 0,
+            weeklyPoints: 0,
+            currentStreak: 0,
+            weeklyResetDate: getCurrentWeekStart(),
+          })
+          .returning();
+        
+        console.log(`✅ Database insert successful for new user ${farcasterFid}:`, {
+          hasNotificationUrl: !!created?.farcasterNotificationUrl,
+          hasNotificationToken: !!created?.farcasterNotificationToken,
+          urlLength: created?.farcasterNotificationUrl?.length || 0,
+          tokenLength: created?.farcasterNotificationToken?.length || 0
+        });
+        
+        return created;
+      } else {
+        console.warn(`❌ Cannot create user stats for ${farcasterFid} - missing username`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`❌ Database operation failed for ${farcasterFid}:`, error);
+      return undefined;
+    }
   }
 
   async getQuestCompletions(farcasterFid: string, date?: string): Promise<QuestCompletion[]> {
