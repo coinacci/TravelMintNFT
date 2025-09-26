@@ -2612,5 +2612,162 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // ============================
+  // FARCASTER WEBHOOK ENDPOINTS
+  // ============================
+
+  // Webhook for handling Farcaster mini app events
+  app.post("/api/farcaster/webhook", async (req: any, res) => {
+    try {
+      // Verify webhook signature for security
+      const signature = req.headers['x-neynar-signature'] as string;
+      if (!signature) {
+        console.error("❌ Missing Neynar signature in webhook request");
+        return res.status(401).json({ message: "Unauthorized - missing signature" });
+      }
+
+      // Make webhook secret mandatory for security
+      if (!process.env.NEYNAR_WEBHOOK_SECRET) {
+        console.error("❌ NEYNAR_WEBHOOK_SECRET not configured - webhook insecure");
+        return res.status(500).json({ message: "Webhook security not configured" });
+      }
+
+      // Verify the signature using webhook secret
+      const crypto = await import('crypto');
+      const expectedSignature = crypto.createHmac('sha256', process.env.NEYNAR_WEBHOOK_SECRET)
+        .update(req.rawBody)
+        .digest('hex');
+      
+      const receivedSignature = signature.replace('sha256=', '');
+      
+      if (receivedSignature !== expectedSignature) {
+        console.error("❌ Invalid Neynar webhook signature");
+        return res.status(401).json({ message: "Unauthorized - invalid signature" });
+      }
+      
+      console.log("✅ Neynar webhook signature verified");
+
+      const event = req.body;
+      console.log("🔔 Farcaster webhook received:", event);
+
+      if (event.event === "miniapp_added") {
+        // User added the mini app - store notification token
+        const { user, notificationDetails } = event;
+        
+        if (user?.fid && notificationDetails?.token) {
+          console.log(`➕ Mini app added by user FID: ${user.fid}`);
+          
+          // Store notification token in database
+          await storage.storeNotificationToken({
+            fid: user.fid,
+            token: notificationDetails.token,
+            isActive: 1 // Convert boolean to integer
+          });
+
+          // Send welcome notification
+          const { notificationService } = await import('./notifications');
+          await notificationService.sendWelcomeNotification(user.fid);
+          
+          console.log(`✅ Notification token stored for FID: ${user.fid}`);
+        }
+      } 
+      else if (event.event === "miniapp_removed") {
+        // User removed the mini app - deactivate notification token
+        const { user } = event;
+        
+        if (user?.fid) {
+          console.log(`➖ Mini app removed by user FID: ${user.fid}`);
+          
+          // Deactivate notification token
+          await storage.deactivateNotificationToken(user.fid);
+          
+          console.log(`✅ Notification token deactivated for FID: ${user.fid}`);
+        }
+      }
+
+      res.status(200).json({ message: "Webhook processed successfully" });
+
+    } catch (error) {
+      console.error("❌ Farcaster webhook error:", error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  // Get notification preferences for a user
+  app.get("/api/notifications/preferences/:fid", async (req, res) => {
+    try {
+      const { fid } = req.params;
+      
+      if (!fid) {
+        return res.status(400).json({ message: "FID is required" });
+      }
+
+      const preferences = await storage.getNotificationPreferences(parseInt(fid));
+      
+      res.json({
+        preferences,
+        message: "Notification preferences retrieved"
+      });
+
+    } catch (error) {
+      console.error("Get notification preferences error:", error);
+      res.status(500).json({ message: "Failed to get notification preferences" });
+    }
+  });
+
+  // Update notification preferences for a user
+  app.post("/api/notifications/preferences", async (req, res) => {
+    try {
+      const { fid, enablePurchaseNotifications, enableListingNotifications, enablePriceChangeNotifications, enableGeneralUpdates } = req.body;
+      
+      if (!fid) {
+        return res.status(400).json({ message: "FID is required" });
+      }
+
+      await storage.updateNotificationPreferences({
+        fid: parseInt(fid),
+        enablePurchaseNotifications: enablePurchaseNotifications ? 1 : 0, // Convert boolean to integer
+        enableListingNotifications: enableListingNotifications ? 1 : 0,
+        enablePriceChangeNotifications: enablePriceChangeNotifications ? 1 : 0,
+        enableGeneralUpdates: enableGeneralUpdates ? 1 : 0
+      });
+      
+      res.json({
+        message: "Notification preferences updated successfully"
+      });
+
+    } catch (error) {
+      console.error("Update notification preferences error:", error);
+      res.status(500).json({ message: "Failed to update notification preferences" });
+    }
+  });
+
+  // Test notification endpoint (for development/testing)
+  app.post("/api/notifications/test", async (req, res) => {
+    try {
+      const { fid, title, body, target_url } = req.body;
+      
+      if (!fid || !title || !body) {
+        return res.status(400).json({ message: "FID, title, and body are required" });
+      }
+
+      const { notificationService } = await import('./notifications');
+      
+      await notificationService.sendNotificationToUsers([parseInt(fid)], {
+        title,
+        body,
+        target_url: target_url || `${process.env.APP_URL || 'https://your-app.replit.app'}`
+      });
+      
+      res.json({
+        message: "Test notification sent successfully"
+      });
+
+    } catch (error) {
+      console.error("Send test notification error:", error);
+      res.status(500).json({ message: "Failed to send test notification" });
+    }
+  });
+
   return createServer(app);
 }
