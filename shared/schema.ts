@@ -267,3 +267,14 @@ export function getWeekNumber(date: Date = new Date()): number {
   const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
   return Math.floor(diffDays / 7) + 1; // Week 1 starts from app launch
 }
+
+// Neynar Notification System Schemas
+export const sendNotificationSchema = z.object({
+  token: z.string().min(1, "Notification token is required"),
+  url: z.string().url("Valid notification URL is required"), 
+  targetUrl: z.string().url("Valid target URL is required"),
+  title: z.string().min(1, "Notification title is required").max(100, "Title too long"),
+  body: z.string().min(1, "Notification body is required").max(500, "Body too long"),
+});
+
+export type SendNotificationRequest = z.infer<typeof sendNotificationSchema>;
