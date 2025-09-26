@@ -15,6 +15,7 @@ import { parseUnits } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { User, Clock, MapPin } from "lucide-react";
+import { AddMiniApp, NotificationStatus } from "@/components/add-mini-app";
 
 interface NFT {
   id: string;
@@ -634,6 +635,11 @@ export default function Marketplace() {
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       <div className="container mx-auto px-4">
+        {/* Notification Mini App Component */}
+        <div className="mb-6">
+          <AddMiniApp />
+        </div>
+        
         <Tabs defaultValue="browse-nfts" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="browse-nfts" data-testid="tab-browse-nfts">Browse NFTs</TabsTrigger>

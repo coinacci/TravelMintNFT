@@ -4,8 +4,16 @@ import { registerRoutes } from "./routes";
 export function createApp() {
   const app = express();
 
-  // Body parsers
-  app.use(express.json({ limit: '50mb' })); // Increased limit for image uploads
+  // Body parsers with webhook raw body capture
+  app.use(express.json({ 
+    limit: '50mb',
+    verify: (req: any, res, buf) => {
+      // Capture raw body for webhook signature verification
+      if (req.originalUrl === '/api/farcaster/webhook' || req.originalUrl === '/api/webhook') {
+        req.rawBody = buf;
+      }
+    }
+  })); // Increased limit for image uploads
   app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
   // HIGH PRIORITY: Farcaster manifest route MUST be first to avoid Vite/static interception
@@ -37,7 +45,7 @@ export function createApp() {
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
         "ogImageUrl": `https://travelnft.replit.app/og-image-1200x630.jpeg${cacheBuster}`,
         "castShareUrl": `https://travelnft.replit.app/share${cacheBuster}`,
-        "webhookUrl": "https://travelnft.replit.app/api/webhook",
+        "webhookUrl": "https://travelnft.replit.app/api/farcaster/webhook",
         "license": "MIT",
         "privacyPolicyUrl": "https://travelnft.replit.app/privacy",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
