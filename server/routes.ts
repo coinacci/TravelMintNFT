@@ -13,7 +13,9 @@ import {
   questCompletionsParamsSchema,
   holderStatusParamsSchema,
   leaderboardQuerySchema,
+  sendNotificationSchema,
   type QuestClaimRequest,
+  type SendNotificationRequest,
   getQuestDay,
   getYesterdayQuestDay
 } from "@shared/schema";
@@ -22,6 +24,10 @@ import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { farcasterCastValidator } from "./farcaster-validation";
 import multer from "multer";
+import {
+  SendNotificationRequest as NeynarSendNotificationRequest,
+  sendNotificationResponseSchema,
+} from "@farcaster/frame-sdk";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
@@ -2609,6 +2615,95 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Get marketplace stats error:", error);
       res.status(500).json({ message: "Failed to get marketplace statistics" });
+    }
+  });
+
+  // Send Neynar notification
+  app.post("/api/send-notification", async (req, res) => {
+    try {
+      // 🔒 SECURITY: Validate API key is present
+      if (!process.env.NEYNAR_API_KEY) {
+        console.error("❌ NEYNAR_API_KEY not configured");
+        return res.status(500).json({
+          success: false,
+          message: "Notification service not configured"
+        });
+      }
+
+      console.log("🔔 Notification request received:", req.body);
+      
+      const requestBody = sendNotificationSchema.safeParse(req.body);
+
+      if (requestBody.success === false) {
+        console.error("❌ Notification validation failed:", requestBody.error.errors);
+        return res.status(400).json({
+          success: false,
+          errors: requestBody.error.errors
+        });
+      }
+
+      const { token, targetUrl, title, body } = requestBody.data;
+
+      console.log(`🔔 Sending notification to token: ${token.slice(0, 8)}...`);
+
+      // 🔒 SECURITY: Use fixed Neynar endpoint only
+      const NEYNAR_API_URL = "https://api.neynar.com/v2/farcaster/notifications";
+
+      // Make request to Neynar API
+      const response = await fetch(NEYNAR_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEYNAR_API_KEY}`,
+        },
+        body: JSON.stringify({
+          notificationId: crypto.randomUUID(),
+          title: title,
+          body: body,
+          targetUrl: targetUrl,
+          tokens: [token],
+        } satisfies NeynarSendNotificationRequest),
+      });
+
+      const responseJson = await response.json();
+      console.log("🔔 Neynar API response:", response.status, responseJson);
+
+      if (response.status === 200) {
+        // Validate response structure
+        const responseBody = sendNotificationResponseSchema.safeParse(responseJson);
+        if (responseBody.success === false) {
+          console.error("❌ Invalid Neynar API response format:", responseBody.error.errors);
+          return res.status(500).json({
+            success: false,
+            errors: responseBody.error.errors
+          });
+        }
+
+        // Check for rate limiting
+        if (responseBody.data.result.rateLimitedTokens.length) {
+          console.warn("⚠️ Rate limited tokens:", responseBody.data.result.rateLimitedTokens);
+          return res.status(429).json({
+            success: false,
+            error: "Rate limited"
+          });
+        }
+
+        console.log("✅ Notification sent successfully");
+        return res.json({ success: true });
+      } else {
+        console.error("❌ Neynar API error:", response.status, responseJson);
+        return res.status(500).json({
+          success: false,
+          error: responseJson
+        });
+      }
+
+    } catch (error) {
+      console.error("❌ Send notification error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to send notification" 
+      });
     }
   });
 
