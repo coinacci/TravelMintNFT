@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationTokens, notificationPreferences, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationToken, type InsertNotificationToken, type NotificationPreferences, type InsertNotificationPreferences, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -62,12 +62,6 @@ export interface IStorage {
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
   }): Promise<{ userStats: UserStats; questCompletion: QuestCompletion }>;
-
-  // Notification operations
-  storeNotificationToken(token: InsertNotificationToken): Promise<NotificationToken>;
-  deactivateNotificationToken(fid: number): Promise<void>;
-  getNotificationPreferences(fid: number): Promise<NotificationPreferences | undefined>;
-  updateNotificationPreferences(preferences: InsertNotificationPreferences): Promise<NotificationPreferences>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -899,80 +893,6 @@ export class DatabaseStorage implements IStorage {
         message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
       };
     });
-  }
-
-  // Notification operations
-  async storeNotificationToken(token: InsertNotificationToken): Promise<NotificationToken> {
-    // Use upsert pattern to handle duplicate FID
-    const [notificationToken] = await db
-      .insert(notificationTokens)
-      .values({
-        ...token,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: notificationTokens.fid,
-        set: {
-          token: token.token,
-          isActive: token.isActive,
-          updatedAt: new Date()
-        }
-      })
-      .returning();
-    
-    // Create default preferences if they don't exist
-    await db
-      .insert(notificationPreferences)
-      .values({
-        fid: token.fid,
-        enablePurchaseNotifications: 1,
-        enableListingNotifications: 1,
-        enablePriceChangeNotifications: 1,
-        enableGeneralUpdates: 1
-      })
-      .onConflictDoNothing(); // Don't overwrite existing preferences
-    
-    return notificationToken;
-  }
-
-  async deactivateNotificationToken(fid: number): Promise<void> {
-    await db
-      .update(notificationTokens)
-      .set({ 
-        isActive: 0,
-        updatedAt: new Date()
-      })
-      .where(eq(notificationTokens.fid, fid));
-  }
-
-  async getNotificationPreferences(fid: number): Promise<NotificationPreferences | undefined> {
-    const [preferences] = await db
-      .select()
-      .from(notificationPreferences)
-      .where(eq(notificationPreferences.fid, fid));
-    return preferences || undefined;
-  }
-
-  async updateNotificationPreferences(preferences: InsertNotificationPreferences): Promise<NotificationPreferences> {
-    const [updatedPreferences] = await db
-      .insert(notificationPreferences)
-      .values({
-        ...preferences,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: notificationPreferences.fid,
-        set: {
-          enablePurchaseNotifications: preferences.enablePurchaseNotifications,
-          enableListingNotifications: preferences.enableListingNotifications,
-          enablePriceChangeNotifications: preferences.enablePriceChangeNotifications,
-          enableGeneralUpdates: preferences.enableGeneralUpdates,
-          updatedAt: new Date()
-        }
-      })
-      .returning();
-    
-    return updatedPreferences;
   }
 }
 
