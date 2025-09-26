@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
 import { useEffect, useState, Component, ReactNode } from "react";
 import sdk from "@farcaster/frame-sdk";
-import { MiniAppProvider } from '@neynar/react';
 import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
 import Marketplace from "@/pages/marketplace";

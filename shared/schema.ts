@@ -226,46 +226,6 @@ export const insertWeeklyChampionSchema = createInsertSchema(weeklyChampions).om
 export type InsertWeeklyChampion = z.infer<typeof insertWeeklyChampionSchema>;
 export type WeeklyChampion = typeof weeklyChampions.$inferSelect;
 
-// Farcaster Notification System Tables
-export const notificationTokens = pgTable("notification_tokens", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  fid: integer("fid").notNull().unique(), // Farcaster user ID
-  token: text("token").notNull(), // Notification token from Farcaster
-  isActive: integer("is_active").default(1).notNull(), // 0 = false, 1 = true
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const notificationPreferences = pgTable("notification_preferences", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  fid: integer("fid").notNull().unique().references(() => notificationTokens.fid), // Link to notification tokens
-  enablePurchaseNotifications: integer("enable_purchase_notifications").default(1).notNull(), // 0 = false, 1 = true
-  enableListingNotifications: integer("enable_listing_notifications").default(1).notNull(),
-  enablePriceChangeNotifications: integer("enable_price_change_notifications").default(1).notNull(),
-  enableGeneralUpdates: integer("enable_general_updates").default(1).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Notification schemas
-export const insertNotificationTokenSchema = createInsertSchema(notificationTokens).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type InsertNotificationToken = z.infer<typeof insertNotificationTokenSchema>;
-export type NotificationToken = typeof notificationTokens.$inferSelect;
-
-export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
-export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
-
 // Weekly utilities - FIXED: Now uses UTC for consistent timezone handling
 export function getCurrentWeekStart(date: Date = new Date()): string {
   // Use UTC to avoid timezone issues - week starts Tuesday 00:00 UTC
