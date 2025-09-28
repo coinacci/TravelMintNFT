@@ -209,7 +209,7 @@ export default function Leaderboard() {
               </TabsTrigger>
               <TabsTrigger value="champions" className="flex items-center gap-2">
                 <Crown className="h-4 w-4" />
-                Champions
+                👑 Champions
               </TabsTrigger>
             </TabsList>
             
@@ -257,73 +257,6 @@ export default function Leaderboard() {
             </TabsContent>
             
             <TabsContent value="weekly">
-              {/* Show weekly champion: current week immediately, previous weeks after Tuesday reset */}
-              {weeklyChampions.length > 0 && (() => {
-                const today = new Date();
-                const championWeekStart = new Date(weeklyChampions[0].weekStartDate);
-                const championWeekEnd = new Date(weeklyChampions[0].weekEndDate);
-                
-                // Calculate current week start (this Tuesday 00:00 UTC)
-                const currentDayOfWeek = today.getUTCDay();
-                let daysToThisTuesday;
-                if (currentDayOfWeek === 2) {
-                  daysToThisTuesday = 0;
-                } else if (currentDayOfWeek < 2) {
-                  daysToThisTuesday = 2 - currentDayOfWeek;
-                } else {
-                  daysToThisTuesday = 2 - currentDayOfWeek;
-                }
-                
-                const currentWeekStart = new Date(today);
-                currentWeekStart.setUTCDate(today.getUTCDate() + daysToThisTuesday);
-                currentWeekStart.setUTCHours(0, 0, 0, 0);
-                
-                // Check if champion is for current week or previous week
-                const isCurrentWeekChampion = championWeekStart.getTime() === currentWeekStart.getTime();
-                
-                let isChampionValidTime;
-                if (isCurrentWeekChampion) {
-                  // Current week champion: show immediately after Tuesday reset
-                  isChampionValidTime = today >= currentWeekStart;
-                } else {
-                  // Previous week champion: show after Tuesday following week end
-                  const nextTuesday = new Date(championWeekEnd);
-                  nextTuesday.setUTCDate(nextTuesday.getUTCDate() + 1);
-                  nextTuesday.setUTCHours(0, 0, 0, 0);
-                  isChampionValidTime = today >= nextTuesday;
-                }
-                
-                console.log('🏆 Champion timing check:', {
-                  championWeekStart: championWeekStart.toISOString(),
-                  championWeekEnd: championWeekEnd.toISOString(),
-                  currentWeekStart: currentWeekStart.toISOString(),
-                  today: today.toISOString(),
-                  isCurrentWeekChampion,
-                  isChampionValidTime,
-                  championUsername: weeklyChampions[0].farcasterUsername
-                });
-                
-                // Only show champion if they have a username AND it's valid time
-                return isChampionValidTime && weeklyChampions[0].farcasterUsername && (
-                  <div className="mb-6 p-3 border rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full">
-                          <Crown className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-lg">@{weeklyChampions[0].farcasterUsername}</h3>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-xl text-yellow-600 dark:text-yellow-400">
-                          {pointsToDisplay(weeklyChampions[0].weeklyPoints)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
               
               {weeklyLeaderboard.length === 0 ? (
                 <div className="text-center py-8">
