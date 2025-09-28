@@ -209,7 +209,7 @@ export default function Leaderboard() {
               </TabsTrigger>
               <TabsTrigger value="champions" className="flex items-center gap-2">
                 <Crown className="h-4 w-4" />
-                👑 Champions
+                Champions
               </TabsTrigger>
             </TabsList>
             
