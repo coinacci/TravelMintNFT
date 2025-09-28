@@ -346,59 +346,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyLeaderboard(limit: number = 50): Promise<UserStats[]> {
-    // 🎯 FIXED: Show weekly leaderboard after Tuesday 00:00 UTC reset
-    // Week starts on Tuesday, so show weekly data after Tuesday 00:00 UTC of current week
+    // 🎯 FIXED: Always show actual weekly points, never totalPoints masquerading as weekly
+    console.log('📊 Fetching weekly leaderboard with actual weeklyPoints (not totalPoints)');
     
-    const today = new Date();
-    const currentDayOfWeek = today.getUTCDay(); // 0=Sunday, 1=Monday, 2=Tuesday, etc.
-    
-    // Calculate THIS Tuesday 00:00 UTC (start of current week)
-    let daysToThisTuesday;
-    if (currentDayOfWeek === 2) { // Today is Tuesday
-      daysToThisTuesday = 0; // This Tuesday is today
-    } else if (currentDayOfWeek < 2) { // Sunday or Monday  
-      daysToThisTuesday = 2 - currentDayOfWeek; // Days until this Tuesday
-    } else { // Wednesday, Thursday, Friday, Saturday
-      daysToThisTuesday = 2 - currentDayOfWeek; // Days back to this Tuesday (negative)
-    }
-    
-    const thisTuesday = new Date(today);
-    thisTuesday.setUTCDate(today.getUTCDate() + daysToThisTuesday);
-    thisTuesday.setUTCHours(0, 0, 0, 0); // Set to 00:00 UTC
-    
-    const hasPassedTuesdayReset = today >= thisTuesday;
-    
-    console.log('📅 Weekly leaderboard timing check:', {
-      today: today.toISOString(),
-      currentDayOfWeek,
-      daysToThisTuesday,
-      thisTuesday: thisTuesday.toISOString(),
-      hasPassedTuesdayReset,
-      shouldShowWeekly: hasPassedTuesdayReset
-    });
-    
-    // Show all-time leaderboard until Tuesday 00:00 UTC reset
-    if (!hasPassedTuesdayReset) {
-      console.log('🎆 Before Tuesday reset - showing all-time leaderboard');
-      const allTimeData = await db
-        .select()
-        .from(userStats)
-        .where(sql`${userStats.totalPoints} > 0`)
-        .orderBy(sql`${userStats.totalPoints} DESC`)
-        .limit(limit);
-      
-      // 🎯 CRITICAL FIX: Set weeklyPoints = totalPoints so frontend Weekly tab shows correct data
-      return allTimeData.map(entry => ({
-        ...entry,
-        weeklyPoints: entry.totalPoints // Frontend weekly tab shows weeklyPoints
-      }));
-    }
-    
-    // After Tuesday 00:00 UTC reset, show weekly leaderboard
-    console.log('📆 After Tuesday reset - showing weekly leaderboard');
-    
-    // Show actual weekly leaderboard - include all users, even with 0 weekly points
-    console.log('📊 Showing weekly leaderboard with actual weekly points');
+    // Show actual weekly leaderboard - this is the only correct way
+    // weeklyPoints is automatically reset during weekly reset process
     return await db
       .select()
       .from(userStats)
