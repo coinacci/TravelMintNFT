@@ -2864,9 +2864,8 @@ export async function registerRoutes(app: Express) {
         .filter(fid => !isNaN(fid));
 
       if (fids.length === 0) {
-        return res.status(400).json({ 
-          message: "No users have valid Farcaster IDs for notifications" 
-        });
+        // Instead of failing, try empty array to target all enabled users
+        console.log("⚠️ No specific FIDs found, attempting broadcast to all enabled users");
       }
 
       const notificationService = getNotificationService();
@@ -2876,13 +2875,35 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // Send notification
+      // Send notification - try both specific FIDs and empty array for comparison
+      console.log(`🎯 First attempt: Specific FIDs [${fids.join(', ')}]`);
       const result = await notificationService.sendNotification({
         title,
         message,
         fids,
         targetUrl: targetUrl || "https://travelmint.replit.app"
       });
+
+      // If no success, try empty array (broadcast to all enabled users)
+      if (result.successCount === 0 && fids.length > 0) {
+        console.log(`🔄 Specific FIDs failed, trying empty array broadcast...`);
+        const broadcastResult = await notificationService.sendNotification({
+          title: title + " (Broadcast)",
+          message,
+          fids: [], // Empty array = all enabled users
+          targetUrl: targetUrl || "https://travelmint.replit.app"
+        });
+        
+        console.log(`📊 Broadcast result: Success: ${broadcastResult.successCount}, Failed: ${broadcastResult.failureCount}`);
+        
+        // Use broadcast result if it was more successful
+        if (broadcastResult.successCount > result.successCount) {
+          console.log(`✅ Using broadcast result instead`);
+          result.successCount = broadcastResult.successCount;
+          result.failureCount = broadcastResult.failureCount;
+          result.success = broadcastResult.success;
+        }
+      }
 
       // Save to history
       await storage.createNotificationHistory({

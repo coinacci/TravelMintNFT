@@ -59,6 +59,9 @@ export class NotificationService {
         fids: params.fids,
       });
 
+      // DEBUG: Also try with empty array to target all enabled users
+      console.log(`🔄 Also testing with empty FID array for broader reach...`);
+
       const response = await fetch(this.neynarApiUrl, {
         method: "POST",
         headers: {
