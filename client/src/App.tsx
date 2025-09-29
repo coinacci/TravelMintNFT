@@ -14,6 +14,7 @@ import Mint from "@/pages/mint";
 import Quests from "@/pages/quests";
 import Leaderboard from "@/pages/leaderboard";
 import Privacy from "@/pages/privacy";
+import AdminNotifications from "@/pages/admin-notifications";
 import Navigation from "@/components/navigation";
 
 // Browser-safe Farcaster SDK initialization
@@ -110,6 +111,7 @@ function Router() {
         <Route path="/quests" component={Quests} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/admin/notifications" component={AdminNotifications} />
         <Route>
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
