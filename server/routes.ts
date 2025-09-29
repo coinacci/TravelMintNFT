@@ -17,10 +17,12 @@ import {
   getQuestDay,
   getYesterdayQuestDay
 } from "@shared/schema";
+import { z } from "zod";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { farcasterCastValidator } from "./farcaster-validation";
+import { getNotificationService, isNotificationServiceAvailable } from "./notificationService";
 import multer from "multer";
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
@@ -2609,6 +2611,246 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Get marketplace stats error:", error);
       res.status(500).json({ message: "Failed to get marketplace statistics" });
+    }
+  });
+
+  // ADMIN Notification Management Endpoints - SECRET PROTECTED
+  
+  // Send notification to users with tokens
+  app.post("/api/admin/notifications/send", async (req, res) => {
+    try {
+      // Check admin secret - FAIL CLOSED if not configured
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
+        return res.status(500).json({ message: "Admin access not configured" });
+      }
+      
+      const providedSecret = req.headers['x-admin-key'];
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      }
+
+      // Check if notification service is available
+      if (!isNotificationServiceAvailable()) {
+        return res.status(503).json({ 
+          message: "Notification service unavailable - NEYNAR_API_KEY not configured" 
+        });
+      }
+
+      // Validate input with Zod schema
+      const sendNotificationSchema = z.object({
+        title: z.string().min(1, "Title is required").max(100, "Title too long"),
+        message: z.string().min(1, "Message is required").max(500, "Message too long"),
+        targetUrl: z.string().url().optional()
+      });
+
+      const validationResult = sendNotificationSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid input data", 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const { title, message, targetUrl } = validationResult.data;
+
+      // Get users with notification tokens
+      const usersWithNotifications = await storage.getUsersWithNotifications();
+      
+      if (usersWithNotifications.length === 0) {
+        return res.status(400).json({ 
+          message: "No users have notification tokens enabled" 
+        });
+      }
+
+      const tokens = usersWithNotifications
+        .map(user => user.notificationToken)
+        .filter(token => token) as string[];
+
+      const notificationService = getNotificationService();
+      if (!notificationService) {
+        return res.status(503).json({ 
+          message: "Notification service not initialized" 
+        });
+      }
+
+      // Send notification
+      const result = await notificationService.sendNotification({
+        title,
+        message,
+        tokens,
+        targetUrl: targetUrl || "https://travelmint.replit.app"
+      });
+
+      // Save to history
+      await storage.createNotificationHistory({
+        title,
+        message,
+        targetUrl: targetUrl || "https://travelmint.replit.app",
+        recipientCount: tokens.length,
+        successCount: result.successCount,
+        failureCount: result.failureCount,
+        sentBy: "admin"
+      });
+
+      // Update last notification sent ONLY for actually successful recipients
+      if (result.successCount > 0) {
+        // Note: In a complete implementation, we'd need the notification service to return
+        // which specific tokens were successful to map back to farcasterFids
+        // For now, we conservatively update only if ALL notifications succeeded
+        if (result.failureCount === 0 && result.rateLimitedCount === 0) {
+          const successfulFids = usersWithNotifications.map(user => user.farcasterFid);
+          await storage.updateLastNotificationSent(successfulFids);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Notification sent to ${result.successCount}/${tokens.length} users`,
+        stats: {
+          totalUsers: tokens.length,
+          successCount: result.successCount,
+          failureCount: result.failureCount,
+          rateLimitedCount: result.rateLimitedCount
+        },
+        errors: result.errors
+      });
+
+    } catch (error: any) {
+      console.error('❌ Admin notification send failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to send notification", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Get notification history
+  app.get("/api/admin/notifications/history", async (req, res) => {
+    try {
+      // Check admin secret - FAIL CLOSED if not configured
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
+        return res.status(500).json({ message: "Admin access not configured" });
+      }
+      
+      const providedSecret = req.headers['x-admin-key'];
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 20;
+      const history = await storage.getNotificationHistory(limit);
+
+      res.json({
+        success: true,
+        history,
+        count: history.length
+      });
+
+    } catch (error: any) {
+      console.error('❌ Get notification history failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get notification history", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Get notification service status and user stats
+  app.get("/api/admin/notifications/status", async (req, res) => {
+    try {
+      // Check admin secret - FAIL CLOSED if not configured
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
+        return res.status(500).json({ message: "Admin access not configured" });
+      }
+      
+      const providedSecret = req.headers['x-admin-key'];
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      }
+
+      const serviceAvailable = isNotificationServiceAvailable();
+      let connectionTest = false;
+
+      if (serviceAvailable) {
+        const notificationService = getNotificationService();
+        if (notificationService) {
+          connectionTest = await notificationService.testConnection();
+        }
+      }
+
+      const usersWithNotifications = await storage.getUsersWithNotifications();
+      const recentHistory = await storage.getNotificationHistory(5);
+
+      res.json({
+        success: true,
+        status: {
+          serviceAvailable,
+          connectionTest,
+          usersWithTokens: usersWithNotifications.length,
+          recentNotifications: recentHistory.length
+        },
+        recentHistory
+      });
+
+    } catch (error: any) {
+      console.error('❌ Get notification status failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get notification status", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Get users with notifications enabled (for admin review)
+  app.get("/api/admin/notifications/users", async (req, res) => {
+    try {
+      // Check admin secret - FAIL CLOSED if not configured
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
+        return res.status(500).json({ message: "Admin access not configured" });
+      }
+      
+      const providedSecret = req.headers['x-admin-key'];
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      }
+
+      const users = await storage.getUsersWithNotifications();
+
+      // Return only safe user info (no actual tokens)
+      const safeUsers = users.map(user => ({
+        farcasterFid: user.farcasterFid,
+        farcasterUsername: user.farcasterUsername,
+        hasToken: !!user.notificationToken,
+        notificationsEnabled: user.notificationsEnabled,
+        lastNotificationSent: user.lastNotificationSent,
+        totalPoints: user.totalPoints,
+        weeklyPoints: user.weeklyPoints
+      }));
+
+      res.json({
+        success: true,
+        users: safeUsers,
+        count: safeUsers.length
+      });
+
+    } catch (error: any) {
+      console.error('❌ Get notification users failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get notification users", 
+        error: error.message 
+      });
     }
   });
 
