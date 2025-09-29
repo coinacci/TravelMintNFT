@@ -76,18 +76,7 @@ export default function Navigation() {
             </div>
             
             <div className="flex items-center space-x-1">
-              {/* Subtle notification status indicator */}
-              {notificationUser && (
-                <div className="flex items-center space-x-1 mr-2">
-                  {notificationsEnabled ? (
-                    <div className="w-2 h-2 bg-green-500 rounded-full" title="Notifications enabled" />
-                  ) : isCollectingToken ? (
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Setting up notifications..." />
-                  ) : (
-                    <div className="w-2 h-2 bg-gray-400 rounded-full" title="Notifications available" />
-                  )}
-                </div>
-              )}
+              {/* Notification indicator removed - notifications work via FID-based system */}
               <WalletConnect />
             </div>
           </div>

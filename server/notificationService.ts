@@ -69,13 +69,37 @@ export class NotificationService {
       });
 
       const responseJson = await response.json();
+      
+      // DEBUG: Log full API response to understand format
+      console.log(`🔍 Neynar API Response (Status: ${response.status}):`, JSON.stringify(responseJson, null, 2));
 
       if (response.status === 200) {
         // Validate response format
         const parsedResponse = sendNotificationResponseSchema.safeParse(responseJson);
         
         if (!parsedResponse.success) {
-          console.error("❌ Invalid notification response format:", parsedResponse.error);
+          console.error("❌ Invalid notification response format - Expected:", sendNotificationResponseSchema);
+          console.error("❌ Actual response:", responseJson);
+          console.error("❌ Parsing errors:", parsedResponse.error);
+          
+          // Try to work with actual response format
+          if (responseJson && responseJson.notification_deliveries) {
+            console.log("🔄 Attempting to work with actual response format...");
+            const deliveries = responseJson.notification_deliveries;
+            const successCount = Array.isArray(deliveries) ? deliveries.filter(d => d.status === 'success').length : 0;
+            const failureCount = Array.isArray(deliveries) ? deliveries.filter(d => d.status !== 'success').length : 0;
+            
+            console.log(`✅ Notification sent (raw format) - Success: ${successCount}, Failed: ${failureCount}`);
+            
+            return {
+              success: successCount > 0,
+              successCount,
+              failureCount,
+              rateLimitedCount: 0,
+              errors: failureCount > 0 ? [`${failureCount} deliveries failed`] : undefined,
+            };
+          }
+          
           return {
             success: false,
             successCount: 0,
