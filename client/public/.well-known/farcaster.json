@@ -1,30 +1,30 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
-    "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
-    "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
+    "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
+    "payload": "eyJkb21haW4iOiJ0cmF2ZWxtaW50LnJlcGxpdC5hcHAifQ",
+    "signature": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1b"
   },
   "miniapp": {
     "version": "1",
     "name": "TravelMint",
     "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-    "iconUrl": "https://travelnft.replit.app/icon.png",
-    "homeUrl": "https://travelnft.replit.app/",
-    "imageUrl": "https://travelnft.replit.app/image.png",
-    "splashImageUrl": "https://travelnft.replit.app/splash.png",
+    "iconUrl": "https://travelmint.replit.app/icon.png",
+    "homeUrl": "https://travelmint.replit.app/",
+    "imageUrl": "https://travelmint.replit.app/image.png",
+    "splashImageUrl": "https://travelmint.replit.app/splash.png",
     "splashBackgroundColor": "#0f172a",
     "subtitle": "Travel Photo NFT Marketplace",
-    "heroImageUrl": "https://travelnft.replit.app/image.png",
+    "heroImageUrl": "https://travelmint.replit.app/image.png",
     "tagline": "Turn travel into NFTs",
     "ogTitle": "TravelMint NFT App",
     "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-    "ogImageUrl": "https://travelnft.replit.app/image.png",
-    "castShareUrl": "https://travelnft.replit.app/share",
-    "webhookUrl": "https://travelnft.replit.app/api/webhook",
+    "ogImageUrl": "https://travelmint.replit.app/image.png",
+    "castShareUrl": "https://travelmint.replit.app/share",
+    "webhookUrl": "https://api.neynar.com/f/app/travelmint/event",
     "tags": ["travel", "nft", "blockchain", "photography", "base"],
     "screenshotUrls": [
-      "https://travelnft.replit.app/image.png",
-      "https://travelnft.replit.app/splash.png"
+      "https://travelmint.replit.app/image.png",
+      "https://travelmint.replit.app/splash.png"
     ],
     "noindex": false,
     "primaryCategory": "social"
