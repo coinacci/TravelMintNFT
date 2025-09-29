@@ -125,24 +125,27 @@ export class NotificationService {
    */
   async testConnection(): Promise<boolean> {
     try {
-      // Send test notification with empty tokens to verify API key
-      const testResponse = await fetch(this.neynarApiUrl, {
-        method: "POST",
+      // Use a simple API endpoint to test the API key validity
+      const testUrl = "https://api.neynar.com/v2/farcaster/user/bulk?fids=1&viewer_fid=1";
+      const testResponse = await fetch(testUrl, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": this.apiKey,
+          "accept": "application/json",
+          "x-api-key": this.apiKey,
         },
-        body: JSON.stringify({
-          notificationId: crypto.randomUUID(),
-          title: "Test",
-          body: "Test notification",
-          targetUrl: "https://travelmint.replit.app",
-          tokens: [],
-        }),
       });
 
-      // Even with empty tokens, valid API key should return 200
-      return testResponse.status === 200;
+      console.log(`🔑 Notification service connection test: ${testResponse.status}`);
+      
+      // Valid API key should return 200
+      if (testResponse.status === 200) {
+        console.log("✅ Neynar API connection successful");
+        return true;
+      } else {
+        const errorText = await testResponse.text();
+        console.error(`❌ Neynar API connection failed (${testResponse.status}):`, errorText);
+        return false;
+      }
     } catch (error) {
       console.error("🔑 Notification service connection test failed:", error);
       return false;
