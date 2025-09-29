@@ -1,37 +1,39 @@
 import { z } from "zod";
 
-// Farcaster notification schemas adapted from the example
+// Farcaster notification schemas - updated for correct Neynar API
 const sendNotificationRequestSchema = z.object({
-  notificationId: z.string(),
-  title: z.string(),
-  body: z.string(),
-  targetUrl: z.string().optional(),
-  tokens: z.array(z.string()),
+  target_fids: z.array(z.number()),
+  notification: z.object({
+    title: z.string(),
+    body: z.string(),
+    target_url: z.string(),
+    uuid: z.string(),
+  }),
 });
 
 const sendNotificationResponseSchema = z.object({
-  result: z.object({
-    successfulTokens: z.array(z.string()),
-    rateLimitedTokens: z.array(z.string()),
-    invalidTokens: z.array(z.string()),
-  }),
+  notification_deliveries: z.array(z.object({
+    object: z.string(),
+    fid: z.number(),
+    status: z.string(),
+  })),
 });
 
 export type SendNotificationRequest = z.infer<typeof sendNotificationRequestSchema>;
 export type SendNotificationResponse = z.infer<typeof sendNotificationResponseSchema>;
 
 export class NotificationService {
-  private readonly neynarApiUrl = "https://api.neynar.com/v2/farcaster/notifications/send";
+  private readonly neynarApiUrl = "https://api.neynar.com/v2/farcaster/frame/notifications";
   
   constructor(private readonly apiKey: string) {}
 
   /**
-   * Send notification to multiple Farcaster users
+   * Send notification to multiple Farcaster users by FID
    */
   async sendNotification(params: {
     title: string;
     message: string;
-    tokens: string[];
+    fids: number[];
     targetUrl?: string;
   }): Promise<{
     success: boolean;
@@ -42,24 +44,26 @@ export class NotificationService {
   }> {
     try {
       const notificationRequest: SendNotificationRequest = {
-        notificationId: crypto.randomUUID(),
-        title: params.title,
-        body: params.message,
-        targetUrl: params.targetUrl || "https://travelmint.replit.app",
-        tokens: params.tokens,
+        target_fids: params.fids,
+        notification: {
+          title: params.title,
+          body: params.message,
+          target_url: params.targetUrl || "https://travelmint.replit.app",
+          uuid: crypto.randomUUID(),
+        },
       };
 
-      console.log(`📱 Sending notification to ${params.tokens.length} users:`, {
+      console.log(`📱 Sending notification to ${params.fids.length} users:`, {
         title: params.title,
         message: params.message,
-        tokenCount: params.tokens.length,
+        fids: params.fids,
       });
 
       const response = await fetch(this.neynarApiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-API-KEY": this.apiKey,
+          "x-api-key": this.apiKey,
         },
         body: JSON.stringify(notificationRequest),
       });
@@ -75,26 +79,24 @@ export class NotificationService {
           return {
             success: false,
             successCount: 0,
-            failureCount: params.tokens.length,
+            failureCount: params.fids.length,
             rateLimitedCount: 0,
             errors: ["Invalid response format from notification service"],
           };
         }
 
-        const result = parsedResponse.data.result;
-        const successCount = result.successfulTokens.length;
-        const rateLimitedCount = result.rateLimitedTokens.length;
-        const invalidCount = result.invalidTokens.length;
-        const failureCount = rateLimitedCount + invalidCount;
+        const deliveries = parsedResponse.data.notification_deliveries;
+        const successCount = deliveries.filter(d => d.status === 'success').length;
+        const failureCount = deliveries.filter(d => d.status !== 'success').length;
 
-        console.log(`✅ Notification sent - Success: ${successCount}, Failed: ${failureCount}, Rate Limited: ${rateLimitedCount}`);
+        console.log(`✅ Notification sent - Success: ${successCount}, Failed: ${failureCount}`);
 
         return {
           success: successCount > 0,
           successCount,
           failureCount,
-          rateLimitedCount,
-          errors: failureCount > 0 ? [`${rateLimitedCount} rate limited, ${invalidCount} invalid tokens`] : undefined,
+          rateLimitedCount: 0, // Rate limiting info not provided in new API
+          errors: failureCount > 0 ? [`${failureCount} deliveries failed`] : undefined,
         };
       } else {
         console.error(`❌ Notification API error (${response.status}):`, responseJson);
@@ -102,7 +104,7 @@ export class NotificationService {
         return {
           success: false,
           successCount: 0,
-          failureCount: params.tokens.length,
+          failureCount: params.fids.length,
           rateLimitedCount: 0,
           errors: [responseJson.message || `API error: ${response.status}`],
         };
@@ -113,7 +115,7 @@ export class NotificationService {
       return {
         success: false,
         successCount: 0,
-        failureCount: params.tokens.length,
+        failureCount: params.fids.length,
         rateLimitedCount: 0,
         errors: [error.message || "Unknown notification error"],
       };

@@ -2849,18 +2849,25 @@ export async function registerRoutes(app: Express) {
 
       const { title, message, targetUrl } = validationResult.data;
 
-      // Get users with notification tokens
+      // Get users with notifications enabled
       const usersWithNotifications = await storage.getUsersWithNotifications();
       
       if (usersWithNotifications.length === 0) {
         return res.status(400).json({ 
-          message: "No users have notification tokens enabled" 
+          message: "No users have notifications enabled" 
         });
       }
 
-      const tokens = usersWithNotifications
-        .map(user => user.notificationToken)
-        .filter(token => token) as string[];
+      const fids = usersWithNotifications
+        .filter(user => user.farcasterFid && user.notificationsEnabled)
+        .map(user => parseInt(user.farcasterFid, 10))
+        .filter(fid => !isNaN(fid));
+
+      if (fids.length === 0) {
+        return res.status(400).json({ 
+          message: "No users have valid Farcaster IDs for notifications" 
+        });
+      }
 
       const notificationService = getNotificationService();
       if (!notificationService) {
@@ -2873,7 +2880,7 @@ export async function registerRoutes(app: Express) {
       const result = await notificationService.sendNotification({
         title,
         message,
-        tokens,
+        fids,
         targetUrl: targetUrl || "https://travelmint.replit.app"
       });
 
@@ -2882,7 +2889,7 @@ export async function registerRoutes(app: Express) {
         title,
         message,
         targetUrl: targetUrl || "https://travelmint.replit.app",
-        recipientCount: tokens.length,
+        recipientCount: fids.length,
         successCount: result.successCount,
         failureCount: result.failureCount,
         sentBy: "admin"
@@ -2901,9 +2908,9 @@ export async function registerRoutes(app: Express) {
 
       res.json({
         success: true,
-        message: `Notification sent to ${result.successCount}/${tokens.length} users`,
+        message: `Notification sent to ${result.successCount}/${fids.length} users`,
         stats: {
-          totalUsers: tokens.length,
+          totalUsers: fids.length,
           successCount: result.successCount,
           failureCount: result.failureCount,
           rateLimitedCount: result.rateLimitedCount

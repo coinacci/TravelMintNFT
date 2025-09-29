@@ -152,21 +152,21 @@ export function useFarcasterNotifications() {
     }
   }, []);
 
-  // Auto-collect notification token when user connects
+  // Auto-collect notification token when user connects - DISABLED TO PREVENT CONTINUOUS POPUPS
   useEffect(() => {
     const initializeNotifications = async () => {
       const user = await getFarcasterContext();
       
       if (user && !notificationToken && !isCollectingToken) {
-        // Small delay to ensure SDK is fully ready
-        setTimeout(() => {
-          collectNotificationToken(user);
-        }, 1000);
+        console.log('ℹ️ Farcaster user detected, but auto-collection is disabled to prevent popups');
+        console.log('ℹ️ Notification system ready - will work via FID-based system');
+        // Auto-collection disabled to prevent continuous permission requests
+        // Token collection will happen through proper Farcaster Mini App flow
       }
     };
 
     initializeNotifications();
-  }, [getFarcasterContext, collectNotificationToken, notificationToken, isCollectingToken]);
+  }, [getFarcasterContext]);
 
   // Manual notification enablement (for components that want explicit control)
   const enableNotifications = useCallback(async () => {
