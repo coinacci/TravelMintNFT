@@ -5,12 +5,21 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useEffect, useState } from "react";
 import sdk from "@farcaster/frame-sdk";
+import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
 
 export default function Navigation() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const { address, isConnected } = useAccount();
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
+  
+  // Initialize automatic notification token collection
+  const { 
+    farcasterUser: notificationUser, 
+    notificationToken, 
+    notificationsEnabled,
+    isCollectingToken 
+  } = useFarcasterNotifications();
 
   // Get Farcaster user context for quest menu
   useEffect(() => {
@@ -67,6 +76,18 @@ export default function Navigation() {
             </div>
             
             <div className="flex items-center space-x-1">
+              {/* Subtle notification status indicator */}
+              {notificationUser && (
+                <div className="flex items-center space-x-1 mr-2">
+                  {notificationsEnabled ? (
+                    <div className="w-2 h-2 bg-green-500 rounded-full" title="Notifications enabled" />
+                  ) : isCollectingToken ? (
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Setting up notifications..." />
+                  ) : (
+                    <div className="w-2 h-2 bg-gray-400 rounded-full" title="Notifications available" />
+                  )}
+                </div>
+              )}
               <WalletConnect />
             </div>
           </div>

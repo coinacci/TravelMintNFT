@@ -2614,6 +2614,81 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Farcaster Mini App webhook endpoint for notification events
+  app.post("/api/farcaster/miniapp-webhook", async (req, res) => {
+    try {
+      console.log('📱 Received Farcaster Mini App webhook:', req.body);
+      
+      const { event, fid, notificationDetails } = req.body;
+      
+      // Handle miniapp_added event - this is when we get real notification tokens
+      if (event === 'miniapp_added' && fid && notificationDetails?.token) {
+        const { token, url } = notificationDetails;
+        
+        console.log(`📱 Mini App added for FID ${fid} with notification token`);
+        
+        // Store the real notification token
+        const updatedUser = await storage.updateUserNotificationToken(
+          fid.toString(), 
+          token
+        );
+
+        if (!updatedUser) {
+          // Create user stats if they don't exist
+          await storage.createOrUpdateUserStats({
+            farcasterFid: fid.toString(),
+            farcasterUsername: `user-${fid}`,
+            farcasterPfpUrl: null,
+            totalPoints: 0,
+            weeklyPoints: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            weeklyResetDate: new Date(),
+            notificationToken: token,
+            notificationsEnabled: true,
+            lastNotificationSent: null
+          });
+        }
+
+        console.log(`✅ Stored real notification token for FID ${fid}`);
+        
+        res.json({
+          success: true,
+          message: "Notification token stored successfully"
+        });
+      } 
+      // Handle other events
+      else if (event === 'notifications_enabled' && fid) {
+        await storage.enableUserNotifications(fid.toString(), true);
+        console.log(`🔔 Notifications enabled for FID ${fid}`);
+        res.json({ success: true });
+      }
+      else if (event === 'notifications_disabled' && fid) {
+        await storage.enableUserNotifications(fid.toString(), false);
+        console.log(`🔕 Notifications disabled for FID ${fid}`);
+        res.json({ success: true });
+      }
+      else if (event === 'miniapp_removed' && fid) {
+        // Remove notification token when Mini App is removed
+        await storage.enableUserNotifications(fid.toString(), false);
+        console.log(`🗑️ Mini App removed for FID ${fid}`);
+        res.json({ success: true });
+      }
+      else {
+        console.log('ℹ️ Unhandled webhook event:', event);
+        res.json({ success: true, message: "Event received" });
+      }
+
+    } catch (error: any) {
+      console.error('❌ Farcaster webhook processing failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Webhook processing failed", 
+        error: error.message 
+      });
+    }
+  });
+
   // ADMIN Notification Management Endpoints - SECRET PROTECTED
   
   // Send notification to users with tokens
@@ -2805,6 +2880,86 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Failed to get notification status", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Store notification token from Farcaster SDK
+  app.post("/api/user-stats/notification-token", async (req, res) => {
+    try {
+      const { farcasterFid, notificationToken, notificationsEnabled } = req.body;
+
+      if (!farcasterFid || !notificationToken) {
+        return res.status(400).json({ 
+          message: "farcasterFid and notificationToken are required" 
+        });
+      }
+
+      // Validate notification token format (real Farcaster tokens should have specific structure)
+      if (typeof notificationToken !== 'string' || notificationToken.length < 10) {
+        return res.status(400).json({ 
+          message: "Invalid notification token format" 
+        });
+      }
+
+      // Update user's notification token in database
+      const updatedUser = await storage.updateUserNotificationToken(
+        farcasterFid, 
+        notificationToken
+      );
+
+      if (updatedUser) {
+        console.log(`📱 Stored notification token for user ${farcasterFid}`);
+        res.json({
+          success: true,
+          message: "Notification token stored successfully",
+          user: {
+            farcasterFid: updatedUser.farcasterFid,
+            notificationsEnabled: updatedUser.notificationsEnabled,
+            hasToken: !!updatedUser.notificationToken
+          }
+        });
+      } else {
+        // User doesn't exist in user_stats, try to create them
+        try {
+          const newUserStats = await storage.createOrUpdateUserStats({
+            farcasterFid,
+            farcasterUsername: `user-${farcasterFid}`, // Will be updated when we get real username
+            farcasterPfpUrl: null,
+            totalPoints: 0,
+            weeklyPoints: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            weeklyResetDate: new Date(),
+            notificationToken,
+            notificationsEnabled: true,
+            lastNotificationSent: null
+          });
+
+          console.log(`📱 Created user stats with notification token for ${farcasterFid}`);
+          res.json({
+            success: true,
+            message: "User created and notification token stored",
+            user: {
+              farcasterFid: newUserStats.farcasterFid,
+              notificationsEnabled: newUserStats.notificationsEnabled,
+              hasToken: !!newUserStats.notificationToken
+            }
+          });
+        } catch (createError) {
+          console.error('❌ Failed to create user stats:', createError);
+          res.status(500).json({ 
+            message: "Failed to store notification token" 
+          });
+        }
+      }
+
+    } catch (error: any) {
+      console.error('❌ Store notification token failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to store notification token", 
         error: error.message 
       });
     }
