@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -62,6 +62,14 @@ export interface IStorage {
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
   }): Promise<{ userStats: UserStats; questCompletion: QuestCompletion }>;
+
+  // Notification operations
+  updateUserNotificationToken(farcasterFid: string, token: string): Promise<UserStats | undefined>;
+  enableUserNotifications(farcasterFid: string, enabled: boolean): Promise<UserStats | undefined>;
+  getUsersWithNotifications(): Promise<UserStats[]>;
+  createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory>;
+  getNotificationHistory(limit?: number): Promise<NotificationHistory[]>;
+  updateLastNotificationSent(farcasterFids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -845,6 +853,72 @@ export class DatabaseStorage implements IStorage {
         message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
       };
     });
+  }
+
+  // Notification operations
+  async updateUserNotificationToken(farcasterFid: string, token: string): Promise<UserStats | undefined> {
+    const [user] = await db
+      .update(userStats)
+      .set({ 
+        notificationToken: token,
+        notificationsEnabled: true, // Auto-enable when token is set
+        updatedAt: new Date()
+      })
+      .where(eq(userStats.farcasterFid, farcasterFid))
+      .returning();
+    
+    console.log(`📱 Updated notification token for user ${farcasterFid}`);
+    return user || undefined;
+  }
+
+  async enableUserNotifications(farcasterFid: string, enabled: boolean): Promise<UserStats | undefined> {
+    const [user] = await db
+      .update(userStats)
+      .set({ 
+        notificationsEnabled: enabled,
+        updatedAt: new Date()
+      })
+      .where(eq(userStats.farcasterFid, farcasterFid))
+      .returning();
+    
+    console.log(`🔔 ${enabled ? 'Enabled' : 'Disabled'} notifications for user ${farcasterFid}`);
+    return user || undefined;
+  }
+
+  async getUsersWithNotifications(): Promise<UserStats[]> {
+    return await db
+      .select()
+      .from(userStats)
+      .where(sql`${userStats.notificationsEnabled} = true AND ${userStats.notificationToken} IS NOT NULL`);
+  }
+
+  async createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory> {
+    const [history] = await db
+      .insert(notificationHistory)
+      .values(notification)
+      .returning();
+    
+    console.log(`📋 Created notification history: ${notification.title} to ${notification.recipientCount} users`);
+    return history;
+  }
+
+  async getNotificationHistory(limit: number = 20): Promise<NotificationHistory[]> {
+    return await db
+      .select()
+      .from(notificationHistory)
+      .orderBy(sql`${notificationHistory.sentAt} DESC`)
+      .limit(limit);
+  }
+
+  async updateLastNotificationSent(farcasterFids: string[]): Promise<number> {
+    if (farcasterFids.length === 0) return 0;
+
+    const result = await db
+      .update(userStats)
+      .set({ lastNotificationSent: new Date() })
+      .where(sql`${userStats.farcasterFid} = ANY(${farcasterFids})`);
+    
+    return result.rowCount || 0;
   }
 }
 
