@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, decimal, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -90,6 +90,10 @@ export const userStats = pgTable("user_stats", {
   lastCheckIn: timestamp("last_check_in"),
   lastStreakClaim: timestamp("last_streak_claim"),
   weeklyResetDate: text("weekly_reset_date"), // YYYY-MM-DD format - tracks last weekly reset
+  // Notification system fields
+  notificationToken: text("notification_token"), // Farcaster notification token
+  notificationsEnabled: boolean("notifications_enabled").default(false).notNull(), // User opt-in status
+  lastNotificationSent: timestamp("last_notification_sent"), // Track when last notification was sent
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -123,6 +127,19 @@ export const userWallets = pgTable("user_wallets", {
   };
 });
 
+// Notification History Table
+export const notificationHistory = pgTable("notification_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  targetUrl: text("target_url"), // Optional URL to navigate to
+  recipientCount: integer("recipient_count").notNull(), // How many users received it
+  successCount: integer("success_count").notNull(), // How many succeeded
+  failureCount: integer("failure_count").notNull(), // How many failed
+  sentBy: text("sent_by").notNull(), // Admin who sent it
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
 export const insertUserStatsSchema = createInsertSchema(userStats).omit({
   id: true,
   createdAt: true,
@@ -139,6 +156,11 @@ export const insertUserWalletSchema = createInsertSchema(userWallets).omit({
   createdAt: true,
 });
 
+export const insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({
+  id: true,
+  sentAt: true,
+});
+
 export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
 export type UserStats = typeof userStats.$inferSelect;
 
@@ -147,6 +169,9 @@ export type QuestCompletion = typeof questCompletions.$inferSelect;
 
 export type InsertUserWallet = z.infer<typeof insertUserWalletSchema>;
 export type UserWallet = typeof userWallets.$inferSelect;
+
+export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;
+export type NotificationHistory = typeof notificationHistory.$inferSelect;
 
 // Quest API Validation Schemas
 export const questClaimSchema = z.object({
