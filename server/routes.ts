@@ -79,6 +79,130 @@ function createUserObject(walletAddress: string, farcasterUsername?: string | nu
   }
 }
 
+// Admin security enhancement - rate limiting and audit logging
+interface AdminAttempt {
+  timestamp: number;
+  ip: string;
+  userAgent: string;
+}
+
+interface AdminSession {
+  token: string;
+  createdAt: number;
+  lastUsed: number;
+  ip: string;
+  userAgent: string;
+}
+
+interface AdminBlock {
+  blockedAt: number;
+  ip: string;
+  userAgent: string;
+}
+
+const adminAttempts = new Map<string, AdminAttempt[]>();
+const adminSessions = new Map<string, AdminSession>();
+const adminBlocks = new Map<string, AdminBlock>(); // Separate tracking for blocks
+
+const ADMIN_RATE_LIMIT = {
+  maxAttempts: 5,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  blockDurationMs: 30 * 60 * 1000, // 30 minutes block
+};
+
+const ADMIN_SESSION = {
+  maxAgeMs: 8 * 60 * 60 * 1000, // 8 hours
+  renewalThresholdMs: 2 * 60 * 60 * 1000, // renew if less than 2 hours left
+};
+
+function getClientIp(req: any): string {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+         req.connection?.remoteAddress ||
+         req.socket?.remoteAddress ||
+         'unknown';
+}
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  
+  // First check if IP is currently blocked (separate from attempts)
+  const block = adminBlocks.get(ip);
+  if (block) {
+    if (now - block.blockedAt < ADMIN_RATE_LIMIT.blockDurationMs) {
+      return true; // Still blocked
+    } else {
+      // Block expired, remove it
+      adminBlocks.delete(ip);
+    }
+  }
+  
+  // Check attempts within the rate limit window
+  const attempts = adminAttempts.get(ip) || [];
+  const recentAttempts = attempts.filter(
+    attempt => now - attempt.timestamp < ADMIN_RATE_LIMIT.windowMs
+  );
+  
+  // Update attempts (clean old ones)
+  adminAttempts.set(ip, recentAttempts);
+  
+  // If too many recent attempts, create a new block
+  if (recentAttempts.length >= ADMIN_RATE_LIMIT.maxAttempts) {
+    adminBlocks.set(ip, {
+      blockedAt: now,
+      ip,
+      userAgent: 'rate-limited'
+    });
+    return true;
+  }
+  
+  return false;
+}
+
+function recordAdminAttempt(ip: string, userAgent: string): void {
+  const attempts = adminAttempts.get(ip) || [];
+  attempts.push({
+    timestamp: Date.now(),
+    ip,
+    userAgent: userAgent || 'unknown'
+  });
+  adminAttempts.set(ip, attempts);
+}
+
+function logAdminAction(action: string, ip: string, userAgent: string, success: boolean): void {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[ADMIN] ${timestamp} | ${action} | IP: ${ip} | UA: ${userAgent} | Success: ${success}`;
+  console.log(logMessage);
+}
+
+function verifyAdminAuth(req: any): { success: boolean; error?: string; shouldBlock?: boolean } {
+  const adminSecret = process.env.ADMIN_SECRET;
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  
+  // Fail closed if no admin secret configured
+  if (!adminSecret) {
+    logAdminAction('AUTH_ATTEMPT', ip, userAgent, false);
+    return { success: false, error: 'Admin access not configured' };
+  }
+  
+  // Check rate limiting
+  if (isRateLimited(ip)) {
+    logAdminAction('RATE_LIMITED', ip, userAgent, false);
+    return { success: false, error: 'Too many authentication attempts. Try again later.', shouldBlock: true };
+  }
+  
+  const providedSecret = req.headers['x-admin-key'];
+  
+  if (!providedSecret || providedSecret !== adminSecret) {
+    recordAdminAttempt(ip, userAgent);
+    logAdminAction('INVALID_SECRET', ip, userAgent, false);
+    return { success: false, error: 'Unauthorized - invalid admin key' };
+  }
+  
+  logAdminAction('AUTH_SUCCESS', ip, userAgent, true);
+  return { success: true };
+}
+
 export async function registerRoutes(app: Express) {
   
   // Initialize weekly reset on server startup
@@ -2694,16 +2818,11 @@ export async function registerRoutes(app: Express) {
   // Send notification to users with tokens
   app.post("/api/admin/notifications/send", async (req, res) => {
     try {
-      // Check admin secret - FAIL CLOSED if not configured
-      const adminSecret = process.env.ADMIN_SECRET;
-      if (!adminSecret) {
-        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
-        return res.status(500).json({ message: "Admin access not configured" });
-      }
-      
-      const providedSecret = req.headers['x-admin-key'];
-      if (!providedSecret || providedSecret !== adminSecret) {
-        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      // Enhanced admin authentication with rate limiting and audit logging
+      const authResult = verifyAdminAuth(req);
+      if (!authResult.success) {
+        const statusCode = authResult.shouldBlock ? 429 : 401;
+        return res.status(statusCode).json({ message: authResult.error });
       }
 
       // Check if notification service is available
@@ -2805,16 +2924,11 @@ export async function registerRoutes(app: Express) {
   // Get notification history
   app.get("/api/admin/notifications/history", async (req, res) => {
     try {
-      // Check admin secret - FAIL CLOSED if not configured
-      const adminSecret = process.env.ADMIN_SECRET;
-      if (!adminSecret) {
-        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
-        return res.status(500).json({ message: "Admin access not configured" });
-      }
-      
-      const providedSecret = req.headers['x-admin-key'];
-      if (!providedSecret || providedSecret !== adminSecret) {
-        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      // Enhanced admin authentication with rate limiting and audit logging
+      const authResult = verifyAdminAuth(req);
+      if (!authResult.success) {
+        const statusCode = authResult.shouldBlock ? 429 : 401;
+        return res.status(statusCode).json({ message: authResult.error });
       }
 
       const limit = parseInt(req.query.limit as string) || 20;
@@ -2839,16 +2953,11 @@ export async function registerRoutes(app: Express) {
   // Get notification service status and user stats
   app.get("/api/admin/notifications/status", async (req, res) => {
     try {
-      // Check admin secret - FAIL CLOSED if not configured
-      const adminSecret = process.env.ADMIN_SECRET;
-      if (!adminSecret) {
-        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
-        return res.status(500).json({ message: "Admin access not configured" });
-      }
-      
-      const providedSecret = req.headers['x-admin-key'];
-      if (!providedSecret || providedSecret !== adminSecret) {
-        return res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      // Enhanced admin authentication with rate limiting and audit logging
+      const authResult = verifyAdminAuth(req);
+      if (!authResult.success) {
+        const statusCode = authResult.shouldBlock ? 429 : 401;
+        return res.status(statusCode).json({ message: authResult.error });
       }
 
       const serviceAvailable = isNotificationServiceAvailable();
@@ -2880,6 +2989,81 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Failed to get notification status", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Admin security status endpoint
+  app.get("/api/admin/security/status", async (req, res) => {
+    try {
+      // Enhanced admin authentication with rate limiting and audit logging
+      const authResult = verifyAdminAuth(req);
+      if (!authResult.success) {
+        const statusCode = authResult.shouldBlock ? 429 : 401;
+        return res.status(statusCode).json({ message: authResult.error });
+      }
+
+      // Get security metrics
+      const now = Date.now();
+      const rateLimitWindow = ADMIN_RATE_LIMIT.windowMs;
+      
+      let totalAttempts = 0;
+      let blockedIPs = 0;
+      const recentAttempts: { ip: string; attempts: number; blocked: boolean }[] = [];
+
+      // Count currently blocked IPs
+      adminBlocks.forEach((block, ip) => {
+        if (now - block.blockedAt < ADMIN_RATE_LIMIT.blockDurationMs) {
+          blockedIPs++;
+        }
+      });
+
+      // Collect recent attempts data
+      adminAttempts.forEach((attempts, ip) => {
+        const recentIpAttempts = attempts.filter(
+          attempt => now - attempt.timestamp < rateLimitWindow
+        );
+        
+        if (recentIpAttempts.length > 0) {
+          totalAttempts += recentIpAttempts.length;
+          const isBlocked = isRateLimited(ip);
+          
+          recentAttempts.push({
+            ip: ip.length > 15 ? ip.substring(0, 12) + '...' : ip, // Truncate long IPs
+            attempts: recentIpAttempts.length,
+            blocked: isBlocked
+          });
+        }
+      });
+
+      const clientIp = getClientIp(req);
+      
+      res.json({
+        success: true,
+        security: {
+          currentTime: new Date().toISOString(),
+          rateLimiting: {
+            maxAttempts: ADMIN_RATE_LIMIT.maxAttempts,
+            windowMinutes: ADMIN_RATE_LIMIT.windowMs / (60 * 1000),
+            blockDurationMinutes: ADMIN_RATE_LIMIT.blockDurationMs / (60 * 1000),
+            totalRecentAttempts: totalAttempts,
+            blockedIPs,
+            recentAttempts: recentAttempts.slice(0, 10) // Limit to 10 most recent
+          },
+          currentSession: {
+            ip: clientIp.length > 15 ? clientIp.substring(0, 12) + '...' : clientIp,
+            userAgent: req.headers['user-agent']?.substring(0, 50) + '...' || 'unknown',
+            authenticated: true
+          }
+        }
+      });
+
+    } catch (error: any) {
+      console.error('❌ Get admin security status failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get security status", 
         error: error.message 
       });
     }

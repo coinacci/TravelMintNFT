@@ -41,6 +41,27 @@ interface NotificationUser {
   weeklyPoints: number;
 }
 
+interface SecurityStatus {
+  currentTime: string;
+  rateLimiting: {
+    maxAttempts: number;
+    windowMinutes: number;
+    blockDurationMinutes: number;
+    totalRecentAttempts: number;
+    blockedIPs: number;
+    recentAttempts: Array<{
+      ip: string;
+      attempts: number;
+      blocked: boolean;
+    }>;
+  };
+  currentSession: {
+    ip: string;
+    userAgent: string;
+    authenticated: boolean;
+  };
+}
+
 export default function AdminNotifications() {
   const { toast } = useToast();
   const [adminKey, setAdminKey] = useState(() => localStorage.getItem('admin_key') || '');
@@ -120,6 +141,31 @@ export default function AdminNotifications() {
     },
     enabled: isAuthenticated && !!adminKey,
     retry: false
+  });
+
+  // Fetch security status
+  const { data: securityStatus, isLoading: securityLoading } = useQuery({
+    queryKey: ['admin', 'security', 'status'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/security/status', {
+        headers: getHeaders()
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          setIsAuthenticated(false);
+          throw new Error('Authentication failed');
+        }
+        if (response.status === 429) {
+          throw new Error('Rate limited - too many attempts');
+        }
+        throw new Error('Failed to fetch security status');
+      }
+      const data = await response.json();
+      return data.security as SecurityStatus;
+    },
+    enabled: isAuthenticated && !!adminKey,
+    retry: false,
+    refetchInterval: 30000 // Refresh security status every 30 seconds
   });
 
   // Send notification mutation
@@ -428,6 +474,89 @@ export default function AdminNotifications() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Security Status */}
+        <Card data-testid="card-security-status">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Security Status
+            </CardTitle>
+            <CardDescription>
+              Authentication security and rate limiting metrics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {securityLoading ? (
+              <p className="text-gray-500">Loading security status...</p>
+            ) : securityStatus ? (
+              <div className="space-y-4">
+                {/* Current Session */}
+                <div className="border rounded-lg p-3">
+                  <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    Current Session
+                  </h4>
+                  <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                    <p>IP: {securityStatus.currentSession.ip}</p>
+                    <p>User Agent: {securityStatus.currentSession.userAgent}</p>
+                    <p>Authenticated: {securityStatus.currentSession.authenticated ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+
+                {/* Rate Limiting Stats */}
+                <div className="border rounded-lg p-3">
+                  <h4 className="font-medium text-sm mb-2">Rate Limiting</h4>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="text-gray-500">Max Attempts</p>
+                      <p className="font-medium">{securityStatus.rateLimiting.maxAttempts} per {securityStatus.rateLimiting.windowMinutes}min</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Block Duration</p>
+                      <p className="font-medium">{securityStatus.rateLimiting.blockDurationMinutes} minutes</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Recent Attempts</p>
+                      <p className="font-medium">{securityStatus.rateLimiting.totalRecentAttempts}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Blocked IPs</p>
+                      <p className="font-medium text-red-600">{securityStatus.rateLimiting.blockedIPs}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Attempts */}
+                {securityStatus.rateLimiting.recentAttempts.length > 0 && (
+                  <div className="border rounded-lg p-3">
+                    <h4 className="font-medium text-sm mb-2">Recent Login Attempts</h4>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {securityStatus.rateLimiting.recentAttempts.map((attempt, index) => (
+                        <div key={index} className="flex justify-between items-center text-xs" data-testid={`security-attempt-${index}`}>
+                          <span>{attempt.ip}</span>
+                          <div className="flex items-center gap-2">
+                            <span>{attempt.attempts} attempts</span>
+                            <Badge variant={attempt.blocked ? "destructive" : "secondary"} className="text-xs">
+                              {attempt.blocked ? 'Blocked' : 'Active'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Last Updated */}
+                <p className="text-xs text-gray-500 text-center">
+                  Last updated: {new Date(securityStatus.currentTime).toLocaleString()}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Unable to load security status</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Users with Notifications */}
         <Card data-testid="card-notification-users">
