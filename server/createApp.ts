@@ -37,7 +37,7 @@ export function createApp() {
         "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
         "ogImageUrl": `https://travelnft.replit.app/og-image-1200x630.jpeg${cacheBuster}`,
         "castShareUrl": `https://travelnft.replit.app/share${cacheBuster}`,
-        "webhookUrl": "https://api.neynar.com/f/app/travelnft/event",
+        "webhookUrl": "https://api.neynar.com/f/app/968f2785-2da9-451a-a984-d753e739713c/event",
         "license": "MIT",
         "privacyPolicyUrl": "https://travelnft.replit.app/privacy",
         "tags": ["travel", "nft", "blockchain", "photography", "base"],
