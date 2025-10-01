@@ -452,7 +452,7 @@ export default function Quests() {
                 <MessageSquare className="h-6 w-6 text-green-500" />
                 <div>
                   <CardTitle>Daily Post</CardTitle>
-                  <CardDescription>Post with TravelMint link to earn 5 points</CardDescription>
+                  <CardDescription>Post with TravelMint to earn 5 points</CardDescription>
                 </div>
               </div>
               <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
