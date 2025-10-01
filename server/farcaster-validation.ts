@@ -22,14 +22,13 @@ export class FarcasterCastValidator {
    */
   async validateCast(castUrl: string): Promise<ValidationResult> {
     try {
-      // Extract cast identifier from URL
-      const castIdentifier = this.extractCastIdentifier(castUrl);
-      if (!castIdentifier) {
+      // Validate URL format
+      if (!castUrl.includes('warpcast.com') && !castUrl.includes('farcaster.xyz')) {
         return { isValid: false, reason: "Invalid cast URL format" };
       }
 
-      // Fetch cast data from Farcaster Hub API
-      const castData = await this.fetchCastData(castIdentifier);
+      // Fetch cast data using URL directly (Neynar supports URL type)
+      const castData = await this.fetchCastData(castUrl);
       if (!castData) {
         return { isValid: false, reason: "Could not fetch cast data" };
       }
@@ -59,39 +58,9 @@ export class FarcasterCastValidator {
   }
 
   /**
-   * Extract cast identifier from various Farcaster URL formats
-   */
-  private extractCastIdentifier(url: string): string | null {
-    try {
-      // Support multiple Farcaster client URLs
-      const patterns = [
-        // Warpcast: https://warpcast.com/username/0x12345678
-        /warpcast\.com\/[^\/]+\/(0x[a-fA-F0-9]+)/,
-        // Farcaster.xyz: https://farcaster.xyz/username/0x12345678
-        /farcaster\.xyz\/[^\/]+\/(0x[a-fA-F0-9]+)/,
-        // Direct cast hash in various formats
-        /(0x[a-fA-F0-9]{8,})/
-      ];
-
-      for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) {
-          return match[1];
-        }
-      }
-
-      console.log('⚠️ Could not extract cast identifier from URL:', url);
-      return null;
-    } catch (error) {
-      console.error('🚨 Error extracting cast identifier:', error);
-      return null;
-    }
-  }
-
-  /**
    * Fetch cast data from Neynar API
    */
-  private async fetchCastData(castHash: string): Promise<CastData | null> {
+  private async fetchCastData(castUrl: string): Promise<CastData | null> {
     try {
       const apiKey = process.env.NEYNAR_API_KEY;
       if (!apiKey) {
@@ -99,14 +68,15 @@ export class FarcasterCastValidator {
         return null;
       }
 
-      console.log(`🔍 Fetching cast data from Neynar API for hash: ${castHash}`);
+      console.log(`🔍 Fetching cast data from Neynar API for URL: ${castUrl}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      // Neynar API endpoint for cast by hash
+      // Neynar API endpoint for cast by URL (supports short hashes in URLs)
+      const encodedUrl = encodeURIComponent(castUrl);
       const response = await fetch(
-        `https://api.neynar.com/v2/farcaster/cast?identifier=${castHash}&type=hash`,
+        `https://api.neynar.com/v2/farcaster/cast?identifier=${encodedUrl}&type=url`,
         { 
           signal: controller.signal,
           headers: {
