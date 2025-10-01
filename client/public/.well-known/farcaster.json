@@ -20,7 +20,7 @@
     "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
     "ogImageUrl": "https://travelnft.replit.app/image.png",
     "castShareUrl": "https://travelnft.replit.app/share",
-    "webhookUrl": "https://api.neynar.com/f/app/travelnft/event",
+    "webhookUrl": "https://api.neynar.com/f/app/968f2785-2da9-451a-a984-d753e739713c/event",
     "tags": ["travel", "nft", "blockchain", "photography", "base"],
     "screenshotUrls": [
       "https://travelnft.replit.app/image.png",
