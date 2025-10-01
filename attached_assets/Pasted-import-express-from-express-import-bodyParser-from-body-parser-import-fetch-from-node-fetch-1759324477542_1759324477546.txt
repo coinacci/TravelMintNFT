@@ -1,0 +1,86 @@
+import express from "express";
+import bodyParser from "body-parser";
+import fetch from "node-fetch";
+import {
+  parseWebhookEvent,
+  verifyAppKeyWithNeynar,
+} from "@farcaster/miniapp-node";
+
+const app = express();
+app.use(bodyParser.json());
+
+// 🔔 Webhook endpoint
+app.post("/api/farcaster-webhook", async (req, res) => {
+  let event;
+  try {
+    event = await parseWebhookEvent(req.body, verifyAppKeyWithNeynar);
+  } catch (e) {
+    console.error("Webhook doğrulama hatası:", e);
+    return res.status(400).send("Invalid signature or payload");
+  }
+
+  const { type, fid, notificationDetails } = event;
+
+  switch (type) {
+    case "miniapp_added":
+    case "notifications_enabled":
+      if (notificationDetails) {
+        const { token, url } = notificationDetails;
+        // 👇 Replit'te şimdilik bellekte saklıyoruz (DB yerine)
+        saveNotificationToken(fid, token, url);
+        console.log("Token kaydedildi:", fid, token, url);
+      }
+      break;
+
+    case "notifications_disabled":
+    case "miniapp_removed":
+      removeNotificationTokenForFid(fid);
+      console.log("Token silindi:", fid);
+      break;
+
+    default:
+      console.log("Bilinmeyen event tipi:", type);
+  }
+
+  return res.status(200).json({ ok: true });
+});
+
+// Bellekte token saklama (test için)
+const notificationStore = {}; // { fid: {token, url} }
+
+function saveNotificationToken(fid, token, url) {
+  notificationStore[fid] = { token, url };
+}
+function removeNotificationTokenForFid(fid) {
+  delete notificationStore[fid];
+}
+
+// Bildirim gönderme örneği
+app.get("/send-test/:fid", async (req, res) => {
+  const fid = req.params.fid;
+  const user = notificationStore[fid];
+  if (!user) return res.status(404).send("Token bulunamadı");
+
+  const payload = {
+    notificationId: "test-" + Date.now(),
+    title: "Merhaba 👋",
+    body: "Bu bir test bildirimi",
+    targetUrl: "https://your-miniapp-url.com",
+    tokens: [user.token],
+  };
+
+  const resp = await fetch(user.url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await resp.json();
+  res.json(data);
+});
+
+// Server başlat
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server ${PORT} portunda çalışıyor`);
+});
