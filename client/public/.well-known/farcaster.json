@@ -1,35 +1,47 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
+    "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
     "payload": "eyJkb21haW4iOiJ0cmF2ZWxuZnQucmVwbGl0LmFwcCJ9",
     "signature": "kg4rxkbZvopVgro4b/DUJA+wA26XlSBNv/GaAT6X0DcB5ZRqpJFIvWbA5EJ8jQZ5y+oM3JaWfjLqY9qDqSTKFxs="
   },
   "miniapp": {
     "version": "1",
     "name": "TravelMint",
+    "author": "coinacci",
+    "authorUrl": "https://warpcast.com/coinacci",
     "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
     "iconUrl": "https://travelnft.replit.app/icon.png",
     "homeUrl": "https://travelnft.replit.app/",
-    "imageUrl": "https://travelnft.replit.app/image.png",
-    "splashImageUrl": "https://travelnft.replit.app/splash.png",
+    "imageUrl": "https://travelnft.replit.app/image.png?v=1759326084541&force=kh42zz",
+    "splashImageUrl": "https://travelnft.replit.app/splash.png?v=1759326084541&force=kh42zz",
     "splashBackgroundColor": "#0f172a",
     "subtitle": "Travel Photo NFT Marketplace",
-    "heroImageUrl": "https://travelnft.replit.app/image.png",
+    "heroImageUrl": "https://travelnft.replit.app/image.png?v=1759326084541&force=kh42zz",
     "tagline": "Turn travel into NFTs",
     "ogTitle": "TravelMint NFT App",
     "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-    "ogImageUrl": "https://travelnft.replit.app/image.png",
-    "castShareUrl": "https://travelnft.replit.app/share",
+    "ogImageUrl": "https://travelnft.replit.app/og-image-1200x630.jpeg?v=1759326084541&force=kh42zz",
+    "castShareUrl": "https://travelnft.replit.app/share?v=1759326084541&force=kh42zz",
     "webhookUrl": "https://api.neynar.com/f/app/968f2785-2da9-451a-a984-d753e739713c/event",
-    "tags": ["travel", "nft", "blockchain", "photography", "base"],
+    "license": "MIT",
+    "privacyPolicyUrl": "https://travelnft.replit.app/privacy",
+    "tags": [
+      "travel",
+      "nft",
+      "blockchain",
+      "photography",
+      "base"
+    ],
     "screenshotUrls": [
-      "https://travelnft.replit.app/image.png",
-      "https://travelnft.replit.app/splash.png"
+      "https://travelnft.replit.app/image.png?v=1759326084541&force=kh42zz",
+      "https://travelnft.replit.app/splash.png?v=1759326084541&force=kh42zz"
     ],
     "noindex": false,
     "primaryCategory": "social"
   },
   "baseBuilder": {
-    "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
+    "allowedAddresses": [
+      "0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"
+    ]
   }
 }
