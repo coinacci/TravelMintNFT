@@ -67,6 +67,8 @@ export class FarcasterCastValidator {
       const patterns = [
         // Warpcast: https://warpcast.com/username/0x12345678
         /warpcast\.com\/[^\/]+\/(0x[a-fA-F0-9]+)/,
+        // Farcaster.xyz: https://farcaster.xyz/username/0x12345678
+        /farcaster\.xyz\/[^\/]+\/(0x[a-fA-F0-9]+)/,
         // Direct cast hash in various formats
         /(0x[a-fA-F0-9]{8,})/
       ];
