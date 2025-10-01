@@ -89,73 +89,85 @@ export class FarcasterCastValidator {
   }
 
   /**
-   * Fetch cast data from Farcaster Hub API
+   * Fetch cast data from Neynar API
    */
   private async fetchCastData(castHash: string): Promise<CastData | null> {
-    const hubEndpoints = [
-      'https://hub.farcaster.xyz',
-      'https://hub.pinata.cloud'
-    ];
-
-    for (const hubUrl of hubEndpoints) {
-      try {
-        console.log(`🔍 Fetching cast data from ${hubUrl} for hash: ${castHash}`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        // Convert hex hash to bytes format for Hub API
-        const hashBytes = castHash.startsWith('0x') ? castHash.slice(2) : castHash;
-        
-        const response = await fetch(
-          `${hubUrl}/v1/castsByHash?hash=${hashBytes}`,
-          { 
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          console.log(`⚠️ Hub ${hubUrl} error: ${response.status} ${response.statusText}`);
-          continue;
-        }
-
-        const data = await response.json();
-        console.log('🔍 Hub API response:', JSON.stringify(data, null, 2));
-        
-        // Parse Farcaster Hub API response
-        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
-          const message = data.messages[0];
-          if (message.data && message.data.castAddBody) {
-            const cast = message.data.castAddBody;
-            const timestamp = new Date(message.data.timestamp * 1000).toISOString();
-            
-            return {
-              text: cast.text || '',
-              timestamp,
-              author: {
-                fid: message.data.fid,
-                username: message.data.username || 'unknown'
-              }
-            };
-          }
-        }
-
-        console.log('⚠️ Unexpected cast data format from Hub API');
-        continue;
-
-      } catch (error) {
-        console.log(`⚠️ Hub ${hubUrl} request failed:`, error);
-        continue;
+    try {
+      const apiKey = process.env.NEYNAR_API_KEY;
+      if (!apiKey) {
+        console.error('❌ NEYNAR_API_KEY not found');
+        return null;
       }
-    }
 
-    console.log('❌ Failed to fetch cast data from all Hub endpoints');
-    return null;
+      console.log(`🔍 Fetching cast data from Neynar API for hash: ${castHash}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      // Neynar API endpoint for cast by hash
+      const response = await fetch(
+        `https://api.neynar.com/v2/farcaster/cast?identifier=${castHash}&type=hash`,
+        { 
+          signal: controller.signal,
+          headers: {
+            'accept': 'application/json',
+            'api_key': apiKey
+          }
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.log(`⚠️ Neynar API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('🔍 Neynar API response:', JSON.stringify(data, null, 2));
+      
+      // Parse Neynar API response
+      if (data && data.cast) {
+        const cast = data.cast;
+        
+        // Validate timestamp exists - critical for "posted today" validation
+        if (!cast.timestamp) {
+          console.log('⚠️ Cast missing timestamp - cannot validate posting date');
+          return null;
+        }
+        
+        // Parse timestamp - Neynar returns ISO string
+        let timestamp: string;
+        if (typeof cast.timestamp === 'string') {
+          timestamp = cast.timestamp;
+        } else if (typeof cast.timestamp === 'number') {
+          // Handle epoch seconds or milliseconds
+          const tsMillis = cast.timestamp > 1e12 ? cast.timestamp : cast.timestamp * 1000;
+          timestamp = new Date(tsMillis).toISOString();
+        } else {
+          console.log('⚠️ Invalid timestamp format:', cast.timestamp);
+          return null;
+        }
+        
+        return {
+          text: cast.text || '',
+          timestamp,
+          author: {
+            fid: cast.author?.fid || 0,
+            username: cast.author?.username || 'unknown'
+          }
+        };
+      }
+
+      console.log('⚠️ Unexpected cast data format from Neynar API');
+      return null;
+
+    } catch (error) {
+      console.error('❌ Neynar API request failed:', error);
+      return null;
+    }
   }
 
   /**
