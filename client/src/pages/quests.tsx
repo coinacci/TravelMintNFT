@@ -165,8 +165,8 @@ export default function Quests() {
     }),
     onSuccess: () => {
       toast({
-        title: "Social post quest claimed! 📢",
-        description: "+0.50 points earned for sharing TravelMint!"
+        title: "Daily Post completed! 📢",
+        description: "+5 points earned for sharing TravelMint!"
       });
       setCastUrl(''); // Clear the input
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
@@ -444,50 +444,48 @@ export default function Quests() {
           </CardContent>
         </Card>
 
-        {/* Social Post Quest - Temporarily Hidden */}
-        {false && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <MessageSquare className="h-6 w-6 text-green-500" />
-                  <div>
-                    <CardTitle>Share TravelMint</CardTitle>
-                    <CardDescription>Post about TravelMint on Farcaster</CardDescription>
-                  </div>
+        {/* Daily Post Quest */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <MessageSquare className="h-6 w-6 text-green-500" />
+                <div>
+                  <CardTitle>Daily Post</CardTitle>
+                  <CardDescription>Post with TravelMint link to earn 5 points</CardDescription>
                 </div>
-                <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
-                  +0.50 Points
-                </Badge>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Input
-                  placeholder="Paste your Farcaster cast URL here..."
-                  value={castUrl}
-                  onChange={(e) => setCastUrl(e.target.value)}
-                  disabled={!farcasterUser || hasClaimedSocialPost}
-                  data-testid="input-cast-url"
-                />
-                <Button
-                  onClick={() => farcasterUser && socialPostMutation.mutate()}
-                  disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
-                  className="w-full"
-                  data-testid="button-social-post"
-                >
-                  {!farcasterUser ? "Connect via Farcaster First"
-                   : hasClaimedSocialPost ? "✓ Completed Today"
-                   : !castUrl.trim() ? "Enter Cast URL"
-                   : "Claim Social Post Bonus"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  💡 Create a cast mentioning "TravelMint" to claim points! (App link optional)
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
+                +5 Points
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Input
+                placeholder="Paste your Farcaster cast URL here..."
+                value={castUrl}
+                onChange={(e) => setCastUrl(e.target.value)}
+                disabled={!farcasterUser || hasClaimedSocialPost}
+                data-testid="input-cast-url"
+              />
+              <Button
+                onClick={() => farcasterUser && socialPostMutation.mutate()}
+                disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
+                className="w-full"
+                data-testid="button-daily-post"
+              >
+                {!farcasterUser ? "Connect via Farcaster First"
+                 : hasClaimedSocialPost ? "✓ Completed Today"
+                 : !castUrl.trim() ? "Enter Cast URL"
+                 : "Claim Daily Post Reward"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                💡 Create a cast mentioning "TravelMint" to claim points!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

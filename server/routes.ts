@@ -2348,7 +2348,7 @@ export async function registerRoutes(app: Express) {
           }
           
           console.log(`✅ Cast validation passed for @${farcasterUsername}`);
-          pointsEarned = 0.5; // 0.5 points for social post (will be converted to fixed-point 50 in storage)
+          pointsEarned = 5; // 5 points for daily post quest (will be converted to fixed-point 500 in storage)
           break;
           
         default:
