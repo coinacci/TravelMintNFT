@@ -111,7 +111,7 @@ export class FarcasterCastValidator {
           signal: controller.signal,
           headers: {
             'accept': 'application/json',
-            'api_key': apiKey
+            'x-api-key': apiKey
           }
         }
       );
