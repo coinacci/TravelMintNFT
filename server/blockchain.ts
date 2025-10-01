@@ -426,8 +426,8 @@ export class BlockchainService {
     const nfts: BlockchainNFT[] = [];
     let consecutiveFailures = 0;
     
-    // Try token IDs 3-150 to catch newly minted NFTs (excluding unwanted tokens 1 & 2)
-    for (let tokenId = 3; tokenId <= 150; tokenId++) {
+    // Try token IDs 1-150 to catch newly minted NFTs (excluding unwanted tokens 1 & 2)
+    for (let tokenId = 1; tokenId <= 1000; tokenId++) {
       try {
         const owner = await withRetry(() => nftContract.ownerOf(tokenId));
         const tokenURI = await nftContract.tokenURI(tokenId);
