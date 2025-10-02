@@ -92,7 +92,7 @@ export default function TravelMintFAQ({ faqs = FAQ_DATA }) {
                 openId === f.id ? "max-h-96" : "max-h-0"
               }`}
             >
-              <div className="text-sm text-gray-700">{f.a}</div>
+              <div className="text-sm text-white-700">{f.a}</div>
             </div>
           </article>
         ))}

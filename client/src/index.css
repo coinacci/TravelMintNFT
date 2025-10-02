@@ -13,17 +13,17 @@
 }
 
 :root {
-  --background: hsl(210, 20%, 98.04%);
-  --foreground: hsl(222.86, 84%, 4.9%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(222, 84%, 4.9%);
-  --popover: hsl(0, 0%, 100%);
+  --background: hsl(222.86deg 84% 4.9%);
+  --foreground: hsl(210deg 40% 96.08%);
+  --card: hsl(222.86deg 84% 4.9%);
+  --card-foreground: hsl(0deg 0% 100%);
+  --popover: hsl(222.86deg 84% 4.9%);
   --popover-foreground: hsl(222, 84%, 4.9%);
   --primary: hsl(240, 100%, 50%);
   --primary-foreground: hsl(210, 40%, 98%);
   --secondary: hsl(210, 40%, 96%);
   --secondary-foreground: hsl(222, 84%, 4.9%);
-  --muted: hsl(210, 40%, 96%);
+  --muted: hsl(210deg 40% 96.08%);
   --muted-foreground: hsl(215.68, 15.74%, 46.08%);
   --accent: hsl(8.96deg 97.36% 55.49%);
   --accent-foreground: hsl(222, 84%, 4.9%);
