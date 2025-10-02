@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Copy, Download, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 // TravelMint FAQ component
 // - Tailwind CSS used for styling
@@ -77,65 +77,13 @@ export default function TravelMintFAQ({ faqs = FAQ_DATA }) {
     setOpenId((prev) => (prev === id ? null : id));
   }
 
-  async function copyFAQ() {
-    const md = faqsToMarkdown(filtered);
-    try {
-      await navigator.clipboard.writeText(md);
-      toast("FAQ Markdown copied!");
-    } catch (e) {
-      toast("Copy failed — please check your browser permissions.");
-    }
-  }
-
-  function downloadFAQ() {
-    const md = faqsToMarkdown(filtered);
-    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "travelmint-faq.md";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function faqsToMarkdown(list: typeof faqs) {
-    return list.map((f) => `### ${f.q}\n\n${f.a}\n`).join("\n");
-  }
-
-  function toast(msg: string) {
-    // Minimal toast: could be replaced by a nicer UI library
-    const el = document.createElement("div");
-    el.textContent = msg;
-    el.className =
-      "fixed right-4 bottom-4 bg-black text-white px-4 py-2 rounded shadow-lg";
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2500);
-  }
-
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <header className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">TravelMint — Frequently Asked Questions</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            An interactive FAQ prepared for your NFT marketplace running on the Base network.
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={copyFAQ}
-            className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
-          >
-            <Copy size={16} /> Copy
-          </button>
-          <button
-            onClick={downloadFAQ}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-md hover:opacity-95"
-          >
-            <Download size={16} /> Download Markdown
-          </button>
-        </div>
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold">TravelMint — Frequently Asked Questions</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          An interactive FAQ prepared for your NFT marketplace running on the Base network.
+        </p>
       </header>
 
       <div className="mb-4 flex gap-3">
