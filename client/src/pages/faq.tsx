@@ -9,43 +9,43 @@ import { ChevronDown } from "lucide-react";
 const FAQ_DATA = [
   {
     id: "what-is",
-    q: "What is TravelMint?",
+    q: "1. What is TravelMint?",
     a:
       "TravelMint is a digital marketplace where you can mint your travel photos as NFTs and buy or sell them on the Base network. By uploading a photo and adding a location, you can create NFTs and showcase your unique travel memories on the blockchain.",
   },
   {
     id: "network",
-    q: "Which network does it run on?",
+    q: "2. Which network does it run on?",
     a: "TravelMint runs entirely on the Base network. You need to use USDC on Base for your transactions.",
   },
   {
     id: "mint-fee",
-    q: "How much is the minting fee?",
+    q: "3. How much is the minting fee?",
     a: "Each NFT minting requires 1 USDC + gas fee. The gas fee is the transaction cost on the Base network and depends on network usage at the time.",
   },
   {
     id: "payments",
-    q: "Which payment methods are supported?",
+    q: "4. Which payment methods are supported?",
     a: "Currently, only USDC on the Base network is supported for payments.",
   },
   {
     id: "royalties",
-    q: "Are royalties (artist fees) supported?",
+    q: "5. Are royalties (creator fees) supported?",
     a: "Currently, NFT sales do not include royalties. However, this feature is planned in the roadmap.",
   },
   {
     id: "file-types",
-    q: "Which file formats are supported?",
+    q: "6. Which file formats are supported?",
     a: "JPEG and PNG formats are supported for uploading photos.",
   },
   {
     id: "location",
-    q: "How does NFT location data work?",
+    q: "7. How does NFT location data work?",
     a: "Each NFT is linked with the uploaded photo and the selected manual or automatic location (GPS coordinates). This data is stored in the NFT’s metadata. Even if the NFT is sold, only ownership changes — the location data or map position does not change.",
   },
   {
     id: "roadmap",
-    q: "What’s planned for the future?",
+    q: "8. What’s planned for the future?",
     a: "Royalties for NFT sales, advanced filtering, social features, and additional utilities are planned.",
   },
 ];
