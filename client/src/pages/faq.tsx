@@ -12,49 +12,41 @@ const FAQ_DATA = [
     q: "What is TravelMint?",
     a:
       "TravelMint is a digital marketplace where you can mint your travel photos as NFTs and buy or sell them on the Base network. By uploading a photo and adding a location, you can create NFTs and showcase your unique travel memories on the blockchain.",
-    tags: ["general"],
   },
   {
     id: "network",
     q: "Which network does it run on?",
     a: "TravelMint runs entirely on the Base network. You need to use USDC on Base for your transactions.",
-    tags: ["technical", "payments"],
   },
   {
     id: "mint-fee",
     q: "How much is the minting fee?",
     a: "Each NFT minting requires 1 USDC + gas fee. The gas fee is the transaction cost on the Base network and depends on network usage at the time.",
-    tags: ["fees"],
   },
   {
     id: "payments",
     q: "Which payment methods are supported?",
     a: "Currently, only USDC on the Base network is supported for payments.",
-    tags: ["payments"],
   },
   {
     id: "royalties",
     q: "Are royalties (artist fees) supported?",
     a: "Currently, NFT sales do not include royalties. However, this feature is planned in the roadmap.",
-    tags: ["sales", "roadmap"],
   },
   {
     id: "file-types",
     q: "Which file formats are supported?",
     a: "JPEG and PNG formats are supported for uploading photos.",
-    tags: ["technical", "upload"],
   },
   {
     id: "location",
     q: "How does NFT location data work?",
     a: "Each NFT is linked with the uploaded photo and the selected manual or automatic location (GPS coordinates). This data is stored in the NFT’s metadata. Even if the NFT is sold, only ownership changes — the location data or map position does not change.",
-    tags: ["technical", "feature"],
   },
   {
     id: "roadmap",
     q: "What’s planned for the future?",
     a: "Royalties for NFT sales, advanced filtering, social features, and additional utilities are planned.",
-    tags: ["roadmap"],
   },
 ];
 
