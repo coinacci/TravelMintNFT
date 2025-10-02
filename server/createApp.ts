@@ -46,7 +46,7 @@ export function createApp() {
           `https://travelnft.replit.app/splash.png${cacheBuster}`
         ],
         "noindex": false,
-        "primaryCategory": "social"
+        "primaryCategory": "productivity"
       },
       "baseBuilder": {
         "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]

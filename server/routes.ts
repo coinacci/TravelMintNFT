@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express) {
     <!-- Base App Integration Meta Tags -->
     <meta name="noindex" content="false" />
     <meta name="robots" content="index, follow" />
-    <meta name="primaryCategory" content="social" />
+    <meta name="primaryCategory" content="productivity" />
     
     <!-- Base App Compatible Mini App Discovery Tags -->
     <meta name="fc:miniapp" content='{
