@@ -66,7 +66,7 @@ export default function Navigation() {
   return (
     <>
       {/* Top Header */}
-      <header className="bg-black border-b border-white sticky top-0 z-50">
+      <header className="bg-black sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-end">
             <div className="flex items-center space-x-1">
