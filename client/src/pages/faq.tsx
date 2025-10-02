@@ -70,7 +70,7 @@ export default function TravelMintFAQ({ faqs = FAQ_DATA }) {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold">TravelMint — Frequently Asked Questions</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          An interactive FAQ prepared for your NFT marketplace running on the Base network.
+          FAQ for TravelMint miniapp on the Base network.
         </p>
       </header>
 
