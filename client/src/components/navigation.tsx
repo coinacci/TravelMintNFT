@@ -51,14 +51,11 @@ export default function Navigation() {
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Market", icon: Store },
     { path: "/my-nfts", label: "My NFTs", icon: User },
-    { path: "/faq", label: "FAQ", icon: HelpCircle },
-  ];
-  
-  // Quest items - only show for Farcaster users
-  const questNavItems = farcasterUser ? [
     { path: "/quests", label: "Quests", icon: Target },
     { path: "/leaderboard", label: "Board", icon: Trophy },
-  ] : [];
+    { path: "/faq", label: "FAQ", icon: HelpCircle },
+    
+  ];
   
   // Combine navigation items
   const navItems = [...baseNavItems, ...questNavItems];
