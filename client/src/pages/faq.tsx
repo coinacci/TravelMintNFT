@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 // TravelMint FAQ component
@@ -59,19 +59,7 @@ const FAQ_DATA = [
 ];
 
 export default function TravelMintFAQ({ faqs = FAQ_DATA }) {
-  const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return faqs;
-    return faqs.filter(
-      (f) =>
-        f.q.toLowerCase().includes(q) ||
-        f.a.toLowerCase().includes(q) ||
-        (f.tags || []).some((t) => t.includes(q))
-    );
-  }, [query, faqs]);
 
   function toggle(id: string) {
     setOpenId((prev) => (prev === id ? null : id));
@@ -86,20 +74,8 @@ export default function TravelMintFAQ({ faqs = FAQ_DATA }) {
         </p>
       </header>
 
-      <div className="mb-4 flex gap-3">
-        <input
-          className="flex-1 px-4 py-2 border rounded-md focus:outline-none"
-          placeholder="Search by question or keyword... (e.g. mint, royalty, Base)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <div className="text-sm text-gray-600 self-center">
-          {filtered.length} results
-        </div>
-      </div>
-
       <div className="space-y-3">
-        {filtered.map((f) => (
+        {faqs.map((f) => (
           <article key={f.id} className="border rounded-lg overflow-hidden">
             <button
               className="w-full text-left px-4 py-3 flex items-center justify-between"
@@ -128,21 +104,7 @@ export default function TravelMintFAQ({ faqs = FAQ_DATA }) {
             </div>
           </article>
         ))}
-
-        {filtered.length === 0 && (
-          <div className="p-6 text-center text-gray-500 border rounded">
-            No results found for your search.
-          </div>
-        )}
       </div>
-
-      <footer className="mt-8 text-xs text-gray-500">
-        <div>
-          This component can be added as a single file to your project. If you
-          want, I can convert it to TypeScript or add i18n (multi-language)
-          support.
-        </div>
-      </footer>
     </div>
   );
 }
