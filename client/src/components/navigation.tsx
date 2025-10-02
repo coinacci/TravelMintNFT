@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { MapPin, Store, Globe, Home, User, Trophy, Target, HelpCircle } from "lucide-react";
+import { Store, Globe, Home, User, Trophy, Target, HelpCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useEffect, useState } from "react";
@@ -68,14 +68,7 @@ export default function Navigation() {
       {/* Top Header */}
       <header className="bg-black border-b border-white sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>
-                <MapPin className={`inline-block ${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-2`} />
-                TravelMint
-              </div>
-            </div>
-            
+          <div className="flex items-center justify-end">
             <div className="flex items-center space-x-1">
               {/* Notification indicator removed - notifications work via FID-based system */}
               <WalletConnect />
