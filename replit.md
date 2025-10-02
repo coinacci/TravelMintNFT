@@ -2,6 +2,17 @@
 
 This is a travel-focused NFT marketplace application where users can mint, buy, and sell location-based travel photo NFTs. The application features an interactive map view for discovering NFTs by location, a marketplace for trading, and a minting system for creating new travel photo NFTs. Built with a modern React frontend and Express backend, it uses PostgreSQL for data persistence and includes a comprehensive UI component library based on shadcn/ui.
 
+## Recent Updates (October 2, 2025)
+
+- **Farcaster Manifest Configuration**: Updated `primaryCategory` from "social" to "productivity" across all 5 manifest locations:
+  1. `server/createApp.ts` - Hardcoded manifest route
+  2. `client/public/.well-known/farcaster.json` - Primary Farcaster manifest file
+  3. `client/public/manifest.json` - PWA manifest
+  4. `client/index.html` - HTML meta tag
+  5. `server/routes.ts` - Server-rendered /base endpoint
+- **Webhook URL**: Configured to `https://api.neynar.com/f/app/968f2785-2da9-451a-a984-d753e739713c/event` across all manifest locations
+- **Manifest Consistency**: All manifest files now serve consistent category and webhook configuration for proper Farcaster Mini App discovery
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
