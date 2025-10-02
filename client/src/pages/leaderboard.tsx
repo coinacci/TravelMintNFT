@@ -227,7 +227,7 @@ export default function Leaderboard() {
                       className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
                         entry.farcasterFid === farcasterUser?.fid 
                           ? 'bg-primary/10 border border-primary/20' 
-                          : 'bg-muted/50 hover:bg-muted'
+                          : 'bg-muted/50'
                       }`}
                       data-testid={`leaderboard-row-${entry.rank}`}
                     >
@@ -271,7 +271,7 @@ export default function Leaderboard() {
                       className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
                         entry.farcasterFid === farcasterUser?.fid 
                           ? 'bg-primary/10 border border-primary/20' 
-                          : 'bg-muted/50 hover:bg-muted'
+                          : 'bg-muted/50'
                       }`}
                       data-testid={`weekly-leaderboard-row-${entry.rank}`}
                     >
@@ -325,7 +325,7 @@ export default function Leaderboard() {
                           <Crown className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <p className="font-bold text-lg" data-testid={`champion-username-${champion.weekNumber}`}>
+                          <p className="font-bold text-lg text-black" data-testid={`champion-username-${champion.weekNumber}`}>
                             @{champion.farcasterUsername}
                           </p>
                         </div>
