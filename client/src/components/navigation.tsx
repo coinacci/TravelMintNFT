@@ -66,11 +66,11 @@ export default function Navigation() {
   return (
     <>
       {/* Top Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
+      <header className="bg-black border-b border-white sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold travel-gradient bg-clip-text text-transparent`}>
+              <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-white`}>
                 <MapPin className={`inline-block ${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-2`} />
                 TravelMint
               </div>
@@ -85,7 +85,7 @@ export default function Navigation() {
       </header>
 
       {/* Bottom Tab Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white">
         <div className="flex items-center justify-around py-2 pb-4 safe-area-padding">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -95,8 +95,8 @@ export default function Navigation() {
                 <div 
                   className={`flex flex-col items-center px-0.5 py-2 min-w-[42px] transition-colors duration-200 ${
                     isActive 
-                      ? 'text-primary' 
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'text-white' 
+                      : 'text-gray-400 hover:text-gray-200'
                   }`}
                   data-testid={`nav-tab-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
