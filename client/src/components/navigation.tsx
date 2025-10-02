@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { MapPin, Store, Globe, Home, User, Trophy, Target } from "lucide-react";
+import { MapPin, Store, Globe, Home, User, Trophy, Target, HelpCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useEffect, useState } from "react";
@@ -49,14 +49,15 @@ export default function Navigation() {
   const baseNavItems = [
     { path: "/", label: "Home", icon: Home },
     { path: "/explore", label: "Explore", icon: Globe },
-    { path: "/marketplace", label: "Marketplace", icon: Store },
+    { path: "/marketplace", label: "Market", icon: Store },
     { path: "/my-nfts", label: "My NFTs", icon: User },
+    { path: "/faq", label: "FAQ", icon: HelpCircle },
   ];
   
   // Quest items - only show for Farcaster users
   const questNavItems = farcasterUser ? [
     { path: "/quests", label: "Quests", icon: Target },
-    { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    { path: "/leaderboard", label: "Board", icon: Trophy },
   ] : [];
   
   // Combine navigation items
@@ -92,16 +93,16 @@ export default function Navigation() {
             return (
               <Link key={item.path} href={item.path}>
                 <div 
-                  className={`flex flex-col items-center px-1 py-2 min-w-[50px] transition-colors duration-200 ${
+                  className={`flex flex-col items-center px-0.5 py-2 min-w-[42px] transition-colors duration-200 ${
                     isActive 
                       ? 'text-primary' 
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                   data-testid={`nav-tab-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <Icon className="h-4 w-4 mb-0.5" />
+                  <Icon className="h-3.5 w-3.5 mb-0.5" />
                   {isActive && (
-                    <span className="text-[10px] font-medium text-center leading-tight whitespace-nowrap">
+                    <span className="text-[9px] font-medium text-center leading-tight whitespace-nowrap">
                       {item.label}
                     </span>
                   )}
