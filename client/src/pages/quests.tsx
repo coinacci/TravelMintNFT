@@ -409,7 +409,7 @@ export default function Quests() {
                 </div>
               </div>
               <Badge variant={hasClaimedBaseTransaction ? "secondary" : "default"}>
-                +0.25 Points
+                +1 Points
               </Badge>
             </div>
           </CardHeader>
@@ -435,7 +435,7 @@ export default function Quests() {
               <ComposeCastButton
                 type="quest"
                 questName="Hello TravelMint"
-                questPoints={0.5}
+                questPoints={1}
                 variant="outline"
                 size="sm"
                 className="w-full"
