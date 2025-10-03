@@ -451,8 +451,8 @@ export default function Quests() {
               <div className="flex items-center space-x-3">
                 <MessageSquare className="h-6 w-6 text-green-500" />
                 <div>
-                  <CardTitle>Daily Post</CardTitle>
-                  <CardDescription>Post with TravelMint to earn 5 points</CardDescription>
+                  <CardTitle>Daily Farcaster Cast</CardTitle>
+                  <CardDescription>Cast with TravelMint to earn 5 points</CardDescription>
                 </div>
               </div>
               <Badge variant={hasClaimedSocialPost ? "secondary" : "default"}>
