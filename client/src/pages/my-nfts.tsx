@@ -18,6 +18,7 @@ import { MapPin, User, Clock, Send, Loader2, Share2, Wallet, Users } from "lucid
 import { isAddress, parseAbi, formatEther } from "viem";
 import { base } from "wagmi/chains";
 import sdk from "@farcaster/frame-sdk";
+import ComposeCastButton from "@/components/ComposeCastButton";
 
 interface NFT {
   id: string;
@@ -903,23 +904,14 @@ export default function MyNFTs() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          {/* Share button temporarily hidden
-                          <Button
-                            size="sm"
+                          <ComposeCastButton
+                            type="nft"
+                            nftName={nft.title}
+                            nftLocation={nft.location}
                             variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
-                            disabled={isGeneratingFrame}
-                            data-testid={`share-${nft.id}`}
+                            size="sm"
                             className="text-muted-foreground hover:text-foreground"
-                            title="Share as Frame"
-                          >
-                            {isGeneratingFrame ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Share2 className="w-4 h-4" />
-                            )}
-                          </Button>
-                          */}
+                          />
                           <Button
                             size="sm"
                             variant="ghost"
@@ -945,23 +937,14 @@ export default function MyNFTs() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          {/* Share button temporarily hidden
-                          <Button
-                            size="sm"
+                          <ComposeCastButton
+                            type="nft"
+                            nftName={nft.title}
+                            nftLocation={nft.location}
                             variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); handleShareNFT(nft); }}
-                            disabled={isGeneratingFrame}
-                            data-testid={`share-${nft.id}`}
+                            size="sm"
                             className="text-muted-foreground hover:text-foreground"
-                            title="Share as Frame"
-                          >
-                            {isGeneratingFrame ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Share2 className="w-4 h-4" />
-                            )}
-                          </Button>
-                          */}
+                          />
                           <Button
                             size="sm"
                             variant="ghost"
