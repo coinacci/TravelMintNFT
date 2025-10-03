@@ -862,7 +862,7 @@ export default function Mint() {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2 text-sm">
                         <MapPin className="w-4 h-4 text-primary" />
-                        <span data-testid="detected-location">
+                        <span className="text-black" data-testid="detected-location">
                           {locationLoading ? "Getting your location..." :
                            location ? (location.city || "Unknown City") : 
                            locationError ? "Location access required - please allow location access in browser" : "Detecting location..."}
