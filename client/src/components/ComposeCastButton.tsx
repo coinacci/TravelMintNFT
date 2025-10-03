@@ -120,16 +120,26 @@ export default function ComposeCastButton({
       const castText = generateCastText();
       let castEmbeds: string[] = [];
       
-      // For NFT type, include both image and frame URL
-      if (type === 'nft' && nftTokenId) {
-        const frameUrl = `https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint/api/frames/nft/${nftTokenId}`;
-        // Görsel URL'ini güvenilir gateway'e convert et
+      // For NFT type, include image and/or frame URL
+      if (type === 'nft') {
         const reliableImageUrl = nftImageUrl ? convertToReliableGateway(nftImageUrl) : null;
         
-        if (reliableImageUrl) {
-          castEmbeds = [reliableImageUrl, frameUrl];
-        } else {
-          castEmbeds = [frameUrl];
+        // TokenId varsa hem görsel hem frame gönder
+        if (nftTokenId) {
+          const frameUrl = `https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint/api/frames/nft/${nftTokenId}`;
+          if (reliableImageUrl) {
+            castEmbeds = [reliableImageUrl, frameUrl];
+          } else {
+            castEmbeds = [frameUrl];
+          }
+        } 
+        // TokenId yoksa sadece görseli gönder
+        else if (reliableImageUrl) {
+          castEmbeds = [reliableImageUrl];
+        }
+        // Hiçbiri yoksa fallback
+        else {
+          castEmbeds = [typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app'];
         }
       } else if (embeds.length > 0) {
         castEmbeds = embeds;
