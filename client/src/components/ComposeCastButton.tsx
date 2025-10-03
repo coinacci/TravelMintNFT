@@ -10,6 +10,7 @@ interface ComposeCastButtonProps {
   nftName?: string;
   nftLocation?: string;
   nftImageUrl?: string;
+  nftTokenId?: string;
   leaderboardPosition?: number;
   totalPoints?: number;
   customText?: string;
@@ -27,6 +28,7 @@ export default function ComposeCastButton({
   nftName,
   nftLocation,
   nftImageUrl,
+  nftTokenId,
   leaderboardPosition,
   totalPoints,
   customText,
@@ -95,9 +97,16 @@ export default function ComposeCastButton({
       const castText = generateCastText();
       let castEmbeds: string[] = [];
       
-      // For NFT type, prioritize image URL if available
-      if (type === 'nft' && nftImageUrl) {
-        castEmbeds = [nftImageUrl];
+      // For NFT type, include both image and frame URL
+      if (type === 'nft' && nftTokenId) {
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app';
+        const frameUrl = `${baseUrl}/api/frames/nft/${nftTokenId}`;
+        // Add image URL first (if available), then frame URL
+        if (nftImageUrl) {
+          castEmbeds = [nftImageUrl, frameUrl];
+        } else {
+          castEmbeds = [frameUrl];
+        }
       } else if (embeds.length > 0) {
         castEmbeds = embeds;
       } else {

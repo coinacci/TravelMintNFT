@@ -909,6 +909,7 @@ export default function MyNFTs() {
                             nftName={nft.title}
                             nftLocation={nft.location}
                             nftImageUrl={nft.imageUrl}
+                            nftTokenId={nft.tokenId}
                             variant="ghost"
                             size="sm"
                             className="text-muted-foreground hover:text-foreground"
@@ -943,6 +944,7 @@ export default function MyNFTs() {
                             nftName={nft.title}
                             nftLocation={nft.location}
                             nftImageUrl={nft.imageUrl}
+                            nftTokenId={nft.tokenId}
                             variant="ghost"
                             size="sm"
                             className="text-muted-foreground hover:text-foreground"
