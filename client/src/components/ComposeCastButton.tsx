@@ -4,7 +4,7 @@ import sdk from "@farcaster/frame-sdk";
 import { useToast } from "@/hooks/use-toast";
 
 interface ComposeCastButtonProps {
-  type: 'quest' | 'mint' | 'leaderboard' | 'general';
+  type: 'quest' | 'mint' | 'leaderboard' | 'nft' | 'general';
   questName?: string;
   questPoints?: number;
   nftName?: string;
@@ -46,6 +46,9 @@ export default function ComposeCastButton({
       case 'mint':
         return `📸 Just minted a new travel NFT "${nftName}" on TravelMint! Creating memories on Base blockchain 🌍⛓️`;
       
+      case 'nft':
+        return `🖼️ Check out my travel NFT "${nftName}" from ${nftLocation} on TravelMint! Collecting memories on Base blockchain 🌍✨`;
+      
       case 'leaderboard':
         return `🏆 Ranked ${leaderboardPosition}th on TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on Base blockchain 🎖️`;
       
@@ -61,6 +64,8 @@ export default function ComposeCastButton({
         return <Target className="h-4 w-4" />;
       case 'mint':
         return <Camera className="h-4 w-4" />;
+      case 'nft':
+        return <Share2 className="h-4 w-4" />;
       case 'leaderboard':
         return <Trophy className="h-4 w-4" />;
       default:
@@ -73,6 +78,8 @@ export default function ComposeCastButton({
       case 'quest':
         return 'Share Achievement';
       case 'mint':
+        return 'Share NFT';
+      case 'nft':
         return 'Share NFT';
       case 'leaderboard':
         return 'Share Position';
