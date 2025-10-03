@@ -1108,52 +1108,6 @@ export default function Mint() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Advanced Options */}
-        <Card className="mt-8 bg-card border border-border">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Advanced Options</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="enable-listing"
-                    checked={enableListing}
-                    onCheckedChange={(checked) => setEnableListing(!!checked)}
-                    data-testid="enable-listing-checkbox"
-                  />
-                  <Label htmlFor="enable-listing" className="text-sm">Enable immediate listing for sale</Label>
-                </div>
-                {enableListing && (
-                  <div className="ml-6 mt-2">
-                    <Input
-                      type="number"
-                      placeholder="Sale price in USDC"
-                      value={salePrice}
-                      onChange={(e) => setSalePrice(e.target.value)}
-                      data-testid="sale-price-input"
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="featured-placement"
-                    checked={featuredPlacement}
-                    onCheckedChange={(checked) => setFeaturedPlacement(!!checked)}
-                    data-testid="featured-placement-checkbox"
-                  />
-                  <Label htmlFor="featured-placement" className="text-sm">Add to featured locations</Label>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 ml-6">
-                  Additional 0.5 USDC fee for premium placement
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
