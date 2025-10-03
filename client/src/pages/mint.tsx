@@ -812,7 +812,7 @@ export default function Mint() {
           {/* Preview & Location Section */}
           <Card className="bg-card border border-border">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Preview & Location</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">Preview & Location</h3>
               
               {/* Photo Preview */}
               <div className="bg-muted rounded-lg aspect-square mb-4 flex items-center justify-center overflow-hidden" data-testid="photo-preview">
@@ -830,7 +830,7 @@ export default function Mint() {
               <div className="space-y-4">
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="mb-4">
-                    <span className="text-sm font-medium">Location Selection</span>
+                    <span className="text-sm font-medium text-black">Location Selection</span>
                   </div>
 
                   {/* Location Type Selection */}
@@ -849,11 +849,11 @@ export default function Mint() {
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="gps" id="gps" />
-                      <Label htmlFor="gps" className="text-sm">Use GPS Location</Label>
+                      <Label htmlFor="gps" className="text-sm text-black">Use GPS Location</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="manual" id="manual" />
-                      <Label htmlFor="manual" className="text-sm">Search City Manually</Label>
+                      <Label htmlFor="manual" className="text-sm text-black">Search City Manually</Label>
                     </div>
                   </RadioGroup>
 
