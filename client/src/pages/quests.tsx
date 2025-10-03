@@ -435,7 +435,7 @@ export default function Quests() {
               <ComposeCastButton
                 type="quest"
                 questName="Hello TravelMint"
-                questPoints={0.25}
+                questPoints={0.5}
                 variant="outline"
                 size="sm"
                 className="w-full"
