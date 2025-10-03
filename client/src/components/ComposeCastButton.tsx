@@ -47,7 +47,7 @@ export default function ComposeCastButton({
         return `📸 Just minted a new travel NFT "${nftName}" on TravelMint! Creating memories on Base blockchain 🌍⛓️`;
       
       case 'nft':
-        return `🖼️ Check out my travel NFT "${nftName}" from ${nftLocation} on TravelMint! Collecting memories on Base blockchain 🌍✨`;
+        return `🖼️ My travel NFT "${nftName}" from ${nftLocation} on TravelMint! Collecting memories on Base 🌍✨`;
       
       case 'leaderboard':
         return `🏆 Ranked ${leaderboardPosition}th on TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on Base blockchain 🎖️`;
