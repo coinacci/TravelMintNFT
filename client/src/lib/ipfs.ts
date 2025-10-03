@@ -1,6 +1,83 @@
 // Client-side IPFS utilities for TravelMint
 import { createIPFSUrl, type IPFSUploadResponse, type NFTMetadata } from '@shared/ipfs';
 
+// List of reliable IPFS gateways in order of preference
+const IPFS_GATEWAYS = [
+  'https://nftstorage.link/ipfs',
+  'https://ipfs.io/ipfs',
+  'https://cloudflare-ipfs.com/ipfs',
+  'https://gateway.pinata.cloud/ipfs',
+];
+
+/**
+ * Extract IPFS hash from various IPFS URL formats
+ */
+export function extractIpfsHash(url: string): string | null {
+  if (!url) return null;
+
+  // Handle ipfs:// protocol
+  if (url.startsWith('ipfs://')) {
+    const hash = url.replace('ipfs://', '').replace('ipfs/', '');
+    return hash;
+  }
+
+  // Handle HTTP gateway URLs
+  const ipfsPattern = /\/ipfs\/([a-zA-Z0-9]+)/;
+  const match = url.match(ipfsPattern);
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  // If it's already a valid HTTP URL without IPFS, return null
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return null;
+  }
+
+  // Assume it's a bare hash
+  if (/^[a-zA-Z0-9]+$/.test(url)) {
+    return url;
+  }
+
+  return null;
+}
+
+/**
+ * Convert any IPFS URL format to a reliable HTTP gateway URL
+ */
+export function normalizeIpfsUrl(url: string, gatewayIndex: number = 0): string {
+  if (!url) return url;
+
+  // If it's already a regular HTTP/HTTPS URL and not IPFS, return as is
+  if ((url.startsWith('http://') || url.startsWith('https://')) && !url.includes('/ipfs/') && !url.startsWith('ipfs://')) {
+    return url;
+  }
+
+  const hash = extractIpfsHash(url);
+  if (!hash) return url;
+
+  // Use the specified gateway (for fallback)
+  const gateway = IPFS_GATEWAYS[gatewayIndex] || IPFS_GATEWAYS[0];
+  return `${gateway}/${hash}`;
+}
+
+/**
+ * Get all possible gateway URLs for an IPFS resource
+ */
+export function getAllIpfsGatewayUrls(url: string): string[] {
+  const hash = extractIpfsHash(url);
+  if (!hash) return [url];
+
+  return IPFS_GATEWAYS.map(gateway => `${gateway}/${hash}`);
+}
+
+/**
+ * Check if a URL is an IPFS URL
+ */
+export function isIpfsUrl(url: string): boolean {
+  if (!url) return false;
+  return url.startsWith('ipfs://') || url.includes('/ipfs/');
+}
+
 export class IPFSClient {
   
   // Upload image file to IPFS via backend API

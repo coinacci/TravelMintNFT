@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Share2, Trophy, Camera, Target } from "lucide-react";
 import sdk from "@farcaster/frame-sdk";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeIpfsUrl } from "@/lib/ipfs";
 
 interface ComposeCastButtonProps {
   type: 'quest' | 'mint' | 'leaderboard' | 'nft' | 'general';
