@@ -40,6 +40,29 @@ export default function ComposeCastButton({
 }: ComposeCastButtonProps) {
   const { toast } = useToast();
 
+  const convertToReliableGateway = (url: string): string => {
+    if (!url) return url;
+    
+    // ipfs:// formatını tespit et ve Cloudflare gateway'e convert et
+    if (url.startsWith('ipfs://')) {
+      const cid = url.replace('ipfs://', '');
+      return `https://cloudflare-ipfs.com/ipfs/${cid}`;
+    }
+    
+    // ipfs.io gateway'ini cloudflare'e değiştir
+    if (url.includes('ipfs.io/ipfs/')) {
+      return url.replace('ipfs.io/ipfs/', 'cloudflare-ipfs.com/ipfs/');
+    }
+    
+    // gateway.ipfs.io'yu da değiştir
+    if (url.includes('gateway.ipfs.io/ipfs/')) {
+      return url.replace('gateway.ipfs.io/ipfs/', 'cloudflare-ipfs.com/ipfs/');
+    }
+    
+    // Diğer durumda URL'i olduğu gibi kullan
+    return url;
+  };
+
   const generateCastText = () => {
     if (customText) return customText;
 
@@ -100,9 +123,11 @@ export default function ComposeCastButton({
       // For NFT type, include both image and frame URL
       if (type === 'nft' && nftTokenId) {
         const frameUrl = `https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint/api/frames/nft/${nftTokenId}`;
-        // Add image URL first (if available), then frame URL
-        if (nftImageUrl) {
-          castEmbeds = [nftImageUrl, frameUrl];
+        // Görsel URL'ini güvenilir gateway'e convert et
+        const reliableImageUrl = nftImageUrl ? convertToReliableGateway(nftImageUrl) : null;
+        
+        if (reliableImageUrl) {
+          castEmbeds = [reliableImageUrl, frameUrl];
         } else {
           castEmbeds = [frameUrl];
         }
