@@ -9,6 +9,7 @@ interface ComposeCastButtonProps {
   questPoints?: number;
   nftName?: string;
   nftLocation?: string;
+  nftImageUrl?: string;
   leaderboardPosition?: number;
   totalPoints?: number;
   customText?: string;
@@ -25,6 +26,7 @@ export default function ComposeCastButton({
   questPoints,
   nftName,
   nftLocation,
+  nftImageUrl,
   leaderboardPosition,
   totalPoints,
   customText,
@@ -91,7 +93,16 @@ export default function ComposeCastButton({
   const handleComposeCast = async () => {
     try {
       const castText = generateCastText();
-      const castEmbeds = embeds.length > 0 ? embeds : [typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app'];
+      let castEmbeds: string[] = [];
+      
+      // For NFT type, prioritize image URL if available
+      if (type === 'nft' && nftImageUrl) {
+        castEmbeds = [nftImageUrl];
+      } else if (embeds.length > 0) {
+        castEmbeds = embeds;
+      } else {
+        castEmbeds = [typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app'];
+      }
 
       const result = await sdk.actions.composeCast({
         text: castText,
