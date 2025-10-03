@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
-import { normalizeIpfsUrl, getAllIpfsGatewayUrls } from "@/lib/ipfs";
 
 interface NFTCardProps {
   nft: {
@@ -42,6 +41,28 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   
   // Smart image loading with robust IPFS gateway fallbacks and improved timeouts
   useEffect(() => {
+    // Expand IPFS URLs to multiple gateways for redundancy
+    const expandIPFSUrl = (url: string): string[] => {
+      if (!url) return [];
+      
+      // If already an IPFS gateway URL, extract hash and create fallbacks
+      if (url.includes('/ipfs/')) {
+        const hash = url.split('/ipfs/')[1];
+        if (hash) {
+          const cleanHash = hash.split('?')[0]; // Remove query params
+          return [
+            url, // Keep original first
+            `https://ipfs.io/ipfs/${cleanHash}`,              // Most reliable public gateway
+            `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,  // Fast CDN
+            `https://dweb.link/ipfs/${cleanHash}`,            // Protocol Labs
+            `https://4everland.io/ipfs/${cleanHash}`          // Alternative gateway
+          ];
+        }
+      }
+      
+      return [url];
+    };
+    
     // Priority order: Object Storage -> IPFS with multiple gateway fallbacks
     const tryUrls: string[] = [];
     
@@ -52,7 +73,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     
     // 2. IPFS URL with multiple gateway fallbacks
     if (nft.imageUrl && !tryUrls.includes(nft.imageUrl)) {
-      const ipfsUrls = getAllIpfsGatewayUrls(nft.imageUrl);
+      const ipfsUrls = expandIPFSUrl(nft.imageUrl);
       // Add all IPFS gateway options
       ipfsUrls.forEach(url => {
         if (!tryUrls.includes(url)) {
@@ -63,7 +84,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
     
     // 3. TokenURI as final fallback (for tokens like #47 where image URL is broken but tokenURI works)
     if (nft.tokenURI && !tryUrls.includes(nft.tokenURI)) {
-      const tokenUriUrls = getAllIpfsGatewayUrls(nft.tokenURI);
+      const tokenUriUrls = expandIPFSUrl(nft.tokenURI);
       // Add all TokenURI gateway options
       tokenUriUrls.forEach(url => {
         if (!tryUrls.includes(url)) {
