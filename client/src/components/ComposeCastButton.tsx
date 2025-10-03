@@ -99,8 +99,7 @@ export default function ComposeCastButton({
       
       // For NFT type, include both image and frame URL
       if (type === 'nft' && nftTokenId) {
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app';
-        const frameUrl = `${baseUrl}/api/frames/nft/${nftTokenId}`;
+        const frameUrl = `https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint/api/frames/nft/${nftTokenId}`;
         // Add image URL first (if available), then frame URL
         if (nftImageUrl) {
           castEmbeds = [nftImageUrl, frameUrl];
