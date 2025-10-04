@@ -22,7 +22,7 @@ export const config = createConfig({
   connectors: [
     miniAppConnector(), // Native Farcaster Mini App connector
     injected({
-      target: 'metaMask',
+      shimDisconnect: true,
     }),
     walletConnect({
       projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '',

@@ -10,10 +10,18 @@ import sdk from "@farcaster/frame-sdk";
 export function WalletConnect() {
   const [isOpen, setIsOpen] = useState(false);
   const [farcasterUser, setFarcasterUser] = useState<any>(null);
+  const [hasInjectedProvider, setHasInjectedProvider] = useState(false);
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const { toast } = useToast();
+  
+  // Check if browser has an injected provider (MetaMask, etc.)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setHasInjectedProvider(!!window.ethereum);
+    }
+  }, []);
   
   // Get Farcaster user context
   useEffect(() => {
@@ -262,13 +270,17 @@ export function WalletConnect() {
             
             const { icon, description } = getConnectorInfo(connector.name);
             
+            // Check if this is an injected connector and if provider exists
+            const isInjectedConnector = connector.type === 'injected';
+            const isDisabled = isPending || (isInjectedConnector && !hasInjectedProvider);
+            
             return (
               <Button
                 key={connector.uid}
                 onClick={() => handleConnect(connector)}
                 variant="outline"
                 className="w-full justify-start h-auto p-4"
-                disabled={isPending}
+                disabled={isDisabled}
                 data-testid={`connect-${connector.name.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 <div className="flex items-center space-x-3">
@@ -278,7 +290,9 @@ export function WalletConnect() {
                   <div className="text-left">
                     <p className="font-medium">{connector.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {description}
+                      {isInjectedConnector && !hasInjectedProvider 
+                        ? 'No browser wallet detected' 
+                        : description}
                     </p>
                   </div>
                   {isLoading && (
