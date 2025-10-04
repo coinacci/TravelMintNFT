@@ -197,7 +197,7 @@ export default function Quests() {
 
           toast({
             title: "Hello TravelMint! ⚡",
-            description: "+0.25 points earned for Base transaction!"
+            description: "+1 point earned for Base transaction!"
           });
           
           queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
