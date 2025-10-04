@@ -138,9 +138,10 @@ export default function Quests() {
     }),
     onSuccess: () => {
       const nftCount = holderStatus?.nftCount || 1;
+      const points = nftCount * 0.25;
       toast({
         title: "Holder bonus claimed! 🏆",
-        description: `+${nftCount}.00 point${nftCount > 1 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
+        description: `+${points.toFixed(2)} point${points !== 0.25 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -366,7 +367,7 @@ export default function Quests() {
                 </div>
               </div>
               <Badge variant={hasClaimedHolderBonus ? "secondary" : "default"}>
-                +{holderStatus?.nftCount || 0}.00 Point{((holderStatus?.nftCount || 0) !== 0.25) ? 's' : ''}
+                +{((holderStatus?.nftCount || 0) * 0.25).toFixed(2)} Point{((holderStatus?.nftCount || 0) * 0.25 !== 0.25) ? 's' : ''}
               </Badge>
             </div>
           </CardHeader>
@@ -380,7 +381,7 @@ export default function Quests() {
               {!farcasterUser ? "Connect via Farcaster First"
                : !holderStatus?.isHolder ? "No NFTs Found (across all linked wallets)"
                : hasClaimedHolderBonus ? "✓ Completed Today"
-               : `Claim +${holderStatus?.nftCount || 0}.00 Point${((holderStatus?.nftCount || 0) !== 0.25) ? 's' : ''}`}
+               : `Claim +${((holderStatus?.nftCount || 0) * 0.25).toFixed(2)} Point${((holderStatus?.nftCount || 0) * 0.25 !== 0.25) ? 's' : ''}`}
             </Button>
             
             {/* Share button - temporarily hidden */}
