@@ -2299,7 +2299,7 @@ export async function registerRoutes(app: Express) {
           }
           
           console.log(`✅ Farcaster FID ${farcasterFid} holds ${combinedHolderStatus.nftCount} NFTs across all linked wallets`);
-          pointsEarned = combinedHolderStatus.nftCount;
+          pointsEarned = combinedHolderStatus.nftCount * 0.25;
           break;
           
         case 'streak_bonus':
@@ -2329,7 +2329,7 @@ export async function registerRoutes(app: Express) {
         case 'base_transaction':
           // No transaction verification - user can claim daily and make their first Base transaction
           // The unique constraint on (farcaster_fid, quest_type, completion_date) prevents multiple claims per day
-          pointsEarned = 0.25; // 0.25 points for Base transaction (will be converted to fixed-point 25 in storage)
+          pointsEarned = 1; // 1 point for Base transaction
           break;
           
         case 'social_post':
