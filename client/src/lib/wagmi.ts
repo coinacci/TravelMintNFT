@@ -1,6 +1,6 @@
 import { createConfig, http } from 'wagmi'
 import { base, mainnet, baseSepolia } from 'wagmi/chains'
-import { coinbaseWallet } from 'wagmi/connectors'
+import { coinbaseWallet, walletConnect, injected } from 'wagmi/connectors'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 
 // Get the correct app URL for wallet authorization
@@ -21,6 +21,19 @@ export const config = createConfig({
   chains: [base, mainnet, baseSepolia],
   connectors: [
     miniAppConnector(), // Native Farcaster Mini App connector
+    injected({
+      target: 'metaMask',
+    }),
+    walletConnect({
+      projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '',
+      metadata: {
+        name: 'TravelMint',
+        description: 'Travel Photo NFT Marketplace on Base',
+        url: getAppUrl(),
+        icons: [`${getAppUrl()}/icon-192x192.png`],
+      },
+      showQrModal: true,
+    }),
     coinbaseWallet({
       appName: 'TravelMint',
       appLogoUrl: `${getAppUrl()}/icon-192x192.png`,
