@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import sdk from "@farcaster/frame-sdk";
 import { useAccount } from "wagmi";
 import ComposeCastButton from "@/components/ComposeCastButton";
@@ -313,31 +314,33 @@ export default function Leaderboard() {
                     <p className="text-muted-foreground">No champions yet. Complete quests to become the weekly champion!</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {validChampions.map((champion) => (
-                    <div
-                      key={`${champion.farcasterFid}-${champion.weekNumber}-${champion.year}`}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-700"
-                      data-testid={`champion-row-${champion.weekNumber}-${champion.year}`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full">
-                          <Crown className="w-4 h-4 text-white" />
+                  <ScrollArea className="h-[500px] w-full">
+                    <div className="space-y-3 pr-4">
+                      {validChampions.map((champion) => (
+                      <div
+                        key={`${champion.farcasterFid}-${champion.weekNumber}-${champion.year}`}
+                        className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-700"
+                        data-testid={`champion-row-${champion.weekNumber}-${champion.year}`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full">
+                            <Crown className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-lg text-black" data-testid={`champion-username-${champion.weekNumber}`}>
+                              @{champion.farcasterUsername}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-lg text-black" data-testid={`champion-username-${champion.weekNumber}`}>
-                            @{champion.farcasterUsername}
-                          </p>
+                        <div className="text-right">
+                          <div className="font-bold text-xl text-yellow-600 dark:text-yellow-400" data-testid={`champion-points-${champion.weekNumber}`}>
+                            {pointsToDisplay(champion.weeklyPoints)}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-xl text-yellow-600 dark:text-yellow-400" data-testid={`champion-points-${champion.weekNumber}`}>
-                          {pointsToDisplay(champion.weeklyPoints)}
-                        </div>
-                      </div>
+                    ))}
                     </div>
-                  ))}
-                  </div>
+                  </ScrollArea>
                 );
               })()}
             </TabsContent>
