@@ -61,7 +61,7 @@ export default function Quests() {
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
-  // Get Farcaster user context
+  // Get Farcaster user context with polling for added status
   useEffect(() => {
     const getFarcasterContext = async () => {
       try {
@@ -69,12 +69,20 @@ export default function Quests() {
           try {
             const context = await Promise.resolve(sdk.context);
             if (context?.user) {
-              setFarcasterUser({
-                fid: context.user.fid,
-                username: context.user.username,
-                displayName: context.user.displayName,
-                pfpUrl: context.user.pfpUrl,
-                added: context.client?.added || false // Track if app is added
+              setFarcasterUser((prev: any) => {
+                const newUser = {
+                  fid: context.user.fid,
+                  username: context.user.username,
+                  displayName: context.user.displayName,
+                  pfpUrl: context.user.pfpUrl,
+                  added: context.client?.added || false // Track if app is added
+                };
+                // Only update if something changed
+                if (JSON.stringify(prev) !== JSON.stringify(newUser)) {
+                  console.log('🔄 Farcaster context updated:', { added: newUser.added });
+                  return newUser;
+                }
+                return prev;
               });
             }
           } catch (contextError) {
@@ -86,7 +94,13 @@ export default function Quests() {
       }
     };
     
+    // Initial fetch
     getFarcasterContext();
+    
+    // Poll for context changes every 3 seconds
+    const intervalId = setInterval(getFarcasterContext, 3000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   // Fetch user stats
