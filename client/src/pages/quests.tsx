@@ -561,7 +561,7 @@ export default function Quests() {
               <div className="flex items-center space-x-3">
                 <Target className="h-6 w-6 text-pink-500" />
                 <div>
-                  <CardTitle>Add to Farcaster</CardTitle>
+                  <CardTitle>Add TravelMint</CardTitle>
                   <CardDescription>Add TravelMint to your Farcaster apps</CardDescription>
                 </div>
               </div>
