@@ -73,7 +73,8 @@ export default function Quests() {
                 fid: context.user.fid,
                 username: context.user.username,
                 displayName: context.user.displayName,
-                pfpUrl: context.user.pfpUrl
+                pfpUrl: context.user.pfpUrl,
+                added: context.client?.added || false // Track if app is added
               });
             }
           } catch (contextError) {
@@ -260,6 +261,14 @@ export default function Quests() {
       });
     }
   }, [claimError, toast]);
+
+  // Auto-claim Add Mini App quest when app is added
+  useEffect(() => {
+    if (farcasterUser?.added && userStats && !userStats.hasAddedMiniApp && !addMiniAppMutation.isPending) {
+      console.log('🎯 Auto-claiming Add Mini App quest - app is added and quest not completed');
+      addMiniAppMutation.mutate();
+    }
+  }, [farcasterUser?.added, userStats?.hasAddedMiniApp, userStats]);
 
 
   if (statsLoading) {
