@@ -41,6 +41,7 @@ interface UserStats {
   currentStreak: number;
   lastCheckIn: string | null;
   lastStreakClaim: string | null;
+  hasAddedMiniApp: boolean;
 }
 
 interface QuestCompletion {
@@ -179,6 +180,38 @@ export default function Quests() {
         description: error?.message || "Please check your cast URL and try again",
         variant: "destructive"
       });
+    }
+  });
+
+  // Add Mini App quest mutation (one-time)
+  const addMiniAppMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/quests/complete-add-miniapp', {
+      farcasterFid: String(farcasterUser.fid),
+      farcasterUsername: farcasterUser.username,
+      farcasterPfpUrl: farcasterUser.pfpUrl
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Add Mini App quest completed! 🎉",
+        description: "+5 points earned for adding TravelMint!"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+    },
+    onError: (error) => {
+      // Check if already completed
+      if (error?.message?.includes('already completed')) {
+        toast({
+          title: "Quest Already Completed",
+          description: "You've already claimed this reward!",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Failed to claim quest",
+          description: "Please try again later",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -485,6 +518,49 @@ export default function Quests() {
                 💡 Create a cast mentioning "TravelMint" to claim points!
               </p>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* One-Time Quests */}
+      <div className="space-y-6 mt-12">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-2xl font-bold">One-Time Quests</h2>
+          <Badge variant="outline" className="text-xs">
+            Complete Once
+          </Badge>
+        </div>
+        
+        {/* Add Mini App Quest */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Target className="h-6 w-6 text-pink-500" />
+                <div>
+                  <CardTitle>Add to Farcaster</CardTitle>
+                  <CardDescription>Add TravelMint to your Farcaster apps</CardDescription>
+                </div>
+              </div>
+              <Badge variant={userStats?.hasAddedMiniApp ? "secondary" : "default"}>
+                +5 Points
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => farcasterUser && addMiniAppMutation.mutate()}
+              disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
+              className="w-full"
+              data-testid="button-add-miniapp"
+            >
+              {!farcasterUser ? "Connect via Farcaster First"
+               : userStats?.hasAddedMiniApp ? "✓ Completed"
+               : "Claim Add Mini App Bonus"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3">
+              💡 Add TravelMint to your Farcaster mini apps to unlock this reward!
+            </p>
           </CardContent>
         </Card>
       </div>
