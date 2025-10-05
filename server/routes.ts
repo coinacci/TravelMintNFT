@@ -2402,6 +2402,60 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // One-time quest: Add Mini App to Farcaster
+  app.post("/api/quests/complete-add-miniapp", async (req, res) => {
+    try {
+      const { farcasterFid, farcasterUsername, farcasterPfpUrl } = req.body;
+      
+      // Validate required fields
+      if (!farcasterFid || !farcasterUsername) {
+        return res.status(400).json({ 
+          message: "Farcaster FID and username are required" 
+        });
+      }
+      
+      // Get current user stats
+      const userStats = await storage.getUserStats(farcasterFid);
+      
+      // Check if already claimed
+      if (userStats?.hasAddedMiniApp) {
+        return res.status(409).json({ 
+          message: "Add Mini App quest already completed",
+          code: 'QUEST_ALREADY_COMPLETED'
+        });
+      }
+      
+      // Award +5 points (500 fixed-point)
+      const pointsEarned = 5;
+      const fixedPointsEarned = pointsEarned * 100;
+      
+      // Update user stats
+      const result = await storage.completeAddMiniAppQuest({
+        farcasterFid,
+        farcasterUsername: farcasterUsername.trim(),
+        farcasterPfpUrl: farcasterPfpUrl?.trim(),
+        pointsEarned: fixedPointsEarned
+      });
+      
+      console.log(`✅ Add Mini App quest completed: +${pointsEarned} points for @${farcasterUsername}`);
+      
+      res.json({
+        success: true,
+        pointsEarned,
+        totalPoints: result.totalPoints,
+        message: `Successfully completed Add Mini App quest for +${pointsEarned} points!`
+      });
+      
+    } catch (error) {
+      console.error('🚨 Add Mini App quest failed:', error);
+      
+      res.status(500).json({ 
+        message: "Failed to complete Add Mini App quest. Please try again.",
+        code: 'QUEST_CLAIM_ERROR'
+      });
+    }
+  });
+
   // Helper function to escape HTML
   const escapeHtml = (text: string | null | undefined) => {
     if (!text) return '';

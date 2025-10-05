@@ -62,6 +62,14 @@ export interface IStorage {
     completionDate: string;
     userStatsUpdates?: Partial<UserStats>;
   }): Promise<{ userStats: UserStats; questCompletion: QuestCompletion }>;
+  
+  // One-time quest: Add Mini App
+  completeAddMiniAppQuest(data: {
+    farcasterFid: string;
+    farcasterUsername: string;
+    farcasterPfpUrl?: string;
+    pointsEarned: number;
+  }): Promise<{ totalPoints: number }>;
 
   // Notification operations
   updateUserNotificationToken(farcasterFid: string, token: string): Promise<UserStats | undefined>;
@@ -704,6 +712,63 @@ export class DatabaseStorage implements IStorage {
           .returning();
 
         return { userStats: updatedStats, questCompletion };
+      }
+    });
+  }
+
+  // One-time quest: Add Mini App to Farcaster
+  async completeAddMiniAppQuest(data: {
+    farcasterFid: string;
+    farcasterUsername: string;
+    farcasterPfpUrl?: string;
+    pointsEarned: number;
+  }): Promise<{ totalPoints: number }> {
+    return await db.transaction(async (tx) => {
+      // Get or create user stats
+      const existingUserStats = await tx
+        .select()
+        .from(userStats)
+        .where(eq(userStats.farcasterFid, data.farcasterFid));
+
+      if (existingUserStats.length === 0) {
+        // Create new user stats with hasAddedMiniApp = true
+        const currentWeekStart = getCurrentWeekStart();
+        const [newUserStats] = await tx
+          .insert(userStats)
+          .values({
+            farcasterFid: data.farcasterFid,
+            farcasterUsername: data.farcasterUsername,
+            farcasterPfpUrl: data.farcasterPfpUrl || null,
+            totalPoints: data.pointsEarned,
+            weeklyPoints: data.pointsEarned,
+            hasAddedMiniApp: true,
+            weeklyResetDate: currentWeekStart,
+          })
+          .returning();
+
+        return { totalPoints: newUserStats.totalPoints };
+      } else {
+        // Update existing user stats
+        const currentStats = existingUserStats[0];
+        const currentWeekStart = getCurrentWeekStart();
+        
+        // Check if weekly reset is needed
+        const needsWeeklyReset = !currentStats.weeklyResetDate || currentStats.weeklyResetDate !== currentWeekStart;
+        
+        const [updatedStats] = await tx
+          .update(userStats)
+          .set({
+            totalPoints: currentStats.totalPoints + data.pointsEarned,
+            weeklyPoints: needsWeeklyReset ? data.pointsEarned : (currentStats.weeklyPoints || 0) + data.pointsEarned,
+            weeklyResetDate: currentWeekStart,
+            hasAddedMiniApp: true,
+            farcasterPfpUrl: data.farcasterPfpUrl || currentStats.farcasterPfpUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(userStats.farcasterFid, data.farcasterFid))
+          .returning();
+
+        return { totalPoints: updatedStats.totalPoints };
       }
     });
   }
