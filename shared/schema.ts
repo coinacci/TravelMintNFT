@@ -94,6 +94,7 @@ export const userStats = pgTable("user_stats", {
   notificationToken: text("notification_token"), // Farcaster notification token
   notificationsEnabled: boolean("notifications_enabled").default(false).notNull(), // User opt-in status
   lastNotificationSent: timestamp("last_notification_sent"), // Track when last notification was sent
+  hasAddedMiniApp: boolean("has_added_mini_app").default(false).notNull(), // One-time quest: User added app to Farcaster
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
