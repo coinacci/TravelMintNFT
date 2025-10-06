@@ -36,7 +36,9 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   const [imageSrc, setImageSrc] = useState(LOADING_PLACEHOLDER);
   
   const formatPrice = (price: string) => {
-    return parseFloat(price).toFixed(0);
+    const numPrice = parseFloat(price);
+    // Show 2 decimals for prices, but remove trailing zeros
+    return numPrice.toFixed(2).replace(/\.?0+$/, '');
   };
   
   // Smart image loading with robust IPFS gateway fallbacks and improved timeouts
