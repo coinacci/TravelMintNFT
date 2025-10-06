@@ -270,7 +270,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(transactions)
       .leftJoin(nfts, eq(transactions.nftId, nfts.id))
-      .where(sql`${transactions.transactionType} = 'purchase'`) // Only show purchase activities
+      .where(sql`${transactions.transactionType} IN ('purchase', 'sale')`) // Show both purchase and sale activities
       .orderBy(sql`${transactions.createdAt} DESC`)
       .limit(limit);
   }
