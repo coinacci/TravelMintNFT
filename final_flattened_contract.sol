@@ -364,11 +364,11 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         string memory latitude,
         string memory longitude,
         string memory category,
-        string memory tokenURI
+        string memory uri
     ) public nonReentrant returns (uint256) {
         require(to != address(0), "Cannot mint to zero address");
         require(bytes(location).length > 0, "Location cannot be empty");
-        require(bytes(tokenURI).length > 0, "Token URI cannot be empty");
+        require(bytes(uri).length > 0, "Token URI cannot be empty");
         
         // Transfer USDC from sender to contract owner
         bool success = USDC.transferFrom(msg.sender, owner(), MINT_PRICE);
@@ -378,7 +378,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         
         // Mint NFT
         _safeMint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI);
+        _setTokenURI(tokenId, uri);
         
         // Store travel metadata
         travelMetadata[tokenId] = TravelMetadata({
@@ -463,7 +463,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     function tokenURI(uint256 tokenId)
         public
         view
-        override(ERC721, ERC721URIStorage)
+        override(ERC721)
         returns (string memory)
     {
         return super.tokenURI(tokenId);
@@ -472,7 +472,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721URIStorage)
+        override(ERC721)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
