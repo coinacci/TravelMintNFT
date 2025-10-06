@@ -220,6 +220,20 @@ export class DatabaseStorage implements IStorage {
     return nft || undefined;
   }
 
+  // 🔄 Update NFT owner and auto-delist if transferred (for blockchain sync)
+  async updateNFTOwnerAndDelist(tokenId: string, newOwnerAddress: string): Promise<NFT | undefined> {
+    const [nft] = await db
+      .update(nfts)
+      .set({ 
+        ownerAddress: newOwnerAddress,
+        isForSale: 0, // Auto-delist on transfer
+        updatedAt: new Date() 
+      })
+      .where(eq(nfts.tokenId, tokenId))
+      .returning();
+    return nft || undefined;
+  }
+
   async getNFTByTokenId(tokenId: string): Promise<NFT | undefined> {
     const [nft] = await db.select().from(nfts).where(eq(nfts.tokenId, tokenId));
     return nft || undefined;

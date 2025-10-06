@@ -3294,16 +3294,16 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // 🔄 Automatic blockchain sync for Recent Activity
+  // 🔄 Automatic blockchain sync for Recent Activity + Auto-delist on transfer
   async function syncRecentActivity() {
     try {
       console.log('🔄 Starting blockchain sync for Recent Activity...');
       
-      // Get recent purchase events from blockchain (default: last 50000 blocks ≈ 27 hours)
-      const purchaseEvents = await blockchainService.getRecentPurchaseEvents();
+      // Get ALL transfer events from blockchain (purchases + regular transfers)
+      const transferEvents = await blockchainService.getAllTransferEvents();
       
-      if (purchaseEvents.length === 0) {
-        console.log('📭 No purchase events found on blockchain');
+      if (transferEvents.length === 0) {
+        console.log('📭 No transfer events found on blockchain');
         return;
       }
       
@@ -3316,9 +3316,10 @@ export async function registerRoutes(app: Express) {
       );
       
       let syncedCount = 0;
+      let delistedCount = 0;
       
-      // Add missing transactions to database
-      for (const event of purchaseEvents) {
+      // Process each transfer
+      for (const event of transferEvents) {
         if (existingTxHashes.has(event.transactionHash.toLowerCase())) {
           continue; // Already in database
         }
@@ -3331,19 +3332,33 @@ export async function registerRoutes(app: Express) {
             continue;
           }
           
+          // Update NFT owner and auto-delist (this happens for ALL transfers, sale or not)
+          const wasListed = nft.isForSale === 1;
+          await storage.updateNFTOwnerAndDelist(event.tokenId, event.to);
+          
+          if (wasListed) {
+            delistedCount++;
+            console.log(`🔓 Auto-delisted NFT #${event.tokenId} (${nft.title}) - transferred to ${event.to.slice(0, 10)}...`);
+          }
+          
           // Create transaction record
           await storage.createTransaction({
             nftId: nft.id,
-            fromAddress: event.seller,
-            toAddress: event.buyer,
-            transactionType: 'sale',
+            fromAddress: event.from,
+            toAddress: event.to,
+            transactionType: event.transferType, // 'sale' or 'transfer'
             amount: event.price,
             platformFee: event.platformFee,
             blockchainTxHash: event.transactionHash
           });
           
           syncedCount++;
-          console.log(`✅ Synced purchase: NFT #${event.tokenId} (${event.buyer} bought from ${event.seller})`);
+          
+          if (event.transferType === 'sale') {
+            console.log(`✅ Synced sale: NFT #${event.tokenId} (${event.to.slice(0, 10)}... bought from ${event.from.slice(0, 10)}...) for ${event.price} USDC`);
+          } else {
+            console.log(`✅ Synced transfer: NFT #${event.tokenId} (${event.from.slice(0, 10)}... → ${event.to.slice(0, 10)}...)`);
+          }
           
         } catch (error) {
           console.error(`❌ Failed to sync transaction ${event.transactionHash}:`, error);
@@ -3351,7 +3366,7 @@ export async function registerRoutes(app: Express) {
       }
       
       if (syncedCount > 0) {
-        console.log(`🎉 Blockchain sync complete: ${syncedCount} new transactions added to Recent Activity`);
+        console.log(`🎉 Blockchain sync complete: ${syncedCount} new transactions added, ${delistedCount} NFTs auto-delisted`);
       } else {
         console.log('✅ Blockchain sync complete: All transactions up to date');
       }

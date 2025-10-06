@@ -1316,6 +1316,95 @@ export class BlockchainService {
     }
   }
 
+  // 🔄 Get ALL NFT transfer events (purchases + regular transfers) for auto-delist
+  async getAllTransferEvents(fromBlock: number = -50000): Promise<any[]> {
+    try {
+      console.log(`📡 Fetching ALL NFT Transfer events from block ${fromBlock}...`);
+      
+      // Query Transfer events from NFT contract
+      const transferFilter = nftContract.filters.Transfer();
+      const transferEvents = await nftContract.queryFilter(transferFilter, fromBlock, 'latest');
+      
+      console.log(`✅ Found ${transferEvents.length} transfer events, processing...`);
+      
+      const allTransfers: any[] = [];
+      
+      // Process each transfer
+      for (const event of transferEvents) {
+        const txHash = event.transactionHash;
+        const from = event.args?.[0]?.toLowerCase();
+        const to = event.args?.[1]?.toLowerCase();
+        const tokenId = event.args?.[2]?.toString();
+        
+        // Skip mints (from null address)
+        if (from === '0x0000000000000000000000000000000000000000') {
+          continue;
+        }
+        
+        try {
+          // Get full transaction receipt to check for USDC transfers
+          const receipt = await provider.getTransactionReceipt(txHash);
+          if (!receipt) continue;
+          
+          // Look for USDC Transfer events in the same transaction
+          const usdcTransfers = receipt.logs
+            .filter((log: any) => 
+              log.address.toLowerCase() === USDC_CONTRACT_ADDRESS.toLowerCase() &&
+              log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef' // Transfer event signature
+            );
+          
+          let transferType = 'transfer'; // Default: regular transfer
+          let totalPrice = '0';
+          let platformFee = '0';
+          
+          // If there are USDC transfers, this is a sale/purchase
+          if (usdcTransfers.length >= 2) {
+            transferType = 'sale';
+            
+            // Decode USDC transfer amounts
+            for (const usdcLog of usdcTransfers) {
+              const amount = ethers.formatUnits(usdcLog.data, 6);
+              const usdcTo = '0x' + usdcLog.topics[2].slice(26).toLowerCase();
+              
+              // Check if this goes to platform wallet
+              if (usdcTo === PLATFORM_WALLET.toLowerCase()) {
+                platformFee = amount;
+              } else {
+                totalPrice = amount;
+              }
+            }
+          }
+          
+          allTransfers.push({
+            tokenId,
+            from,
+            to,
+            transferType, // 'sale' or 'transfer'
+            price: totalPrice,
+            platformFee: platformFee,
+            blockNumber: receipt.blockNumber,
+            transactionHash: txHash
+          });
+          
+          if (transferType === 'sale') {
+            console.log(`💰 Sale: NFT #${tokenId} (${to} bought from ${from}) for ${totalPrice} USDC`);
+          } else {
+            console.log(`📦 Transfer: NFT #${tokenId} (${from} → ${to})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error processing transfer ${txHash}:`, error);
+        }
+      }
+      
+      console.log(`🎉 Found ${allTransfers.length} total transfers on blockchain`);
+      return allTransfers;
+      
+    } catch (error: any) {
+      console.error(`❌ Error fetching transfer events:`, error);
+      return [];
+    }
+  }
+
 }
 
 export const blockchainService = new BlockchainService();
