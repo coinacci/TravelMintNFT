@@ -48,7 +48,7 @@ export const transactions = pgTable("transactions", {
   transactionType: text("transaction_type").notNull(), // 'mint', 'sale', 'transfer'
   amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
   platformFee: decimal("platform_fee", { precision: 18, scale: 6 }).default("0").notNull(),
-  blockchainTxHash: text("blockchain_tx_hash"), // On-chain transaction hash
+  blockchainTxHash: text("blockchain_tx_hash").unique(), // On-chain transaction hash - unique to prevent duplicates
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

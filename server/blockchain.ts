@@ -36,7 +36,8 @@ const TRAVEL_NFT_ABI = [
   "function transferFrom(address from, address to, uint256 tokenId)",
   "function safeTransferFrom(address from, address to, uint256 tokenId)",
   "function approve(address to, uint256 tokenId)",
-  "function setApprovalForAll(address operator, bool approved)"
+  "function setApprovalForAll(address operator, bool approved)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 ];
 
 // Marketplace ABI - for secure trading
@@ -1233,32 +1234,80 @@ export class BlockchainService {
     }
   }
 
-  // 🔄 Get recent NFT purchase events from blockchain
+  // 🔄 Get recent NFT purchase events from blockchain by reading Transfer events
   async getRecentPurchaseEvents(fromBlock: number = -50000): Promise<any[]> {
     try {
-      console.log(`📡 Fetching NFTPurchased events from block ${fromBlock}...`);
+      console.log(`📡 Fetching NFT Transfer events from block ${fromBlock}...`);
       
-      // Query NFTPurchased events from marketplace contract
-      const filter = marketplaceContract.filters.NFTPurchased();
-      const events = await marketplaceContract.queryFilter(filter, fromBlock, 'latest');
+      // Query Transfer events from NFT contract
+      const transferFilter = nftContract.filters.Transfer();
+      const transferEvents = await nftContract.queryFilter(transferFilter, fromBlock, 'latest');
       
-      console.log(`✅ Found ${events.length} purchase events on blockchain`);
+      console.log(`✅ Found ${transferEvents.length} transfer events, filtering for purchases...`);
       
-      // Transform events to readable format
-      const purchases = events.map((event: any) => {
-        const args = event.args;
-        return {
-          tokenId: args.tokenId.toString(),
-          buyer: args.buyer.toLowerCase(),
-          seller: args.seller.toLowerCase(),
-          price: ethers.formatUnits(args.price, 6), // Convert to USDC
-          platformFee: ethers.formatUnits(args.platformFee, 6),
-          timestamp: Number(args.timestamp),
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash
-        };
-      });
+      const purchases: any[] = [];
       
+      // Check each transfer to see if it's a purchase (has USDC transfers in same tx)
+      for (const event of transferEvents) {
+        const txHash = event.transactionHash;
+        const from = event.args?.[0]?.toLowerCase();
+        const to = event.args?.[1]?.toLowerCase();
+        const tokenId = event.args?.[2]?.toString();
+        
+        // Skip mints (from null address)
+        if (from === '0x0000000000000000000000000000000000000000') {
+          continue;
+        }
+        
+        try {
+          // Get full transaction receipt to check for USDC transfers
+          const receipt = await provider.getTransactionReceipt(txHash);
+          if (!receipt) continue;
+          
+          // Look for USDC Transfer events in the same transaction
+          const usdcTransfers = receipt.logs
+            .filter((log: any) => 
+              log.address.toLowerCase() === USDC_CONTRACT_ADDRESS.toLowerCase() &&
+              log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef' // Transfer event signature
+            );
+          
+          // If there are USDC transfers, this is likely a purchase
+          if (usdcTransfers.length >= 2) {
+            // Decode USDC transfer amounts
+            let totalPrice = '0';
+            let platformFee = '0';
+            
+            for (const usdcLog of usdcTransfers) {
+              const amount = ethers.formatUnits(usdcLog.data, 6);
+              const usdcTo = '0x' + usdcLog.topics[2].slice(26).toLowerCase();
+              
+              // Check if this goes to platform wallet
+              if (usdcTo === PLATFORM_WALLET.toLowerCase()) {
+                platformFee = amount;
+              } else {
+                totalPrice = amount;
+              }
+            }
+            
+            purchases.push({
+              tokenId,
+              buyer: to,
+              seller: from,
+              price: totalPrice,
+              platformFee: platformFee,
+              timestamp: receipt.blockNumber, // Use block number as approximation
+              blockNumber: receipt.blockNumber,
+              transactionHash: txHash
+            });
+            
+            console.log(`✅ Found purchase: NFT #${tokenId} (${to} bought from ${from}) for ${totalPrice} USDC`);
+          }
+        } catch (error) {
+          console.error(`❌ Error processing transfer ${txHash}:`, error);
+        }
+      }
+      
+      console.log(`🎉 Found ${purchases.length} purchase transactions on blockchain`);
       return purchases;
       
     } catch (error: any) {
