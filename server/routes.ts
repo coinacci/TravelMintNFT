@@ -1440,14 +1440,19 @@ export async function registerRoutes(app: Express) {
       }
       
       // 🛡️ CRITICAL: Verify the blockchain transaction before updating database
+      console.log(`🔍 [DEBUG] Starting transaction verification for tx: ${transactionHash}, tokenId: ${tokenId}, buyer: ${buyerId.toLowerCase()}`);
+      
       const verification = await blockchainService.verifyPurchaseTransaction(
         transactionHash,
         tokenId,
         buyerId.toLowerCase()
       );
       
+      console.log(`🔍 [DEBUG] Verification result:`, verification);
+      
       if (!verification.success) {
         console.log(`❌ Transaction verification failed: ${verification.error}`);
+        console.log(`❌ [DEBUG] Full verification object:`, JSON.stringify(verification, null, 2));
         return res.status(400).json({ 
           message: "Transaction verification failed",
           error: verification.error,
@@ -1517,26 +1522,40 @@ export async function registerRoutes(app: Express) {
       console.log(`✅ NFT ownership update result:`, updateResult ? 'SUCCESS' : 'FAILED');
       
       // Create transaction records for platform distribution flow
-      await storage.createTransaction({
-        nftId: nftToUpdate.id,
-        toAddress: buyerId.toLowerCase(),
-        transactionType: "purchase",
-        amount: nftToUpdate.price,
-        platformFee: platformFee.toString(),
-        fromAddress: nftToUpdate.ownerAddress,
-        blockchainTxHash: transactionHash,
-      });
+      console.log(`📝 [DEBUG] Creating purchase transaction record...`);
+      try {
+        const purchaseTx = await storage.createTransaction({
+          nftId: nftToUpdate.id,
+          toAddress: buyerId.toLowerCase(),
+          transactionType: "purchase",
+          amount: nftToUpdate.price,
+          platformFee: platformFee.toString(),
+          fromAddress: nftToUpdate.ownerAddress,
+          blockchainTxHash: transactionHash,
+        });
+        console.log(`✅ [DEBUG] Purchase transaction created:`, purchaseTx?.id || 'no ID returned');
+      } catch (txError) {
+        console.error(`❌ [DEBUG] Failed to create purchase transaction:`, txError);
+        throw txError; // Re-throw to catch in outer try-catch
+      }
       
       // Record platform commission
-      await storage.createTransaction({
-        nftId: nftToUpdate.id,
-        toAddress: PLATFORM_WALLET,
-        transactionType: "commission",
-        amount: platformFee.toString(),
-        platformFee: "0",
-        fromAddress: buyerId.toLowerCase(),
-        blockchainTxHash: transactionHash,
-      });
+      console.log(`📝 [DEBUG] Creating commission transaction record...`);
+      try {
+        const commissionTx = await storage.createTransaction({
+          nftId: nftToUpdate.id,
+          toAddress: PLATFORM_WALLET,
+          transactionType: "commission",
+          amount: platformFee.toString(),
+          platformFee: "0",
+          fromAddress: buyerId.toLowerCase(),
+          blockchainTxHash: transactionHash,
+        });
+        console.log(`✅ [DEBUG] Commission transaction created:`, commissionTx?.id || 'no ID returned');
+      } catch (txError) {
+        console.error(`❌ [DEBUG] Failed to create commission transaction:`, txError);
+        // Don't throw - commission is optional
+      }
       
       console.log(`🎉 Purchase confirmed! NFT ${nftToUpdate.id} now owned by ${buyerId} (Platform distribution completed)`);
       
