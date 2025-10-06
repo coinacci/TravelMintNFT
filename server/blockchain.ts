@@ -1233,6 +1233,40 @@ export class BlockchainService {
     }
   }
 
+  // 🔄 Get recent NFT purchase events from blockchain
+  async getRecentPurchaseEvents(fromBlock: number = -50000): Promise<any[]> {
+    try {
+      console.log(`📡 Fetching NFTPurchased events from block ${fromBlock}...`);
+      
+      // Query NFTPurchased events from marketplace contract
+      const filter = marketplaceContract.filters.NFTPurchased();
+      const events = await marketplaceContract.queryFilter(filter, fromBlock, 'latest');
+      
+      console.log(`✅ Found ${events.length} purchase events on blockchain`);
+      
+      // Transform events to readable format
+      const purchases = events.map((event: any) => {
+        const args = event.args;
+        return {
+          tokenId: args.tokenId.toString(),
+          buyer: args.buyer.toLowerCase(),
+          seller: args.seller.toLowerCase(),
+          price: ethers.formatUnits(args.price, 6), // Convert to USDC
+          platformFee: ethers.formatUnits(args.platformFee, 6),
+          timestamp: Number(args.timestamp),
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash
+        };
+      });
+      
+      return purchases;
+      
+    } catch (error: any) {
+      console.error(`❌ Error fetching purchase events:`, error);
+      return [];
+    }
+  }
+
 }
 
 export const blockchainService = new BlockchainService();

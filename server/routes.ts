@@ -3294,5 +3294,80 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // 🔄 Automatic blockchain sync for Recent Activity
+  async function syncRecentActivity() {
+    try {
+      console.log('🔄 Starting blockchain sync for Recent Activity...');
+      
+      // Get recent purchase events from blockchain (default: last 50000 blocks ≈ 27 hours)
+      const purchaseEvents = await blockchainService.getRecentPurchaseEvents();
+      
+      if (purchaseEvents.length === 0) {
+        console.log('📭 No purchase events found on blockchain');
+        return;
+      }
+      
+      // Check which transactions are already in database
+      const existingTxns = await storage.getRecentTransactions(1000);
+      const existingTxHashes = new Set(
+        existingTxns
+          .map((t: any) => t.blockchainTxHash?.toLowerCase())
+          .filter((hash: any) => hash)
+      );
+      
+      let syncedCount = 0;
+      
+      // Add missing transactions to database
+      for (const event of purchaseEvents) {
+        if (existingTxHashes.has(event.transactionHash.toLowerCase())) {
+          continue; // Already in database
+        }
+        
+        try {
+          // Get NFT details
+          const nft = await storage.getNFTByTokenId(event.tokenId);
+          if (!nft) {
+            console.log(`⚠️ NFT #${event.tokenId} not found in database, skipping...`);
+            continue;
+          }
+          
+          // Create transaction record
+          await storage.createTransaction({
+            nftId: nft.id,
+            fromAddress: event.seller,
+            toAddress: event.buyer,
+            transactionType: 'sale',
+            amount: event.price,
+            platformFee: event.platformFee,
+            blockchainTxHash: event.transactionHash
+          });
+          
+          syncedCount++;
+          console.log(`✅ Synced purchase: NFT #${event.tokenId} (${event.buyer} bought from ${event.seller})`);
+          
+        } catch (error) {
+          console.error(`❌ Failed to sync transaction ${event.transactionHash}:`, error);
+        }
+      }
+      
+      if (syncedCount > 0) {
+        console.log(`🎉 Blockchain sync complete: ${syncedCount} new transactions added to Recent Activity`);
+      } else {
+        console.log('✅ Blockchain sync complete: All transactions up to date');
+      }
+      
+    } catch (error) {
+      console.error('❌ Blockchain sync failed:', error);
+    }
+  }
+  
+  // Run initial sync on server startup
+  console.log('🚀 Starting initial blockchain sync...');
+  syncRecentActivity();
+  
+  // Setup periodic sync every 30 seconds
+  setInterval(syncRecentActivity, 30000);
+  console.log('⏰ Periodic blockchain sync enabled (every 30 seconds)');
+
   return createServer(app);
 }
