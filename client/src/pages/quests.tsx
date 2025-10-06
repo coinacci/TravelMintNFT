@@ -419,11 +419,11 @@ export default function Quests() {
                 <Gift className="h-6 w-6 text-purple-500" />
                 <div>
                   <CardTitle>Holder Bonus</CardTitle>
-                  <CardDescription>Earn 0.25 point per NFT owned</CardDescription>
+                  <CardDescription>Earn 0.15 point per NFT owned</CardDescription>
                 </div>
               </div>
               <Badge variant={hasClaimedHolderBonus ? "secondary" : "default"}>
-                +{((holderStatus?.nftCount || 0) * 0.25).toFixed(2)} Point{((holderStatus?.nftCount || 0) * 0.25 !== 0.25) ? 's' : ''}
+                +{((holderStatus?.nftCount || 0) * 0.15).toFixed(2)} Point{((holderStatus?.nftCount || 0) * 0.15 !== 0.15) ? 's' : ''}
               </Badge>
             </div>
           </CardHeader>
@@ -437,7 +437,7 @@ export default function Quests() {
               {!farcasterUser ? "Connect via Farcaster First"
                : !holderStatus?.isHolder ? "No NFTs Found (across all linked wallets)"
                : hasClaimedHolderBonus ? "✓ Completed Today"
-               : `Claim +${((holderStatus?.nftCount || 0) * 0.25).toFixed(2)} Point${((holderStatus?.nftCount || 0) * 0.25 !== 0.25) ? 's' : ''}`}
+               : `Claim +${((holderStatus?.nftCount || 0) * 0.15).toFixed(2)} Point${((holderStatus?.nftCount || 0) * 0.15 !== 0.15) ? 's' : ''}`}
             </Button>
             
             {/* Share button - temporarily hidden */}
@@ -445,7 +445,7 @@ export default function Quests() {
               <ComposeCastButton
                 type="quest"
                 questName="Holder Bonus"
-                questPoints={holderStatus?.nftCount || 0.25}
+                questPoints={holderStatus?.nftCount || 0.15}
                 variant="outline"
                 size="sm"
                 className="w-full"
