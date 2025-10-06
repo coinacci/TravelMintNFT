@@ -474,7 +474,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     function tokenURI(uint256 tokenId)
         public
         view
-        override(ERC721)
+        override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
         return super.tokenURI(tokenId);
