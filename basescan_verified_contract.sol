@@ -466,7 +466,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         require(success, "USDC withdrawal failed");
     }
     
-    function updateMintPrice(uint256 newPrice) external onlyOwner {
+    function updateMintPrice(uint256 /* newPrice */) external pure onlyOwner {
         revert("Mint price is fixed at 1 USDC");
     }
 
