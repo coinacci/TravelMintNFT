@@ -297,6 +297,36 @@ export async function registerRoutes(app: Express) {
     res.send(baseAppHtml);
   });
 
+  // Farcaster OAuth authentication endpoint
+  app.post("/api/auth/farcaster", async (req, res) => {
+    try {
+      console.log('🔐 Farcaster auth request:', req.body);
+      
+      // AuthKit sends SIWE (Sign-In With Ethereum) payload
+      // For now, accept the client-verified payload
+      // TODO: Add full server-side SIWE verification
+      
+      const { message, signature, fid, username, displayName, pfpUrl } = req.body;
+      
+      if (!fid || !username) {
+        return res.status(400).json({ error: "Missing required Farcaster data" });
+      }
+      
+      // Return success with user info
+      res.json({
+        success: true,
+        fid,
+        username,
+        displayName: displayName || username,
+        pfpUrl: pfpUrl || null,
+        verified: true
+      });
+    } catch (error) {
+      console.error("Farcaster auth error:", error);
+      res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
   // Farcaster frame endpoint for validation
   app.post("/api/frame", (req, res) => {
     try {

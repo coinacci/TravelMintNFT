@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^4.3.7",
+    "@farcaster/auth-kit": "^0.8.1",
     "@farcaster/frame-sdk": "^0.0.64",
     "@farcaster/frame-wagmi-connector": "^0.0.53",
     "@farcaster/miniapp-wagmi-connector": "^1.0.0",

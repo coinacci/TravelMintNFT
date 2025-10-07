@@ -6,6 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import sdk from "@farcaster/frame-sdk";
+import { SignInButton, AuthKitProvider } from "@farcaster/auth-kit";
+
+// Farcaster AuthKit configuration
+const authConfig = {
+  rpcUrl: 'https://mainnet.optimism.io',
+  domain: typeof window !== 'undefined' ? window.location.host : 'travelmint.replit.app',
+  siweUri: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/farcaster` : 'https://travelmint.replit.app/api/auth/farcaster',
+};
 
 export function WalletConnect() {
   const [isOpen, setIsOpen] = useState(false);
@@ -201,32 +209,71 @@ export function WalletConnect() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          className="flex items-center space-x-2"
-          data-testid="connect-wallet-button"
-        >
-          <Wallet className="w-4 h-4" />
-          <span>Connect Wallet</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Wallet className="w-5 h-5" />
-            <span>Connect Your Wallet</span>
-          </DialogTitle>
-          <DialogDescription>
-            Choose a wallet to connect and access the TravelNFT platform
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-3">
-          {connectors.length === 0 && (
-            <p className="text-center text-muted-foreground">No connectors available</p>
-          )}
-          {connectors.map((connector) => {
+    <AuthKitProvider config={authConfig}>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            className="flex items-center space-x-2"
+            data-testid="connect-wallet-button"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>Connect Wallet</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Wallet className="w-5 h-5" />
+              <span>Connect Your Wallet</span>
+            </DialogTitle>
+            <DialogDescription>
+              Choose a wallet or sign in with Farcaster to access TravelMint
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            {/* Farcaster Sign In - Always show first */}
+            <SignInButton
+              onSuccess={(res) => {
+                console.log('✅ Farcaster sign in successful:', res);
+                setFarcasterUser({
+                  fid: res.fid,
+                  username: res.username,
+                  displayName: res.displayName,
+                  pfpUrl: res.pfpUrl
+                });
+                setIsOpen(false);
+                toast({
+                  title: "Farcaster Connected!",
+                  description: `Welcome @${res.username}!`,
+                });
+              }}
+              onError={(error) => {
+                console.error('❌ Farcaster sign in failed:', error);
+                toast({
+                  title: "Farcaster Connection Failed",
+                  description: error?.message || "Please try again",
+                  variant: "destructive",
+                });
+              }}
+            />
+            
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or connect wallet
+                </span>
+              </div>
+            </div>
+            
+            {connectors.length === 0 && (
+              <p className="text-center text-muted-foreground">No wallet connectors available</p>
+            )}
+            {connectors.map((connector) => {
             const isLoading = isPending;
             console.log('Available connector:', connector.name, connector.type);
             
@@ -311,5 +358,6 @@ export function WalletConnect() {
         </div>
       </DialogContent>
     </Dialog>
+    </AuthKitProvider>
   );
 }

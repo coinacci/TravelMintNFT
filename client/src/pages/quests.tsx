@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useEffect, useState } from "react";
-import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare, ExternalLink } from "lucide-react";
+import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -316,29 +316,10 @@ export default function Quests() {
 
       {/* Farcaster Connection Banner */}
       {!farcasterUser && (
-        <div className="mb-6 p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
-          <div className="text-center space-y-4">
-            <Target className="h-10 w-10 mx-auto text-purple-500" />
-            <h3 className="text-xl font-bold">Connect with Farcaster</h3>
-            <p className="text-muted-foreground">
-              To participate in quests and earn rewards, open TravelMint in Farcaster app
-            </p>
-            {address && (
-              <p className="text-sm text-muted-foreground">
-                Wallet connected ({address.slice(0, 6)}...{address.slice(-4)}) - Now open in Farcaster to start quests!
-              </p>
-            )}
-            <Button
-              onClick={() => {
-                const miniAppUrl = 'https://warpcast.com/~/apps/968f2785-2da9-451a-a984-d753e739713c';
-                window.open(miniAppUrl, '_blank');
-              }}
-              className="mt-2"
-              data-testid="open-farcaster-button"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open TravelMint in Farcaster
-            </Button>
+        <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <div className="flex items-center space-x-2 text-orange-600 dark:text-orange-400">
+            <Target className="h-5 w-5" />
+            <p className="font-medium">Connect via Farcaster to claim quest rewards</p>
           </div>
         </div>
       )}

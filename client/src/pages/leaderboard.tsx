@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Trophy, Medal, Award, Crown, Target, Calendar, TrendingUp, ExternalLink } from "lucide-react";
+import { Trophy, Medal, Award, Crown, Target, Calendar, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -151,34 +150,6 @@ export default function Leaderboard() {
         </p>
       </div>
 
-      {/* Farcaster Connection Banner - Show if no Farcaster context */}
-      {!farcasterUser && (
-        <div className="mb-6 p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
-          <div className="text-center space-y-4">
-            <Trophy className="h-10 w-10 mx-auto text-purple-500" />
-            <h3 className="text-xl font-bold">Connect with Farcaster</h3>
-            <p className="text-muted-foreground">
-              To compete on the leaderboard and track your position, open TravelMint in Farcaster app
-            </p>
-            {address && (
-              <p className="text-sm text-muted-foreground">
-                Wallet connected ({address.slice(0, 6)}...{address.slice(-4)}) - Now open in Farcaster to participate!
-              </p>
-            )}
-            <Button
-              onClick={() => {
-                const miniAppUrl = 'https://warpcast.com/~/apps/968f2785-2da9-451a-a984-d753e739713c';
-                window.open(miniAppUrl, '_blank');
-              }}
-              className="mt-2"
-              data-testid="open-farcaster-button"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open TravelMint in Farcaster
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Current User Position - All Time */}
       {allTimeUserEntry && (
