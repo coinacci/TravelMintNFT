@@ -89,7 +89,6 @@ function FarcasterQRAuth({ onSuccess, onError, onBack }: {
 
 export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showFarcasterAuth, setShowFarcasterAuth] = useState(false);
   const [hasInjectedProvider, setHasInjectedProvider] = useState(false);
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error: connectError } = useConnect();
@@ -119,13 +118,6 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
   const handleConnect = async (connector: any) => {
     try {
       console.log('Attempting to connect with:', connector.name);
-      
-      // Check if this is Farcaster connector - show AuthKit instead
-      if (connector.name.toLowerCase().includes('farcaster')) {
-        console.log('🎯 Farcaster connector clicked - showing AuthKit QR');
-        setShowFarcasterAuth(true);
-        return;
-      }
       
       // Add connection timeout
       const connectionPromise = connect({ connector });
@@ -286,29 +278,6 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
             </DialogDescription>
           </DialogHeader>
           
-          {showFarcasterAuth ? (
-            <FarcasterQRAuth
-              onSuccess={(res) => {
-                console.log('✅ Farcaster sign in successful:', res);
-                // Farcaster user info is managed by useFarcasterNotifications hook
-                setShowFarcasterAuth(false);
-                setIsOpen(false);
-                toast({
-                  title: "Farcaster Connected!",
-                  description: `Welcome @${res.username}!`,
-                });
-              }}
-              onError={(error) => {
-                console.error('❌ Farcaster sign in failed:', error);
-                toast({
-                  title: "Farcaster Connection Failed",
-                  description: error?.message || "Please try again",
-                  variant: "destructive",
-                });
-              }}
-              onBack={() => setShowFarcasterAuth(false)}
-            />
-          ) : (
           <>
             <div className="space-y-3">
               {connectors.length === 0 && (
@@ -398,8 +367,7 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
               By connecting your wallet, you agree to our Terms of Service
             </div>
           </>
-        )}
-      </DialogContent>
+        </DialogContent>
     </Dialog>
     </AuthKitProvider>
   );
