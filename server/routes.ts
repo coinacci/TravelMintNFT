@@ -562,8 +562,38 @@ export async function registerRoutes(app: Express) {
           
           console.log("✅ Background blockchain sync completed");
           
-          // Clear cache after background sync to show new/updated NFTs
-          clearAllCache();
+          // Refresh cache with updated data instead of just clearing it
+          const freshDbNFTs = await storage.getAllNFTs();
+          const freshContractNFTs = freshDbNFTs.filter(nft => 
+            !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
+          );
+          
+          const freshNFTsWithOwners = await Promise.all(
+            freshContractNFTs.map(async (nft: any) => {
+              let parsedMetadata = null;
+              try {
+                if (nft.metadata && typeof nft.metadata === 'string') {
+                  parsedMetadata = JSON.parse(nft.metadata);
+                }
+              } catch (e) {
+                // Skip parsing errors
+              }
+
+              return {
+                ...nft,
+                title: parsedMetadata?.name || nft.title,
+                imageUrl: nft.imageUrl || parsedMetadata?.image,
+                objectStorageUrl: nft.objectStorageUrl,
+                tokenURI: nft.tokenURI,
+                owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+                creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
+              };
+            })
+          );
+          
+          // Update cache with fresh data
+          setCacheEntry('all-nfts', freshNFTsWithOwners);
+          console.log(`🔄 Cache refreshed with ${freshNFTsWithOwners.length} NFTs`);
         } catch (error) {
           console.error("Background sync failed:", error);
         }
