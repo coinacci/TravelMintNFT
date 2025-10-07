@@ -316,10 +316,18 @@ export default function Quests() {
 
       {/* Farcaster Connection Banner */}
       {!farcasterUser && (
-        <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-          <div className="flex items-center space-x-2 text-orange-600 dark:text-orange-400">
-            <Target className="h-5 w-5" />
-            <p className="font-medium">Connect via Farcaster to claim quest rewards</p>
+        <div className="mb-6 p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
+          <div className="text-center space-y-3">
+            <Target className="h-10 w-10 mx-auto text-purple-500" />
+            <h3 className="text-xl font-bold">Connect with Farcaster</h3>
+            <p className="text-muted-foreground">
+              To participate in quests and earn rewards, connect your Farcaster account
+            </p>
+            {address && (
+              <p className="text-sm text-muted-foreground">
+                Wallet connected ({address.slice(0, 6)}...{address.slice(-4)}) - Now connect Farcaster to start quests!
+              </p>
+            )}
           </div>
         </div>
       )}

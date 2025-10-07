@@ -150,6 +150,22 @@ export default function Leaderboard() {
         </p>
       </div>
 
+      {/* Farcaster Connection Banner - Show if wallet connected but no Farcaster */}
+      {!farcasterUser && address && (
+        <div className="mb-6 p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
+          <div className="text-center space-y-3">
+            <Trophy className="h-10 w-10 mx-auto text-purple-500" />
+            <h3 className="text-xl font-bold">Connect with Farcaster</h3>
+            <p className="text-muted-foreground">
+              To compete on the leaderboard and track your position, connect your Farcaster account
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Wallet connected ({address.slice(0, 6)}...{address.slice(-4)}) - Now connect Farcaster to participate!
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Current User Position - All Time */}
       {allTimeUserEntry && (
         <Card className="mb-8 border-primary/20 bg-primary/5">
