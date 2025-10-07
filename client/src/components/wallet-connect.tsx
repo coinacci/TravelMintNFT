@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SignInButton, AuthKitProvider } from "@farcaster/auth-kit";
+import { AuthKitProvider, useSignIn } from "@farcaster/auth-kit";
+import QRCodeSVG from "react-qr-code";
 
 // Farcaster AuthKit configuration
 const authConfig = {
@@ -13,6 +14,73 @@ const authConfig = {
   domain: typeof window !== 'undefined' ? window.location.host : 'travelmint.replit.app',
   siweUri: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/farcaster` : 'https://travelmint.replit.app/api/auth/farcaster',
 };
+
+// Farcaster QR Code Authentication Component
+function FarcasterQRAuth({ onSuccess, onError, onBack }: {
+  onSuccess: (data: any) => void;
+  onError: (error: any) => void;
+  onBack: () => void;
+}) {
+  const signInState = useSignIn({
+    onSuccess: onSuccess,
+    onError: onError
+  });
+
+  const { signIn, url, isSuccess, isError, error } = signInState;
+
+  useEffect(() => {
+    // Trigger sign in flow automatically
+    signIn();
+  }, []);
+
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center text-red-500">
+          <p>Authentication failed: {error?.message || 'Please try again'}</p>
+        </div>
+        <Button variant="outline" className="w-full" onClick={onBack}>
+          Back to Wallet Options
+        </Button>
+      </div>
+    );
+  }
+
+  if (isSuccess) {
+    return null; // Success handler will be called
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col items-center justify-center p-6 space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Sign in with Farcaster</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Scan the QR code with your Warpcast app
+          </p>
+        </div>
+
+        {url ? (
+          <div className="bg-white p-4 rounded-lg">
+            <QRCodeSVG value={url} size={200} />
+          </div>
+        ) : (
+          <div className="w-[200px] h-[200px] bg-muted animate-pulse rounded-lg flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground text-center">
+          Waiting for confirmation...
+        </p>
+      </div>
+
+      <Button variant="outline" className="w-full" onClick={onBack}>
+        Back to Wallet Options
+      </Button>
+    </div>
+  );
+}
 
 export function WalletConnect() {
   const [isOpen, setIsOpen] = useState(false);
@@ -210,50 +278,32 @@ export function WalletConnect() {
           </DialogHeader>
           
           {showFarcasterAuth ? (
-            <div className="space-y-4">
-              <div className="flex flex-col items-center justify-center p-6 space-y-4">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2">Sign in with Farcaster</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Scan the QR code with your Farcaster app
-                  </p>
-                </div>
-                
-                <SignInButton
-                  onSuccess={(res) => {
-                    console.log('✅ Farcaster sign in successful:', res);
-                    setFarcasterUser({
-                      fid: res.fid,
-                      username: res.username,
-                      displayName: res.displayName,
-                      pfpUrl: res.pfpUrl
-                    });
-                    setShowFarcasterAuth(false);
-                    setIsOpen(false);
-                    toast({
-                      title: "Farcaster Connected!",
-                      description: `Welcome @${res.username}!`,
-                    });
-                  }}
-                  onError={(error) => {
-                    console.error('❌ Farcaster sign in failed:', error);
-                    toast({
-                      title: "Farcaster Connection Failed",
-                      description: error?.message || "Please try again",
-                      variant: "destructive",
-                    });
-                  }}
-                />
-              </div>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowFarcasterAuth(false)}
-              >
-                Back to Wallet Options
-              </Button>
-            </div>
+            <FarcasterQRAuth
+              onSuccess={(res) => {
+                console.log('✅ Farcaster sign in successful:', res);
+                setFarcasterUser({
+                  fid: res.fid,
+                  username: res.username,
+                  displayName: res.displayName,
+                  pfpUrl: res.pfpUrl
+                });
+                setShowFarcasterAuth(false);
+                setIsOpen(false);
+                toast({
+                  title: "Farcaster Connected!",
+                  description: `Welcome @${res.username}!`,
+                });
+              }}
+              onError={(error) => {
+                console.error('❌ Farcaster sign in failed:', error);
+                toast({
+                  title: "Farcaster Connection Failed",
+                  description: error?.message || "Please try again",
+                  variant: "destructive",
+                });
+              }}
+              onBack={() => setShowFarcasterAuth(false)}
+            />
           ) : (
           <>
             <div className="space-y-3">
