@@ -37,7 +37,7 @@ export default function Navigation() {
           <div className="flex items-center justify-end">
             <div className="flex items-center space-x-1">
               {/* Notification indicator removed - notifications work via FID-based system */}
-              <WalletConnect />
+              <WalletConnect farcasterUser={notificationUser} />
             </div>
           </div>
         </div>

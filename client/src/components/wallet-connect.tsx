@@ -87,11 +87,10 @@ function FarcasterQRAuth({ onSuccess, onError, onBack }: {
   );
 }
 
-export function WalletConnect() {
+export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showFarcasterAuth, setShowFarcasterAuth] = useState(false);
   const [hasInjectedProvider, setHasInjectedProvider] = useState(false);
-  const [farcasterUser, setFarcasterUser] = useState<any>(null);
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
@@ -193,6 +192,11 @@ export function WalletConnect() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  // Show Farcaster username if available, otherwise show wallet address
+  const displayName = farcasterUser?.username 
+    ? `@${farcasterUser.username}` 
+    : address ? formatAddress(address) : '';
+
   if (isConnected && address) {
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -203,7 +207,7 @@ export function WalletConnect() {
             data-testid="wallet-connected-button"
           >
             <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <span>{formatAddress(address)}</span>
+            <span>{displayName}</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-md">
@@ -286,12 +290,7 @@ export function WalletConnect() {
             <FarcasterQRAuth
               onSuccess={(res) => {
                 console.log('✅ Farcaster sign in successful:', res);
-                setFarcasterUser({
-                  fid: res.fid,
-                  username: res.username,
-                  displayName: res.displayName,
-                  pfpUrl: res.pfpUrl
-                });
+                // Farcaster user info is managed by useFarcasterNotifications hook
                 setShowFarcasterAuth(false);
                 setIsOpen(false);
                 toast({
