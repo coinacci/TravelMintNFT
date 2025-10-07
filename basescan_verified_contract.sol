@@ -1,20 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// ✅ BASESCAN VERIFICATION READY CONTRACT ✅
-// This is the flattened TravelNFT contract with all fixes applied
-// All OpenZeppelin dependencies included inline
-// 
-// FIXED ISSUES:
-// ✅ Variable shadowing resolved (tokenURI → uri)
-// ✅ Invalid override statements fixed (removed ERC721URIStorage from override list)
-//
-// USE THIS FILE FOR BASESCAN VERIFICATION:
-// Contract Address: 0x8c12c9ebf7db0a6370361ce9225e3b77d22a558f
-// Compiler: v0.8.20+commit.a1b79de6
-// Optimization: Yes (200 runs)
-// License: MIT
-
 interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
