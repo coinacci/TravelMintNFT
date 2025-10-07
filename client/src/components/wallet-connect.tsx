@@ -5,19 +5,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import sdk from "@farcaster/frame-sdk";
-import { SignInButton, AuthKitProvider } from "@farcaster/auth-kit";
-
-// Farcaster AuthKit configuration
-const authConfig = {
-  rpcUrl: 'https://mainnet.optimism.io',
-  domain: typeof window !== 'undefined' ? window.location.host : 'travelmint.replit.app',
-  siweUri: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/farcaster` : 'https://travelmint.replit.app/api/auth/farcaster',
-};
 
 export function WalletConnect() {
   const [isOpen, setIsOpen] = useState(false);
-  const [farcasterUser, setFarcasterUser] = useState<any>(null);
   const [hasInjectedProvider, setHasInjectedProvider] = useState(false);
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error: connectError } = useConnect();
@@ -29,30 +19,6 @@ export function WalletConnect() {
     if (typeof window !== 'undefined') {
       setHasInjectedProvider(!!window.ethereum);
     }
-  }, []);
-  
-  // Get Farcaster user context
-  useEffect(() => {
-    const getFarcasterContext = async () => {
-      try {
-        if (typeof window !== 'undefined' && sdk?.context) {
-          const context = await Promise.resolve(sdk.context);
-          if (context?.user) {
-            setFarcasterUser({
-              fid: context.user.fid,
-              username: context.user.username,
-              displayName: context.user.displayName,
-              pfpUrl: context.user.pfpUrl
-            });
-            console.log('✅ Farcaster user detected in WalletConnect:', context.user.username);
-          }
-        }
-      } catch (error) {
-        console.log('ℹ️ No Farcaster context in wallet connect');
-      }
-    };
-    
-    getFarcasterContext();
   }, []);
 
   useEffect(() => {
@@ -147,12 +113,7 @@ export function WalletConnect() {
             data-testid="wallet-connected-button"
           >
             <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <span>
-              {farcasterUser ? 
-                `@${farcasterUser.username}` : 
-                formatAddress(address)
-              }
-            </span>
+            <span>{formatAddress(address)}</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-md">
@@ -209,7 +170,6 @@ export function WalletConnect() {
   }
 
   return (
-    <AuthKitProvider config={authConfig}>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <Button 
@@ -227,48 +187,11 @@ export function WalletConnect() {
               <span>Connect Your Wallet</span>
             </DialogTitle>
             <DialogDescription>
-              Choose a wallet or sign in with Farcaster to access TravelMint
+              Choose a wallet to access TravelMint
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-3">
-            {/* Farcaster Sign In - Always show first */}
-            <SignInButton
-              onSuccess={(res) => {
-                console.log('✅ Farcaster sign in successful:', res);
-                setFarcasterUser({
-                  fid: res.fid,
-                  username: res.username,
-                  displayName: res.displayName,
-                  pfpUrl: res.pfpUrl
-                });
-                setIsOpen(false);
-                toast({
-                  title: "Farcaster Connected!",
-                  description: `Welcome @${res.username}!`,
-                });
-              }}
-              onError={(error) => {
-                console.error('❌ Farcaster sign in failed:', error);
-                toast({
-                  title: "Farcaster Connection Failed",
-                  description: error?.message || "Please try again",
-                  variant: "destructive",
-                });
-              }}
-            />
-            
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or connect wallet
-                </span>
-              </div>
-            </div>
             
             {connectors.length === 0 && (
               <p className="text-center text-muted-foreground">No wallet connectors available</p>
@@ -358,6 +281,5 @@ export function WalletConnect() {
         </div>
       </DialogContent>
     </Dialog>
-    </AuthKitProvider>
   );
 }
