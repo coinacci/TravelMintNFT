@@ -15,12 +15,13 @@ const authConfig = {
   siweUri: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/farcaster` : 'https://travelmint.replit.app/api/auth/farcaster',
 };
 
-// Farcaster QR Code Authentication Component
+// Farcaster QR Code Authentication Component (must be used inside AuthKitProvider)
 function FarcasterQRAuth({ onSuccess, onError, onBack }: {
   onSuccess: (data: any) => void;
   onError: (error: any) => void;
   onBack: () => void;
 }) {
+  const [hasInitialized, setHasInitialized] = useState(false);
   const signInState = useSignIn({
     onSuccess: onSuccess,
     onError: onError
@@ -29,9 +30,13 @@ function FarcasterQRAuth({ onSuccess, onError, onBack }: {
   const { signIn, url, isSuccess, isError, error } = signInState;
 
   useEffect(() => {
-    // Trigger sign in flow automatically
-    signIn();
-  }, []);
+    // Trigger sign in flow automatically only once
+    if (!hasInitialized) {
+      console.log('🔄 Initializing Farcaster sign in...');
+      signIn();
+      setHasInitialized(true);
+    }
+  }, [hasInitialized, signIn]);
 
   if (isError) {
     return (
