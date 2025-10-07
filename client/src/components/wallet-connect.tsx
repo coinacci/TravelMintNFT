@@ -315,7 +315,9 @@ export function WalletConnect() {
               {connectors.length === 0 && (
                 <p className="text-center text-muted-foreground">No wallet connectors available</p>
               )}
-              {connectors.map((connector) => {
+              {connectors
+                .filter((connector) => !connector.name.toLowerCase().includes('farcaster'))
+                .map((connector) => {
               const isLoading = isPending;
               console.log('Available connector:', connector.name, connector.type);
             
