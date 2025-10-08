@@ -3354,6 +3354,121 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // 🔄 Automatic blockchain sync for newly minted NFTs
+  async function syncMintEvents() {
+    try {
+      console.log('🔄 Starting Mint event sync...');
+      
+      // Get ALL transfer events from blockchain
+      const transferEvents = await blockchainService.getAllTransferEvents();
+      
+      if (transferEvents.length === 0) {
+        console.log('📭 No events found on blockchain');
+        return;
+      }
+      
+      // Filter for Mint events (from = 0x0000...)
+      const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+      const mintEvents = transferEvents.filter(event => 
+        event.from.toLowerCase() === ZERO_ADDRESS.toLowerCase()
+      );
+      
+      if (mintEvents.length === 0) {
+        console.log('📭 No mint events found');
+        return;
+      }
+      
+      console.log(`✨ Found ${mintEvents.length} mint events`);
+      
+      let syncedCount = 0;
+      
+      // Process each mint event
+      for (const event of mintEvents) {
+        try {
+          // Check if NFT already exists in database
+          const existingNFT = await storage.getNFTByTokenId(event.tokenId);
+          if (existingNFT) {
+            continue; // Already in database
+          }
+          
+          // Fetch NFT metadata from blockchain
+          console.log(`📥 Fetching metadata for newly minted NFT #${event.tokenId}...`);
+          const blockchainNFT = await blockchainService.getNFTByTokenId(event.tokenId);
+          
+          if (!blockchainNFT) {
+            console.log(`⚠️ Could not fetch metadata for NFT #${event.tokenId}`);
+            continue;
+          }
+          
+          // Parse metadata
+          const metadata = blockchainNFT.metadata || {};
+          const title = metadata.name || `Travel NFT #${event.tokenId}`;
+          const description = metadata.description || '';
+          const imageUrl = metadata.image || blockchainNFT.tokenURI;
+          
+          // Extract location from metadata
+          let location = 'Unknown';
+          let latitude = '0';
+          let longitude = '0';
+          
+          if (metadata.attributes && Array.isArray(metadata.attributes)) {
+            const locationAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type === 'Location' || attr.trait_type === 'location'
+            );
+            if (locationAttr) {
+              location = locationAttr.value;
+            }
+            
+            const latAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type === 'Latitude' || attr.trait_type === 'latitude'
+            );
+            if (latAttr) {
+              latitude = latAttr.value.toString();
+            }
+            
+            const lngAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type === 'Longitude' || attr.trait_type === 'longitude'
+            );
+            if (lngAttr) {
+              longitude = lngAttr.value.toString();
+            }
+          }
+          
+          // Add NFT to database
+          await storage.createNFT({
+            tokenId: event.tokenId,
+            title,
+            description,
+            imageUrl,
+            price: '1.0', // Default price
+            location,
+            category: 'travel', // Default category
+            latitude,
+            longitude,
+            creatorAddress: event.to.toLowerCase(), // Minter is the creator
+            ownerAddress: event.to.toLowerCase(),
+            isForSale: 0
+          });
+          
+          syncedCount++;
+          console.log(`✅ Synced newly minted NFT #${event.tokenId} (${title}) - owner: ${event.to.slice(0, 10)}...`);
+          
+        } catch (error) {
+          console.error(`❌ Failed to sync mint event for NFT #${event.tokenId}:`, error);
+        }
+      }
+      
+      if (syncedCount > 0) {
+        console.log(`🎉 Mint sync complete: ${syncedCount} new NFTs added to database`);
+      } else {
+        console.log('✅ Mint sync complete: All NFTs up to date');
+      }
+      
+    } catch (error) {
+      console.error('❌ Mint sync failed:', error);
+    }
+  }
+
   // 🔄 Automatic blockchain sync for Recent Activity + Auto-delist on transfer
   async function syncRecentActivity() {
     try {
@@ -3438,11 +3553,15 @@ export async function registerRoutes(app: Express) {
   
   // Run initial sync on server startup
   console.log('🚀 Starting initial blockchain sync...');
-  syncRecentActivity();
+  syncMintEvents(); // Sync any newly minted NFTs first
+  syncRecentActivity(); // Then sync transfers
   
   // Setup periodic sync every 30 seconds
-  setInterval(syncRecentActivity, 30000);
-  console.log('⏰ Periodic blockchain sync enabled (every 30 seconds)');
+  setInterval(() => {
+    syncMintEvents();
+    syncRecentActivity();
+  }, 30000);
+  console.log('⏰ Periodic blockchain sync enabled (Mint events + Transfers every 30 seconds)');
 
   return createServer(app);
 }
