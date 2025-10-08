@@ -12,6 +12,7 @@ module.exports = {
   },
   networks: {
     base: {
+      type: "http",
       url: "https://mainnet.base.org",
       chainId: 8453
     }
