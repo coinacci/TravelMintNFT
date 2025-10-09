@@ -1233,22 +1233,23 @@ export async function registerRoutes(app: Express) {
   };
 
   // Function to determine country from coordinates
+  // Check smaller/specific countries first, then broader ones
   const getCountryFromCoordinates = (lat: number, lng: number): string => {
-    // France borders: roughly 41-51°N, -5 to 10°E
-    if (lat >= 41 && lat <= 51 && lng >= -5 && lng <= 10) {
-      return 'France';
-    }
     // Switzerland borders: roughly 45.8-47.8°N, 5.9-10.5°E
     if (lat >= 45.8 && lat <= 47.8 && lng >= 5.9 && lng <= 10.5) {
       return 'Switzerland';
     }
-    // Italy borders: roughly 35-47°N, 6-19°E
-    if (lat >= 35 && lat <= 47 && lng >= 6 && lng <= 19) {
-      return 'Italy';
-    }
     // Montenegro borders: roughly 42-43.5°N, 18.5-20.5°E
     if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
       return 'Montenegro';
+    }
+    // Italy borders: roughly 35-47.3°N, 6.6-18.5°E (narrower to avoid Swiss/French overlap)
+    if (lat >= 35 && lat <= 47.3 && lng >= 6.6 && lng <= 18.5) {
+      return 'Italy';
+    }
+    // France borders: roughly 42-51°N, -5 to 7.5°E (narrower east border to avoid Swiss/Italian overlap)
+    if (lat >= 42 && lat <= 51 && lng >= -5 && lng <= 7.5) {
+      return 'France';
     }
     // Cyprus borders: roughly 34.5-35.7°N, 32-34.6°E
     if (lat >= 34.5 && lat <= 35.7 && lng >= 32 && lng <= 34.6) {
