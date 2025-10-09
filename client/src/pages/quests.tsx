@@ -154,10 +154,10 @@ export default function Quests() {
     }),
     onSuccess: () => {
       const nftCount = holderStatus?.nftCount || 1;
-      const points = nftCount * 0.25;
+      const points = nftCount * 0.15;
       toast({
         title: "Holder bonus claimed! 🏆",
-        description: `+${points.toFixed(2)} point${points !== 0.25 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
+        description: `+${points.toFixed(2)} point${points !== 0.15 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
       queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
@@ -445,7 +445,7 @@ export default function Quests() {
               <ComposeCastButton
                 type="quest"
                 questName="Holder Bonus"
-                questPoints={holderStatus?.nftCount || 0.15}
+                questPoints={(holderStatus?.nftCount || 1) * 0.15}
                 variant="outline"
                 size="sm"
                 className="w-full"

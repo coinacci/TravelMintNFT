@@ -2378,7 +2378,7 @@ export async function registerRoutes(app: Express) {
           }
           
           console.log(`✅ Farcaster FID ${farcasterFid} holds ${combinedHolderStatus.nftCount} NFTs across all linked wallets`);
-          pointsEarned = combinedHolderStatus.nftCount * 0.25;
+          pointsEarned = combinedHolderStatus.nftCount * 0.15;
           break;
           
         case 'streak_bonus':
