@@ -296,7 +296,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
             placeholder="Filter country..."
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value)}
-            className="pl-10 pr-3 text-sm bg-background/95 backdrop-blur shadow-lg text-foreground"
+            className="pl-10 pr-3 text-sm bg-background/95 backdrop-blur shadow-lg text-black dark:text-white"
             data-testid="input-country-filter"
           />
         </div>
