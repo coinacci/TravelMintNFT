@@ -1285,21 +1285,23 @@ export async function registerRoutes(app: Express) {
     return 'Unknown';
   };
 
-  // Hybrid country detection (same logic as frontend)
+  // Coordinate-first country detection for accurate filtering
   const getNFTCountry = (nft: any): string => {
-    // First try location-based mapping
-    let country = locationToCountry[nft.location];
-    
-    // If not found and it's a manual location with coordinates, use coordinates
-    if (!country && nft.location?.startsWith('Location at ') && nft.latitude && nft.longitude) {
+    // First try coordinates (most accurate - based on actual map position)
+    if (nft.latitude && nft.longitude) {
       const lat = parseFloat(nft.latitude);
       const lng = parseFloat(nft.longitude);
       if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
-        country = getCountryFromCoordinates(lat, lng);
+        const coordCountry = getCountryFromCoordinates(lat, lng);
+        if (coordCountry !== 'Unknown') {
+          return coordCountry;
+        }
       }
     }
     
-    return country || 'Unknown';
+    // Fallback to location name mapping (for edge cases)
+    const mappedCountry = locationToCountry[nft.location];
+    return mappedCountry || 'Unknown';
   };
 
   // Stats endpoint with country calculation
