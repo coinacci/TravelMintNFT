@@ -1233,56 +1233,358 @@ export async function registerRoutes(app: Express) {
   };
 
   // Function to determine country from coordinates
-  // Check smaller/specific countries first, then broader ones
+  // Check smaller/specific countries first, then broader ones to avoid overlaps
   const getCountryFromCoordinates = (lat: number, lng: number): string => {
-    // Switzerland borders: roughly 45.8-47.8°N, 5.9-10.5°E
-    if (lat >= 45.8 && lat <= 47.8 && lng >= 5.9 && lng <= 10.5) {
-      return 'Switzerland';
+    // Vatican City: 41.9°N, 12.45°E (very small, check first)
+    if (lat >= 41.9 && lat <= 41.91 && lng >= 12.45 && lng <= 12.46) {
+      return 'Vatican City';
     }
-    // Montenegro borders: roughly 42-43.5°N, 18.5-20.5°E
-    if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
-      return 'Montenegro';
+    
+    // Singapore: 1.2-1.47°N, 103.6-104°E
+    if (lat >= 1.2 && lat <= 1.47 && lng >= 103.6 && lng <= 104) {
+      return 'Singapore';
     }
-    // Italy borders: roughly 35-47.3°N, 6.6-18.5°E (narrower to avoid Swiss/French overlap)
-    if (lat >= 35 && lat <= 47.3 && lng >= 6.6 && lng <= 18.5) {
-      return 'Italy';
-    }
-    // France borders: roughly 42-51°N, -5 to 7.5°E (narrower east border to avoid Swiss/Italian overlap)
-    if (lat >= 42 && lat <= 51 && lng >= -5 && lng <= 7.5) {
-      return 'France';
-    }
-    // Cyprus borders: roughly 34.5-35.7°N, 32-34.6°E
+    
+    // Cyprus: 34.5-35.7°N, 32-34.6°E
     if (lat >= 34.5 && lat <= 35.7 && lng >= 32 && lng <= 34.6) {
       return 'Cyprus';
     }
-    // Turkey borders: roughly 36-42°N, 26-45°E
+    
+    // Switzerland: 45.8-47.8°N, 5.9-10.5°E
+    if (lat >= 45.8 && lat <= 47.8 && lng >= 5.9 && lng <= 10.5) {
+      return 'Switzerland';
+    }
+    
+    // Austria: 46.4-49°N, 9.5-17.2°E
+    if (lat >= 46.4 && lat <= 49 && lng >= 9.5 && lng <= 17.2) {
+      return 'Austria';
+    }
+    
+    // Netherlands: 50.75-53.7°N, 3.3-7.2°E
+    if (lat >= 50.75 && lat <= 53.7 && lng >= 3.3 && lng <= 7.2) {
+      return 'Netherlands';
+    }
+    
+    // Belgium: 49.5-51.5°N, 2.5-6.4°E
+    if (lat >= 49.5 && lat <= 51.5 && lng >= 2.5 && lng <= 6.4) {
+      return 'Belgium';
+    }
+    
+    // Luxembourg: 49.4-50.2°N, 5.7-6.5°E
+    if (lat >= 49.4 && lat <= 50.2 && lng >= 5.7 && lng <= 6.5) {
+      return 'Luxembourg';
+    }
+    
+    // Montenegro: 42-43.5°N, 18.5-20.5°E
+    if (lat >= 42 && lat <= 43.5 && lng >= 18.5 && lng <= 20.5) {
+      return 'Montenegro';
+    }
+    
+    // North Macedonia: 40.8-42.4°N, 20.4-23.0°E
+    if (lat >= 40.8 && lat <= 42.4 && lng >= 20.4 && lng <= 23.0) {
+      return 'North Macedonia';
+    }
+    
+    // Albania: 39.6-42.7°N, 19.3-21.1°E
+    if (lat >= 39.6 && lat <= 42.7 && lng >= 19.3 && lng <= 21.1) {
+      return 'Albania';
+    }
+    
+    // Greece: 34.8-41.8°N, 19.3-28.3°E
+    if (lat >= 34.8 && lat <= 41.8 && lng >= 19.3 && lng <= 28.3) {
+      return 'Greece';
+    }
+    
+    // Serbia: 42.2-46.2°N, 18.8-23.0°E
+    if (lat >= 42.2 && lat <= 46.2 && lng >= 18.8 && lng <= 23.0) {
+      return 'Serbia';
+    }
+    
+    // Croatia: 42.4-46.6°N, 13.5-19.5°E
+    if (lat >= 42.4 && lat <= 46.6 && lng >= 13.5 && lng <= 19.5) {
+      return 'Croatia';
+    }
+    
+    // Hungary: 45.7-48.6°N, 16.1-22.9°E
+    if (lat >= 45.7 && lat <= 48.6 && lng >= 16.1 && lng <= 22.9) {
+      return 'Hungary';
+    }
+    
+    // Czech Republic: 48.5-51.1°N, 12.1-18.9°E
+    if (lat >= 48.5 && lat <= 51.1 && lng >= 12.1 && lng <= 18.9) {
+      return 'Czech Republic';
+    }
+    
+    // Slovakia: 47.7-49.6°N, 16.8-22.6°E
+    if (lat >= 47.7 && lat <= 49.6 && lng >= 16.8 && lng <= 22.6) {
+      return 'Slovakia';
+    }
+    
+    // Slovenia: 45.4-46.9°N, 13.4-16.6°E
+    if (lat >= 45.4 && lat <= 46.9 && lng >= 13.4 && lng <= 16.6) {
+      return 'Slovenia';
+    }
+    
+    // Bosnia and Herzegovina: 42.5-45.3°N, 15.7-19.6°E
+    if (lat >= 42.5 && lat <= 45.3 && lng >= 15.7 && lng <= 19.6) {
+      return 'Bosnia and Herzegovina';
+    }
+    
+    // Portugal: 36.9-42.2°N, -9.5 to -6.2°E
+    if (lat >= 36.9 && lat <= 42.2 && lng >= -9.5 && lng <= -6.2) {
+      return 'Portugal';
+    }
+    
+    // Iceland: 63.3-66.6°N, -24.5 to -13.5°E
+    if (lat >= 63.3 && lat <= 66.6 && lng >= -24.5 && lng <= -13.5) {
+      return 'Iceland';
+    }
+    
+    // Ireland: 51.4-55.4°N, -10.5 to -6.0°E
+    if (lat >= 51.4 && lat <= 55.4 && lng >= -10.5 && lng <= -6.0) {
+      return 'Ireland';
+    }
+    
+    // United Kingdom: 49.9-61°N, -8.2 to 1.8°E
+    if (lat >= 49.9 && lat <= 61 && lng >= -8.2 && lng <= 1.8) {
+      return 'United Kingdom';
+    }
+    
+    // Denmark: 54.5-57.8°N, 8.0-15.2°E
+    if (lat >= 54.5 && lat <= 57.8 && lng >= 8.0 && lng <= 15.2) {
+      return 'Denmark';
+    }
+    
+    // Norway: 57.9-71.2°N, 4.5-31.2°E
+    if (lat >= 57.9 && lat <= 71.2 && lng >= 4.5 && lng <= 31.2) {
+      return 'Norway';
+    }
+    
+    // Sweden: 55.3-69.1°N, 11.1-24.2°E
+    if (lat >= 55.3 && lat <= 69.1 && lng >= 11.1 && lng <= 24.2) {
+      return 'Sweden';
+    }
+    
+    // Finland: 59.8-70.1°N, 20.5-31.6°E
+    if (lat >= 59.8 && lat <= 70.1 && lng >= 20.5 && lng <= 31.6) {
+      return 'Finland';
+    }
+    
+    // Poland: 49.0-54.9°N, 14.1-24.2°E
+    if (lat >= 49.0 && lat <= 54.9 && lng >= 14.1 && lng <= 24.2) {
+      return 'Poland';
+    }
+    
+    // Italy: 35-47.3°N, 6.6-18.5°E (narrower to avoid overlap)
+    if (lat >= 35 && lat <= 47.3 && lng >= 6.6 && lng <= 18.5) {
+      return 'Italy';
+    }
+    
+    // Spain: 35.5-43.8°N, -9.3 to 3.3°E
+    if (lat >= 35.5 && lat <= 43.8 && lng >= -9.3 && lng <= 3.3) {
+      return 'Spain';
+    }
+    
+    // France: 42-51°N, -5 to 7.5°E (narrower to avoid overlap)
+    if (lat >= 42 && lat <= 51 && lng >= -5 && lng <= 7.5) {
+      return 'France';
+    }
+    
+    // Germany: 47.3-55.1°N, 5.9-15.0°E
+    if (lat >= 47.3 && lat <= 55.1 && lng >= 5.9 && lng <= 15.0) {
+      return 'Germany';
+    }
+    
+    // Romania: 43.6-48.3°N, 20.3-29.7°E
+    if (lat >= 43.6 && lat <= 48.3 && lng >= 20.3 && lng <= 29.7) {
+      return 'Romania';
+    }
+    
+    // Bulgaria: 41.2-44.2°N, 22.4-28.6°E
+    if (lat >= 41.2 && lat <= 44.2 && lng >= 22.4 && lng <= 28.6) {
+      return 'Bulgaria';
+    }
+    
+    // Turkey: 36-42°N, 26-45°E
     if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) {
       return 'Turkey';
     }
-    // Georgia borders: roughly 41-43.6°N, 39.9-46.7°E
+    
+    // Georgia: 41-43.6°N, 39.9-46.7°E
     if (lat >= 41 && lat <= 43.6 && lng >= 39.9 && lng <= 46.7) {
       return 'Georgia';
     }
-    // Egypt borders: roughly 22-32°N, 25-35°E  
-    if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
-      return 'Egypt';
+    
+    // Armenia: 38.8-41.3°N, 43.4-46.6°E
+    if (lat >= 38.8 && lat <= 41.3 && lng >= 43.4 && lng <= 46.6) {
+      return 'Armenia';
     }
-    // UAE borders: roughly 22-26°N, 51-56°E
+    
+    // Azerbaijan: 38.4-41.9°N, 44.8-50.4°E
+    if (lat >= 38.4 && lat <= 41.9 && lng >= 44.8 && lng <= 50.4) {
+      return 'Azerbaijan';
+    }
+    
+    // Iraq: 29.1-37.4°N, 38.8-48.6°E
+    if (lat >= 29.1 && lat <= 37.4 && lng >= 38.8 && lng <= 48.6) {
+      return 'Iraq';
+    }
+    
+    // Iran: 25.1-39.8°N, 44.0-63.3°E
+    if (lat >= 25.1 && lat <= 39.8 && lng >= 44.0 && lng <= 63.3) {
+      return 'Iran';
+    }
+    
+    // Saudi Arabia: 16.3-32.2°N, 34.5-55.7°E
+    if (lat >= 16.3 && lat <= 32.2 && lng >= 34.5 && lng <= 55.7) {
+      return 'Saudi Arabia';
+    }
+    
+    // UAE: 22-26°N, 51-56°E
     if (lat >= 22 && lat <= 26 && lng >= 51 && lng <= 56) {
       return 'UAE';
     }
-    // Thailand borders: roughly 5.5-20.5°N, 97-106°E
+    
+    // Qatar: 24.5-26.2°N, 50.7-51.7°E
+    if (lat >= 24.5 && lat <= 26.2 && lng >= 50.7 && lng <= 51.7) {
+      return 'Qatar';
+    }
+    
+    // Kuwait: 28.5-30.1°N, 46.5-48.5°E
+    if (lat >= 28.5 && lat <= 30.1 && lng >= 46.5 && lng <= 48.5) {
+      return 'Kuwait';
+    }
+    
+    // Egypt: 22-32°N, 25-35°E  
+    if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 35) {
+      return 'Egypt';
+    }
+    
+    // Israel: 29.5-33.3°N, 34.3-35.9°E
+    if (lat >= 29.5 && lat <= 33.3 && lng >= 34.3 && lng <= 35.9) {
+      return 'Israel';
+    }
+    
+    // Jordan: 29.2-33.4°N, 34.9-39.3°E
+    if (lat >= 29.2 && lat <= 33.4 && lng >= 34.9 && lng <= 39.3) {
+      return 'Jordan';
+    }
+    
+    // Lebanon: 33.1-34.7°N, 35.1-36.6°E
+    if (lat >= 33.1 && lat <= 34.7 && lng >= 35.1 && lng <= 36.6) {
+      return 'Lebanon';
+    }
+    
+    // Kazakhstan: 40.6-55.4°N, 46.5-87.3°E
+    if (lat >= 40.6 && lat <= 55.4 && lng >= 46.5 && lng <= 87.3) {
+      return 'Kazakhstan';
+    }
+    
+    // India: 8.1-35.5°N, 68.2-97.4°E
+    if (lat >= 8.1 && lat <= 35.5 && lng >= 68.2 && lng <= 97.4) {
+      return 'India';
+    }
+    
+    // Thailand: 5.5-20.5°N, 97-106°E
     if (lat >= 5.5 && lat <= 20.5 && lng >= 97 && lng <= 106) {
       return 'Thailand';
     }
-    // Canada borders: roughly 42-75°N, -141 to -52°W
-    if (lat >= 42 && lat <= 75 && lng >= -141 && lng <= -52) {
+    
+    // Vietnam: 8.2-23.4°N, 102.1-109.5°E
+    if (lat >= 8.2 && lat <= 23.4 && lng >= 102.1 && lng <= 109.5) {
+      return 'Vietnam';
+    }
+    
+    // Malaysia: 0.8-7.4°N, 99.6-119.3°E
+    if (lat >= 0.8 && lat <= 7.4 && lng >= 99.6 && lng <= 119.3) {
+      return 'Malaysia';
+    }
+    
+    // Indonesia: -11 to 6°N, 95-141°E
+    if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) {
+      return 'Indonesia';
+    }
+    
+    // Philippines: 4.6-21.1°N, 116.9-126.6°E
+    if (lat >= 4.6 && lat <= 21.1 && lng >= 116.9 && lng <= 126.6) {
+      return 'Philippines';
+    }
+    
+    // Japan: 24-46°N, 122-154°E
+    if (lat >= 24 && lat <= 46 && lng >= 122 && lng <= 154) {
+      return 'Japan';
+    }
+    
+    // South Korea: 33-39°N, 124-132°E
+    if (lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132) {
+      return 'South Korea';
+    }
+    
+    // China: 18-54°N, 73-135°E
+    if (lat >= 18 && lat <= 54 && lng >= 73 && lng <= 135) {
+      return 'China';
+    }
+    
+    // Australia: -44 to -10°S, 113-154°E
+    if (lat >= -44 && lat <= -10 && lng >= 113 && lng <= 154) {
+      return 'Australia';
+    }
+    
+    // New Zealand: -47 to -34°S, 166-179°E
+    if (lat >= -47 && lat <= -34 && lng >= 166 && lng <= 179) {
+      return 'New Zealand';
+    }
+    
+    // Canada: 42-83°N, -141 to -52°W
+    if (lat >= 42 && lat <= 83 && lng >= -141 && lng <= -52) {
       return 'Canada';
     }
-    // USA borders: roughly 24-49°N, -125 to -66°W
+    
+    // USA: 24-49°N, -125 to -66°W
     if (lat >= 24 && lat <= 49 && lng >= -125 && lng <= -66) {
       return 'USA';
     }
+    
+    // Mexico: 14.5-32.7°N, -118 to -86°W
+    if (lat >= 14.5 && lat <= 32.7 && lng >= -118 && lng <= -86) {
+      return 'Mexico';
+    }
+    
+    // Brazil: -34 to 5°S, -74 to -34°W
+    if (lat >= -34 && lat <= 5 && lng >= -74 && lng <= -34) {
+      return 'Brazil';
+    }
+    
+    // Argentina: -55 to -22°S, -73 to -53°W
+    if (lat >= -55 && lat <= -22 && lng >= -73 && lng <= -53) {
+      return 'Argentina';
+    }
+    
+    // Chile: -56 to -17°S, -76 to -66°W
+    if (lat >= -56 && lat <= -17 && lng >= -76 && lng <= -66) {
+      return 'Chile';
+    }
+    
+    // Peru: -18 to 0°S, -81 to -68°W
+    if (lat >= -18 && lat <= 0 && lng >= -81 && lng <= -68) {
+      return 'Peru';
+    }
+    
+    // Colombia: -4 to 13°N, -79 to -66°W
+    if (lat >= -4 && lat <= 13 && lng >= -79 && lng <= -66) {
+      return 'Colombia';
+    }
+    
+    // Russia: 41-82°N, 19-180°E
+    if (lat >= 41 && lat <= 82 && lng >= 19 && lng <= 180) {
+      return 'Russia';
+    }
+    
+    // Ukraine: 44.4-52.4°N, 22.1-40.2°E
+    if (lat >= 44.4 && lat <= 52.4 && lng >= 22.1 && lng <= 40.2) {
+      return 'Ukraine';
+    }
+    
     return 'Unknown';
   };
 
