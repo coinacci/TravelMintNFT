@@ -495,7 +495,8 @@ export async function registerRoutes(app: Express) {
             objectStorageUrl: nft.objectStorageUrl, // Include Object Storage URL for frontend priority
             tokenURI: nft.tokenURI, // Add tokenURI for frontend fallback (for tokens like #47 where image URL is broken but tokenURI works)
             owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
-            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
+            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+            country: getNFTCountry(nft) // Add country for filtering
           };
         })
       );
