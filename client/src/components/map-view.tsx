@@ -288,21 +288,21 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
       {/* Country Filter */}
-      <div className="absolute top-4 left-4 right-4 z-10 max-w-xs">
+      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Filter by country (e.g., Turkey, USA)"
+            placeholder="Filter country..."
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value)}
-            className="pl-10 bg-background/95 backdrop-blur shadow-lg"
+            className="pl-10 pr-3 text-sm bg-background/95 backdrop-blur shadow-lg"
             data-testid="input-country-filter"
           />
         </div>
         {countryFilter && (
-          <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-3 py-1 rounded shadow-lg">
-            {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''} found
+          <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
+            {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
           </div>
         )}
       </div>
