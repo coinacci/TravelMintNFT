@@ -1,11 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 import { Link } from "wouter";
-import { Upload } from "lucide-react";
+import { Upload, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface NFT {
   id: string;
@@ -20,6 +21,7 @@ interface NFT {
   createdAt: string;
   owner: { username: string; avatar?: string } | null;
   creator: { username: string; avatar?: string } | null;
+  country?: string;
 }
 
 interface MapViewProps {
@@ -30,6 +32,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const queryClient = useQueryClient();
+  const [countryFilter, setCountryFilter] = useState("");
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
@@ -41,6 +44,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     retry: 3, // Retry failed requests
     retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
+
+  // Filter NFTs by country
+  const filteredNfts = countryFilter.trim()
+    ? nfts.filter(nft => 
+        nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
+      )
+    : nfts;
   
   // Log errors for troubleshooting
   if (isError) {
@@ -127,7 +137,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Group NFTs by location for clustering support
     const nftsByLocation = new Map<string, NFT[]>();
     
-    nfts.forEach((nft) => {
+    filteredNfts.forEach((nft) => {
       // Parse coordinates safely with fallbacks
       const lat = typeof nft.latitude === 'string' ? parseFloat(nft.latitude) : (nft.latitude || 0);
       const lng = typeof nft.longitude === 'string' ? parseFloat(nft.longitude) : (nft.longitude || 0);
@@ -271,12 +281,31 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         onNFTSelect(selectedNFT);
       }
     };
-  }, [nfts, onNFTSelect]);
+  }, [filteredNfts, nfts, onNFTSelect]);
 
   return (
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
+      {/* Country Filter */}
+      <div className="absolute top-4 left-4 right-4 z-10 max-w-xs">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Filter by country (e.g., Turkey, USA)"
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+            className="pl-10 bg-background/95 backdrop-blur shadow-lg"
+            data-testid="input-country-filter"
+          />
+        </div>
+        {countryFilter && (
+          <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-3 py-1 rounded shadow-lg">
+            {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''} found
+          </div>
+        )}
+      </div>
 
       {/* Floating Stats Panel */}
       <div className="absolute bottom-24 left-4 floating-panel rounded-lg p-3 z-10">
