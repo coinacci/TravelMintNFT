@@ -1317,7 +1317,7 @@ export class BlockchainService {
   }
 
   // 🔄 Get ALL NFT transfer events (purchases + regular transfers) for auto-delist
-  async getAllTransferEvents(fromBlock: number = -50000): Promise<any[]> {
+  async getAllTransferEvents(fromBlock: number = -10000): Promise<any[]> {
     try {
       console.log(`📡 Fetching ALL NFT Transfer events from block ${fromBlock}...`);
       
@@ -1336,11 +1336,7 @@ export class BlockchainService {
         const to = event.args?.[1]?.toLowerCase();
         const tokenId = event.args?.[2]?.toString();
         
-        // Skip mints (from null address)
-        if (from === '0x0000000000000000000000000000000000000000') {
-          continue;
-        }
-        
+        // Include all transfers (including mints from 0x0)
         try {
           // Get full transaction receipt to check for USDC transfers
           const receipt = await provider.getTransactionReceipt(txHash);
