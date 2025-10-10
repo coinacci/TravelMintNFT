@@ -1250,6 +1250,11 @@ export async function registerRoutes(app: Express) {
       return 'Cyprus';
     }
     
+    // Germany: 47.3-55.1°N, 5.9-15.0°E (check before smaller neighbors to avoid misclassification)
+    if (lat >= 47.3 && lat <= 55.1 && lng >= 5.9 && lng <= 15.0) {
+      return 'Germany';
+    }
+    
     // Switzerland: 45.8-47.8°N, 5.9-10.5°E
     if (lat >= 45.8 && lat <= 47.8 && lng >= 5.9 && lng <= 10.5) {
       return 'Switzerland';
@@ -1260,8 +1265,8 @@ export async function registerRoutes(app: Express) {
       return 'Austria';
     }
     
-    // Netherlands: 50.75-53.7°N, 3.3-7.2°E
-    if (lat >= 50.75 && lat <= 53.7 && lng >= 3.3 && lng <= 7.2) {
+    // Netherlands: 50.75-53.5°N, 3.3-7.2°E (adjusted to avoid Germany overlap)
+    if (lat >= 50.75 && lat <= 53.5 && lng >= 3.3 && lng <= 7.2) {
       return 'Netherlands';
     }
     
@@ -1388,11 +1393,6 @@ export async function registerRoutes(app: Express) {
     // France: 42-51°N, -5 to 7.5°E (narrower to avoid overlap)
     if (lat >= 42 && lat <= 51 && lng >= -5 && lng <= 7.5) {
       return 'France';
-    }
-    
-    // Germany: 47.3-55.1°N, 5.9-15.0°E
-    if (lat >= 47.3 && lat <= 55.1 && lng >= 5.9 && lng <= 15.0) {
-      return 'Germany';
     }
     
     // Romania: 43.6-48.3°N, 20.3-29.7°E
