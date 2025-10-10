@@ -1221,6 +1221,13 @@ export async function registerRoutes(app: Express) {
     'Singapore': 'Singapore',
     'Amsterdam': 'Netherlands',
     'Berlin': 'Germany',
+    'Munich': 'Germany',
+    'Hanover': 'Germany',
+    'Hamburg': 'Germany',
+    'Linz': 'Austria',
+    'Innsbruck': 'Austria',
+    'Salzburg': 'Austria',
+    'Vienna': 'Austria',
     'Rome': 'Italy',
     'Barcelona': 'Spain',
     'Yenimahalle': 'Turkey',
@@ -1250,34 +1257,34 @@ export async function registerRoutes(app: Express) {
       return 'Cyprus';
     }
     
-    // Germany: 47.3-55.1°N, 5.9-15.0°E (check before smaller neighbors to avoid misclassification)
-    if (lat >= 47.3 && lat <= 55.1 && lng >= 5.9 && lng <= 15.0) {
-      return 'Germany';
+    // Luxembourg: 49.4-50.2°N, 5.7-6.5°E (check small countries first)
+    if (lat >= 49.4 && lat <= 50.2 && lng >= 5.7 && lng <= 6.5) {
+      return 'Luxembourg';
     }
     
-    // Switzerland: 45.8-47.8°N, 5.9-10.5°E
-    if (lat >= 45.8 && lat <= 47.8 && lng >= 5.9 && lng <= 10.5) {
+    // Switzerland: 45.8-47.8°N, 5.96-10.49°E (exact boundaries from web)
+    if (lat >= 45.8 && lat <= 47.8 && lng >= 5.96 && lng <= 10.49) {
       return 'Switzerland';
     }
     
-    // Austria: 46.4-49°N, 9.5-17.2°E
-    if (lat >= 46.4 && lat <= 49 && lng >= 9.5 && lng <= 17.2) {
-      return 'Austria';
-    }
-    
-    // Netherlands: 50.75-53.5°N, 3.3-7.2°E (adjusted to avoid Germany overlap)
-    if (lat >= 50.75 && lat <= 53.5 && lng >= 3.3 && lng <= 7.2) {
-      return 'Netherlands';
-    }
-    
-    // Belgium: 49.5-51.5°N, 2.5-6.4°E
-    if (lat >= 49.5 && lat <= 51.5 && lng >= 2.5 && lng <= 6.4) {
+    // Belgium: 49.5-51.5°N, 2.55-6.4°E (exact boundaries from web)
+    if (lat >= 49.5 && lat <= 51.5 && lng >= 2.55 && lng <= 6.4) {
       return 'Belgium';
     }
     
-    // Luxembourg: 49.4-50.2°N, 5.7-6.5°E
-    if (lat >= 49.4 && lat <= 50.2 && lng >= 5.7 && lng <= 6.5) {
-      return 'Luxembourg';
+    // Netherlands: 50-54°N, 3-8°E (exact boundaries from web)
+    if (lat >= 50 && lat <= 54 && lng >= 3 && lng <= 8) {
+      return 'Netherlands';
+    }
+    
+    // Austria: 46.23-49.01°N, 9.53-17.16°E (exact boundaries from web)
+    if (lat >= 46.23 && lat <= 49.01 && lng >= 9.53 && lng <= 17.16) {
+      return 'Austria';
+    }
+    
+    // Germany: 47.27-54.9°N, 5.87-15.03°E (exact boundaries from web - check AFTER smaller neighbors)
+    if (lat >= 47.27 && lat <= 54.9 && lng >= 5.87 && lng <= 15.03) {
+      return 'Germany';
     }
     
     // Montenegro: 42-43.5°N, 18.5-20.5°E
@@ -1588,9 +1595,15 @@ export async function registerRoutes(app: Express) {
     return 'Unknown';
   };
 
-  // Coordinate-first country detection for accurate filtering
+  // Hybrid country detection: location name first (most accurate), then coordinates
   const getNFTCountry = (nft: any): string => {
-    // First try coordinates (most accurate - based on actual map position)
+    // First try location name mapping (most accurate for known cities)
+    const mappedCountry = locationToCountry[nft.location];
+    if (mappedCountry) {
+      return mappedCountry;
+    }
+    
+    // Fallback to coordinates (for unmapped locations)
     if (nft.latitude && nft.longitude) {
       const lat = parseFloat(nft.latitude);
       const lng = parseFloat(nft.longitude);
@@ -1602,9 +1615,7 @@ export async function registerRoutes(app: Express) {
       }
     }
     
-    // Fallback to location name mapping (for edge cases)
-    const mappedCountry = locationToCountry[nft.location];
-    return mappedCountry || 'Unknown';
+    return 'Unknown';
   };
 
   // Stats endpoint with country calculation
