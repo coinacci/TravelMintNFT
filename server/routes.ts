@@ -3873,12 +3873,12 @@ export async function registerRoutes(app: Express) {
   syncMintEvents(); // Sync any newly minted NFTs first
   syncRecentActivity(); // Then sync transfers
   
-  // Setup periodic sync every 30 seconds
+  // Setup periodic sync every 5 seconds for faster map updates
   setInterval(() => {
     syncMintEvents();
     syncRecentActivity();
-  }, 30000);
-  console.log('⏰ Periodic blockchain sync enabled (Mint events + Transfers every 30 seconds)');
+  }, 5000);
+  console.log('⏰ Periodic blockchain sync enabled (Mint events + Transfers every 5 seconds)');
 
   return createServer(app);
 }
