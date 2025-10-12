@@ -22,6 +22,7 @@ interface NFT {
   owner: { username: string; avatar?: string } | null;
   creator: { username: string; avatar?: string } | null;
   country?: string;
+  category?: string;
 }
 
 interface MapViewProps {
@@ -179,6 +180,14 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
+        // Add blue halo effect for Brand category NFTs
+        if (nft.category?.toLowerCase() === 'brand') {
+          const markerElement = marker.getElement();
+          if (markerElement) {
+            markerElement.style.filter = 'drop-shadow(0 0 12px rgba(60, 138, 255, 0.8))';
+          }
+        }
+
         // Smart image URL selection: Object Storage first, then IPFS fallback
         const imageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
           ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
@@ -226,6 +235,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         });
 
         const marker = L.marker([lat, lng], { icon: clusterIcon }).addTo(map);
+
+        // Add blue halo effect if any NFT in cluster is Brand category
+        const hasBrandNFT = locationNFTs.some(nft => nft.category?.toLowerCase() === 'brand');
+        if (hasBrandNFT) {
+          const markerElement = marker.getElement();
+          if (markerElement) {
+            markerElement.style.filter = 'drop-shadow(0 0 12px rgba(60, 138, 255, 0.8))';
+          }
+        }
 
         // Create multi-NFT popup content
         const multiPopupContent = `
