@@ -340,7 +340,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
               data-testid="checkbox-brand-filter"
             />
-            <span className="text-sm text-foreground">Show Brand NFTs Only</span>
+            <span className="text-sm text-black">Show Brand NFTs Only</span>
           </label>
         </div>
         
