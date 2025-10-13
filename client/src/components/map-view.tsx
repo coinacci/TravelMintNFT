@@ -34,6 +34,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const queryClient = useQueryClient();
   const [countryFilter, setCountryFilter] = useState("");
+  const [showBrandOnly, setShowBrandOnly] = useState(false);
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
@@ -46,12 +47,20 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
 
-  // Filter NFTs by country
-  const filteredNfts = countryFilter.trim()
-    ? nfts.filter(nft => 
-        nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
-      )
-    : nfts;
+  // Filter NFTs by country and brand category
+  const filteredNfts = nfts.filter(nft => {
+    // Country filter
+    const matchesCountry = countryFilter.trim()
+      ? nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
+      : true;
+    
+    // Brand filter
+    const matchesBrand = showBrandOnly
+      ? nft.category?.toLowerCase() === 'brand'
+      : true;
+    
+    return matchesCountry && matchesBrand;
+  });
   
   // Log errors for troubleshooting
   if (isError) {
@@ -327,7 +336,22 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
             data-testid="input-country-filter"
           />
         </div>
-        {countryFilter && (
+        
+        {/* Brand Filter Checkbox */}
+        <div className="mt-2 bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showBrandOnly}
+              onChange={(e) => setShowBrandOnly(e.target.checked)}
+              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              data-testid="checkbox-brand-filter"
+            />
+            <span className="text-sm text-foreground">Show Brand NFTs Only</span>
+          </label>
+        </div>
+        
+        {(countryFilter || showBrandOnly) && (
           <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
             {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
           </div>
