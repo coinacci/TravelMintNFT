@@ -248,8 +248,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         if (hasBrandNFT) {
           const markerElement = marker.getElement();
           if (markerElement) {
-            // Double blue halo for maximum visibility + inner orange
-            markerElement.style.filter = 'drop-shadow(0 0 10px rgba(255, 138, 60, 1)) drop-shadow(0 0 20px rgba(60, 138, 255, 1)) drop-shadow(0 0 30px rgba(60, 138, 255, 0.7))';
+            // Clean dual-ring effect: inner orange ring + outer blue ring
+            markerElement.style.filter = 'drop-shadow(0 0 6px rgba(255, 138, 60, 1)) drop-shadow(0 0 18px rgba(60, 138, 255, 1))';
             console.log('✅ Brand cluster halo applied to:', locationNFTs[0]?.location);
           }
         }
