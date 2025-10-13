@@ -236,12 +236,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
         const marker = L.marker([lat, lng], { icon: clusterIcon }).addTo(map);
 
-        // Add blue halo effect if any NFT in cluster is Brand category
+        // Add double halo effect if any NFT in cluster is Brand category
+        // Inner orange ring + outer blue ring for Brand clusters
         const hasBrandNFT = locationNFTs.some(nft => nft.category?.toLowerCase() === 'brand');
         if (hasBrandNFT) {
           const markerElement = marker.getElement();
           if (markerElement) {
-            markerElement.style.filter = 'drop-shadow(0 0 12px rgba(60, 138, 255, 0.8))';
+            markerElement.style.filter = 'drop-shadow(0 0 8px rgba(255, 138, 60, 0.8)) drop-shadow(0 0 16px rgba(60, 138, 255, 0.8))';
           }
         }
 
