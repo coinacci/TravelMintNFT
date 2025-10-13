@@ -248,18 +248,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         // Add double halo effect if any NFT in cluster is Brand category
         // Inner orange ring + outer blue ring for Brand clusters
         const hasBrandNFT = locationNFTs.some(nft => nft.category?.toLowerCase() === 'brand');
-        console.log('🔍 Cluster check:', {
-          location: locationNFTs[0]?.location,
-          nftCount: locationNFTs.length,
-          hasBrandNFT,
-          categories: locationNFTs.map(n => n.category)
-        });
         if (hasBrandNFT) {
           const markerElement = marker.getElement();
           if (markerElement) {
             // Sharp dual-ring: tight orange + outer blue with minimal blur
             markerElement.style.filter = 'drop-shadow(0 0 3px rgba(255, 138, 60, 1)) drop-shadow(0 0 3px rgba(255, 138, 60, 0.8)) drop-shadow(0 0 12px rgba(60, 138, 255, 1)) drop-shadow(0 0 16px rgba(60, 138, 255, 0.6))';
-            console.log('✅ Brand cluster halo applied to:', locationNFTs[0]?.location);
           }
         }
 
