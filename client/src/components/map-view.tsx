@@ -3,9 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
-import { Link } from "wouter";
-import { Upload, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface NFT {
@@ -95,11 +93,6 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     };
   }, [queryClient, refetch]);
 
-  const { data: stats } = useQuery<{ totalNFTs: number; totalVolume: string }>({
-    queryKey: ["/api/stats"],
-    staleTime: 2 * 60 * 1000, // Cache stats for 2 minutes
-    gcTime: 10 * 60 * 1000, // Keep stats in cache for 10 minutes
-  });
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -351,28 +344,6 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         )}
       </div>
 
-      {/* Floating Stats Panel */}
-      <div className="absolute bottom-24 left-4 floating-panel rounded-lg p-3 z-10">
-        <div className="text-center">
-          <div className="text-xl font-bold text-primary" data-testid="total-nfts">
-            {stats?.totalNFTs || 0}
-          </div>
-          <div className="text-xs text-muted-foreground">NFTs Minted</div>
-        </div>
-      </div>
-
-      {/* Floating Mint Button */}
-      <div className="absolute bottom-24 right-4 z-10">
-        <Link href="/mint">
-          <Button 
-            size="sm" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg w-12 h-12 rounded-full p-0"
-            data-testid="mint-memory-fab"
-          >
-            <Upload className="w-5 h-5" />
-          </Button>
-        </Link>
-      </div>
     </div>
   );
 }
