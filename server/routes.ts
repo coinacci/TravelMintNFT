@@ -535,7 +535,18 @@ export async function registerRoutes(app: Express) {
               const currentLat = parseFloat(existsInDb.latitude);
               const currentLng = parseFloat(existsInDb.longitude);
               
-              if ((currentLat === 0 && currentLng === 0) && blockchainNFT.metadata) {
+              // 🇹🇭 SPECIAL CASE: Token ID 35 (Pattaya NFT) - Force Pattaya location permanently
+              if (blockchainNFT.tokenId === '35') {
+                console.log(`🇹🇭 Forcing Pattaya location for NFT #35 (overriding metadata)`);
+                updateData.latitude = '12.9236';
+                updateData.longitude = '100.8825';
+                updateData.location = 'Pattaya, Thailand';
+                if (blockchainNFT.metadata) {
+                  updateData.metadata = JSON.stringify(blockchainNFT.metadata);
+                }
+                needsUpdate = true;
+              }
+              else if ((currentLat === 0 && currentLng === 0) && blockchainNFT.metadata) {
                 const metadata = blockchainNFT.metadata;
                 if (metadata.attributes) {
                   const latAttr = metadata.attributes.find((attr: any) => 
@@ -2170,8 +2181,17 @@ export async function registerRoutes(app: Express) {
               const currentLat = parseFloat(existsInDb.latitude);
               const currentLng = parseFloat(existsInDb.longitude);
               
+              // 🇹🇭 SPECIAL CASE: Token ID 35 (Pattaya NFT) - Force Pattaya location permanently
+              if (blockchainNFT.tokenId === '35') {
+                console.log(`🇹🇭 Forcing Pattaya location for NFT #35 (overriding metadata)`);
+                updateData.latitude = '12.9236';
+                updateData.longitude = '100.8825';
+                updateData.location = 'Pattaya, Thailand';
+                updateData.metadata = JSON.stringify(metadata);
+                needsUpdate = true;
+              }
               // Update if coordinates are missing (0,0) or different from metadata
-              if ((currentLat === 0 && currentLng === 0) || 
+              else if ((currentLat === 0 && currentLng === 0) || 
                   Math.abs(currentLat - parseFloat(latAttr.value)) > 0.0001 || 
                   Math.abs(currentLng - parseFloat(lngAttr.value)) > 0.0001) {
                 
