@@ -98,7 +98,7 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 gap-6 max-w-lg mx-auto">
             <div className="text-center">
-              <div className="text-xl md:text-3xl font-bold text-primary mb-1" data-testid="stats-nfts">
+              <div className="text-xl md:text-3xl font-bold mb-1" style={{ color: '#66c800' }} data-testid="stats-nfts">
                 {stats?.totalNFTs || 0}
               </div>
               <div className="text-xs text-muted-foreground">NFTs Minted</div>
