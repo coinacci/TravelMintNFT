@@ -19,7 +19,7 @@
   --card-foreground: hsl(0deg 0% 100%);
   --popover: hsl(222.86deg 84% 4.9%);
   --popover-foreground: hsl(0deg 0% 100%);
-  --primary: hsl(216deg 100% 61.76%);
+  --primary: hsl(240deg 100% 50%);
   --primary-foreground: hsl(210deg 40% 98.04%);
   --secondary: hsl(210deg 40% 96.08%);
   --secondary-foreground: hsl(222.86deg 84% 4.9%);
@@ -31,8 +31,8 @@
   --destructive-foreground: hsl(210, 40%, 98%);
   --border: hsl(214, 32%, 91%);
   --input: hsl(214, 32%, 91%);
-  --ring: hsl(216deg 100% 61.76%);
-  --chart-1: hsl(199, 89%, 48%);
+  --ring: hsl(240deg 100% 50%);
+  --chart-1: hsl(240deg 100% 50%);
   --chart-2: hsl(159, 100%, 36%);
   --chart-3: hsl(33, 100%, 50%);
   --chart-4: hsl(147, 78%, 42%);

@@ -60,7 +60,7 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background"></div>
         <div className="relative container mx-auto px-4 py-4">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-2xl md:text-4xl font-bold mb-3 leading-tight" style={{ color: '#3c8aff' }}>
+            <h1 className="text-2xl md:text-4xl font-bold mb-3 leading-tight" style={{ color: '#0000ff' }}>
               TravelMint
             </h1>
             <p className="text-sm md:text-base text-muted-foreground mb-4 max-w-2xl mx-auto">
