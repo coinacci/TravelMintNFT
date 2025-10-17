@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import sdk from "@farcaster/frame-sdk";
 
 interface Stats {
   totalNFTs: number;
@@ -14,6 +15,7 @@ interface Stats {
 
 export default function Landing() {
   const isMobile = useIsMobile();
+  const [addMiniAppPrompted, setAddMiniAppPrompted] = useState(false);
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/stats"],
@@ -22,6 +24,53 @@ export default function Landing() {
   const formatVolume = (volume: string) => {
     return parseFloat(volume).toFixed(1);
   };
+
+  // Prompt user to add Mini App (Base App)
+  useEffect(() => {
+    const promptAddMiniApp = async () => {
+      // Check if we're in a Farcaster/Base App environment
+      if (typeof window === 'undefined' || !sdk?.actions?.addMiniApp) {
+        return;
+      }
+
+      // Check if user has already been prompted (this session)
+      if (addMiniAppPrompted) {
+        return;
+      }
+
+      // Check localStorage to avoid re-prompting on every load
+      const hasSeenPrompt = localStorage.getItem('travelmint_miniapp_prompted');
+      if (hasSeenPrompt === 'true') {
+        return;
+      }
+
+      try {
+        console.log('🎯 Prompting user to add TravelMint Mini App...');
+        
+        // Show the "Add Mini App" pop-up
+        const response = await sdk.actions.addMiniApp();
+        
+        if (response.notificationDetails) {
+          console.log('✅ Mini App added with notifications enabled!');
+        } else {
+          console.log('✅ Mini App added without notifications');
+        }
+
+        // Mark as prompted to avoid showing again
+        localStorage.setItem('travelmint_miniapp_prompted', 'true');
+        setAddMiniAppPrompted(true);
+      } catch (error) {
+        console.log('⚠️ Add Mini App prompt error (user may have skipped):', error);
+        // Still mark as prompted even if user skipped
+        localStorage.setItem('travelmint_miniapp_prompted', 'true');
+        setAddMiniAppPrompted(true);
+      }
+    };
+
+    // Delay slightly to ensure SDK is ready
+    const timer = setTimeout(promptAddMiniApp, 500);
+    return () => clearTimeout(timer);
+  }, [addMiniAppPrompted]);
 
   // Lock scroll on mount, unlock on unmount
   useEffect(() => {
