@@ -52,9 +52,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       ? nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
       : true;
     
-    // Brand filter
+    // Brand filter - exclude "Zora $10" from Brand filter display
     const matchesBrand = showBrandOnly
-      ? nft.category?.toLowerCase() === 'brand'
+      ? (nft.category?.toLowerCase() === 'brand' && nft.title.trim().toLowerCase() !== 'zora $10')
       : true;
     
     return matchesCountry && matchesBrand;
