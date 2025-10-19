@@ -52,9 +52,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       ? nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
       : true;
     
-    // Brand filter - exclude "Zora $10" from Brand filter display
+    // Brand filter - exclude "Zora $10" from Brand filter display (handles emojis and extra characters)
+    // Match only titles that start with "zora $10 " (with space) or are exactly "zora $10"
+    const normalizedTitle = nft.title.trim().toLowerCase();
+    const isZora10 = normalizedTitle === 'zora $10' || normalizedTitle.startsWith('zora $10 ');
     const matchesBrand = showBrandOnly
-      ? (nft.category?.toLowerCase() === 'brand' && nft.title.trim().toLowerCase() !== 'zora $10')
+      ? (nft.category?.toLowerCase() === 'brand' && !isZora10)
       : true;
     
     return matchesCountry && matchesBrand;
