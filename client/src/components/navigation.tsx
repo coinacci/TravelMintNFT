@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { Store, Globe, Home, User, Trophy, Target, HelpCircle } from "lucide-react";
+import { Store, Globe, User, Trophy, Target, HelpCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
@@ -20,7 +20,6 @@ export default function Navigation() {
 
   // All navigation items - available to everyone
   const navItems = [
-    { path: "/", label: "Home", icon: Home },
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Market", icon: Store },
     { path: "/my-nfts", label: "My NFTs", icon: User },

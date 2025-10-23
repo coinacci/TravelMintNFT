@@ -271,12 +271,9 @@ export default function Explore() {
     },
   });
 
-  // Show welcome dialog on first visit
+  // Show welcome dialog every time user visits Explore page
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem('travelmint_welcome_seen');
-    if (!hasSeenWelcome) {
-      setIsWelcomeOpen(true);
-    }
+    setIsWelcomeOpen(true);
   }, []);
 
   // Prompt user to add Mini App (Base App)
@@ -328,12 +325,10 @@ export default function Explore() {
 
   const handleWelcomeClose = () => {
     setIsWelcomeOpen(false);
-    localStorage.setItem('travelmint_welcome_seen', 'true');
   };
 
   const handleMintClick = () => {
     setIsWelcomeOpen(false);
-    localStorage.setItem('travelmint_welcome_seen', 'true');
     setLocation('/mint');
   };
 
