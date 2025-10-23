@@ -11,24 +11,24 @@
   "primaryCategory": "productivity",
   "icons": [
     {
-      "src": "/icon.png?v=NEWICON2&bust=1757003000",
+      "src": "/logo.jpeg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/image.png?v=NEWICON2&bust=1757003000",
+      "src": "/logo.jpeg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ],
   "categories": ["productivity", "lifestyle", "social"],
   "screenshots": [
     {
-      "src": "/image.png?v=NEWICON2&bust=1757003000",
+      "src": "/logo.jpeg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "form_factor": "wide"
     }
   ],

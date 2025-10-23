@@ -10,17 +10,17 @@
     "author": "coinacci",
     "authorUrl": "https://warpcast.com/coinacci",
     "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-    "iconUrl": "https://travelnft.replit.app/icon.png",
+    "iconUrl": "https://travelnft.replit.app/logo.jpeg",
     "homeUrl": "https://travelnft.replit.app/",
-    "imageUrl": "https://travelnft.replit.app/image.png?v=1759326084541&force=kh42zz",
-    "splashImageUrl": "https://travelnft.replit.app/splash.png?v=1759326084541&force=kh42zz",
+    "imageUrl": "https://travelnft.replit.app/logo.jpeg",
+    "splashImageUrl": "https://travelnft.replit.app/logo.jpeg",
     "splashBackgroundColor": "#0f172a",
     "subtitle": "Travel Photo NFT Marketplace",
-    "heroImageUrl": "https://travelnft.replit.app/image.png?v=1759326084541&force=kh42zz",
+    "heroImageUrl": "https://travelnft.replit.app/logo.jpeg",
     "tagline": "Turn travel into NFTs",
     "ogTitle": "TravelMint NFT App",
     "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
-    "ogImageUrl": "https://travelnft.replit.app/og-image-1200x630.jpeg?v=1759326084541&force=kh42zz",
+    "ogImageUrl": "https://travelnft.replit.app/logo.jpeg",
     "castShareUrl": "https://travelnft.replit.app/share?v=1759326084541&force=kh42zz",
     "webhookUrl": "https://api.neynar.com/f/app/968f2785-2da9-451a-a984-d753e739713c/event",
     "license": "MIT",
@@ -33,8 +33,8 @@
       "base"
     ],
     "screenshotUrls": [
-      "https://travelnft.replit.app/image.png?v=1759326084541&force=kh42zz",
-      "https://travelnft.replit.app/splash.png?v=1759326084541&force=kh42zz"
+      "https://travelnft.replit.app/logo.jpeg",
+      "https://travelnft.replit.app/logo.jpeg"
     ],
     "noindex": false,
     "primaryCategory": "productivity"

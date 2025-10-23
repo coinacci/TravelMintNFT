@@ -246,29 +246,29 @@ export async function registerRoutes(app: Express) {
     <!-- Base App Compatible Mini App Discovery Tags -->
     <meta name="fc:miniapp" content='{
       "version": "1",
-      "iconUrl": "${baseUrl}/base-icon.png",
-      "imageUrl": "${baseUrl}/base-image.png",
+      "iconUrl": "${baseUrl}/logo.jpeg",
+      "imageUrl": "${baseUrl}/logo.jpeg",
       "button": {
         "title": "Open TravelMint",
         "action": {
           "type": "link",
           "name": "TravelMint",
           "url": "${baseUrl}",
-          "splashImageUrl": "${baseUrl}/base-splash.png",
+          "splashImageUrl": "${baseUrl}/logo.jpeg",
           "splashBackgroundColor": "#0f172a"
         }
       }
     }' />
     
     <!-- Base App Compatible Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/base-icon.png" />
-    <link rel="apple-touch-icon" href="/base-icon.png" />
+    <link rel="icon" type="image/jpeg" sizes="32x32" href="/logo.jpeg" />
+    <link rel="apple-touch-icon" href="/logo.jpeg" />
     <meta name="theme-color" content="#0f172a" />
     
     <!-- Open Graph Tags - Base App Compatible -->
     <meta property="og:title" content="TravelMint - Travel Photo NFT Marketplace" />
     <meta property="og:description" content="Mint, buy, and sell location-based travel photo NFTs on Base blockchain" />
-    <meta property="og:image" content="${baseUrl}/base-image.png" />
+    <meta property="og:image" content="${baseUrl}/logo.jpeg" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${baseUrl}" />
     <meta property="og:site_name" content="TravelMint" />
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express) {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TravelMint - Travel Photo NFT Marketplace" />
     <meta name="twitter:description" content="Turn your travel memories into NFTs" />
-    <meta name="twitter:image" content="${baseUrl}/base-image.png" />
+    <meta name="twitter:image" content="${baseUrl}/logo.jpeg" />
     
     <!-- Additional Base App Meta Tags -->
     <meta name="keywords" content="travel, nft, blockchain, photography, base, web3, social, map, location" />
