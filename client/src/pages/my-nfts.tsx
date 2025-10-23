@@ -19,6 +19,7 @@ import { isAddress, parseAbi, formatEther } from "viem";
 import { base } from "wagmi/chains";
 import sdk from "@farcaster/frame-sdk";
 import ComposeCastButton from "@/components/ComposeCastButton";
+import { getQuestDay } from "@shared/schema";
 
 interface NFT {
   id: string;
@@ -64,24 +65,15 @@ interface UserStats {
   hasAddedMiniApp: boolean;
 }
 
+interface QuestCompletion {
+  questType: string;
+  completionDate: string;
+  pointsEarned: number;
+}
+
 // Helper function to convert fixed-point values (stored as integers * 100) to display format
 const pointsToDisplay = (points: number): string => {
   return (points / 100).toFixed(2);
-};
-
-// Helper function to calculate last earned time
-const getLastEarnedTime = (lastCheckIn: string | null): string => {
-  if (!lastCheckIn) return 'Never';
-  const now = new Date();
-  const checkInDate = new Date(lastCheckIn);
-  const diffMs = now.getTime() - checkInDate.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  
-  if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return '1 day ago';
-  return `${diffDays} days ago`;
 };
 
 export default function MyNFTs() {
@@ -270,6 +262,12 @@ export default function MyNFTs() {
   // User stats query (for profile stats display)
   const { data: userStats } = useQuery<UserStats>({
     queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : null],
+    enabled: !!farcasterUser?.fid,
+  });
+
+  // Fetch today's completed quests for Today's Points display
+  const { data: todayQuests = [] } = useQuery<QuestCompletion[]>({
+    queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : null, getQuestDay()],
     enabled: !!farcasterUser?.fid,
   });
 
@@ -917,10 +915,10 @@ export default function MyNFTs() {
               <div className="h-8 w-px bg-border"></div>
               
               <div>
-                <p className="text-2xl font-bold" data-testid="profile-last-earned">
-                  {getLastEarnedTime(userStats?.lastCheckIn || null)}
+                <p className="text-2xl font-bold" data-testid="profile-today-points">
+                  {pointsToDisplay(todayQuests.reduce((sum, q) => sum + q.pointsEarned, 0))}
                 </p>
-                <p className="text-xs text-muted-foreground">Last Earned</p>
+                <p className="text-xs text-muted-foreground">Today's Points</p>
               </div>
             </div>
           </div>
