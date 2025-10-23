@@ -422,23 +422,16 @@ export default function Explore() {
 
           <div className="space-y-6">
             {/* Statistics */}
-            <div className="grid grid-cols-3 gap-4 py-4">
+            <div className="grid grid-cols-2 gap-6 py-4">
               <div className="text-center">
-                <div className="text-lg md:text-2xl font-bold text-primary mb-1" data-testid="welcome-stats-nfts">
+                <div className="text-xl md:text-3xl font-bold text-primary mb-1" data-testid="welcome-stats-nfts">
                   {stats?.totalNFTs || 0}
                 </div>
                 <div className="text-xs text-muted-foreground">NFTs Minted</div>
               </div>
               
               <div className="text-center">
-                <div className="text-lg md:text-2xl font-bold text-accent mb-1" data-testid="welcome-stats-volume">
-                  {stats?.totalVolume ? parseFloat(stats.totalVolume).toFixed(1) : '0.0'} USDC
-                </div>
-                <div className="text-xs text-muted-foreground">Total Volume</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="text-lg md:text-2xl font-bold text-accent mb-1" data-testid="welcome-stats-holders">
+                <div className="text-xl md:text-3xl font-bold text-accent mb-1" data-testid="welcome-stats-holders">
                   {stats?.totalHolders || 0}
                 </div>
                 <div className="text-xs text-muted-foreground">Holders</div>
