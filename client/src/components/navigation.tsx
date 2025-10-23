@@ -1,9 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { Store, Globe, User, Trophy, Target, HelpCircle } from "lucide-react";
+import { Store, Globe, User, Trophy, Target, Menu } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -25,7 +32,6 @@ export default function Navigation() {
     { path: "/my-nfts", label: "My NFTs", icon: User },
     { path: "/quests", label: "Quests", icon: Target },
     { path: "/leaderboard", label: "Board", icon: Trophy },
-    { path: "/faq", label: "FAQ", icon: HelpCircle },
   ];
 
   return (
@@ -34,9 +40,40 @@ export default function Navigation() {
       <header className="bg-black sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-end">
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
               {/* Notification indicator removed - notifications work via FID-based system */}
               <WalletConnect farcasterUser={notificationUser} />
+              
+              {/* Hamburger Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-white hover:bg-gray-800"
+                    data-testid="menu-button"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href="/faq" className="cursor-pointer w-full">
+                      FAQ
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/about" className="cursor-pointer w-full">
+                      About
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/contact" className="cursor-pointer w-full">
+                      Contact
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
