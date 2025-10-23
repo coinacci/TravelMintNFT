@@ -108,8 +108,8 @@ export default function Navigation() {
         </div>
       </nav>
 
-      {/* Spacer for bottom navigation - not needed on home page */}
-      {location !== '/' && <div className="h-24"></div>}
+      {/* Spacer for bottom navigation - not needed on home/explore pages */}
+      {location !== '/' && location !== '/explore' && <div className="h-24"></div>}
     </>
   );
 }

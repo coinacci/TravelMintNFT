@@ -192,6 +192,8 @@
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .map-container {
-    height: calc(100vh - 8rem);
+    height: 100vh;
+    margin-top: 0;
+    box-sizing: border-box;
   }
 }

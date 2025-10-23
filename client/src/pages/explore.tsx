@@ -405,7 +405,7 @@ export default function Explore() {
   };
 
   return (
-    <div className={`${isMobile ? 'pb-16' : ''}`}>
+    <div>
       <MapView onNFTSelect={handleNFTSelect} />
 
       {/* Welcome Dialog */}
