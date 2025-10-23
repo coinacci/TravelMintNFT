@@ -319,7 +319,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
       {/* Country Filter */}
-      <div className="absolute top-20 right-4 z-10 w-48 md:w-64">
+      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

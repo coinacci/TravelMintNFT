@@ -192,7 +192,7 @@
 
 /* Leaflet zoom control positioning - below header */
 .leaflet-top.leaflet-left {
-  top: 80px !important; /* Position below Farcaster header */
+  top: 16px !important; /* Position just below app header */
 }
 
 /* Mobile responsive adjustments */
