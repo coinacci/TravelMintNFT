@@ -8,10 +8,26 @@ export default function Contact() {
         </p>
       </header>
 
-      <div className="space-y-4">
-        <p className="text-muted-foreground">
-          Content coming soon...
-        </p>
+      <div className="space-y-6">
+        <div className="border border-border rounded-lg p-6 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Founder</h2>
+            <p className="text-foreground">Coinacci</p>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Farcaster & Base App</h2>
+            <a 
+              href="https://warpcast.com/coinacci" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+              data-testid="link-farcaster"
+            >
+              @coinacci
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
