@@ -114,16 +114,19 @@ export default function Leaderboard() {
     );
   }
 
-  const getRankIcon = (rank: number) => {
+  const getRankIcon = (rank: number, compact = false) => {
+    const size = compact ? "h-5 w-5" : "h-6 w-6";
+    const textSize = compact ? "text-xs" : "text-sm";
+    
     switch (rank) {
       case 1:
-        return <Crown className="h-6 w-6 text-yellow-500" />;
+        return <Crown className={`${size} text-yellow-500`} />;
       case 2:
-        return <Medal className="h-6 w-6 text-gray-400" />;
+        return <Medal className={`${size} text-gray-400`} />;
       case 3:
-        return <Award className="h-6 w-6 text-amber-600" />;
+        return <Award className={`${size} text-amber-600`} />;
       default:
-        return <div className="h-6 w-6 flex items-center justify-center text-sm font-bold text-muted-foreground">#{rank}</div>;
+        return <div className={`${size} flex items-center justify-center ${textSize} font-bold text-muted-foreground`}>#{rank}</div>;
     }
   };
 
@@ -151,43 +154,32 @@ export default function Leaderboard() {
       </div>
 
 
-      {/* Current User Position - All Time */}
+      {/* Current User Position - All Time - Compact */}
       {allTimeUserEntry && (
-        <Card className="mb-8 border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="text-center">Your Position</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 rounded-lg bg-background">
-              <div className="flex items-center space-x-4">
-                {getRankIcon(allTimeUserEntry.rank)}
-                <Avatar className="h-10 w-10">
-                  {/* <AvatarImage src={farcasterUser.pfpUrl} alt={allTimeUserEntry.farcasterUsername} /> */}
-                  <AvatarFallback>{allTimeUserEntry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {getRankIcon(allTimeUserEntry.rank, true)}
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarFallback className="text-xs">{allTimeUserEntry.farcasterUsername.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-semibold">{allTimeUserEntry.farcasterUsername}</p>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <span>Streak: {allTimeUserEntry.currentStreak} days</span>
-                  </div>
+                <span className="font-semibold text-sm truncate block min-w-0">{allTimeUserEntry.farcasterUsername}</span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="text-right">
+                  <div className="text-lg font-bold" data-testid="user-points">{pointsToDisplay(allTimeUserEntry.totalPoints)}</div>
+                  <div className="text-xs text-muted-foreground">points</div>
                 </div>
+                <ComposeCastButton
+                  type="leaderboard"
+                  leaderboardPosition={allTimeUserEntry.rank}
+                  totalPoints={parseFloat(pointsToDisplay(allTimeUserEntry.totalPoints))}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                />
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold" data-testid="user-points">{pointsToDisplay(allTimeUserEntry.totalPoints)}</div>
-                <div className="text-sm text-muted-foreground">all-time points</div>
-              </div>
-            </div>
-            
-            {/* Share Position Button */}
-            <div className="mt-4 pt-4 border-t border-muted">
-              <ComposeCastButton
-                type="leaderboard"
-                leaderboardPosition={allTimeUserEntry.rank}
-                totalPoints={parseFloat(pointsToDisplay(allTimeUserEntry.totalPoints))}
-                variant="outline"
-                size="sm"
-                className="w-full"
-              />
             </div>
           </CardContent>
         </Card>
