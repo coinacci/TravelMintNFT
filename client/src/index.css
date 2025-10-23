@@ -190,6 +190,11 @@
   background: hsl(var(--card));
 }
 
+/* Leaflet zoom control positioning - below header */
+.leaflet-top.leaflet-left {
+  top: 80px !important; /* Position below Farcaster header */
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .map-container {

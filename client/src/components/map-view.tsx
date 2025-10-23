@@ -105,9 +105,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       maxBounds: [[-89, -179.9], [89, 179.9]], // Single world only - strict bounds
       maxBoundsViscosity: 1.0, // Strong bounds enforcement  
       minZoom: 1, // Prevent zooming out too far
-      maxZoom: 13 // Reduced to ensure tile availability
+      maxZoom: 13, // Reduced to ensure tile availability
+      zoomControl: false // Disable default zoom control to reposition it
     }).setView([20, 0], 1);
     mapInstanceRef.current = map;
+
+    // Add zoom control with custom position below header
+    L.control.zoom({
+      position: 'topleft'
+    }).addTo(map);
 
     // RELIABLE TILE SERVICE: OpenStreetMap with consistent availability
     // Clean, reliable tiles with good zoom support up to level 19
@@ -313,7 +319,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
       {/* Country Filter */}
-      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
+      <div className="absolute top-20 right-4 z-10 w-48 md:w-64">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
