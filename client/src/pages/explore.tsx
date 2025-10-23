@@ -3,17 +3,24 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MapPin, User, Clock } from "lucide-react";
-import { Link } from "wouter";
+import { MapPin, User, Clock, Upload } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
+import sdk from "@farcaster/frame-sdk";
 
 // Simple modal placeholder for loading
 const MODAL_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
+
+interface Stats {
+  totalNFTs: number;
+  totalVolume: string;
+  totalHolders: number;
+}
 
 interface NFT {
   id: string;
@@ -181,9 +188,17 @@ const SimpleImage = ({ nft, className, ...props }: { nft: { imageUrl: string; ob
 export default function Explore() {
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
+  const [addMiniAppPrompted, setAddMiniAppPrompted] = useState(false);
+  const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { address: walletAddress, isConnected } = useAccount();
+
+  // Fetch stats for welcome dialog
+  const { data: stats } = useQuery<Stats>({
+    queryKey: ["/api/stats"],
+  });
 
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
     queryKey: ["/api/nfts", selectedNFT?.id],
@@ -255,6 +270,72 @@ export default function Explore() {
       });
     },
   });
+
+  // Show welcome dialog on first visit
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('travelmint_welcome_seen');
+    if (!hasSeenWelcome) {
+      setIsWelcomeOpen(true);
+    }
+  }, []);
+
+  // Prompt user to add Mini App (Base App)
+  useEffect(() => {
+    const promptAddMiniApp = async () => {
+      // Check if we're in a Farcaster/Base App environment
+      if (typeof window === 'undefined' || !sdk?.actions?.addMiniApp) {
+        return;
+      }
+
+      // Check if user has already been prompted (this session)
+      if (addMiniAppPrompted) {
+        return;
+      }
+
+      // Check localStorage to avoid re-prompting on every load
+      const hasSeenPrompt = localStorage.getItem('travelmint_miniapp_prompted');
+      if (hasSeenPrompt === 'true') {
+        return;
+      }
+
+      try {
+        console.log('🎯 Prompting user to add TravelMint Mini App...');
+        
+        // Show the "Add Mini App" pop-up
+        const response = await sdk.actions.addMiniApp();
+        
+        if (response.notificationDetails) {
+          console.log('✅ Mini App added with notifications enabled!');
+        } else {
+          console.log('✅ Mini App added without notifications');
+        }
+
+        // Mark as prompted to avoid showing again
+        localStorage.setItem('travelmint_miniapp_prompted', 'true');
+        setAddMiniAppPrompted(true);
+      } catch (error) {
+        console.log('⚠️ Add Mini App prompt error (user may have skipped):', error);
+        // Still mark as prompted even if user skipped
+        localStorage.setItem('travelmint_miniapp_prompted', 'true');
+        setAddMiniAppPrompted(true);
+      }
+    };
+
+    // Delay slightly to ensure SDK is ready
+    const timer = setTimeout(promptAddMiniApp, 500);
+    return () => clearTimeout(timer);
+  }, [addMiniAppPrompted]);
+
+  const handleWelcomeClose = () => {
+    setIsWelcomeOpen(false);
+    localStorage.setItem('travelmint_welcome_seen', 'true');
+  };
+
+  const handleMintClick = () => {
+    setIsWelcomeOpen(false);
+    localStorage.setItem('travelmint_welcome_seen', 'true');
+    setLocation('/mint');
+  };
 
   const handleNFTSelect = (nft: NFT) => {
     setSelectedNFT(nft);
@@ -332,6 +413,68 @@ export default function Explore() {
     <div className={`${isMobile ? 'pb-16' : ''}`}>
       <MapView onNFTSelect={handleNFTSelect} />
 
+      {/* Welcome Dialog */}
+      <Dialog open={isWelcomeOpen} onOpenChange={handleWelcomeClose}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl md:text-4xl font-bold text-center" style={{ color: '#0000ff' }}>
+              TravelMint
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Mint your travel photography as NFTs, pin them to locations worldwide, and trade with fellow explorers.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Statistics */}
+            <div className="grid grid-cols-3 gap-4 py-4">
+              <div className="text-center">
+                <div className="text-lg md:text-2xl font-bold text-primary mb-1" data-testid="welcome-stats-nfts">
+                  {stats?.totalNFTs || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">NFTs Minted</div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-lg md:text-2xl font-bold text-accent mb-1" data-testid="welcome-stats-volume">
+                  {stats?.totalVolume ? parseFloat(stats.totalVolume).toFixed(1) : '0.0'} USDC
+                </div>
+                <div className="text-xs text-muted-foreground">Total Volume</div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-lg md:text-2xl font-bold text-accent mb-1" data-testid="welcome-stats-holders">
+                  {stats?.totalHolders || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">Holders</div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button 
+                size="default" 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2"
+                data-testid="welcome-mint-button"
+                onClick={handleMintClick}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Mint your Memory
+              </Button>
+              <Button 
+                variant="outline" 
+                size="default" 
+                className="px-6 py-2"
+                data-testid="welcome-explore-button"
+                onClick={handleWelcomeClose}
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                Explore Map
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* NFT Detail Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

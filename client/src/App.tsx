@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
 import { useEffect, useState, Component, ReactNode } from "react";
 import sdk from "@farcaster/frame-sdk";
-import Landing from "@/pages/landing";
 import Explore from "@/pages/explore";
 import Marketplace from "@/pages/marketplace";
 import MyNFTs from "@/pages/my-nfts";
@@ -104,7 +103,7 @@ function Router() {
     <>
       <Navigation />
       <Switch>
-        <Route path="/" component={Landing} />
+        <Route path="/" component={Explore} />
         <Route path="/explore" component={Explore} />
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/my-nfts" component={MyNFTs} />
