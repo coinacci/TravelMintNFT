@@ -81,7 +81,7 @@ export default function Navigation() {
 
       {/* Bottom Tab Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white">
-        <div className="flex items-center justify-around py-2 pb-4 safe-area-padding">
+        <div className="flex items-center justify-around py-3 pb-8 safe-area-padding">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
@@ -109,7 +109,7 @@ export default function Navigation() {
       </nav>
 
       {/* Spacer for bottom navigation - not needed on home page */}
-      {location !== '/' && <div className="h-20"></div>}
+      {location !== '/' && <div className="h-24"></div>}
     </>
   );
 }
