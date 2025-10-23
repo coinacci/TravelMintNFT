@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express) {
     <!-- Base App Compatible Mini App Discovery Tags -->
     <meta name="fc:miniapp" content='{
       "version": "1",
-      "iconUrl": "${baseUrl}/logo.jpeg",
+      "iconUrl": "${baseUrl}/icon.png",
       "imageUrl": "${baseUrl}/logo.jpeg",
       "button": {
         "title": "Open TravelMint",
@@ -261,8 +261,9 @@ export async function registerRoutes(app: Express) {
     }' />
     
     <!-- Base App Compatible Icons -->
-    <link rel="icon" type="image/jpeg" sizes="32x32" href="/logo.jpeg" />
-    <link rel="apple-touch-icon" href="/logo.jpeg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon.png" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
     <meta name="theme-color" content="#0f172a" />
     
     <!-- Open Graph Tags - Base App Compatible -->
