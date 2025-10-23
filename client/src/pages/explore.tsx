@@ -405,7 +405,7 @@ export default function Explore() {
   };
 
   return (
-    <div>
+    <div className="bg-white">
       <MapView onNFTSelect={handleNFTSelect} />
 
       {/* Welcome Dialog */}
