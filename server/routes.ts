@@ -205,6 +205,18 @@ function verifyAdminAuth(req: any): { success: boolean; error?: string; shouldBl
 
 export async function registerRoutes(app: Express) {
   
+  // Cache control middleware for logo assets - prevent browser caching
+  app.use((req, res, next) => {
+    // Apply no-cache headers to icon and logo files
+    if (req.path === '/icon.png' || req.path === '/logo.jpeg') {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Last-Modified', new Date().toUTCString());
+    }
+    next();
+  });
+  
   // Initialize weekly reset on server startup
   console.log('🔄 Checking for weekly reset on server startup...');
   try {

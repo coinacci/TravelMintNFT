@@ -25,7 +25,7 @@ export function createApp() {
         "author": "coinacci",
         "authorUrl": "https://warpcast.com/coinacci",
         "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
-        "iconUrl": `https://travelnft.replit.app/icon.png${cacheBuster}`,
+        "iconUrl": "https://travelnft.replit.app/icon.png",
         "homeUrl": "https://travelnft.replit.app/",
         "imageUrl": `https://travelnft.replit.app/logo.jpeg${cacheBuster}`,
         "splashImageUrl": `https://travelnft.replit.app/logo.jpeg${cacheBuster}`,
