@@ -29,9 +29,9 @@ export default function Navigation() {
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Market", icon: Store },
-    { path: "/my-nfts", label: "My NFTs", icon: User },
     { path: "/quests", label: "Quests", icon: Target },
     { path: "/leaderboard", label: "Board", icon: Trophy },
+    { path: "/my-nfts", label: "Profile", icon: User },
   ];
 
   return (

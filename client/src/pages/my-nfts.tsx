@@ -54,6 +54,36 @@ interface User {
   balance: string;
 }
 
+interface UserStats {
+  farcasterFid: string;
+  farcasterUsername: string;
+  totalPoints: number;
+  currentStreak: number;
+  lastCheckIn: string | null;
+  lastStreakClaim: string | null;
+  hasAddedMiniApp: boolean;
+}
+
+// Helper function to convert fixed-point values (stored as integers * 100) to display format
+const pointsToDisplay = (points: number): string => {
+  return (points / 100).toFixed(2);
+};
+
+// Helper function to calculate last earned time
+const getLastEarnedTime = (lastCheckIn: string | null): string => {
+  if (!lastCheckIn) return 'Never';
+  const now = new Date();
+  const checkInDate = new Date(lastCheckIn);
+  const diffMs = now.getTime() - checkInDate.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return '1 day ago';
+  return `${diffDays} days ago`;
+};
+
 export default function MyNFTs() {
   const [sortBy, setSortBy] = useState("recent");
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
@@ -235,6 +265,12 @@ export default function MyNFTs() {
     refetchOnWindowFocus: false,
     gcTime: 30_000,
     refetchInterval: 5_000,
+  });
+
+  // User stats query (for profile stats display)
+  const { data: userStats } = useQuery<UserStats>({
+    queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : null],
+    enabled: !!farcasterUser?.fid,
   });
 
   // Determine which NFTs to display
@@ -847,6 +883,49 @@ export default function MyNFTs() {
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       <div className="container mx-auto px-4">
+        {/* Profile Section */}
+        {farcasterUser && (
+          <div className="flex flex-col items-center py-6 mb-6 border-b border-border">
+            {/* Profile Photo */}
+            <div className="mb-4">
+              <img
+                src={farcasterUser.pfpUrl || 'https://via.placeholder.com/80'}
+                alt={farcasterUser.displayName || farcasterUser.username}
+                className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                data-testid="profile-photo"
+              />
+            </div>
+            
+            {/* Stats Row */}
+            <div className="flex items-center gap-8 text-center">
+              <div>
+                <p className="text-2xl font-bold" data-testid="profile-total-points">
+                  {pointsToDisplay(userStats?.totalPoints || 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Total Points</p>
+              </div>
+              
+              <div className="h-8 w-px bg-border"></div>
+              
+              <div>
+                <p className="text-2xl font-bold" data-testid="profile-streak">
+                  {userStats?.currentStreak || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Streak</p>
+              </div>
+              
+              <div className="h-8 w-px bg-border"></div>
+              
+              <div>
+                <p className="text-2xl font-bold" data-testid="profile-last-earned">
+                  {getLastEarnedTime(userStats?.lastCheckIn || null)}
+                </p>
+                <p className="text-xs text-muted-foreground">Last Earned</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <h2 className="text-2xl font-bold" data-testid="my-nfts-title">My NFTs</h2>

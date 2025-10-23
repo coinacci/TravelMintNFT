@@ -324,47 +324,6 @@ export default function Quests() {
         </div>
       )}
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <Trophy className="h-8 w-8 text-yellow-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Points</p>
-                <p className="text-2xl font-bold" data-testid="total-points">{pointsToDisplay(userStats?.totalPoints || 0)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <Flame className="h-8 w-8 text-orange-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Current Streak</p>
-                <p className="text-2xl font-bold" data-testid="current-streak">{userStats?.currentStreak || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <Gift className="h-8 w-8 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Today's Points</p>
-                <p className="text-2xl font-bold" data-testid="today-points">
-                  {pointsToDisplay(todayQuests.reduce((sum, q) => sum + q.pointsEarned, 0))}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Daily Quests */}
       <div className="space-y-6">
         <h2 className="text-2xl font-bold">Today's Quests</h2>
