@@ -303,6 +303,35 @@ export class DatabaseStorage implements IStorage {
     return stats || undefined;
   }
 
+  // Generate unique referral code
+  private async generateReferralCode(username: string): Promise<string> {
+    const maxAttempts = 10;
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Take first 3-4 characters of username, uppercase
+      const prefix = username.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, '');
+      const finalPrefix = prefix.length >= 3 ? prefix : prefix.padEnd(3, 'X');
+      
+      // Generate 3 random digits
+      const randomDigits = Math.floor(100 + Math.random() * 900);
+      const code = `${finalPrefix}${randomDigits}`;
+      
+      // Check if code already exists
+      const existing = await db
+        .select()
+        .from(userStats)
+        .where(eq(userStats.referralCode, code));
+      
+      if (existing.length === 0) {
+        return code;
+      }
+    }
+    
+    // Fallback: use timestamp-based code if all attempts fail
+    const timestamp = Date.now().toString().slice(-6);
+    return `REF${timestamp}`;
+  }
+
   async createOrUpdateUserStats(insertStats: InsertUserStats): Promise<UserStats> {
     // Try to find existing user stats
     const existing = await this.getUserStats(insertStats.farcasterFid);
@@ -319,10 +348,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updated;
     } else {
-      // Create new
+      // Create new - generate referral code if not provided
+      const referralCode = insertStats.referralCode || await this.generateReferralCode(insertStats.farcasterUsername);
+      
       const [created] = await db
         .insert(userStats)
-        .values(insertStats)
+        .values({
+          ...insertStats,
+          referralCode,
+          referralCount: 0
+        })
         .returning();
       return created;
     }
@@ -737,6 +772,9 @@ export class DatabaseStorage implements IStorage {
     farcasterPfpUrl?: string;
     pointsEarned: number;
   }): Promise<{ totalPoints: number }> {
+    // Generate referral code outside transaction
+    const referralCode = await this.generateReferralCode(data.farcasterUsername);
+    
     return await db.transaction(async (tx) => {
       // Get or create user stats
       const existingUserStats = await tx
@@ -747,6 +785,7 @@ export class DatabaseStorage implements IStorage {
       if (existingUserStats.length === 0) {
         // Create new user stats with hasAddedMiniApp = true
         const currentWeekStart = getCurrentWeekStart();
+        
         const [newUserStats] = await tx
           .insert(userStats)
           .values({
@@ -757,6 +796,8 @@ export class DatabaseStorage implements IStorage {
             weeklyPoints: data.pointsEarned,
             hasAddedMiniApp: true,
             weeklyResetDate: currentWeekStart,
+            referralCode,
+            referralCount: 0,
           })
           .returning();
 
