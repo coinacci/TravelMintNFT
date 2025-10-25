@@ -66,6 +66,7 @@ interface UserStats {
   referralCode: string | null;
   referralCount: number;
   referredByFid: string | null;
+  unclaimedReferrals: number;
 }
 
 interface QuestCompletion {

@@ -99,6 +99,7 @@ export const userStats = pgTable("user_stats", {
   referralCode: text("referral_code").unique(), // Unique referral code for inviting friends
   referredByFid: text("referred_by_fid"), // FID of the user who referred this user
   referralCount: integer("referral_count").default(0).notNull(), // Number of users referred by this user
+  unclaimedReferrals: integer("unclaimed_referrals").default(0).notNull(), // Number of referrals not yet claimed for points
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
