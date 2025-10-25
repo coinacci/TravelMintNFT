@@ -45,6 +45,7 @@ export interface IStorage {
   getCurrentWeekChampion(): Promise<WeeklyChampion | null>;
   backfillWeeklyPointsFromTotal(): Promise<{ updated: number; message: string }>;
   syncWeeklyWithAllTime(): Promise<{ updated: number; message: string }>;
+  backfillReferralCodes(): Promise<{ updated: number; message: string }>;
   
   // Multi-wallet operations
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
@@ -345,11 +346,15 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getUserStats(insertStats.farcasterFid);
     
     if (existing) {
+      // If existing user doesn't have referralCode, generate one
+      const referralCode = existing.referralCode || await this.generateReferralCode(insertStats.farcasterUsername);
+      
       // Update existing
       const [updated] = await db
         .update(userStats)
         .set({ 
-          ...insertStats, 
+          ...insertStats,
+          referralCode, // Ensure referralCode is set
           updatedAt: new Date()
         })
         .where(eq(userStats.farcasterFid, insertStats.farcasterFid))
@@ -981,6 +986,57 @@ export class DatabaseStorage implements IStorage {
         message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
       };
     });
+  }
+
+  // Backfill referral codes for existing users
+  async backfillReferralCodes(): Promise<{ updated: number; message: string }> {
+    console.log('🔍 Starting referral code backfill...');
+    
+    // Get all users without referral codes
+    const usersNeedingCodes = await db
+      .select()
+      .from(userStats)
+      .where(sql`${userStats.referralCode} IS NULL`);
+    
+    console.log(`📊 Found ${usersNeedingCodes.length} users without referral codes`);
+    
+    if (usersNeedingCodes.length === 0) {
+      return {
+        updated: 0,
+        message: 'No users need referral codes - all users already have codes'
+      };
+    }
+
+    let updatedCount = 0;
+    
+    // Generate and update referral codes one by one
+    for (const user of usersNeedingCodes) {
+      try {
+        const referralCode = await this.generateReferralCode(user.farcasterUsername);
+        
+        await db
+          .update(userStats)
+          .set({ 
+            referralCode,
+            updatedAt: new Date()
+          })
+          .where(eq(userStats.farcasterFid, user.farcasterFid));
+        
+        updatedCount++;
+        
+        if (updatedCount % 50 === 0) {
+          console.log(`⏳ Progress: ${updatedCount}/${usersNeedingCodes.length} users updated`);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to generate referral code for ${user.farcasterUsername}:`, error);
+      }
+    }
+    
+    console.log(`✅ Backfilled referral codes for ${updatedCount} users`);
+    return {
+      updated: updatedCount,
+      message: `Successfully generated referral codes for ${updatedCount} users`
+    };
   }
 
   // Notification operations

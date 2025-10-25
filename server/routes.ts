@@ -2650,6 +2650,41 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin endpoint for backfilling referral codes
+  app.post("/api/admin/backfill-referral-codes", async (req, res) => {
+    try {
+      // Check admin secret - FAIL CLOSED if not configured
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        console.error('❌ ADMIN_SECRET not configured - blocking admin access');
+        return res.status(500).json({ message: "Admin access not configured" });
+      }
+      
+      const providedSecret = req.headers.authorization || req.headers['x-admin-secret'];
+      
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin secret" });
+      }
+
+      console.log('🎁 Admin backfill requested - generating referral codes...');
+      const result = await storage.backfillReferralCodes();
+      
+      console.log('✅ Admin backfill completed:', result);
+      res.json({
+        success: true,
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Admin backfill failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Referral code backfill failed", 
+        error: error.message 
+      });
+    }
+  });
+
   // Cron endpoint for automated weekly reset - SECRET PROTECTED
   app.post("/api/cron/weekly-reset", async (req, res) => {
     try {

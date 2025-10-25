@@ -75,6 +75,11 @@ interface QuestCompletion {
   pointsEarned: number;
 }
 
+interface ReferralValidationResult {
+  success: boolean;
+  message?: string;
+}
+
 // Helper function to convert fixed-point values (stored as integers * 100) to display format
 const pointsToDisplay = (points: number): string => {
   return (points / 100).toFixed(2);
@@ -285,7 +290,7 @@ export default function MyNFTs() {
           newUserFid: String(farcasterUser.fid),
           newUserUsername: farcasterUser.username,
           newUserPfpUrl: farcasterUser.pfpUrl
-        });
+        }) as unknown as ReferralValidationResult;
         
         if (result.success) {
           // Only clear localStorage on success
