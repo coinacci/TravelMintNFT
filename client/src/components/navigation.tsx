@@ -1,11 +1,11 @@
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { Store, Globe, User, Trophy, Target, Menu } from "lucide-react";
+import { Store, Globe, User, Trophy, Target, Menu, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
 import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
-import { SignInButton } from "@farcaster/auth-kit";
+import { SignInButton, useSignIn } from "@farcaster/auth-kit";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,10 @@ export default function Navigation() {
   } = useFarcasterNotifications();
   
   // Unified Farcaster auth (works for both Frame SDK and AuthKit)
-  const { isAuthenticated, user, isFrameSDK } = useFarcasterAuth();
+  const { isAuthenticated, user, isFrameSDK, isAuthKit } = useFarcasterAuth();
+  
+  // AuthKit sign in/out
+  const { signOut } = useSignIn();
 
   // All navigation items - available to everyone
   const navItems = [
@@ -55,17 +58,31 @@ export default function Navigation() {
                 />
               )}
               
-              {/* Show user info if authenticated via AuthKit */}
-              {!isFrameSDK && isAuthenticated && user && (
-                <div className="flex items-center space-x-2 text-white text-sm">
-                  {user.pfpUrl && (
-                    <img 
-                      src={user.pfpUrl} 
-                      alt={user.username}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                  <span>@{user.username}</span>
+              {/* Show user info and sign-out if authenticated via AuthKit */}
+              {!isFrameSDK && isAuthenticated && user && isAuthKit && (
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 text-white text-sm">
+                    {user.pfpUrl && (
+                      <img 
+                        src={user.pfpUrl} 
+                        alt={user.username}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    )}
+                    <span>@{user.username}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      signOut();
+                      console.log('👋 Signed out from Farcaster');
+                    }}
+                    className="text-white hover:bg-gray-800"
+                    data-testid="button-signout"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
               

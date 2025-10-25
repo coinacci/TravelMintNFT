@@ -17,9 +17,9 @@ import { Label } from "@/components/ui/label";
 import { MapPin, User, Clock, Send, Loader2, Share2, Wallet, Users } from "lucide-react";
 import { isAddress, parseAbi, formatEther } from "viem";
 import { base } from "wagmi/chains";
-import sdk from "@farcaster/frame-sdk";
 import ComposeCastButton from "@/components/ComposeCastButton";
 import { getQuestDay } from "@shared/schema";
+import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 
 interface NFT {
   id: string;
@@ -89,17 +89,14 @@ export default function MyNFTs() {
   const [showGasEstimate, setShowGasEstimate] = useState(false);
   const [isGeneratingFrame, setIsGeneratingFrame] = useState(false);
   const [showAllWallets, setShowAllWallets] = useState(true); // Default to show all wallets
-  const [farcasterUser, setFarcasterUser] = useState<{
-    fid: number;
-    username: string;
-    displayName: string;
-    pfpUrl?: string;
-  } | null>(null);
   const [listingNFTId, setListingNFTId] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Use unified Farcaster auth hook
+  const { user: farcasterUser } = useFarcasterAuth();
 
   const { address, isConnected, connector } = useAccount();
   const { writeContract, data: hash, isPending: isTransactionPending, error: transactionError } = useWriteContract();
@@ -178,30 +175,6 @@ export default function MyNFTs() {
   const syncedAddressRef = useRef<string | null>(null);
 
   // ✅ MOVED: Transaction confirmation handler will be placed AFTER updateListingMutation is defined
-
-  // Initialize Farcaster context
-  useEffect(() => {
-    const getFarcasterContext = async () => {
-      try {
-        if (typeof window !== 'undefined' && sdk?.context) {
-          const context = await Promise.resolve(sdk.context);
-          if (context?.user) {
-            setFarcasterUser({
-              fid: context.user.fid,
-              username: context.user.username || '',
-              displayName: context.user.displayName || '',
-              pfpUrl: context.user.pfpUrl
-            });
-            console.log('✅ Farcaster user loaded in My NFTs:', context.user.username || context.user.fid);
-          }
-        }
-      } catch (error) {
-        console.log('ℹ️ No Farcaster context in My NFTs - running in standard web browser');
-      }
-    };
-    
-    getFarcasterContext();
-  }, []);
 
   // Auto-link wallet for Farcaster users
   useEffect(() => {
