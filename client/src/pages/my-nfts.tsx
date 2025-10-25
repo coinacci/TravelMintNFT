@@ -300,6 +300,9 @@ export default function MyNFTs() {
         });
         
         if (result.success) {
+          // Only clear localStorage on success
+          localStorage.removeItem('pendingReferralCode');
+          
           toast({
             title: "Referral Applied!",
             description: result.message || "Successfully applied referral code",
@@ -308,18 +311,27 @@ export default function MyNFTs() {
           // Refresh user stats to show updated referrer
           queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
         } else {
+          // On failure, keep the code in localStorage for retry
           console.warn('⚠️ Referral validation failed:', result.message);
+          
+          // Only remove if it's a permanent failure (not a temporary error)
+          if (result.message?.includes('already used') || result.message?.includes('own referral')) {
+            localStorage.removeItem('pendingReferralCode');
+          }
         }
       } catch (error: any) {
         console.error('🚨 Failed to process referral:', error);
+        
+        // Only remove on permanent failures, keep for network errors
+        if (error.message?.includes('already used') || error.message?.includes('own referral')) {
+          localStorage.removeItem('pendingReferralCode');
+        }
+        
         toast({
           title: "Referral Failed",
           description: error.message || "Could not process referral code",
           variant: "destructive",
         });
-      } finally {
-        // Always remove the pending code after processing
-        localStorage.removeItem('pendingReferralCode');
       }
     };
     

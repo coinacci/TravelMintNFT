@@ -566,13 +566,13 @@ export default function Quests() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {userStats?.referralCount > 0 && (
+              {(userStats?.referralCount ?? 0) > 0 && (
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-sm font-medium">
-                    🎉 {userStats.referralCount} friend{userStats.referralCount > 1 ? 's' : ''} invited!
+                    🎉 {userStats?.referralCount ?? 0} friend{(userStats?.referralCount ?? 0) > 1 ? 's' : ''} invited!
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    You've earned {userStats.referralCount} point{userStats.referralCount > 1 ? 's' : ''} from referrals
+                    You've earned {userStats?.referralCount ?? 0} point{(userStats?.referralCount ?? 0) > 1 ? 's' : ''} from referrals
                   </p>
                 </div>
               )}
@@ -586,11 +586,11 @@ export default function Quests() {
                 }}
                 disabled={!farcasterUser}
                 className="w-full"
-                variant={userStats?.referralCount > 0 ? "secondary" : "default"}
+                variant={(userStats?.referralCount ?? 0) > 0 ? "secondary" : "default"}
                 data-testid="button-view-referral"
               >
                 {!farcasterUser ? "Connect via Farcaster First"
-                 : userStats?.referralCount > 0 ? "View Referral Link"
+                 : (userStats?.referralCount ?? 0) > 0 ? "View Referral Link"
                  : "Get Referral Link"}
               </Button>
               <p className="text-xs text-muted-foreground">
