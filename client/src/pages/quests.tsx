@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useEffect, useState } from "react";
-import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare } from "lucide-react";
+import { Target, Gift, Calendar, Trophy, Flame, Zap, MessageSquare, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,8 @@ interface UserStats {
   lastCheckIn: string | null;
   lastStreakClaim: string | null;
   hasAddedMiniApp: boolean;
+  referralCode: string | null;
+  referralCount: number;
 }
 
 interface QuestCompletion {
@@ -543,6 +545,58 @@ export default function Quests() {
             <p className="text-xs text-muted-foreground mt-3">
               💡 Add TravelMint to your Farcaster mini apps to unlock this reward!
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Referral Program Quest */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Users className="h-6 w-6 text-purple-500" />
+                <div>
+                  <CardTitle>Invite Friends</CardTitle>
+                  <CardDescription>Earn 1 point for each friend who joins using your referral link</CardDescription>
+                </div>
+              </div>
+              <Badge variant="default">
+                +1 Per Referral
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {userStats?.referralCount > 0 && (
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm font-medium">
+                    🎉 {userStats.referralCount} friend{userStats.referralCount > 1 ? 's' : ''} invited!
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You've earned {userStats.referralCount} point{userStats.referralCount > 1 ? 's' : ''} from referrals
+                  </p>
+                </div>
+              )}
+              
+              <Button
+                onClick={() => {
+                  // Navigate to profile page where referral link is shown
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/my-nfts';
+                  }
+                }}
+                disabled={!farcasterUser}
+                className="w-full"
+                variant={userStats?.referralCount > 0 ? "secondary" : "default"}
+                data-testid="button-view-referral"
+              >
+                {!farcasterUser ? "Connect via Farcaster First"
+                 : userStats?.referralCount > 0 ? "View Referral Link"
+                 : "Get Referral Link"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                💡 Share your unique referral link on your Profile page to invite friends!
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
