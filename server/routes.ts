@@ -2890,6 +2890,66 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Claim referral rewards
+  app.post("/api/quests/claim-referral", async (req, res) => {
+    try {
+      const { farcasterFid } = req.body;
+      
+      // Validate required fields
+      if (!farcasterFid) {
+        return res.status(400).json({ 
+          message: "Farcaster FID is required" 
+        });
+      }
+      
+      // Get current user stats
+      const userStats = await storage.getUserStats(farcasterFid);
+      
+      if (!userStats) {
+        return res.status(404).json({ 
+          message: "User not found" 
+        });
+      }
+      
+      // Check if there are unclaimed referrals
+      if (!userStats.unclaimedReferrals || userStats.unclaimedReferrals === 0) {
+        return res.status(400).json({ 
+          message: "No unclaimed referrals",
+          code: 'NO_UNCLAIMED_REFERRALS'
+        });
+      }
+      
+      // Calculate points to award (1 point per referral, 100 fixed-point)
+      const pointsPerReferral = 1;
+      const fixedPointsPerReferral = pointsPerReferral * 100;
+      const totalPointsToAward = userStats.unclaimedReferrals * fixedPointsPerReferral;
+      
+      // Update user stats: add points and reset unclaimed count
+      await storage.updateUserStats(farcasterFid, {
+        totalPoints: userStats.totalPoints + totalPointsToAward,
+        weeklyPoints: (userStats.weeklyPoints || 0) + totalPointsToAward,
+        unclaimedReferrals: 0
+      });
+      
+      console.log(`✅ Referral rewards claimed: +${userStats.unclaimedReferrals} points for @${userStats.farcasterUsername}`);
+      
+      res.json({
+        success: true,
+        pointsEarned: userStats.unclaimedReferrals,
+        totalPoints: userStats.totalPoints + totalPointsToAward,
+        message: `Successfully claimed ${userStats.unclaimedReferrals} referral reward${userStats.unclaimedReferrals > 1 ? 's' : ''}!`
+      });
+      
+    } catch (error) {
+      console.error('🚨 Claim referral failed:', error);
+      
+      res.status(500).json({ 
+        message: "Failed to claim referral rewards. Please try again.",
+        code: 'REFERRAL_CLAIM_ERROR'
+      });
+    }
+  });
+
   // One-time quest: Add Mini App to Farcaster
   app.post("/api/quests/complete-add-miniapp", async (req, res) => {
     try {

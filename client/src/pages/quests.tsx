@@ -44,6 +44,7 @@ interface UserStats {
   hasAddedMiniApp: boolean;
   referralCode: string | null;
   referralCount: number;
+  unclaimedReferrals: number;
 }
 
 interface QuestCompletion {
@@ -225,6 +226,36 @@ export default function Quests() {
       } else {
         toast({
           title: "Failed to claim quest",
+          description: "Please try again later",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // Claim referral rewards mutation
+  const claimReferralMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/quests/claim-referral', {
+      farcasterFid: String(farcasterUser.fid)
+    }),
+    onSuccess: (response: any) => {
+      const pointsEarned = response.pointsEarned || 0;
+      toast({
+        title: "Referral rewards claimed! 🎁",
+        description: `+${pointsEarned} point${pointsEarned > 1 ? 's' : ''} earned from referrals!`
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+    },
+    onError: (error) => {
+      if (error?.message?.includes('No unclaimed referrals')) {
+        toast({
+          title: "No Unclaimed Referrals",
+          description: "You don't have any pending referral rewards to claim.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Failed to claim referral rewards",
           description: "Please try again later",
           variant: "destructive"
         });
@@ -572,30 +603,52 @@ export default function Quests() {
                     🎉 {userStats?.referralCount ?? 0} friend{(userStats?.referralCount ?? 0) > 1 ? 's' : ''} invited!
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    You've earned {userStats?.referralCount ?? 0} point{(userStats?.referralCount ?? 0) > 1 ? 's' : ''} from referrals
+                    Total earned: {userStats?.referralCount ?? 0} point{(userStats?.referralCount ?? 0) > 1 ? 's' : ''}
                   </p>
                 </div>
               )}
               
-              <Button
-                onClick={() => {
-                  // Navigate to profile page where referral link is shown
-                  if (typeof window !== 'undefined') {
-                    window.location.href = '/my-nfts';
-                  }
-                }}
-                disabled={!farcasterUser}
-                className="w-full"
-                variant={(userStats?.referralCount ?? 0) > 0 ? "secondary" : "default"}
-                data-testid="button-view-referral"
-              >
-                {!farcasterUser ? "Connect via Farcaster First"
-                 : (userStats?.referralCount ?? 0) > 0 ? "View Referral Link"
-                 : "Get Referral Link"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                💡 Share your unique referral link on your Profile page to invite friends!
-              </p>
+              {/* Show Claim button if there are unclaimed referrals */}
+              {(userStats?.unclaimedReferrals ?? 0) > 0 ? (
+                <>
+                  <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
+                    <p className="text-sm font-medium text-purple-400">
+                      🎁 {userStats?.unclaimedReferrals ?? 0} new referral{(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''} to claim!
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => claimReferralMutation.mutate()}
+                    disabled={!farcasterUser || claimReferralMutation.isPending}
+                    className="w-full"
+                    variant="default"
+                    data-testid="button-claim-referral"
+                  >
+                    {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0} Points`}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => {
+                      // Navigate to profile page where referral link is shown
+                      if (typeof window !== 'undefined') {
+                        window.location.href = '/my-nfts';
+                      }
+                    }}
+                    disabled={!farcasterUser}
+                    className="w-full"
+                    variant={(userStats?.referralCount ?? 0) > 0 ? "secondary" : "default"}
+                    data-testid="button-view-referral"
+                  >
+                    {!farcasterUser ? "Connect via Farcaster First"
+                     : (userStats?.referralCount ?? 0) > 0 ? "View Referral Link"
+                     : "Get Referral Link"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    💡 Share your unique referral link on your Profile page to invite friends!
+                  </p>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

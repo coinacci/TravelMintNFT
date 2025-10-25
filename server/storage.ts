@@ -1123,37 +1123,22 @@ export class DatabaseStorage implements IStorage {
           .where(eq(userStats.farcasterFid, data.newUserFid));
       }
 
-      // 5. Reward referrer with +1 point (100 fixed-point)
-      const referralRewardPoints = 1;
-      const fixedPointReward = referralRewardPoints * 100;
-      
+      // 5. Increment referrer's unclaimed referrals (don't add points yet - claim later)
       await tx
         .update(userStats)
         .set({
-          totalPoints: referrer.totalPoints + fixedPointReward,
-          weeklyPoints: (referrer.weeklyPoints || 0) + fixedPointReward,
           referralCount: (referrer.referralCount || 0) + 1,
+          unclaimedReferrals: (referrer.unclaimedReferrals || 0) + 1,
           updatedAt: new Date()
         })
         .where(eq(userStats.farcasterFid, referrer.farcasterFid));
 
-      // 6. Create quest completion for referral reward
-      await tx
-        .insert(questCompletions)
-        .values({
-          farcasterFid: referrer.farcasterFid,
-          questType: 'social_post', // Use social_post as closest match
-          pointsEarned: fixedPointReward,
-          completionDate: getQuestDay(),
-          castUrl: `Referral: ${data.newUserUsername}`, // Track referred username
-        });
-
-      console.log(`🎁 Referral successful: ${data.newUserUsername} referred by ${referrer.farcasterUsername} (+${referralRewardPoints} points)`);
+      console.log(`🎁 Referral successful: ${data.newUserUsername} referred by ${referrer.farcasterUsername} (unclaimed +1)`);
 
       return {
         success: true,
-        message: `Successfully applied referral code! ${referrer.farcasterUsername} earned ${referralRewardPoints} point.`,
-        referrerPoints: referrer.totalPoints + fixedPointReward
+        message: `Successfully applied referral code! ${referrer.farcasterUsername} can now claim the reward in Quests.`,
+        referrerPoints: referrer.totalPoints
       };
     });
   }
