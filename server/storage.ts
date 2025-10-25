@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, getCurrentWeekStart, getWeekEnd, getWeekNumber } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -50,6 +50,14 @@ export interface IStorage {
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
   getUserWallets(farcasterFid: string): Promise<UserWallet[]>;
   checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }>;
+  
+  // Referral operations
+  validateAndApplyReferral(data: {
+    referralCode: string;
+    newUserFid: string;
+    newUserUsername: string;
+    newUserPfpUrl?: string;
+  }): Promise<{ success: boolean; message: string; referrerPoints?: number }>;
   
   // Atomic quest claiming operation
   claimQuestAtomic(data: {
@@ -1039,6 +1047,115 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${userStats.farcasterFid} = ANY(${farcasterFids})`);
     
     return result.rowCount || 0;
+  }
+
+  // Referral operations
+  async validateAndApplyReferral(data: {
+    referralCode: string;
+    newUserFid: string;
+    newUserUsername: string;
+    newUserPfpUrl?: string;
+  }): Promise<{ success: boolean; message: string; referrerPoints?: number }> {
+    // Pre-generate referral code outside transaction
+    const newReferralCode = await this.generateReferralCode(data.newUserUsername);
+    
+    return await db.transaction(async (tx) => {
+      // 1. Find referrer by referral code
+      const [referrer] = await tx
+        .select()
+        .from(userStats)
+        .where(eq(userStats.referralCode, data.referralCode));
+
+      if (!referrer) {
+        return {
+          success: false,
+          message: 'Invalid referral code'
+        };
+      }
+
+      // 2. Check if user is trying to refer themselves
+      if (referrer.farcasterFid === data.newUserFid) {
+        return {
+          success: false,
+          message: 'Cannot use your own referral code'
+        };
+      }
+
+      // 3. Check if new user already used a referral code
+      const [newUser] = await tx
+        .select()
+        .from(userStats)
+        .where(eq(userStats.farcasterFid, data.newUserFid));
+
+      if (newUser?.referredByFid) {
+        return {
+          success: false,
+          message: 'Referral code already used'
+        };
+      }
+
+      // 4. Create or update new user with referral
+      const currentWeekStart = getCurrentWeekStart();
+      
+      if (!newUser) {
+        // Create new user with referral
+        await tx
+          .insert(userStats)
+          .values({
+            farcasterFid: data.newUserFid,
+            farcasterUsername: data.newUserUsername,
+            farcasterPfpUrl: data.newUserPfpUrl || null,
+            totalPoints: 0,
+            weeklyPoints: 0,
+            referredByFid: referrer.farcasterFid,
+            referralCode: newReferralCode,
+            referralCount: 0,
+            weeklyResetDate: currentWeekStart,
+          });
+      } else {
+        // Update existing user with referral
+        await tx
+          .update(userStats)
+          .set({
+            referredByFid: referrer.farcasterFid,
+            updatedAt: new Date()
+          })
+          .where(eq(userStats.farcasterFid, data.newUserFid));
+      }
+
+      // 5. Reward referrer with +1 point (100 fixed-point)
+      const referralRewardPoints = 1;
+      const fixedPointReward = referralRewardPoints * 100;
+      
+      await tx
+        .update(userStats)
+        .set({
+          totalPoints: referrer.totalPoints + fixedPointReward,
+          weeklyPoints: (referrer.weeklyPoints || 0) + fixedPointReward,
+          referralCount: (referrer.referralCount || 0) + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(userStats.farcasterFid, referrer.farcasterFid));
+
+      // 6. Create quest completion for referral reward
+      await tx
+        .insert(questCompletions)
+        .values({
+          farcasterFid: referrer.farcasterFid,
+          questType: 'social_post', // Use social_post as closest match
+          pointsEarned: fixedPointReward,
+          completionDate: getQuestDay(),
+          castUrl: `Referral: ${data.newUserUsername}`, // Track referred username
+        });
+
+      console.log(`🎁 Referral successful: ${data.newUserUsername} referred by ${referrer.farcasterUsername} (+${referralRewardPoints} points)`);
+
+      return {
+        success: true,
+        message: `Successfully applied referral code! ${referrer.farcasterUsername} earned ${referralRewardPoints} point.`,
+        referrerPoints: referrer.totalPoints + fixedPointReward
+      };
+    });
   }
 }
 

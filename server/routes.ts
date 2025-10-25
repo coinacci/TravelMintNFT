@@ -2831,6 +2831,47 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Validate and apply referral code
+  app.post("/api/validate-referral", async (req, res) => {
+    try {
+      const { referralCode, newUserFid, newUserUsername, newUserPfpUrl } = req.body;
+      
+      // Validate required fields
+      if (!referralCode || !newUserFid || !newUserUsername) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Referral code, Farcaster FID and username are required" 
+        });
+      }
+      
+      console.log(`🎁 Processing referral: ${newUserUsername} using code ${referralCode}`);
+      
+      // Validate and apply referral
+      const result = await storage.validateAndApplyReferral({
+        referralCode,
+        newUserFid,
+        newUserUsername,
+        newUserPfpUrl
+      });
+      
+      if (result.success) {
+        console.log(`✅ Referral applied successfully: ${newUserUsername} → ${referralCode}`);
+        return res.json(result);
+      } else {
+        console.warn(`⚠️ Referral validation failed: ${result.message}`);
+        return res.status(400).json(result);
+      }
+      
+    } catch (error: any) {
+      console.error('🚨 Referral validation error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to process referral code. Please try again.",
+        error: error.message 
+      });
+    }
+  });
+
   // One-time quest: Add Mini App to Farcaster
   app.post("/api/quests/complete-add-miniapp", async (req, res) => {
     try {
