@@ -387,6 +387,23 @@ export async function registerRoutes(app: Express) {
     res.redirect(shareUrl);
   });
 
+  // Referral redirect endpoint - redirects to Farcaster Mini App with ref code
+  app.get("/r/:code", (req, res) => {
+    const { code } = req.params;
+    
+    // Validate code exists
+    if (!code || code.trim() === '') {
+      console.warn('⚠️ Invalid referral code attempt');
+      return res.redirect("https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint");
+    }
+    
+    // Redirect to Farcaster Mini App with referral code as query parameter
+    const farcasterUrl = `https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint?ref=${encodeURIComponent(code)}`;
+    console.log(`🔗 Referral redirect: ${code} → ${farcasterUrl}`);
+    
+    res.redirect(farcasterUrl);
+  });
+
   // Removed duplicate Farcaster route - now handled in server/index.ts as high-priority
 
   // Farcaster Frame endpoint for NFT sharing with optimized IPFS image loading

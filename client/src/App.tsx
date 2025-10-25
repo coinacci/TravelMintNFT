@@ -105,19 +105,33 @@ function ReferralHandler() {
   const [, setLocation] = useLocation();
   
   useEffect(() => {
-    // Get referral code from URL
+    // Check for referral code in URL path (/r/CODE)
     const path = window.location.pathname;
-    const match = path.match(/^\/r\/([A-Z0-9]+)$/i);
+    const pathMatch = path.match(/^\/r\/([A-Z0-9]+)$/i);
     
-    if (match) {
-      const referralCode = match[1];
-      console.log('🎁 Referral code captured:', referralCode);
+    if (pathMatch) {
+      const referralCode = pathMatch[1];
+      console.log('🎁 Referral code captured from path:', referralCode);
       
       // Store in localStorage
       localStorage.setItem('pendingReferralCode', referralCode);
       
       // Redirect to home
       setLocation('/');
+      return;
+    }
+    
+    // Check for referral code in query parameter (?ref=CODE)
+    const searchParams = new URLSearchParams(window.location.search);
+    const refParam = searchParams.get('ref');
+    
+    if (refParam) {
+      console.log('🎁 Referral code captured from query param:', refParam);
+      
+      // Store in localStorage
+      localStorage.setItem('pendingReferralCode', refParam);
+      
+      // Don't redirect, just store it - user is already in Mini App
     }
   }, [setLocation]);
   

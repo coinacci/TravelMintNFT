@@ -1001,7 +1001,7 @@ export default function MyNFTs() {
                 
                 <div className="flex items-center gap-2 mb-3">
                   <Input
-                    value={`travelnft.replit.app/r/${userStats.referralCode}`}
+                    value={`https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint?ref=${userStats.referralCode}`}
                     readOnly
                     className="text-sm bg-background"
                     data-testid="referral-link-input"
@@ -1010,7 +1010,7 @@ export default function MyNFTs() {
                     size="sm"
                     variant="outline"
                     onClick={async () => {
-                      const link = `https://travelnft.replit.app/r/${userStats.referralCode}`;
+                      const link = `https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint?ref=${userStats.referralCode}`;
                       try {
                         await navigator.clipboard.writeText(link);
                         toast({
@@ -1033,8 +1033,8 @@ export default function MyNFTs() {
                 
                 <ComposeCastButton
                   type="general"
-                  customText={`Join me on TravelMint - mint, collect, and trade travel photo NFTs!\n\nhttps://travelnft.replit.app/r/${userStats.referralCode}`}
-                  embeds={[`https://travelnft.replit.app/r/${userStats.referralCode}`]}
+                  customText={`Join me on TravelMint - mint, collect, and trade travel photo NFTs!\n\nhttps://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint?ref=${userStats.referralCode}`}
+                  embeds={[`https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint?ref=${userStats.referralCode}`]}
                   className="w-full"
                   variant="default"
                 />
