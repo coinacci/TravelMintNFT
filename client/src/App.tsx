@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -100,13 +100,42 @@ class ErrorBoundary extends Component<{children: ReactNode}, ErrorBoundaryState>
   }
 }
 
+function ReferralHandler() {
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    // Get referral code from URL
+    const path = window.location.pathname;
+    const match = path.match(/^\/r\/([A-Z0-9]+)$/i);
+    
+    if (match) {
+      const referralCode = match[1];
+      console.log('🎁 Referral code captured:', referralCode);
+      
+      // Store in localStorage
+      localStorage.setItem('pendingReferralCode', referralCode);
+      
+      // Redirect to home
+      setLocation('/');
+    }
+  }, [setLocation]);
+  
+  return null;
+}
+
 function Router() {
   return (
     <>
       <Navigation />
+      <ReferralHandler />
       <Switch>
         <Route path="/" component={Explore} />
         <Route path="/explore" component={Explore} />
+        <Route path="/r/:code">
+          {() => <div className="min-h-screen flex items-center justify-center">
+            <p className="text-white">Loading referral...</p>
+          </div>}
+        </Route>
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/my-nfts" component={MyNFTs} />
         <Route path="/mint" component={Mint} />
