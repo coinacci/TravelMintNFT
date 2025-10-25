@@ -63,6 +63,8 @@ interface UserStats {
   lastCheckIn: string | null;
   lastStreakClaim: string | null;
   hasAddedMiniApp: boolean;
+  referralCode: string | null;
+  referralCount: number;
 }
 
 interface QuestCompletion {
@@ -920,7 +922,69 @@ export default function MyNFTs() {
                 </p>
                 <p className="text-xs text-muted-foreground">Today's Points</p>
               </div>
+              
+              <div className="h-8 w-px bg-border"></div>
+              
+              <div>
+                <p className="text-2xl font-bold" data-testid="profile-referrals">
+                  {userStats?.referralCount || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Referrals</p>
+              </div>
             </div>
+            
+            {/* Referral Invitation Section */}
+            {userStats?.referralCode && (
+              <div className="mt-6 w-full max-w-md border border-border rounded-lg p-4 bg-card/50">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-foreground">Invite Friends</p>
+                  <span className="text-xs text-muted-foreground">+1 point per referral</span>
+                </div>
+                
+                <div className="flex items-center gap-2 mb-3">
+                  <Input
+                    value={`travelmint.app/r/${userStats.referralCode}`}
+                    readOnly
+                    className="text-sm bg-background"
+                    data-testid="referral-link-input"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const link = `https://travelmint.app/r/${userStats.referralCode}`;
+                      try {
+                        await navigator.clipboard.writeText(link);
+                        toast({
+                          title: "Link Copied!",
+                          description: "Referral link copied to clipboard",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Copy Failed",
+                          description: "Please copy the link manually",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    data-testid="button-copy-referral"
+                  >
+                    Copy
+                  </Button>
+                </div>
+                
+                <ComposeCastButton
+                  text={`Join me on TravelMint - mint, collect, and trade travel photo NFTs!\n\nhttps://travelmint.app/r/${userStats.referralCode}`}
+                  embedUrl={`https://travelmint.app/r/${userStats.referralCode}`}
+                  className="w-full"
+                  variant="default"
+                  data-testid="button-share-referral"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share to Cast
+                </ComposeCastButton>
+              </div>
+            )}
           </div>
         )}
         
