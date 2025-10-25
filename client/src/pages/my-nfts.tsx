@@ -237,8 +237,22 @@ export default function MyNFTs() {
 
   // User stats query (for profile stats display)
   const { data: userStats } = useQuery<UserStats>({
-    queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : null],
+    queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : null, farcasterUser?.username, farcasterUser?.pfpUrl],
     enabled: !!farcasterUser?.fid,
+    queryFn: async () => {
+      if (!farcasterUser) return null;
+      
+      const params = new URLSearchParams({
+        username: farcasterUser.username || '',
+        ...(farcasterUser.pfpUrl && { pfpUrl: farcasterUser.pfpUrl })
+      });
+      
+      const response = await fetch(`/api/user-stats/${farcasterUser.fid}?${params}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user stats: ${response.statusText}`);
+      }
+      return response.json();
+    }
   });
 
   // Fetch today's completed quests for Today's Points display
@@ -935,39 +949,39 @@ export default function MyNFTs() {
             </div>
             
             {/* Stats Row */}
-            <div className="flex items-center gap-8 text-center">
+            <div className="flex items-center gap-3 text-center">
               <div>
-                <p className="text-2xl font-bold" data-testid="profile-total-points">
+                <p className="text-lg font-bold" data-testid="profile-total-points">
                   {pointsToDisplay(userStats?.totalPoints || 0)}
                 </p>
-                <p className="text-xs text-muted-foreground">Total Points</p>
+                <p className="text-[10px] text-muted-foreground">Total Points</p>
               </div>
               
-              <div className="h-8 w-px bg-border"></div>
+              <div className="h-6 w-px bg-border"></div>
               
               <div>
-                <p className="text-2xl font-bold" data-testid="profile-streak">
+                <p className="text-lg font-bold" data-testid="profile-streak">
                   {userStats?.currentStreak || 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Streak</p>
+                <p className="text-[10px] text-muted-foreground">Streak</p>
               </div>
               
-              <div className="h-8 w-px bg-border"></div>
+              <div className="h-6 w-px bg-border"></div>
               
               <div>
-                <p className="text-2xl font-bold" data-testid="profile-today-points">
+                <p className="text-lg font-bold" data-testid="profile-today-points">
                   {pointsToDisplay(todayQuests.reduce((sum, q) => sum + q.pointsEarned, 0))}
                 </p>
-                <p className="text-xs text-muted-foreground">Today's Points</p>
+                <p className="text-[10px] text-muted-foreground">Today's Points</p>
               </div>
               
-              <div className="h-8 w-px bg-border"></div>
+              <div className="h-6 w-px bg-border"></div>
               
               <div>
-                <p className="text-2xl font-bold" data-testid="profile-referrals">
+                <p className="text-lg font-bold" data-testid="profile-referrals">
                   {userStats?.referralCount || 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Referrals</p>
+                <p className="text-[10px] text-muted-foreground">Referrals</p>
               </div>
             </div>
             

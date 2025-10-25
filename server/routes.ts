@@ -2392,6 +2392,7 @@ export async function registerRoutes(app: Express) {
   // ===== QUEST SYSTEM API ENDPOINTS =====
   
   // Get user stats for quest system - SECURED
+  // Accepts optional query params: username, pfpUrl for auto-creation
   app.get("/api/user-stats/:fid", async (req, res) => {
     try {
       // Validate request parameters
@@ -2404,10 +2405,27 @@ export async function registerRoutes(app: Express) {
       }
       
       const { fid } = validationResult.data;
-      const userStats = await storage.getUserStats(fid);
+      const { username, pfpUrl } = req.query;
+      
+      let userStats = await storage.getUserStats(fid);
+      
+      // If user stats don't exist and username is provided, auto-create
+      if (!userStats && username && typeof username === 'string') {
+        console.log(`🎯 Auto-creating userStats for FID ${fid} (${username})`);
+        
+        userStats = await storage.createOrUpdateUserStats({
+          farcasterFid: fid,
+          farcasterUsername: username,
+          farcasterPfpUrl: typeof pfpUrl === 'string' ? pfpUrl : undefined,
+          totalPoints: 0,
+          currentStreak: 0
+        });
+        
+        console.log(`✅ Created userStats with referral code: ${userStats.referralCode}`);
+      }
       
       if (!userStats) {
-        // Return default stats for new users
+        // Return default stats for new users (only if username not provided)
         return res.json({
           farcasterFid: fid,
           farcasterUsername: '',
