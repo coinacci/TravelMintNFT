@@ -4,6 +4,8 @@ import { Store, Globe, User, Trophy, Target, Menu } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
+import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
+import { SignInButton } from "@farcaster/auth-kit";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +26,9 @@ export default function Navigation() {
     notificationsEnabled,
     isCollectingToken 
   } = useFarcasterNotifications();
+  
+  // Unified Farcaster auth (works for both Frame SDK and AuthKit)
+  const { isAuthenticated, user, isFrameSDK } = useFarcasterAuth();
 
   // All navigation items - available to everyone
   const navItems = [
@@ -41,6 +46,29 @@ export default function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-end">
             <div className="flex items-center space-x-2">
+              {/* Show Sign in With Farcaster only for browser users (not in Mini App) */}
+              {!isFrameSDK && !isAuthenticated && (
+                <SignInButton
+                  onSuccess={({ fid, username }) => {
+                    console.log(`✅ Signed in with Farcaster: @${username} (FID: ${fid})`);
+                  }}
+                />
+              )}
+              
+              {/* Show user info if authenticated via AuthKit */}
+              {!isFrameSDK && isAuthenticated && user && (
+                <div className="flex items-center space-x-2 text-white text-sm">
+                  {user.pfpUrl && (
+                    <img 
+                      src={user.pfpUrl} 
+                      alt={user.username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <span>@{user.username}</span>
+                </div>
+              )}
+              
               {/* Notification indicator removed - notifications work via FID-based system */}
               <WalletConnect farcasterUser={notificationUser} />
               

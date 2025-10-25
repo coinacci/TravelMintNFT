@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/wallet-provider";
+import { FarcasterAuthProvider } from "@/contexts/farcaster-auth-provider";
 import { useEffect, useState, Component, ReactNode } from "react";
 import sdk from "@farcaster/frame-sdk";
 import Explore from "@/pages/explore";
@@ -237,14 +238,16 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <ErrorBoundary>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </ErrorBoundary>
-      </WalletProvider>
+      <FarcasterAuthProvider>
+        <WalletProvider>
+          <ErrorBoundary>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ErrorBoundary>
+        </WalletProvider>
+      </FarcasterAuthProvider>
     </QueryClientProvider>
   );
 }

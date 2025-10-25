@@ -203,3 +203,41 @@
     box-sizing: border-box;
   }
 }
+
+/* Farcaster AuthKit custom styling */
+.fc-authkit-signin-button {
+  background: rgba(139, 92, 246, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1.5px solid rgba(139, 92, 246, 0.4) !important;
+  padding: 0.75rem 2rem !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.3px !important;
+  color: white !important;
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.fc-authkit-signin-button:hover {
+  background: rgba(139, 92, 246, 0.25) !important;
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  box-shadow: 0 6px 32px rgba(139, 92, 246, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.fc-authkit-signin-button:active {
+  transform: translateY(0) !important;
+}
+
+/* AuthKit modal dark theme override */
+.fc-authkit-dialog {
+  background: hsl(222, 84%, 4.9%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.fc-authkit-qrcode-container {
+  background: white !important;
+  padding: 1rem !important;
+  border-radius: 12px !important;
+}
