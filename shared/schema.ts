@@ -95,6 +95,10 @@ export const userStats = pgTable("user_stats", {
   notificationsEnabled: boolean("notifications_enabled").default(false).notNull(), // User opt-in status
   lastNotificationSent: timestamp("last_notification_sent"), // Track when last notification was sent
   hasAddedMiniApp: boolean("has_added_mini_app").default(false).notNull(), // One-time quest: User added app to Farcaster
+  // Referral system fields
+  referralCode: text("referral_code").unique(), // Unique referral code for inviting friends
+  referredByFid: text("referred_by_fid"), // FID of the user who referred this user
+  referralCount: integer("referral_count").default(0).notNull(), // Number of users referred by this user
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
