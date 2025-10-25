@@ -65,6 +65,7 @@ interface UserStats {
   hasAddedMiniApp: boolean;
   referralCode: string | null;
   referralCount: number;
+  referredByFid: string | null;
 }
 
 interface QuestCompletion {
@@ -272,6 +273,58 @@ export default function MyNFTs() {
     queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : null, getQuestDay()],
     enabled: !!farcasterUser?.fid,
   });
+
+  // Process pending referral code after user loads
+  useEffect(() => {
+    const processPendingReferral = async () => {
+      if (!farcasterUser || !userStats) return;
+      
+      const pendingReferralCode = localStorage.getItem('pendingReferralCode');
+      if (!pendingReferralCode) return;
+      
+      // Check if user already used a referral
+      if (userStats.referredByFid) {
+        console.log('⚠️ User already used a referral code, skipping');
+        localStorage.removeItem('pendingReferralCode');
+        return;
+      }
+      
+      console.log('🎁 Processing pending referral code:', pendingReferralCode);
+      
+      try {
+        const result = await apiRequest('POST', '/api/validate-referral', {
+          referralCode: pendingReferralCode,
+          newUserFid: String(farcasterUser.fid),
+          newUserUsername: farcasterUser.username,
+          newUserPfpUrl: farcasterUser.pfpUrl
+        });
+        
+        if (result.success) {
+          toast({
+            title: "Referral Applied!",
+            description: result.message || "Successfully applied referral code",
+          });
+          
+          // Refresh user stats to show updated referrer
+          queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+        } else {
+          console.warn('⚠️ Referral validation failed:', result.message);
+        }
+      } catch (error: any) {
+        console.error('🚨 Failed to process referral:', error);
+        toast({
+          title: "Referral Failed",
+          description: error.message || "Could not process referral code",
+          variant: "destructive",
+        });
+      } finally {
+        // Always remove the pending code after processing
+        localStorage.removeItem('pendingReferralCode');
+      }
+    };
+    
+    processPendingReferral();
+  }, [farcasterUser, userStats, toast, queryClient]);
 
   // Determine which NFTs to display
   const nfts = (farcasterUser && showAllWallets) ? multiWalletNFTs : singleWalletNFTs;
@@ -974,15 +1027,12 @@ export default function MyNFTs() {
                 </div>
                 
                 <ComposeCastButton
-                  text={`Join me on TravelMint - mint, collect, and trade travel photo NFTs!\n\nhttps://travelmint.app/r/${userStats.referralCode}`}
-                  embedUrl={`https://travelmint.app/r/${userStats.referralCode}`}
+                  type="general"
+                  customText={`Join me on TravelMint - mint, collect, and trade travel photo NFTs!\n\nhttps://travelmint.app/r/${userStats.referralCode}`}
+                  embeds={[`https://travelmint.app/r/${userStats.referralCode}`]}
                   className="w-full"
                   variant="default"
-                  data-testid="button-share-referral"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share to Cast
-                </ComposeCastButton>
+                />
               </div>
             )}
           </div>
