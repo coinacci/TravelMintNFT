@@ -318,21 +318,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Country Filter - Hidden as per user request */}
-      {/* <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Filter country..."
-            value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
-            className="pl-10 pr-3 text-sm bg-background/95 backdrop-blur shadow-lg text-black dark:text-white"
-            data-testid="input-country-filter"
-          />
-        </div>
-        
-        <div className="mt-2 bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
+      {/* Filters - Country filter hidden, Brand filter visible */}
+      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
+        {/* Brand Filter Checkbox */}
+        <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
@@ -345,12 +334,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </label>
         </div>
         
-        {(countryFilter || showBrandOnly) && (
+        {showBrandOnly && (
           <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
             {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
           </div>
         )}
-      </div> */}
+      </div>
 
     </div>
   );
