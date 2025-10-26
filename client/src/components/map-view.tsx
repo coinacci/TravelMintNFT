@@ -318,8 +318,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Country Filter */}
-      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
+      {/* Country Filter - Hidden as per user request */}
+      {/* <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -332,7 +332,6 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           />
         </div>
         
-        {/* Brand Filter Checkbox */}
         <div className="mt-2 bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
@@ -351,7 +350,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
             {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
           </div>
         )}
-      </div>
+      </div> */}
 
     </div>
   );
