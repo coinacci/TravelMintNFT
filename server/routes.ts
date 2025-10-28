@@ -2983,14 +2983,17 @@ export async function registerRoutes(app: Express) {
         unclaimedReferrals: 0
       });
       
-      console.log(`✅ Referral rewards claimed: +${userStats.unclaimedReferrals} points for @${userStats.farcasterUsername}`);
-      
-      res.json({
+      const responseData = {
         success: true,
         pointsEarned: userStats.unclaimedReferrals,
         totalPoints: userStats.totalPoints + totalPointsToAward,
         message: `Successfully claimed ${userStats.unclaimedReferrals} referral reward${userStats.unclaimedReferrals > 1 ? 's' : ''}!`
-      });
+      };
+      
+      console.log(`✅ Referral rewards claimed: +${userStats.unclaimedReferrals} points for @${userStats.farcasterUsername}`);
+      console.log(`📤 Sending response:`, responseData);
+      
+      res.json(responseData);
       
     } catch (error) {
       console.error('🚨 Claim referral failed:', error);

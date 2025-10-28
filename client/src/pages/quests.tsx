@@ -239,7 +239,9 @@ export default function Quests() {
       farcasterFid: String(farcasterUser.fid)
     }),
     onSuccess: (response: any) => {
+      console.log('📥 Referral claim response:', response);
       const pointsEarned = response.pointsEarned || 0;
+      console.log('🎁 Points earned:', pointsEarned);
       toast({
         title: "Referral rewards claimed! 🎁",
         description: `+${pointsEarned} point${pointsEarned > 1 ? 's' : ''} earned from referrals!`
