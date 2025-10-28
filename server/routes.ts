@@ -2971,10 +2971,15 @@ export async function registerRoutes(app: Express) {
         });
       }
       
+      // IMPORTANT: Snapshot the referral count BEFORE updating (updateUserStats may mutate the object)
+      const referralsToClaim = userStats.unclaimedReferrals;
+      
       // Calculate points to award (1 point per referral, 100 fixed-point)
       const pointsPerReferral = 1;
       const fixedPointsPerReferral = pointsPerReferral * 100;
-      const totalPointsToAward = userStats.unclaimedReferrals * fixedPointsPerReferral;
+      const totalPointsToAward = referralsToClaim * fixedPointsPerReferral;
+      
+      console.log(`🎁 Claiming ${referralsToClaim} referrals = ${totalPointsToAward / 100} points for @${userStats.farcasterUsername}`);
       
       // Update user stats: add points and reset unclaimed count
       await storage.updateUserStats(farcasterFid, {
@@ -2985,12 +2990,12 @@ export async function registerRoutes(app: Express) {
       
       const responseData = {
         success: true,
-        pointsEarned: userStats.unclaimedReferrals,
+        pointsEarned: referralsToClaim,
         totalPoints: userStats.totalPoints + totalPointsToAward,
-        message: `Successfully claimed ${userStats.unclaimedReferrals} referral reward${userStats.unclaimedReferrals > 1 ? 's' : ''}!`
+        message: `Successfully claimed ${referralsToClaim} referral reward${referralsToClaim > 1 ? 's' : ''}!`
       };
       
-      console.log(`✅ Referral rewards claimed: +${userStats.unclaimedReferrals} points for @${userStats.farcasterUsername}`);
+      console.log(`✅ Referral rewards claimed successfully`);
       console.log(`📤 Sending response:`, responseData);
       
       res.json(responseData);
