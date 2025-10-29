@@ -354,7 +354,7 @@ export default function Quests() {
         <h2 className="text-lg font-semibold">Today's Quests</h2>
         
         {/* Daily Check-in */}
-        <Card className={`p-4 ${farcasterUser && !hasCheckedInToday ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
+        <Card className="bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Daily Check-in</h3>
@@ -365,7 +365,7 @@ export default function Quests() {
               disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
+              className={farcasterUser && !hasCheckedInToday ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-daily-checkin"
             >
               {!farcasterUser ? "Connect"
@@ -379,7 +379,7 @@ export default function Quests() {
         </Card>
 
         {/* Holder Bonus */}
-        <Card className={`p-4 ${farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
+        <Card className="bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Holder Bonus</h3>
@@ -390,7 +390,7 @@ export default function Quests() {
               disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
+              className={farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-holder-bonus"
             >
               {!farcasterUser ? "Connect"
@@ -405,7 +405,7 @@ export default function Quests() {
         </Card>
 
         {/* Base Network Transaction */}
-        <Card className={`p-4 ${farcasterUser && address && !hasClaimedBaseTransaction ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
+        <Card className="bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Hello TravelMint</h3>
@@ -419,7 +419,7 @@ export default function Quests() {
               disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               variant="outline"
               size="sm"
-              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
+              className={farcasterUser && address && !hasClaimedBaseTransaction ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-base-transaction"
             >
               {!farcasterUser ? "Connect"
@@ -434,7 +434,7 @@ export default function Quests() {
         </Card>
 
         {/* Daily Post Quest */}
-        <Card className={`p-4 ${farcasterUser && !hasClaimedSocialPost ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
+        <Card className="bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Daily Farcaster Cast</h3>
@@ -445,7 +445,7 @@ export default function Quests() {
               disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
+              className={farcasterUser && !hasClaimedSocialPost && castUrl.trim() ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-daily-post"
             >
               {!farcasterUser ? "Connect"
@@ -477,7 +477,7 @@ export default function Quests() {
         </div>
         
         {/* Add Mini App Quest */}
-        <Card className={`p-4 ${farcasterUser && !userStats?.hasAddedMiniApp ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
+        <Card className="bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Add TravelMint</h3>
@@ -488,7 +488,7 @@ export default function Quests() {
               disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
+              className={farcasterUser && !userStats?.hasAddedMiniApp ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-add-miniapp"
             >
               {!farcasterUser ? "Connect"
@@ -502,7 +502,7 @@ export default function Quests() {
         </Card>
 
         {/* Referral Program Quest */}
-        <Card className={`p-4 ${farcasterUser && (userStats?.unclaimedReferrals ?? 0) > 0 ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
+        <Card className="bg-card/50 border-border/50 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Invite Friends</h3>
@@ -514,7 +514,7 @@ export default function Quests() {
                 disabled={!farcasterUser || claimReferralMutation.isPending}
                 variant="outline"
                 size="sm"
-                className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
+                className="bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90"
                 data-testid="button-claim-referral"
               >
                 {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0}`}
