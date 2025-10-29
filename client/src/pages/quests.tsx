@@ -342,8 +342,8 @@ export default function Quests() {
     <div className="container mx-auto px-4 max-w-4xl pb-24">
       {/* Farcaster Connection Banner */}
       {!farcasterUser && (
-        <div className="mb-6 p-3 bg-[#0000FF]/10 border border-[#0000FF]/20 rounded-lg">
-          <p className="text-sm font-medium text-[#0000FF]">
+        <div className="mb-6 p-3 bg-[#ffffff]/10 border border-[#ffffff]/20 rounded-lg">
+          <p className="text-sm font-medium text-[#ffffff]">
             Connect via Farcaster to claim quest rewards
           </p>
         </div>
@@ -365,7 +365,7 @@ export default function Quests() {
               disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
               data-testid="button-daily-checkin"
             >
               {!farcasterUser ? "Connect"
@@ -390,7 +390,7 @@ export default function Quests() {
               disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
               data-testid="button-holder-bonus"
             >
               {!farcasterUser ? "Connect"
@@ -419,7 +419,7 @@ export default function Quests() {
               disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               variant="outline"
               size="sm"
-              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
               data-testid="button-base-transaction"
             >
               {!farcasterUser ? "Connect"
@@ -445,7 +445,7 @@ export default function Quests() {
               disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
               data-testid="button-daily-post"
             >
               {!farcasterUser ? "Connect"
@@ -488,7 +488,7 @@ export default function Quests() {
               disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
               variant="outline"
               size="sm"
-              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
               data-testid="button-add-miniapp"
             >
               {!farcasterUser ? "Connect"
@@ -514,7 +514,7 @@ export default function Quests() {
                 disabled={!farcasterUser || claimReferralMutation.isPending}
                 variant="outline"
                 size="sm"
-                className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+                className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
                 data-testid="button-claim-referral"
               >
                 {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0}`}
@@ -529,7 +529,7 @@ export default function Quests() {
                 disabled={!farcasterUser}
                 variant="outline"
                 size="sm"
-                className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+                className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
                 data-testid="button-view-referral"
               >
                 {!farcasterUser ? "Connect"
@@ -549,8 +549,8 @@ export default function Quests() {
             </div>
           )}
           {(userStats?.unclaimedReferrals ?? 0) > 0 && (
-            <div className="bg-[#0000FF]/10 border border-[#0000FF]/20 rounded-lg p-2.5 mt-3">
-              <p className="text-xs font-medium text-[#0000FF]">
+            <div className="bg-[#ffffff]/10 border border-[#ffffff]/20 rounded-lg p-2.5 mt-3">
+              <p className="text-xs font-medium text-[#ffffff]">
                 🎁 {userStats?.unclaimedReferrals ?? 0} new referral{(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''} to claim!
               </p>
             </div>
