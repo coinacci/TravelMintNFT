@@ -340,18 +340,10 @@ export default function Quests() {
 
   return (
     <div className="container mx-auto px-4 max-w-4xl pb-24">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Daily Quests</h1>
-        <p className="text-sm text-muted-foreground">
-          Complete tasks to earn points
-        </p>
-      </div>
-
       {/* Farcaster Connection Banner */}
       {!farcasterUser && (
-        <div className="mb-6 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-          <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+        <div className="mb-6 p-3 bg-[#0000FF]/10 border border-[#0000FF]/20 rounded-lg">
+          <p className="text-sm font-medium text-[#0000FF]">
             Connect via Farcaster to claim quest rewards
           </p>
         </div>
@@ -376,7 +368,7 @@ export default function Quests() {
             onClick={() => farcasterUser && checkInMutation.mutate()}
             disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
             variant="outline"
-            className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
             data-testid="button-daily-checkin"
           >
             {!farcasterUser ? "Connect via Farcaster First"
@@ -400,7 +392,7 @@ export default function Quests() {
             onClick={() => farcasterUser && holderBonusMutation.mutate()}
             disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
             variant="outline"
-            className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
             data-testid="button-holder-bonus"
           >
             {!farcasterUser ? "Connect via Farcaster First"
@@ -428,7 +420,7 @@ export default function Quests() {
             })}
             disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
             variant="outline"
-            className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
             data-testid="button-base-transaction"
           >
             {!farcasterUser ? "Connect via Farcaster First"
@@ -462,7 +454,7 @@ export default function Quests() {
               onClick={() => farcasterUser && socialPostMutation.mutate()}
               disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
               variant="outline"
-              className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+              className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
               data-testid="button-daily-post"
             >
               {!farcasterUser ? "Connect via Farcaster First"
@@ -497,7 +489,7 @@ export default function Quests() {
             onClick={() => farcasterUser && addMiniAppMutation.mutate()}
             disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
             variant="outline"
-            className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
             data-testid="button-add-miniapp"
           >
             {!farcasterUser ? "Connect via Farcaster First"
@@ -529,8 +521,8 @@ export default function Quests() {
             {/* Show Claim button if there are unclaimed referrals */}
             {(userStats?.unclaimedReferrals ?? 0) > 0 ? (
               <>
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2.5">
-                  <p className="text-xs font-medium text-orange-400">
+                <div className="bg-[#0000FF]/10 border border-[#0000FF]/20 rounded-lg p-2.5">
+                  <p className="text-xs font-medium text-[#0000FF]">
                     🎁 {userStats?.unclaimedReferrals ?? 0} new referral{(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''} to claim!
                   </p>
                 </div>
@@ -538,7 +530,7 @@ export default function Quests() {
                   onClick={() => claimReferralMutation.mutate()}
                   disabled={!farcasterUser || claimReferralMutation.isPending}
                   variant="outline"
-                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                  className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
                   data-testid="button-claim-referral"
                 >
                   {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0} Point${(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''}`}
@@ -553,7 +545,7 @@ export default function Quests() {
                 }}
                 disabled={!farcasterUser}
                 variant="outline"
-                className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
                 data-testid="button-view-referral"
               >
                 {!farcasterUser ? "Connect via Farcaster First"
