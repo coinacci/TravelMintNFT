@@ -355,113 +355,115 @@ export default function Quests() {
         
         {/* Daily Check-in */}
         <Card className="bg-card/50 border-border/50 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold">Daily Check-in</h3>
-            <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs px-2 py-0.5">
-              +1 Point
-            </Badge>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">Daily Check-in</h3>
+              <span className="text-xs text-muted-foreground">+1 Point</span>
+            </div>
+            <Button
+              onClick={() => farcasterUser && checkInMutation.mutate()}
+              disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
+              variant="outline"
+              size="sm"
+              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              data-testid="button-daily-checkin"
+            >
+              {!farcasterUser ? "Connect"
+               : hasCheckedInToday ? "Claimed" 
+               : "Claim"}
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground">
             Visit TravelMint and claim your daily point
           </p>
-          <Button
-            onClick={() => farcasterUser && checkInMutation.mutate()}
-            disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
-            variant="outline"
-            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
-            data-testid="button-daily-checkin"
-          >
-            {!farcasterUser ? "Connect via Farcaster First"
-             : hasCheckedInToday ? "✓ Completed Today" 
-             : "Claim"}
-          </Button>
         </Card>
 
         {/* Holder Bonus */}
         <Card className="bg-card/50 border-border/50 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold">Holder Bonus</h3>
-            <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs px-2 py-0.5">
-              +{((holderStatus?.nftCount || 0) * 0.15).toFixed(2)} Point{((holderStatus?.nftCount || 0) * 0.15 !== 0.15) ? 's' : ''}
-            </Badge>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">Holder Bonus</h3>
+              <span className="text-xs text-muted-foreground">+{((holderStatus?.nftCount || 0) * 0.15).toFixed(2)} Point{((holderStatus?.nftCount || 0) * 0.15 !== 0.15) ? 's' : ''}</span>
+            </div>
+            <Button
+              onClick={() => farcasterUser && holderBonusMutation.mutate()}
+              disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
+              variant="outline"
+              size="sm"
+              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              data-testid="button-holder-bonus"
+            >
+              {!farcasterUser ? "Connect"
+               : !holderStatus?.isHolder ? "No NFTs"
+               : hasClaimedHolderBonus ? "Claimed"
+               : "Claim"}
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground">
             Earn 0.15 point per NFT owned
           </p>
-          <Button
-            onClick={() => farcasterUser && holderBonusMutation.mutate()}
-            disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
-            variant="outline"
-            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
-            data-testid="button-holder-bonus"
-          >
-            {!farcasterUser ? "Connect via Farcaster First"
-             : !holderStatus?.isHolder ? "No NFTs Found"
-             : hasClaimedHolderBonus ? "✓ Completed Today"
-             : "Claim"}
-          </Button>
         </Card>
 
         {/* Base Network Transaction */}
         <Card className="bg-card/50 border-border/50 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold">Hello TravelMint</h3>
-            <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs px-2 py-0.5">
-              +1 Point
-            </Badge>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">Hello TravelMint</h3>
+              <span className="text-xs text-muted-foreground">+1 Point</span>
+            </div>
+            <Button
+              onClick={() => farcasterUser && sendTransaction({
+                to: "0x000000000000000000000000000000000000dEaD",
+                value: parseEther('0')
+              })}
+              disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
+              variant="outline"
+              size="sm"
+              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              data-testid="button-base-transaction"
+            >
+              {!farcasterUser ? "Connect"
+               : !address ? "Wallet" 
+               : hasClaimedBaseTransaction ? "Claimed"
+               : "Claim"}
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground">
             Onchain Tx tasks
           </p>
-          <Button
-            onClick={() => farcasterUser && sendTransaction({
-              to: "0x000000000000000000000000000000000000dEaD",
-              value: parseEther('0')
-            })}
-            disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
-            variant="outline"
-            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
-            data-testid="button-base-transaction"
-          >
-            {!farcasterUser ? "Connect via Farcaster First"
-             : !address ? "Connect Wallet First" 
-             : hasClaimedBaseTransaction ? "✓ Completed Today"
-             : "Claim"}
-          </Button>
         </Card>
 
         {/* Daily Post Quest */}
         <Card className="bg-card/50 border-border/50 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold">Daily Farcaster Cast</h3>
-            <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs px-2 py-0.5">
-              +5 Points
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Cast with TravelMint to earn 5 points
-          </p>
-          <div className="space-y-3">
-            <Input
-              placeholder="Paste your Farcaster cast URL..."
-              value={castUrl}
-              onChange={(e) => setCastUrl(e.target.value)}
-              disabled={!farcasterUser || hasClaimedSocialPost}
-              className="text-sm"
-              data-testid="input-cast-url"
-            />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">Daily Farcaster Cast</h3>
+              <span className="text-xs text-muted-foreground">+5 Points</span>
+            </div>
             <Button
               onClick={() => farcasterUser && socialPostMutation.mutate()}
               disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
               variant="outline"
-              className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              size="sm"
+              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
               data-testid="button-daily-post"
             >
-              {!farcasterUser ? "Connect via Farcaster First"
-               : hasClaimedSocialPost ? "✓ Completed Today"
+              {!farcasterUser ? "Connect"
+               : hasClaimedSocialPost ? "Claimed"
                : "Claim"}
             </Button>
           </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Cast with TravelMint to earn 5 points
+          </p>
+          <Input
+            placeholder="Paste your Farcaster cast URL..."
+            value={castUrl}
+            onChange={(e) => setCastUrl(e.target.value)}
+            disabled={!farcasterUser || hasClaimedSocialPost}
+            className="text-sm"
+            data-testid="input-cast-url"
+          />
         </Card>
       </div>
 
@@ -476,66 +478,47 @@ export default function Quests() {
         
         {/* Add Mini App Quest */}
         <Card className="bg-card/50 border-border/50 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold">Add TravelMint</h3>
-            <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs px-2 py-0.5">
-              +5 Points
-            </Badge>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">Add TravelMint</h3>
+              <span className="text-xs text-muted-foreground">+5 Points</span>
+            </div>
+            <Button
+              onClick={() => farcasterUser && addMiniAppMutation.mutate()}
+              disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
+              variant="outline"
+              size="sm"
+              className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+              data-testid="button-add-miniapp"
+            >
+              {!farcasterUser ? "Connect"
+               : userStats?.hasAddedMiniApp ? "Claimed"
+               : "Claim"}
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground">
             Add TravelMint to your Farcaster apps
           </p>
-          <Button
-            onClick={() => farcasterUser && addMiniAppMutation.mutate()}
-            disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
-            variant="outline"
-            className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
-            data-testid="button-add-miniapp"
-          >
-            {!farcasterUser ? "Connect via Farcaster First"
-             : userStats?.hasAddedMiniApp ? "✓ Completed"
-             : "Claim"}
-          </Button>
         </Card>
 
         {/* Referral Program Quest */}
         <Card className="bg-card/50 border-border/50 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold">Invite Friends</h3>
-            <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs px-2 py-0.5">
-              +1 Per Referral
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Earn 1 point for each friend who joins using your referral link
-          </p>
-          <div className="space-y-3">
-            {(userStats?.referralCount ?? 0) > 0 && (
-              <div className="bg-muted/50 rounded-lg p-2.5">
-                <p className="text-xs font-medium">
-                  🎉 {userStats?.referralCount ?? 0} friend{(userStats?.referralCount ?? 0) > 1 ? 's' : ''} invited
-                </p>
-              </div>
-            )}
-            
-            {/* Show Claim button if there are unclaimed referrals */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">Invite Friends</h3>
+              <span className="text-xs text-muted-foreground">+1 Per Referral</span>
+            </div>
             {(userStats?.unclaimedReferrals ?? 0) > 0 ? (
-              <>
-                <div className="bg-[#0000FF]/10 border border-[#0000FF]/20 rounded-lg p-2.5">
-                  <p className="text-xs font-medium text-[#0000FF]">
-                    🎁 {userStats?.unclaimedReferrals ?? 0} new referral{(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''} to claim!
-                  </p>
-                </div>
-                <Button
-                  onClick={() => claimReferralMutation.mutate()}
-                  disabled={!farcasterUser || claimReferralMutation.isPending}
-                  variant="outline"
-                  className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
-                  data-testid="button-claim-referral"
-                >
-                  {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0} Point${(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''}`}
-                </Button>
-              </>
+              <Button
+                onClick={() => claimReferralMutation.mutate()}
+                disabled={!farcasterUser || claimReferralMutation.isPending}
+                variant="outline"
+                size="sm"
+                className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+                data-testid="button-claim-referral"
+              >
+                {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0}`}
+              </Button>
             ) : (
               <Button
                 onClick={() => {
@@ -545,15 +528,33 @@ export default function Quests() {
                 }}
                 disabled={!farcasterUser}
                 variant="outline"
-                className="w-full border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
+                size="sm"
+                className="border-[#0000FF] text-[#0000FF] hover:bg-[#0000FF]/10"
                 data-testid="button-view-referral"
               >
-                {!farcasterUser ? "Connect via Farcaster First"
+                {!farcasterUser ? "Connect"
                  : (userStats?.referralCount ?? 0) > 0 ? "View Link"
                  : "Get Link"}
               </Button>
             )}
           </div>
+          <p className="text-sm text-muted-foreground">
+            Earn 1 point for each friend who joins using your referral link
+          </p>
+          {(userStats?.referralCount ?? 0) > 0 && (
+            <div className="bg-muted/50 rounded-lg p-2.5 mt-3">
+              <p className="text-xs font-medium">
+                🎉 {userStats?.referralCount ?? 0} friend{(userStats?.referralCount ?? 0) > 1 ? 's' : ''} invited
+              </p>
+            </div>
+          )}
+          {(userStats?.unclaimedReferrals ?? 0) > 0 && (
+            <div className="bg-[#0000FF]/10 border border-[#0000FF]/20 rounded-lg p-2.5 mt-3">
+              <p className="text-xs font-medium text-[#0000FF]">
+                🎁 {userStats?.unclaimedReferrals ?? 0} new referral{(userStats?.unclaimedReferrals ?? 0) > 1 ? 's' : ''} to claim!
+              </p>
+            </div>
+          )}
         </Card>
       </div>
     </div>
