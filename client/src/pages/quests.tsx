@@ -365,7 +365,7 @@ export default function Quests() {
               disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
               variant="outline"
               size="sm"
-              className={farcasterUser && !hasCheckedInToday ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
+              className={farcasterUser && !hasCheckedInToday ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-daily-checkin"
             >
               {!farcasterUser ? "Connect"
@@ -390,7 +390,7 @@ export default function Quests() {
               disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
               variant="outline"
               size="sm"
-              className={farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
+              className={farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-holder-bonus"
             >
               {!farcasterUser ? "Connect"
@@ -419,7 +419,7 @@ export default function Quests() {
               disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               variant="outline"
               size="sm"
-              className={farcasterUser && address && !hasClaimedBaseTransaction ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
+              className={farcasterUser && address && !hasClaimedBaseTransaction ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-base-transaction"
             >
               {!farcasterUser ? "Connect"
@@ -445,7 +445,7 @@ export default function Quests() {
               disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
               variant="outline"
               size="sm"
-              className={farcasterUser && !hasClaimedSocialPost && castUrl.trim() ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
+              className={farcasterUser && !hasClaimedSocialPost && castUrl.trim() ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-daily-post"
             >
               {!farcasterUser ? "Connect"
@@ -488,7 +488,7 @@ export default function Quests() {
               disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
               variant="outline"
               size="sm"
-              className={farcasterUser && !userStats?.hasAddedMiniApp ? "bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
+              className={farcasterUser && !userStats?.hasAddedMiniApp ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-add-miniapp"
             >
               {!farcasterUser ? "Connect"
@@ -514,7 +514,7 @@ export default function Quests() {
                 disabled={!farcasterUser || claimReferralMutation.isPending}
                 variant="outline"
                 size="sm"
-                className="bg-[#3c8aff] border-[#3c8aff] text-white hover:bg-[#3c8aff]/90"
+                className="bg-questClaim border-questClaim text-white hover:bg-questClaim/90"
                 data-testid="button-claim-referral"
               >
                 {claimReferralMutation.isPending ? "Claiming..." : `Claim +${userStats?.unclaimedReferrals ?? 0}`}
