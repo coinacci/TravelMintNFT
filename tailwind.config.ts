@@ -11,6 +11,7 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        questClaim: "#3c8aff",
         background: "var(--background)",
         foreground: "var(--foreground)",
         card: {
