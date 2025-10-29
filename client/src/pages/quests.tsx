@@ -354,7 +354,7 @@ export default function Quests() {
         <h2 className="text-lg font-semibold">Today's Quests</h2>
         
         {/* Daily Check-in */}
-        <Card className="bg-card/50 border-border/50 p-4">
+        <Card className={`p-4 ${farcasterUser && !hasCheckedInToday ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Daily Check-in</h3>
@@ -379,7 +379,7 @@ export default function Quests() {
         </Card>
 
         {/* Holder Bonus */}
-        <Card className="bg-card/50 border-border/50 p-4">
+        <Card className={`p-4 ${farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Holder Bonus</h3>
@@ -405,7 +405,7 @@ export default function Quests() {
         </Card>
 
         {/* Base Network Transaction */}
-        <Card className="bg-card/50 border-border/50 p-4">
+        <Card className={`p-4 ${farcasterUser && address && !hasClaimedBaseTransaction ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Hello TravelMint</h3>
@@ -434,7 +434,7 @@ export default function Quests() {
         </Card>
 
         {/* Daily Post Quest */}
-        <Card className="bg-card/50 border-border/50 p-4">
+        <Card className={`p-4 ${farcasterUser && !hasClaimedSocialPost ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Daily Farcaster Cast</h3>
@@ -477,7 +477,7 @@ export default function Quests() {
         </div>
         
         {/* Add Mini App Quest */}
-        <Card className="bg-card/50 border-border/50 p-4">
+        <Card className={`p-4 ${farcasterUser && !userStats?.hasAddedMiniApp ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Add TravelMint</h3>
@@ -502,7 +502,7 @@ export default function Quests() {
         </Card>
 
         {/* Referral Program Quest */}
-        <Card className="bg-card/50 border-border/50 p-4">
+        <Card className={`p-4 ${farcasterUser && (userStats?.unclaimedReferrals ?? 0) > 0 ? 'bg-[#3c8aff] border-[#3c8aff]' : 'bg-card/50 border-border/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold">Invite Friends</h3>
