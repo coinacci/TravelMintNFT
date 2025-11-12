@@ -13,16 +13,23 @@ import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
 import ComposeCastButton from "@/components/ComposeCastButton";
 import { useWriteContract, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
-import { parseEther } from "viem";
+import { parseEther, encodeFunctionData } from "viem";
 
 // Contract configuration
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
+const QUEST_MANAGER_ADDRESS = "0x17375d16e4Ccbe1713854E6198Be04CA48BE530b" as const;
 
-// ABI for claimBaseReward function
+// ABI for QuestManager completeQuest function
 const QUEST_ABI = [
   {
-    "inputs": [],
-    "name": "claimBaseReward",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "questId",
+        "type": "uint256"
+      }
+    ],
+    "name": "completeQuest",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -412,10 +419,20 @@ export default function Quests() {
               <span className="text-xs text-muted-foreground">+1 Point</span>
             </div>
             <Button
-              onClick={() => farcasterUser && sendTransaction({
-                to: "0x000000000000000000000000000000000000dEaD",
-                value: parseEther('0')
-              })}
+              onClick={() => {
+                if (farcasterUser) {
+                  const data = encodeFunctionData({
+                    abi: QUEST_ABI,
+                    functionName: 'completeQuest',
+                    args: [BigInt(1)]
+                  });
+                  sendTransaction({
+                    to: QUEST_MANAGER_ADDRESS,
+                    value: parseEther('0.0001'),
+                    data
+                  });
+                }
+              }}
               disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               variant="outline"
               size="sm"
