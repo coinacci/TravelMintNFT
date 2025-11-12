@@ -11,6 +11,7 @@ module.exports = {
     }
   },
   networks: {
+    hardhat: {},
     base: {
       url: "https://mainnet.base.org",
       chainId: 8453,
