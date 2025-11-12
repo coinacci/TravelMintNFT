@@ -74,7 +74,7 @@ async function main() {
     transactionHash: contract.deploymentTransaction().hash,
     travelNFTAddress: TRAVEL_NFT_ADDRESS,
     treasuryAddress: TREASURY_ADDRESS,
-    questFee: "0.0001 ETH",
+    questFee: "0.000005 ETH",
     abi: abi
   };
   

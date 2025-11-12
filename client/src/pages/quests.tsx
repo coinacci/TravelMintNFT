@@ -428,7 +428,7 @@ export default function Quests() {
                   });
                   sendTransaction({
                     to: QUEST_MANAGER_ADDRESS,
-                    value: parseEther('0.0001'),
+                    value: parseEther('0.000005'),
                     data
                   });
                 }
