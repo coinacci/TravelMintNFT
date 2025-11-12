@@ -21,6 +21,8 @@ const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 // ✅ TravelMarketplace Contract Address - Deployed on Base Mainnet
 const MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c";
+// ✅ QuestManager Contract Address - Deployed on Base Mainnet
+const QUEST_MANAGER_ADDRESS = "0x17375d16e4Ccbe1713854E6198Be04CA48BE530b";
 const PURCHASE_PRICE = "1000000"; // 1 USDC (6 decimals)
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
 
@@ -66,6 +68,11 @@ const ERC20_ABI = [
   "function decimals() view returns (uint8)"
 ];
 
+// QuestManager ABI for event listening
+const QUEST_MANAGER_ABI = [
+  "event QuestCompleted(address indexed user, uint256 indexed questId, uint256 fee, uint256 timestamp, uint256 day)"
+];
+
 // Rate limit retry utility
 export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error;
@@ -105,6 +112,7 @@ const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
 export const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider);
 export const marketplaceContract = new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider);
 const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
+export const questManagerContract = new ethers.Contract(QUEST_MANAGER_ADDRESS, QUEST_MANAGER_ABI, provider);
 
 export interface BlockchainNFT {
   tokenId: string;
