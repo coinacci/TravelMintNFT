@@ -62,6 +62,9 @@ contract QuestManager is Ownable, ReentrancyGuard {
     function completeQuest(uint256 questId) external payable nonReentrant {
         require(msg.value >= questFee, "Insufficient fee");
         
+        // NFT holder verification - only TravelNFT holders can complete quests
+        require(travelNFT.balanceOf(msg.sender) > 0, "Must own TravelNFT");
+        
         // Calculate current day (blocks since epoch / blocks per day)
         // Using simple timestamp-based day calculation
         uint256 currentDay = block.timestamp / 1 days;
