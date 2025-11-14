@@ -50,7 +50,12 @@ export interface IStorage {
   // Multi-wallet operations
   addUserWallet(farcasterFid: string, walletAddress: string, platform: string): Promise<UserWallet>;
   getUserWallets(farcasterFid: string): Promise<UserWallet[]>;
+  getLinkedWallets(walletAddress: string): Promise<UserWallet[]>;
   checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }>;
+  
+  // Quest helper methods
+  getQuestCompletion(farcasterFid: string, questType: string, day: number): Promise<QuestCompletion | undefined>;
+  addQuestCompletion(data: { farcasterFid: string; questType: string; completionDate: string; pointsEarned: number; day: number }): Promise<QuestCompletion>;
   
   // Referral operations
   validateAndApplyReferral(data: {
@@ -408,11 +413,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createQuestCompletion(insertCompletion: InsertQuestCompletion): Promise<QuestCompletion> {
+    // Normalize completionDate to YYYY-MM-DD to ensure consistency across all insert paths
+    const normalizedDate = insertCompletion.completionDate.split('T')[0]; // Strip time component
+    
     const [completion] = await db
       .insert(questCompletions)
-      .values(insertCompletion)
+      .values({
+        ...insertCompletion,
+        completionDate: normalizedDate
+      })
       .returning();
     return completion;
+  }
+
+  async getQuestCompletion(farcasterFid: string, questType: string, day: number): Promise<QuestCompletion | undefined> {
+    // Convert day (Unix days since epoch) to YYYY-MM-DD format
+    const date = new Date(day * 24 * 60 * 60 * 1000);
+    const completionDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const [completion] = await db
+      .select()
+      .from(questCompletions)
+      .where(
+        and(
+          eq(questCompletions.farcasterFid, farcasterFid),
+          eq(questCompletions.questType, questType),
+          eq(questCompletions.completionDate, completionDate)
+        )
+      )
+      .limit(1);
+    
+    return completion || undefined;
+  }
+
+  async addQuestCompletion(data: { farcasterFid: string; questType: string; completionDate: string; pointsEarned: number; day: number }): Promise<QuestCompletion> {
+    // Convert day to YYYY-MM-DD format to ensure consistency
+    const date = new Date(data.day * 24 * 60 * 60 * 1000);
+    const normalizedDate = date.toISOString().split('T')[0];
+    
+    return await this.createQuestCompletion({
+      farcasterFid: data.farcasterFid,
+      questType: data.questType as any,
+      completionDate: normalizedDate, // Use normalized date from blockchain day
+      pointsEarned: data.pointsEarned
+    });
   }
 
   async getLeaderboard(limit: number = 50): Promise<UserStats[]> {
@@ -499,6 +543,13 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(userWallets)
       .where(eq(userWallets.farcasterFid, farcasterFid));
+  }
+
+  async getLinkedWallets(walletAddress: string): Promise<UserWallet[]> {
+    return await db
+      .select()
+      .from(userWallets)
+      .where(eq(userWallets.walletAddress, walletAddress.toLowerCase()));
   }
 
   // Fetch verified addresses from Farcaster Hub API

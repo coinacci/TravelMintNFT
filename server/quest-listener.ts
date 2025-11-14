@@ -73,9 +73,9 @@ export async function startQuestEventListener() {
             await storage.addQuestCompletion({
               farcasterFid,
               questType: 'base_transaction',
-              completionDate: new Date(eventTimestamp * 1000).toISOString(), // Use blockchain timestamp
+              completionDate: '', // Unused - addQuestCompletion derives YYYY-MM-DD from day
               pointsEarned,
-              day: eventDay // Use blockchain day, not current day
+              day: eventDay // Use blockchain day for deduplication
             });
             
             // Update user stats
