@@ -17,7 +17,7 @@ import { parseEther, encodeFunctionData } from "viem";
 
 // Contract configuration
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
-const QUEST_MANAGER_ADDRESS = "0xC280030c2d15EF42C207a35CcF7a63A4760d8967" as const;
+const QUEST_MANAGER_ADDRESS = "0x30eDb4493fA7c0F035adc75bA6381E2efFFeCa6c" as const;
 
 // ABI for QuestManager completeQuest function
 const QUEST_ABI = [

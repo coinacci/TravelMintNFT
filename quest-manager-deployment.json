@@ -1,13 +1,13 @@
 {
-  "contractAddress": "0xC280030c2d15EF42C207a35CcF7a63A4760d8967",
+  "contractAddress": "0x30eDb4493fA7c0F035adc75bA6381E2efFFeCa6c",
   "network": "base",
   "chainId": 8453,
-  "deploymentDate": "2025-11-12T17:08:40.162Z",
+  "deploymentDate": "2025-11-14T07:05:24.674Z",
   "deployer": "0xeeB304adeA44e08A87167546CEca452bC05798b5",
-  "transactionHash": "0xfeb6304f08450d456ff993585a83ccf05e980b3613dbc3ea1ff9e1ecd29d692a",
+  "transactionHash": "0x99233a3f813f2999d649a786a8fc6a4025392ebaee1298f3899ba57c272419de",
   "travelNFTAddress": "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f",
   "treasuryAddress": "0x7CDe7822456AAC667Df0420cD048295b92704084",
-  "questFee": "0.0001 ETH",
+  "questFee": "0.000005 ETH",
   "abi": [
     {
       "inputs": [
