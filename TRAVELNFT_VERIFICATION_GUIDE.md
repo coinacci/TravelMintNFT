@@ -75,12 +75,19 @@ Create a file called `standard-input.json` with the following content:
 ```
 
 ### Flattened Source Code:
-You need to paste the full flattened contract including all OpenZeppelin imports. The contract imports:
-- `@openzeppelin/contracts/token/ERC721/ERC721.sol`
-- `@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol`
-- `@openzeppelin/contracts/token/ERC20/IERC20.sol`
-- `@openzeppelin/contracts/access/Ownable.sol`
-- `@openzeppelin/contracts/utils/ReentrancyGuard.sol`
+✅ **READY TO USE:** The flattened contract is saved in `TravelNFT-flattened.sol` (2,773 lines)
+
+**How to use:**
+1. Open the file `TravelNFT-flattened.sol` in this repository
+2. Copy ALL the content (Ctrl+A, Ctrl+C)
+3. Paste it into the "Enter the Solidity Contract Code below" field on BaseScan
+
+The file includes:
+- Single SPDX-License-Identifier at the top
+- Single pragma statement (^0.8.20)
+- All OpenZeppelin contracts (IERC165, ERC165, IERC721, ERC721, ERC721URIStorage, IERC20, Ownable, ReentrancyGuard)
+- TravelNFT contract at the end
+- NO import statements (all dependencies are inlined)
 
 ---
 
