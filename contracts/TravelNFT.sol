@@ -65,7 +65,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
      * @param latitude GPS latitude as string
      * @param longitude GPS longitude as string  
      * @param category Photo category
-     * @param tokenURI IPFS hash or metadata URI
+     * @param uri IPFS hash or metadata URI
      */
     function mintTravelNFT(
         address to,
@@ -73,11 +73,11 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         string memory latitude,
         string memory longitude,
         string memory category,
-        string memory tokenURI
+        string memory uri
     ) public nonReentrant returns (uint256) {
         require(to != address(0), "Cannot mint to zero address");
         require(bytes(location).length > 0, "Location cannot be empty");
-        require(bytes(tokenURI).length > 0, "Token URI cannot be empty");
+        require(bytes(uri).length > 0, "Token URI cannot be empty");
         
         // Transfer USDC from sender to contract owner
         bool success = USDC.transferFrom(msg.sender, owner(), MINT_PRICE);
@@ -87,7 +87,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         
         // Mint NFT
         _safeMint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI);
+        _setTokenURI(tokenId, uri);
         
         // Store travel metadata
         travelMetadata[tokenId] = TravelMetadata({
@@ -113,13 +113,13 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         string[] memory latitudes,
         string[] memory longitudes,
         string[] memory categories,
-        string[] memory tokenURIs
+        string[] memory uris
     ) external nonReentrant returns (uint256[] memory) {
         require(recipients.length == locations.length, "Arrays length mismatch");
         require(recipients.length == latitudes.length, "Arrays length mismatch");
         require(recipients.length == longitudes.length, "Arrays length mismatch");
         require(recipients.length == categories.length, "Arrays length mismatch");
-        require(recipients.length == tokenURIs.length, "Arrays length mismatch");
+        require(recipients.length == uris.length, "Arrays length mismatch");
         
         uint256[] memory tokenIds = new uint256[](recipients.length);
         uint256 totalCost = MINT_PRICE * recipients.length;
@@ -132,7 +132,7 @@ contract TravelNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
             uint256 tokenId = _nextTokenId++;
             
             _safeMint(recipients[i], tokenId);
-            _setTokenURI(tokenId, tokenURIs[i]);
+            _setTokenURI(tokenId, uris[i]);
             
             travelMetadata[tokenId] = TravelMetadata({
                 location: locations[i],

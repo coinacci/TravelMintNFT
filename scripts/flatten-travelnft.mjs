@@ -56,6 +56,9 @@ flattened += readContract('utils/math/Math.sol') + '\n\n';
 console.log('📦 Adding SignedMath...');
 flattened += readContract('utils/math/SignedMath.sol') + '\n\n';
 
+console.log('📦 Adding SafeCast...');
+flattened += readContract('utils/math/SafeCast.sol') + '\n\n';
+
 console.log('📦 Adding IERC721Receiver...');
 flattened += readContract('token/ERC721/IERC721Receiver.sol') + '\n\n';
 
