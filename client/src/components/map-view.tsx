@@ -228,7 +228,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                    this.src='${fallbackUrl}';
                    this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
                  " />
-            <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
+            <h3 class="font-semibold text-sm mb-1" style="color: #000">${nft.title}</h3>
             <p class="text-xs text-gray-600 mb-1">${nft.location}</p>
             <p class="text-xs text-gray-500 mb-2">Owner: ${ownerDisplay}</p>
             ${nft.isForSale === 1 ? `
@@ -301,7 +301,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                        this.src='${clusterFallbackUrl}';
                        this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2264%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
                      " />
-                <h4 class="font-medium text-xs mb-1">${nft.title}</h4>
+                <h4 class="font-medium text-xs mb-1" style="color: #000">${nft.title}</h4>
                 <p class="text-xs text-gray-500 mb-1">Owner: ${clusterOwnerDisplay}</p>
                 ${nft.isForSale === 1 ? `
                 <div class="flex justify-between items-center mb-1">
