@@ -470,7 +470,7 @@ export default function Explore() {
           {nftDetails && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-2xl font-bold" data-testid="modal-nft-title">
+                <DialogTitle className="text-2xl font-bold text-foreground" data-testid="modal-nft-title">
                   {nftDetails.title}
                 </DialogTitle>
                 <DialogDescription>
