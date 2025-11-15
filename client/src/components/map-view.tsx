@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { formatUserDisplayName } from "@/lib/userDisplay";
 
 interface NFT {
   id: string;
@@ -17,8 +18,12 @@ interface NFT {
   location: string;
   isForSale: number;
   createdAt: string;
-  owner: { username: string; avatar?: string } | null;
-  creator: { username: string; avatar?: string } | null;
+  ownerAddress: string;
+  creatorAddress: string;
+  farcasterOwnerUsername?: string | null;
+  farcasterOwnerFid?: string | null;
+  farcasterCreatorUsername?: string | null;
+  farcasterCreatorFid?: string | null;
   country?: string;
   category?: string;
 }
@@ -208,6 +213,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
           : nft.imageUrl;
 
+        // Format owner display name
+        const ownerDisplay = formatUserDisplayName({
+          walletAddress: nft.ownerAddress,
+          farcasterUsername: nft.farcasterOwnerUsername,
+          farcasterFid: nft.farcasterOwnerFid
+        });
+
         const popupContent = `
           <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
             <img src="${imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
@@ -217,7 +229,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                    this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
                  " />
             <h3 class="font-semibold text-sm mb-1">${nft.title}</h3>
-            <p class="text-xs text-gray-600 mb-2">${nft.location}</p>
+            <p class="text-xs text-gray-600 mb-1">${nft.location}</p>
+            <p class="text-xs text-gray-500 mb-2">Owner: ${ownerDisplay}</p>
             ${nft.isForSale === 1 ? `
             <div class="flex justify-between items-center mb-2">
               <span class="text-xs text-gray-500">Price:</span>
@@ -272,6 +285,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               const clusterFallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
                 ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
                 : nft.imageUrl;
+              
+              // Format owner display name
+              const clusterOwnerDisplay = formatUserDisplayName({
+                walletAddress: nft.ownerAddress,
+                farcasterUsername: nft.farcasterOwnerUsername,
+                farcasterFid: nft.farcasterOwnerFid
+              });
                 
               return `
               <div class="border rounded mb-2 p-2 bg-gray-50">
@@ -282,6 +302,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                        this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2264%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
                      " />
                 <h4 class="font-medium text-xs mb-1">${nft.title}</h4>
+                <p class="text-xs text-gray-500 mb-1">Owner: ${clusterOwnerDisplay}</p>
                 ${nft.isForSale === 1 ? `
                 <div class="flex justify-between items-center mb-1">
                   <span class="text-xs text-gray-500">Price:</span>

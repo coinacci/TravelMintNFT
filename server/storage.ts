@@ -52,6 +52,7 @@ export interface IStorage {
   getUserWallets(farcasterFid: string): Promise<UserWallet[]>;
   getLinkedWallets(walletAddress: string): Promise<UserWallet[]>;
   checkCombinedHolderStatus(farcasterFid: string): Promise<{ isHolder: boolean; nftCount: number }>;
+  getFarcasterInfoFromWallet(walletAddress: string): Promise<{ fid: string; username: string } | null>;
   
   // Quest helper methods
   getQuestCompletion(farcasterFid: string, questType: string, day: number): Promise<QuestCompletion | undefined>;
@@ -180,7 +181,31 @@ export class DatabaseStorage implements IStorage {
     const protectedTokenIds = ['106', '89', '48', '44', '41'];
     const isProtected = insertNFT.tokenId && protectedTokenIds.includes(insertNFT.tokenId);
     
-    // Base update object without location fields
+    // Fetch Farcaster info for owner (always update on sync)
+    const ownerInfo = await this.getFarcasterInfoFromWallet(insertNFT.ownerAddress);
+    
+    // Only fetch creator info if creator exists AND creator != owner (to avoid overwriting creator with owner data)
+    let creatorInfo = null;
+    if (insertNFT.creatorAddress) {
+      const isDifferentCreator = insertNFT.creatorAddress.toLowerCase() !== insertNFT.ownerAddress.toLowerCase();
+      if (isDifferentCreator) {
+        creatorInfo = await this.getFarcasterInfoFromWallet(insertNFT.creatorAddress);
+      }
+    }
+    
+    // Prepare insert values with Farcaster fields (used only on initial insert)
+    const insertValues = {
+      ...insertNFT,
+      // Set creator info only if different from owner, otherwise leave null for backend to handle
+      farcasterCreatorUsername: creatorInfo?.username || null,
+      farcasterCreatorFid: creatorInfo?.fid || null,
+      // Always set owner info
+      farcasterOwnerUsername: ownerInfo?.username || null,
+      farcasterOwnerFid: ownerInfo?.fid || null,
+    };
+    
+    // Base update object - ONLY update owner Farcaster fields, NOT creator fields
+    // Creator is set once on mint and should not be overwritten by sync
     const baseUpdateSet = {
       title: insertNFT.title,
       description: insertNFT.description,
@@ -189,6 +214,9 @@ export class DatabaseStorage implements IStorage {
       price: insertNFT.price,
       ownerAddress: insertNFT.ownerAddress,
       creatorAddress: insertNFT.creatorAddress,
+      // Only update owner Farcaster info on sync, preserve creator info
+      farcasterOwnerUsername: ownerInfo?.username || null,
+      farcasterOwnerFid: ownerInfo?.fid || null,
       metadata: insertNFT.metadata,
       updatedAt: new Date()
     };
@@ -203,7 +231,7 @@ export class DatabaseStorage implements IStorage {
     
     const [nft] = await db
       .insert(nfts)
-      .values(insertNFT)
+      .values(insertValues)
       .onConflictDoUpdate({
         target: nfts.tokenId,
         set: updateSet
@@ -550,6 +578,37 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(userWallets)
       .where(eq(userWallets.walletAddress, walletAddress.toLowerCase()));
+  }
+
+  // Get Farcaster FID and username from wallet address
+  async getFarcasterInfoFromWallet(walletAddress: string): Promise<{ fid: string; username: string } | null> {
+    try {
+      // Lookup wallet in userWallets
+      const [wallet] = await db
+        .select()
+        .from(userWallets)
+        .where(eq(userWallets.walletAddress, walletAddress.toLowerCase()))
+        .limit(1);
+      
+      if (!wallet) {
+        return null;
+      }
+      
+      // Lookup username from userStats
+      const stats = await this.getUserStats(wallet.farcasterFid);
+      
+      if (!stats) {
+        return null;
+      }
+      
+      return {
+        fid: wallet.farcasterFid,
+        username: stats.farcasterUsername
+      };
+    } catch (error) {
+      console.error(`❌ Error fetching Farcaster info for wallet ${walletAddress}:`, error);
+      return null;
+    }
   }
 
   // Fetch verified addresses from Farcaster Hub API

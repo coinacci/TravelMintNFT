@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
+import { formatUserDisplayName } from "@/lib/userDisplay";
 
 interface NFTCardProps {
   nft: {
@@ -11,15 +12,16 @@ interface NFTCardProps {
     description?: string;
     imageUrl: string;
     objectStorageUrl?: string;
-    tokenURI?: string; // Add tokenURI for fallback when image URL fails
+    tokenURI?: string;
     location: string;
     price: string;
     isForSale: number;
-    ownerAddress?: string;
-    creator: { username: string; avatar?: string } | null;
-    owner: { id?: string; username: string; avatar?: string } | null;
-    sourceWallet?: string; // Source wallet address for multi-wallet
-    sourcePlatform?: string; // 'farcaster', 'base_app', 'manual'
+    ownerAddress: string;
+    creatorAddress: string;
+    farcasterOwnerUsername?: string | null;
+    farcasterOwnerFid?: string | null;
+    farcasterCreatorUsername?: string | null;
+    farcasterCreatorFid?: string | null;
   };
   onSelect?: () => void;
   onPurchase?: () => void;
@@ -162,11 +164,15 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
   }, [nft.objectStorageUrl, nft.imageUrl, nft.tokenURI]);
   
   // Check if the connected wallet owns this NFT
-  const isOwnNFT = connectedWallet && (
-    (nft.ownerAddress && connectedWallet.toLowerCase() === nft.ownerAddress.toLowerCase()) ||
-    (nft.owner?.id && connectedWallet.toLowerCase() === nft.owner.id.toLowerCase())
-  );
+  const isOwnNFT = connectedWallet && nft.ownerAddress && 
+    connectedWallet.toLowerCase() === nft.ownerAddress.toLowerCase();
   
+  // Format owner display name
+  const ownerDisplayName = formatUserDisplayName({
+    walletAddress: nft.ownerAddress,
+    farcasterUsername: nft.farcasterOwnerUsername,
+    farcasterFid: nft.farcasterOwnerFid
+  });
 
   return (
     <Card 
@@ -206,16 +212,8 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
         
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {nft.owner?.avatar && (
-              <img
-                src={nft.owner.avatar}
-                alt="Owner profile"
-                className="w-6 h-6 rounded-full"
-                data-testid={`owner-avatar-${nft.id}`}
-              />
-            )}
             <span className="text-xs text-muted-foreground" data-testid={`owner-username-${nft.id}`}>
-              Owner: {nft.owner?.username || 'unknown'}
+              Owner: {ownerDisplayName}
             </span>
           </div>
           

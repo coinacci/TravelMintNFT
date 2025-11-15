@@ -20,10 +20,11 @@ import { base } from "wagmi/chains";
 import ComposeCastButton from "@/components/ComposeCastButton";
 import { getQuestDay } from "@shared/schema";
 import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
+import { formatUserDisplayName } from "@/lib/userDisplay";
 
 interface NFT {
   id: string;
-  tokenId?: string; // Blockchain token ID
+  tokenId?: string;
   title: string;
   description?: string;
   imageUrl: string;
@@ -34,10 +35,14 @@ interface NFT {
   category: string;
   isForSale: number;
   createdAt?: string;
-  creator: { id: string; username: string; avatar?: string } | null;
-  owner: { id: string; username: string; avatar?: string } | null;
-  sourceWallet?: string; // Source wallet address for multi-wallet
-  sourcePlatform?: string; // 'farcaster', 'base_app', 'manual'
+  ownerAddress: string;
+  creatorAddress: string;
+  farcasterOwnerUsername?: string | null;
+  farcasterOwnerFid?: string | null;
+  farcasterCreatorUsername?: string | null;
+  farcasterCreatorFid?: string | null;
+  sourceWallet?: string;
+  sourcePlatform?: string;
 }
 
 interface Transaction {
@@ -1268,7 +1273,11 @@ export default function MyNFTs() {
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      {nftDetails.owner?.username || 'You'}
+                      {formatUserDisplayName({
+                        walletAddress: nftDetails.ownerAddress,
+                        farcasterUsername: nftDetails.farcasterOwnerUsername,
+                        farcasterFid: nftDetails.farcasterOwnerFid
+                      })}
                     </span>
                   </div>
                 </div>

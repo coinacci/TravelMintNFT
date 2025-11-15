@@ -15,6 +15,7 @@ import { parseUnits } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { User, Clock, MapPin } from "lucide-react";
+import { formatUserDisplayName } from "@/lib/userDisplay";
 
 interface NFT {
   id: string;
@@ -28,8 +29,12 @@ interface NFT {
   category: string;
   isForSale: number;
   createdAt?: string;
-  creator: { id: string; username: string; avatar?: string } | null;
-  owner: { id: string; username: string; avatar?: string } | null;
+  ownerAddress: string;
+  creatorAddress: string;
+  farcasterOwnerUsername?: string | null;
+  farcasterOwnerFid?: string | null;
+  farcasterCreatorUsername?: string | null;
+  farcasterCreatorFid?: string | null;
 }
 
 interface Transaction {
@@ -409,7 +414,7 @@ export default function Marketplace() {
       nftId: nft.id,
       price: nft.price,
       buyer: walletAddress,
-      seller: nft.owner?.id
+      seller: nft.ownerAddress
     });
 
     toast({
@@ -881,7 +886,11 @@ export default function Marketplace() {
                     <div className="flex items-center space-x-2">
                       <User className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">
-                        {nftDetails.creator?.username || 'Unknown'}
+                        {formatUserDisplayName({
+                          walletAddress: nftDetails.creatorAddress,
+                          farcasterUsername: nftDetails.farcasterCreatorUsername,
+                          farcasterFid: nftDetails.farcasterCreatorFid
+                        })}
                       </span>
                     </div>
                   </div>
@@ -891,7 +900,11 @@ export default function Marketplace() {
                     <div className="flex items-center space-x-2">
                       <User className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">
-                        {nftDetails.owner?.username || 'Unknown'}
+                        {formatUserDisplayName({
+                          walletAddress: nftDetails.ownerAddress,
+                          farcasterUsername: nftDetails.farcasterOwnerUsername,
+                          farcasterFid: nftDetails.farcasterOwnerFid
+                        })}
                       </span>
                     </div>
                   </div>
