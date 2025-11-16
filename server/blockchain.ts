@@ -1409,6 +1409,135 @@ export class BlockchainService {
     }
   }
 
+  // 🚀 Incremental NFT sync with block chunking and checkpoint persistence
+  async syncNFTsIncremental(storage: any, chunkSize: number = 2000): Promise<{ newNFTs: BlockchainNFT[], lastBlock: number }> {
+    try {
+      console.log(`🔄 Starting incremental blockchain sync...`);
+      
+      // Get current block number
+      const currentBlock = await provider.getBlockNumber();
+      console.log(`📊 Current block: ${currentBlock}`);
+      
+      // Get last processed block from storage
+      const syncState = await storage.getSyncState(NFT_CONTRACT_ADDRESS);
+      const startBlock = syncState ? syncState.lastProcessedBlock + 1 : 38137640; // Contract deployment block
+      
+      console.log(`📍 Last synced block: ${syncState?.lastProcessedBlock || 'none'}`);
+      console.log(`📍 Starting from block: ${startBlock}`);
+      console.log(`📍 Blocks to process: ${currentBlock - startBlock + 1}`);
+      
+      if (startBlock > currentBlock) {
+        console.log(`✅ Already up to date!`);
+        return { newNFTs: [], lastBlock: currentBlock };
+      }
+      
+      const newNFTs: BlockchainNFT[] = [];
+      let processedBlock = startBlock;
+      
+      // Process in chunks to avoid timeout
+      while (processedBlock <= currentBlock) {
+        const toBlock = Math.min(processedBlock + chunkSize - 1, currentBlock);
+        
+        console.log(`🔍 Scanning blocks ${processedBlock} to ${toBlock} (chunk size: ${toBlock - processedBlock + 1})`);
+        
+        try {
+          // Query Transfer events in this chunk
+          const filter = nftContract.filters.Transfer();
+          const events = await nftContract.queryFilter(filter, processedBlock, toBlock);
+          
+          console.log(`📥 Found ${events.length} Transfer events in this chunk`);
+          
+          // Process each unique token
+          const processedTokens = new Set<string>();
+          
+          for (const event of events) {
+            const tokenId = event.args?.tokenId?.toString();
+            if (!tokenId || processedTokens.has(tokenId)) continue;
+            
+            processedTokens.add(tokenId);
+            
+            try {
+              // Get current owner and metadata
+              const owner = await nftContract.ownerOf(tokenId);
+              const tokenURI = await nftContract.tokenURI(tokenId);
+              
+              console.log(`✅ Token ${tokenId}: owner=${owner}`);
+              
+              // Add to results (metadata will be fetched async later)
+              newNFTs.push({
+                tokenId,
+                owner: owner.toLowerCase(),
+                tokenURI,
+                metadata: null // Will be fetched async
+              });
+              
+            } catch (error) {
+              console.error(`❌ Error processing token ${tokenId}:`, error);
+            }
+          }
+          
+          // Update checkpoint after successful chunk
+          await storage.updateSyncState(NFT_CONTRACT_ADDRESS, toBlock);
+          console.log(`✅ Checkpoint saved: block ${toBlock}`);
+          
+          processedBlock = toBlock + 1;
+          
+          // Small delay to avoid rate limiting
+          if (processedBlock <= currentBlock) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+        } catch (error: any) {
+          console.error(`❌ Error processing chunk ${processedBlock}-${toBlock}:`, error.message);
+          
+          // If timeout, try smaller chunk
+          if (error.message?.includes('timeout') || error.code === 'TIMEOUT') {
+            console.log(`⚠️ Timeout detected, reducing chunk size...`);
+            chunkSize = Math.max(500, Math.floor(chunkSize / 2));
+            continue;
+          }
+          
+          throw error;
+        }
+      }
+      
+      console.log(`🎉 Sync complete! Found ${newNFTs.length} new NFTs`);
+      console.log(`📍 Synced up to block: ${currentBlock}`);
+      
+      return { newNFTs, lastBlock: currentBlock };
+      
+    } catch (error: any) {
+      console.error(`❌ Incremental sync failed:`, error);
+      throw error;
+    }
+  }
+
+  // 🔄 Fetch metadata asynchronously for NFTs without blocking sync
+  async fetchMetadataAsync(blockchainNFT: BlockchainNFT): Promise<BlockchainNFT> {
+    if (!blockchainNFT.tokenURI) {
+      return blockchainNFT;
+    }
+    
+    try {
+      const uris = normalizeUri(blockchainNFT.tokenURI);
+      if (uris.length === 0) {
+        console.log(`⚠️ No valid URIs for token ${blockchainNFT.tokenId}`);
+        return blockchainNFT;
+      }
+      
+      console.log(`📥 Fetching metadata for token ${blockchainNFT.tokenId}...`);
+      const metadata = await fetchWithGateways(uris);
+      
+      return {
+        ...blockchainNFT,
+        metadata
+      };
+    } catch (error) {
+      console.error(`❌ Failed to fetch metadata for token ${blockchainNFT.tokenId}:`, error);
+      return blockchainNFT;
+    }
+  }
+
 }
 
 export const blockchainService = new BlockchainService();
