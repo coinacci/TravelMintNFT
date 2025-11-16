@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -93,6 +93,10 @@ export interface IStorage {
   createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory>;
   getNotificationHistory(limit?: number): Promise<NotificationHistory[]>;
   updateLastNotificationSent(farcasterFids: string[]): Promise<number>;
+
+  // Blockchain sync operations
+  getSyncState(contractAddress: string): Promise<SyncState | undefined>;
+  updateSyncState(contractAddress: string, lastProcessedBlock: number): Promise<SyncState>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1220,6 +1224,42 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${userStats.farcasterFid} = ANY(${farcasterFids})`);
     
     return result.rowCount || 0;
+  }
+
+  // Blockchain sync operations
+  async getSyncState(contractAddress: string): Promise<SyncState | undefined> {
+    const [state] = await db
+      .select()
+      .from(syncState)
+      .where(eq(syncState.contractAddress, contractAddress.toLowerCase()));
+    return state || undefined;
+  }
+
+  async updateSyncState(contractAddress: string, lastProcessedBlock: number): Promise<SyncState> {
+    const existing = await this.getSyncState(contractAddress);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(syncState)
+        .set({
+          lastProcessedBlock,
+          lastSyncAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(syncState.contractAddress, contractAddress.toLowerCase()))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(syncState)
+        .values({
+          contractAddress: contractAddress.toLowerCase(),
+          lastProcessedBlock,
+          lastSyncAt: new Date()
+        })
+        .returning();
+      return created;
+    }
   }
 
   // Referral operations
