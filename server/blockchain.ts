@@ -1243,8 +1243,14 @@ export class BlockchainService {
   }
 
   // 🔄 Get recent NFT purchase events from blockchain by reading Transfer events
-  async getRecentPurchaseEvents(fromBlock: number = -50000): Promise<any[]> {
+  async getRecentPurchaseEvents(fromBlock?: number): Promise<any[]> {
     try {
+      // If no fromBlock provided, scan last 50k blocks (about 1 day on Base)
+      if (fromBlock === undefined) {
+        const currentBlock = await provider.getBlockNumber();
+        fromBlock = Math.max(0, currentBlock - 50000);
+      }
+      
       console.log(`📡 Fetching NFT Transfer events from block ${fromBlock}...`);
       
       // Query Transfer events from NFT contract
@@ -1325,8 +1331,14 @@ export class BlockchainService {
   }
 
   // 🔄 Get ALL NFT transfer events (purchases + regular transfers) for auto-delist
-  async getAllTransferEvents(fromBlock: number = -10000): Promise<any[]> {
+  async getAllTransferEvents(fromBlock?: number): Promise<any[]> {
     try {
+      // If no fromBlock provided, scan last 10k blocks (about 5 hours on Base)
+      if (fromBlock === undefined) {
+        const currentBlock = await provider.getBlockNumber();
+        fromBlock = Math.max(0, currentBlock - 10000);
+      }
+      
       console.log(`📡 Fetching ALL NFT Transfer events from block ${fromBlock}...`);
       
       // Query Transfer events from NFT contract
