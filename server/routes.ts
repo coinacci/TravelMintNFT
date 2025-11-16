@@ -4086,8 +4086,90 @@ export async function registerRoutes(app: Express) {
     }
   }
   
+  // 🌐 Basescan-based NFT discovery (more reliable than RPC event scanning)
+  async function syncFromBasescan() {
+    try {
+      console.log('🌐 Starting Basescan API sync for NFT discovery...');
+      
+      const { newNFTs, missingTokens } = await blockchainService.syncNFTsFromBasescan(storage);
+      
+      if (newNFTs.length === 0) {
+        console.log('✅ Basescan sync: Database is up to date');
+        return;
+      }
+      
+      console.log(`🔍 Basescan found ${newNFTs.length} missing tokens: ${missingTokens.join(', ')}`);
+      
+      // Add each new NFT to database
+      for (const nft of newNFTs) {
+        try {
+          // Fetch and parse metadata
+          const nftWithMetadata = await blockchainService.fetchMetadataAsync(nft);
+          const metadata = nftWithMetadata.metadata || {};
+          
+          const title = metadata.name || `Travel NFT #${nft.tokenId}`;
+          const description = metadata.description || '';
+          const imageUrl = metadata.image || nft.tokenURI;
+          
+          // Extract location data
+          let location = 'Unknown';
+          let latitude = '0';
+          let longitude = '0';
+          
+          if (metadata.attributes && Array.isArray(metadata.attributes)) {
+            const locationAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type === 'Location' || attr.trait_type === 'location'
+            );
+            if (locationAttr) location = locationAttr.value;
+            
+            const latAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type === 'Latitude' || attr.trait_type === 'latitude'
+            );
+            if (latAttr) latitude = latAttr.value.toString();
+            
+            const lngAttr = metadata.attributes.find((attr: any) => 
+              attr.trait_type === 'Longitude' || attr.trait_type === 'longitude'
+            );
+            if (lngAttr) longitude = lngAttr.value.toString();
+          }
+          
+          // Add to database
+          await storage.createNFT({
+            tokenId: nft.tokenId,
+            title,
+            description,
+            imageUrl,
+            location,
+            latitude,
+            longitude,
+            ownerAddress: nft.owner,
+            creatorAddress: nft.owner,
+            category: 'Travel',
+            price: '0',
+            isListed: false
+          });
+          
+          console.log(`✅ Added NFT #${nft.tokenId}: ${title} at ${location}`);
+          
+        } catch (error) {
+          console.error(`❌ Error adding NFT #${nft.tokenId}:`, error);
+        }
+      }
+      
+      console.log(`🎉 Basescan sync complete: ${newNFTs.length} new NFTs added to database`);
+      
+    } catch (error) {
+      console.error('❌ Basescan sync failed:', error);
+    }
+  }
+  
   // Run initial sync on server startup
   console.log('🚀 Starting initial blockchain sync...');
+  
+  // First, use Basescan API to discover any missing NFTs (most reliable)
+  syncFromBasescan();
+  
+  // Then run periodic RPC-based sync for real-time updates
   syncMintEvents(); // Sync any newly minted NFTs first
   syncRecentActivity(); // Then sync transfers
   
@@ -4097,6 +4179,12 @@ export async function registerRoutes(app: Express) {
     syncRecentActivity();
   }, 5000);
   console.log('⏰ Periodic blockchain sync enabled (Mint events + Transfers every 5 seconds)');
+  
+  // Run Basescan discovery sync every 30 seconds to catch any missed tokens
+  setInterval(() => {
+    syncFromBasescan();
+  }, 30000);
+  console.log('⏰ Basescan discovery sync enabled (every 30 seconds)');
 
   return createServer(app);
 }

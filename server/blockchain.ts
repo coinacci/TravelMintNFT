@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { getAllTokenIdsFromContract } from "./basescan.js";
 
 // Use multiple high-performance RPC providers (avoiding rate-limited official endpoint)
 const BASE_RPC_URLS = [
@@ -1631,6 +1632,72 @@ export class BlockchainService {
     } catch (error) {
       console.error(`❌ Failed to fetch metadata for token ${blockchainNFT.tokenId}:`, error);
       return blockchainNFT;
+    }
+  }
+
+  // 🌐 Sync NFTs using Basescan API (more reliable than RPC for discovery)
+  async syncNFTsFromBasescan(storage: any): Promise<{ newNFTs: BlockchainNFT[], missingTokens: string[] }> {
+    console.log(`🌐 Starting Basescan API sync...`);
+    
+    try {
+      // Get all token IDs from Basescan API
+      const basescanTokenIds = await getAllTokenIdsFromContract();
+      console.log(`📊 Basescan reports ${basescanTokenIds.size} total tokens minted`);
+      
+      // Get existing tokens from database
+      const existingNFTs = await storage.getAllNFTs();
+      const existingTokenIds = new Set(existingNFTs.map((nft: any) => nft.tokenId.toString()));
+      console.log(`💾 Database has ${existingTokenIds.size} tokens`);
+      
+      // Find missing tokens
+      const missingTokens: string[] = [];
+      for (const tokenId of Array.from(basescanTokenIds)) {
+        if (!existingTokenIds.has(tokenId)) {
+          missingTokens.push(tokenId);
+        }
+      }
+      
+      if (missingTokens.length === 0) {
+        console.log(`✅ Database is up to date - no missing tokens!`);
+        return { newNFTs: [], missingTokens: [] };
+      }
+      
+      console.log(`🔍 Found ${missingTokens.length} missing tokens: ${missingTokens.join(', ')}`);
+      
+      // Fetch details for each missing token using RPC
+      const newNFTs: BlockchainNFT[] = [];
+      
+      for (const tokenId of missingTokens) {
+        try {
+          console.log(`📥 Fetching details for token ${tokenId}...`);
+          
+          // Get owner and tokenURI from contract
+          const owner = await currentNftContract.ownerOf(tokenId);
+          const tokenURI = await currentNftContract.tokenURI(tokenId);
+          
+          console.log(`✅ Token ${tokenId}: owner=${owner}`);
+          
+          newNFTs.push({
+            tokenId,
+            owner: owner.toLowerCase(),
+            tokenURI,
+            metadata: null // Will be fetched async
+          });
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+        } catch (error) {
+          console.error(`❌ Error fetching token ${tokenId}:`, error);
+        }
+      }
+      
+      console.log(`🎉 Basescan sync complete! Found ${newNFTs.length} new NFTs`);
+      return { newNFTs, missingTokens };
+      
+    } catch (error) {
+      console.error(`❌ Basescan sync failed:`, error);
+      throw error;
     }
   }
 
