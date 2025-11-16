@@ -44,7 +44,7 @@ async function updateAllNFTsWithFarcaster() {
         await delay(400);
         
         // Determine creator info based on whether creator == owner
-        let creatorInfo = null;
+        let creatorInfo: { fid: string; username: string } | null = null;
         const isSameAsOwner = !nft.creatorAddress || 
                               nft.creatorAddress.toLowerCase() === nft.ownerAddress.toLowerCase();
         
