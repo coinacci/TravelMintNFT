@@ -1,11 +1,15 @@
 import { storage } from "../server/storage";
+import { delay } from "../server/neynar-api";
 
 /**
  * One-time script to update all existing NFTs with Farcaster usernames
  * This populates farcaster_owner_username and farcaster_creator_username fields
+ * 
+ * KEY FIX: For NFTs where creator == owner, copy owner info to creator fields
  */
 async function updateAllNFTsWithFarcaster() {
   console.log("🔄 Starting Farcaster username update for all NFTs...");
+  console.log("⚠️  This will use Neynar API for unknown wallets - rate limited to 150 req/min");
   
   try {
     // Get all NFTs
@@ -15,25 +19,46 @@ async function updateAllNFTsWithFarcaster() {
     let updatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    let neynarCalls = 0;
     
     for (const nft of allNFTs) {
       try {
-        // Check if already has Farcaster data
-        if (nft.farcasterOwnerUsername && nft.farcasterCreatorUsername) {
-          console.log(`⏭️  Skipping NFT #${nft.tokenId} - already has Farcaster data`);
+        // Check if BOTH owner and creator data are complete
+        const hasCompleteData = nft.farcasterOwnerUsername && nft.farcasterCreatorUsername;
+        
+        if (hasCompleteData) {
+          console.log(`⏭️  Skipping NFT #${nft.tokenId} - already has complete Farcaster data`);
           skippedCount++;
           continue;
         }
         
         console.log(`🔍 Processing NFT #${nft.tokenId} (${nft.title})`);
         
-        // Get Farcaster info for owner
+        // Get Farcaster info for owner (may use Neynar API)
         const ownerInfo = await storage.getFarcasterInfoFromWallet(nft.ownerAddress);
+        if (!nft.farcasterOwnerUsername && ownerInfo) {
+          neynarCalls++;
+        }
         
-        // Get Farcaster info for creator (only if different from owner)
+        // Rate limiting: 400ms between requests (150 req/min = ~400ms/request)
+        await delay(400);
+        
+        // Determine creator info based on whether creator == owner
         let creatorInfo = null;
-        if (nft.creatorAddress && nft.creatorAddress.toLowerCase() !== nft.ownerAddress.toLowerCase()) {
+        const isSameAsOwner = !nft.creatorAddress || 
+                              nft.creatorAddress.toLowerCase() === nft.ownerAddress.toLowerCase();
+        
+        if (isSameAsOwner) {
+          // Creator is same as owner - copy owner info to creator fields
+          creatorInfo = ownerInfo;
+          console.log(`  ℹ️  Creator == Owner - copying owner Farcaster info`);
+        } else {
+          // Different creator - look up separately
           creatorInfo = await storage.getFarcasterInfoFromWallet(nft.creatorAddress);
+          if (!nft.farcasterCreatorUsername && creatorInfo) {
+            neynarCalls++;
+          }
+          await delay(400); // Rate limit
         }
         
         // Update NFT with Farcaster info
@@ -45,7 +70,8 @@ async function updateAllNFTsWithFarcaster() {
         });
         
         const ownerDisplay = ownerInfo?.username || nft.ownerAddress.substring(0, 8);
-        const creatorDisplay = creatorInfo?.username || (creatorInfo ? nft.creatorAddress.substring(0, 8) : 'same as owner');
+        const creatorDisplay = creatorInfo?.username || 
+                              (isSameAsOwner ? '(same as owner)' : nft.creatorAddress.substring(0, 8));
         
         console.log(`✅ Updated NFT #${nft.tokenId}: Owner=${ownerDisplay}, Creator=${creatorDisplay}`);
         updatedCount++;
@@ -61,6 +87,7 @@ async function updateAllNFTsWithFarcaster() {
     console.log(`  ⏭️  Skipped: ${skippedCount}`);
     console.log(`  ❌ Errors: ${errorCount}`);
     console.log(`  📊 Total: ${allNFTs.length}`);
+    console.log(`  🌐 Neynar API calls: ${neynarCalls}`);
     
     console.log("\n🎉 Farcaster username update completed!");
     
