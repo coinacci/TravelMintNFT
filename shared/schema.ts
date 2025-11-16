@@ -298,3 +298,22 @@ export function getWeekNumber(date: Date = new Date()): number {
   const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
   return Math.floor(diffDays / 7) + 1; // Week 1 starts from app launch
 }
+
+// Blockchain Sync State Table - tracks incremental sync progress
+export const syncState = pgTable("sync_state", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractAddress: text("contract_address").notNull().unique(), // NFT contract address
+  lastProcessedBlock: integer("last_processed_block").notNull().default(0), // Last successfully processed block
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(), // When sync last ran
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSyncStateSchema = createInsertSchema(syncState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSyncState = z.infer<typeof insertSyncStateSchema>;
+export type SyncState = typeof syncState.$inferSelect;
