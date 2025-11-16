@@ -538,12 +538,17 @@ export async function registerRoutes(app: Express) {
       // Immediate cache clear and aggressive blockchain sync (non-blocking)
       setImmediate(async () => {
         try {
-          console.log("🔄 Background blockchain sync starting...");
-          const blockchainNFTs = await blockchainService.getAllNFTs();
-          console.log(`Found ${blockchainNFTs.length} NFTs on blockchain`);
+          console.log("🔄 Background blockchain sync starting (incremental mode)...");
           
-          // Sync any blockchain NFTs that aren't in database yet
-          for (const blockchainNFT of blockchainNFTs) {
+          // Use new incremental sync method - much faster!
+          const { newNFTs, lastBlock } = await blockchainService.syncNFTsIncremental(storage);
+          console.log(`✅ Incremental sync found ${newNFTs.length} new/updated NFTs up to block ${lastBlock}`);
+          
+          // Process new NFTs from incremental sync
+          for (const blockchainNFT of newNFTs) {
+            // Fetch metadata async (don't block)
+            const nftWithMetadata = await blockchainService.fetchMetadataAsync(blockchainNFT);
+            
             const existsInDb = contractNFTs.find(nft => nft.tokenId === blockchainNFT.tokenId);
             
             if (!existsInDb) {

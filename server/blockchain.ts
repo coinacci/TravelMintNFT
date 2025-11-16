@@ -1410,7 +1410,7 @@ export class BlockchainService {
   }
 
   // 🚀 Incremental NFT sync with block chunking and checkpoint persistence
-  async syncNFTsIncremental(storage: any, chunkSize: number = 2000): Promise<{ newNFTs: BlockchainNFT[], lastBlock: number }> {
+  async syncNFTsIncremental(storage: any, chunkSize: number = 1000): Promise<{ newNFTs: BlockchainNFT[], lastBlock: number }> {
     try {
       console.log(`🔄 Starting incremental blockchain sync...`);
       
@@ -1420,7 +1420,8 @@ export class BlockchainService {
       
       // Get last processed block from storage
       const syncState = await storage.getSyncState(NFT_CONTRACT_ADDRESS);
-      const startBlock = syncState ? syncState.lastProcessedBlock + 1 : 38137640; // Contract deployment block
+      // Start from a recent block if no checkpoint exists (avoid scanning entire history)
+      const startBlock = syncState ? syncState.lastProcessedBlock + 1 : Math.max(38137640, currentBlock - 10000); // Last 10k blocks
       
       console.log(`📍 Last synced block: ${syncState?.lastProcessedBlock || 'none'}`);
       console.log(`📍 Starting from block: ${startBlock}`);
@@ -1490,14 +1491,20 @@ export class BlockchainService {
         } catch (error: any) {
           console.error(`❌ Error processing chunk ${processedBlock}-${toBlock}:`, error.message);
           
-          // If timeout, try smaller chunk
-          if (error.message?.includes('timeout') || error.code === 'TIMEOUT') {
-            console.log(`⚠️ Timeout detected, reducing chunk size...`);
-            chunkSize = Math.max(500, Math.floor(chunkSize / 2));
+          // If timeout or invalid range, try smaller chunk
+          if (error.message?.includes('timeout') || 
+              error.message?.includes('invalid block range') ||
+              error.code === 'TIMEOUT' ||
+              error.error?.code === -32000) {
+            console.log(`⚠️ RPC error detected, reducing chunk size...`);
+            chunkSize = Math.max(100, Math.floor(chunkSize / 2));
+            console.log(`🔄 Retrying with chunk size: ${chunkSize}`);
             continue;
           }
           
-          throw error;
+          // Skip this chunk and continue
+          console.log(`⚠️ Skipping problematic chunk, moving to next...`);
+          processedBlock = toBlock + 1;
         }
       }
       
