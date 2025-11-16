@@ -17,7 +17,9 @@ export interface UserIdentity {
 export function formatUserDisplayName(identity: UserIdentity): string {
   // 1. If Farcaster username is available, use it
   if (identity.farcasterUsername) {
-    return `@${identity.farcasterUsername}`;
+    // Prevent double @ - if username already starts with @, don't add another
+    const username = identity.farcasterUsername.trim();
+    return username.startsWith('@') ? username : `@${username}`;
   }
   
   // 2. Check if it's a recognized platform wallet

@@ -583,28 +583,35 @@ export class DatabaseStorage implements IStorage {
   // Get Farcaster FID and username from wallet address
   async getFarcasterInfoFromWallet(walletAddress: string): Promise<{ fid: string; username: string } | null> {
     try {
-      // Lookup wallet in userWallets
+      // Step 1: Try local database first (user_wallets + user_stats)
       const [wallet] = await db
         .select()
         .from(userWallets)
         .where(eq(userWallets.walletAddress, walletAddress.toLowerCase()))
         .limit(1);
       
-      if (!wallet) {
-        return null;
+      if (wallet) {
+        // Lookup username from userStats
+        const stats = await this.getUserStats(wallet.farcasterFid);
+        
+        if (stats) {
+          return {
+            fid: wallet.farcasterFid,
+            username: stats.farcasterUsername
+          };
+        }
       }
       
-      // Lookup username from userStats
-      const stats = await this.getUserStats(wallet.farcasterFid);
+      // Step 2: Fallback to Neynar API for wallets not in our database
+      const { getNeynarUserByAddress } = await import('./neynar-api');
+      const neynarResult = await getNeynarUserByAddress(walletAddress);
       
-      if (!stats) {
-        return null;
+      if (neynarResult) {
+        console.log(`✅ Found Farcaster user via Neynar: ${neynarResult.username} (${neynarResult.fid})`);
+        return neynarResult;
       }
       
-      return {
-        fid: wallet.farcasterFid,
-        username: stats.farcasterUsername
-      };
+      return null;
     } catch (error) {
       console.error(`❌ Error fetching Farcaster info for wallet ${walletAddress}:`, error);
       return null;
