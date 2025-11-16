@@ -135,6 +135,7 @@ export function stopQuestEventListener() {
   }
   
   console.log("🛑 Stopping QuestManager event listener...");
+  const questManagerContract = getQuestManagerContract();
   questManagerContract.removeAllListeners("QuestCompleted");
   isListening = false;
   console.log("✅ QuestManager event listener stopped");
