@@ -1,4 +1,4 @@
-import { questManagerContract } from "./blockchain.js";
+import { getQuestManagerContract } from "./blockchain.js";
 import { storage } from "./storage.js";
 import { getQuestDay } from "../shared/schema.js";
 
@@ -13,6 +13,9 @@ export async function startQuestEventListener() {
   console.log("🎧 Starting QuestManager event listener...");
   
   try {
+    // Use getter to always get current quest manager contract (supports RPC rotation)
+    const questManagerContract = getQuestManagerContract();
+    
     questManagerContract.on("QuestCompleted", async (user, questId, fee, timestamp, day, event) => {
       // Extract transaction hash from event (ethers v6 format)
       const txHash = event.transactionHash || event.log?.transactionHash || 'unknown';

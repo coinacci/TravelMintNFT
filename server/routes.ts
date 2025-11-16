@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
-import { blockchainService, withRetry, nftContract } from "./blockchain";
+import { blockchainService, withRetry } from "./blockchain";
 import { 
   insertNFTSchema, 
   insertTransactionSchema, 
@@ -2042,19 +2042,14 @@ export async function registerRoutes(app: Express) {
         try {
           checkedTokens++;
           
-          // Enhanced retry logic for critical tokens like 47
-          const maxRetries = tokenId === 47 ? 8 : 1; // Extra retries for Token 47
-          const owner = await withRetry(() => nftContract.ownerOf(tokenId), maxRetries);
-          const tokenURI = await nftContract.tokenURI(tokenId);
+          // Use blockchainService to get token info (supports RPC rotation on failures)
+          const blockchainNFT = await blockchainService.getNFTByTokenId(tokenId.toString());
           
-          const blockchainNFT = {
-            tokenId: tokenId.toString(),
-            owner: owner.toLowerCase(),
-            tokenURI,
-            metadata: null // Will be enriched later
-          };
+          if (!blockchainNFT) {
+            throw new Error(`Token ${tokenId} not found on blockchain`);
+          }
           
-          console.log(`🎯 Successfully detected Token ${tokenId} (owner: ${owner}) in post-mint sync`);
+          console.log(`🎯 Successfully detected Token ${tokenId} (owner: ${blockchainNFT.owner}) in post-mint sync`);
         
           if (blockchainNFT) {
             console.log(`🆕 Found new token ${tokenId} owned by ${blockchainNFT.owner}`);
@@ -2109,9 +2104,15 @@ export async function registerRoutes(app: Express) {
         try {
           console.log(`🔄 Attempt ${attempt}/10 for Token 47...`);
           
-          // Direct contract call with extra timeout
-          const owner = await nftContract.ownerOf(47);
-          const tokenURI = await nftContract.tokenURI(47);
+          // Use blockchainService (supports RPC rotation on failures)
+          const token47 = await blockchainService.getNFTByTokenId("47");
+          
+          if (!token47) {
+            throw new Error("Token 47 not found");
+          }
+          
+          const owner = token47.owner;
+          const tokenURI = token47.tokenURI;
           
           console.log(`✅ SUCCESS! Token 47 owner: ${owner}, tokenURI: ${tokenURI}`);
           

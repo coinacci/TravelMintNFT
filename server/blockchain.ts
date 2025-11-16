@@ -10,7 +10,7 @@ const BASE_RPC_URLS = [
 ];
 
 let currentRpcIndex = 0;
-const BASE_RPC_URL = BASE_RPC_URLS[0];
+
 // Moralis API configuration - much more reliable than BaseScan
 const MORALIS_API_URL = "https://deep-index.moralis.io/api/v2";
 const MORALIS_API_KEY = process.env.MORALIS_API_KEY || "";
@@ -105,14 +105,65 @@ export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promis
   throw lastError!;
 }
 
-// Create provider for Base network
-const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
+// Provider and contract instances (will be initialized after ABIs are defined)
+let currentProvider: ethers.JsonRpcProvider;
+let currentNftContract: ethers.Contract;
+let currentMarketplaceContract: ethers.Contract;
+let currentUsdcContract: ethers.Contract;
+let currentQuestManagerContract: ethers.Contract;
 
-// Create contract instances
-export const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider);
-export const marketplaceContract = new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider);
-const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
-export const questManagerContract = new ethers.Contract(QUEST_MANAGER_ADDRESS, QUEST_MANAGER_ABI, provider);
+// Initialize provider and contracts
+function initializeProvider(rpcUrl: string) {
+  console.log(`🔌 Initializing RPC provider: ${rpcUrl}`);
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  
+  return {
+    provider,
+    nftContract: new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider),
+    marketplaceContract: new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider),
+    usdcContract: new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider),
+    questManagerContract: new ethers.Contract(QUEST_MANAGER_ADDRESS, QUEST_MANAGER_ABI, provider)
+  };
+}
+
+// Rotate to next RPC provider on failure
+function rotateRpcProvider(): boolean {
+  const nextIndex = (currentRpcIndex + 1) % BASE_RPC_URLS.length;
+  
+  currentRpcIndex = nextIndex;
+  const nextUrl = BASE_RPC_URLS[currentRpcIndex];
+  console.log(`🔄 Rotating to RPC provider [${currentRpcIndex}]: ${nextUrl}`);
+  
+  const { provider, nftContract, marketplaceContract, usdcContract, questManagerContract } = initializeProvider(nextUrl);
+  currentProvider = provider;
+  currentNftContract = nftContract;
+  currentMarketplaceContract = marketplaceContract;
+  currentUsdcContract = usdcContract;
+  currentQuestManagerContract = questManagerContract;
+  
+  return true;
+}
+
+// Initialize with first provider (done after all constants are defined)
+const initial = initializeProvider(BASE_RPC_URLS[0]);
+currentProvider = initial.provider;
+currentNftContract = initial.nftContract;
+currentMarketplaceContract = initial.marketplaceContract;
+currentUsdcContract = initial.usdcContract;
+currentQuestManagerContract = initial.questManagerContract;
+
+// Backward compatibility exports (use getters internally for rotation support)
+export const provider = currentProvider;
+export const nftContract = currentNftContract;
+export const marketplaceContract = currentMarketplaceContract;
+const usdcContract = currentUsdcContract;
+export const questManagerContract = currentQuestManagerContract;
+
+// Export getters that always return current instances
+export const getProvider = () => currentProvider;
+export const getNftContract = () => currentNftContract;
+export const getMarketplaceContract = () => currentMarketplaceContract;
+export const getQuestManagerContract = () => currentQuestManagerContract;
 
 export interface BlockchainNFT {
   tokenId: string;
@@ -1263,6 +1314,7 @@ export class BlockchainService {
       
       // Check each transfer to see if it's a purchase (has USDC transfers in same tx)
       for (const event of transferEvents) {
+        if (!('args' in event)) continue;
         const txHash = event.transactionHash;
         const from = event.args?.[0]?.toLowerCase();
         const to = event.args?.[1]?.toLowerCase();
@@ -1351,6 +1403,7 @@ export class BlockchainService {
       
       // Process each transfer
       for (const event of transferEvents) {
+        if (!('args' in event)) continue;
         const txHash = event.transactionHash;
         const from = event.args?.[0]?.toLowerCase();
         const to = event.args?.[1]?.toLowerCase();
@@ -1423,11 +1476,14 @@ export class BlockchainService {
 
   // 🚀 Incremental NFT sync with block chunking and checkpoint persistence
   async syncNFTsIncremental(storage: any, chunkSize: number = 1000): Promise<{ newNFTs: BlockchainNFT[], lastBlock: number }> {
+    let retryCount = 0;
+    const maxRetries = BASE_RPC_URLS.length;
+    
     try {
       console.log(`🔄 Starting incremental blockchain sync...`);
       
       // Get current block number
-      const currentBlock = await provider.getBlockNumber();
+      const currentBlock = await currentProvider.getBlockNumber();
       console.log(`📊 Current block: ${currentBlock}`);
       
       // Get last processed block from storage
@@ -1455,8 +1511,8 @@ export class BlockchainService {
         
         try {
           // Query Transfer events in this chunk
-          const filter = nftContract.filters.Transfer();
-          const events = await nftContract.queryFilter(filter, processedBlock, toBlock);
+          const filter = currentNftContract.filters.Transfer();
+          const events = await currentNftContract.queryFilter(filter, processedBlock, toBlock);
           
           console.log(`📥 Found ${events.length} Transfer events in this chunk`);
           
@@ -1464,6 +1520,7 @@ export class BlockchainService {
           const processedTokens = new Set<string>();
           
           for (const event of events) {
+            if (!('args' in event)) continue;
             const tokenId = event.args?.tokenId?.toString();
             if (!tokenId || processedTokens.has(tokenId)) continue;
             
@@ -1471,8 +1528,8 @@ export class BlockchainService {
             
             try {
               // Get current owner and metadata
-              const owner = await nftContract.ownerOf(tokenId);
-              const tokenURI = await nftContract.tokenURI(tokenId);
+              const owner = await currentNftContract.ownerOf(tokenId);
+              const tokenURI = await currentNftContract.tokenURI(tokenId);
               
               console.log(`✅ Token ${tokenId}: owner=${owner}`);
               
@@ -1494,6 +1551,7 @@ export class BlockchainService {
           console.log(`✅ Checkpoint saved: block ${toBlock}`);
           
           processedBlock = toBlock + 1;
+          retryCount = 0; // Reset retry count on success
           
           // Small delay to avoid rate limiting
           if (processedBlock <= currentBlock) {
@@ -1503,20 +1561,39 @@ export class BlockchainService {
         } catch (error: any) {
           console.error(`❌ Error processing chunk ${processedBlock}-${toBlock}:`, error.message);
           
-          // If timeout or invalid range, try smaller chunk
-          if (error.message?.includes('timeout') || 
+          // Check if it's an RPC error (timeout, invalid range, connection error)
+          const isRpcError = error.message?.includes('timeout') || 
               error.message?.includes('invalid block range') ||
+              error.message?.includes('could not detect network') ||
               error.code === 'TIMEOUT' ||
-              error.error?.code === -32000) {
-            console.log(`⚠️ RPC error detected, reducing chunk size...`);
+              error.code === 'NETWORK_ERROR' ||
+              error.error?.code === -32000;
+          
+          if (isRpcError && retryCount < maxRetries) {
+            // Try rotating to next RPC provider
+            console.log(`⚠️ RPC error detected, attempting provider rotation...`);
+            const rotated = rotateRpcProvider();
+            
+            if (rotated) {
+              retryCount++;
+              console.log(`🔄 Retrying with new provider (attempt ${retryCount}/${maxRetries})...`);
+              continue; // Retry same chunk with new provider
+            }
+          }
+          
+          // If timeout or invalid range (and can't rotate), try smaller chunk
+          if (isRpcError) {
+            console.log(`⚠️ RPC error persists, reducing chunk size...`);
             chunkSize = Math.max(100, Math.floor(chunkSize / 2));
             console.log(`🔄 Retrying with chunk size: ${chunkSize}`);
+            retryCount = 0; // Reset retry count when changing strategy
             continue;
           }
           
-          // Skip this chunk and continue
+          // Skip this chunk and continue for other errors
           console.log(`⚠️ Skipping problematic chunk, moving to next...`);
           processedBlock = toBlock + 1;
+          retryCount = 0;
         }
       }
       
