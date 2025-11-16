@@ -2,6 +2,7 @@ import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService, withRetry } from "./blockchain";
+import { MetadataSyncService } from "./metadataSyncService";
 import { 
   insertNFTSchema, 
   insertTransactionSchema, 
@@ -4185,6 +4186,19 @@ export async function registerRoutes(app: Express) {
     syncFromBasescan();
   }, 30000);
   console.log('⏰ Basescan discovery sync enabled (every 30 seconds)');
+
+  // Initialize metadata sync service
+  const metadataSyncService = new MetadataSyncService(storage);
+  
+  // Run initial metadata sync on startup to fix any broken tokens
+  console.log('🔧 Running initial metadata sync to fix broken tokens...');
+  metadataSyncService.runMetadataSync();
+  
+  // Run metadata sync every 2 minutes to keep all tokens updated
+  setInterval(() => {
+    metadataSyncService.runMetadataSync();
+  }, 120000); // 2 minutes
+  console.log('⏰ Metadata sync enabled (every 2 minutes)');
 
   return createServer(app);
 }
