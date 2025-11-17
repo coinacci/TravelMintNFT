@@ -317,3 +317,29 @@ export const insertSyncStateSchema = createInsertSchema(syncState).omit({
 
 export type InsertSyncState = z.infer<typeof insertSyncStateSchema>;
 export type SyncState = typeof syncState.$inferSelect;
+
+// Pending Mints Table - stores NFTs with missing metadata for retry
+export const pendingMints = pgTable("pending_mints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tokenId: text("token_id").notNull(), // NFT token ID
+  contractAddress: text("contract_address").notNull(), // NFT contract address
+  ownerAddress: text("owner_address").notNull(), // Token owner
+  transactionHash: text("transaction_hash"), // Mint transaction hash
+  retryCount: integer("retry_count").default(0).notNull(), // Number of retry attempts
+  lastError: text("last_error"), // Last error message
+  lastAttemptAt: timestamp("last_attempt_at"), // When last retry was attempted
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    // Unique constraint: one pending mint per token
+    uniqueTokenId: sql`UNIQUE (contract_address, token_id)`,
+  };
+});
+
+export const insertPendingMintSchema = createInsertSchema(pendingMints).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPendingMint = z.infer<typeof insertPendingMintSchema>;
+export type PendingMint = typeof pendingMints.$inferSelect;

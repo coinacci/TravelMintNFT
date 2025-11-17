@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
+import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, pendingMints, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, type PendingMint, type InsertPendingMint, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -97,6 +97,12 @@ export interface IStorage {
   // Blockchain sync operations
   getSyncState(contractAddress: string): Promise<SyncState | undefined>;
   updateSyncState(contractAddress: string, lastProcessedBlock: number): Promise<SyncState>;
+
+  // Pending mints operations
+  createPendingMint(pendingMint: InsertPendingMint): Promise<PendingMint>;
+  getPendingMints(limit?: number): Promise<PendingMint[]>;
+  updatePendingMintRetry(id: string, error: string): Promise<PendingMint | undefined>;
+  deletePendingMint(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1354,6 +1360,57 @@ export class DatabaseStorage implements IStorage {
         referrerPoints: referrer.totalPoints
       };
     });
+  }
+
+  // Pending mints operations
+  async createPendingMint(insertPendingMint: InsertPendingMint): Promise<PendingMint> {
+    try {
+      const [pendingMint] = await db
+        .insert(pendingMints)
+        .values(insertPendingMint)
+        .returning();
+      return pendingMint;
+    } catch (error: any) {
+      if (error.code === '23505') {
+        console.log(`⚠️ Pending mint already exists for token ${insertPendingMint.tokenId}`);
+        const [existing] = await db
+          .select()
+          .from(pendingMints)
+          .where(
+            and(
+              eq(pendingMints.contractAddress, insertPendingMint.contractAddress),
+              eq(pendingMints.tokenId, insertPendingMint.tokenId)
+            )
+          );
+        return existing;
+      }
+      throw error;
+    }
+  }
+
+  async getPendingMints(limit: number = 100): Promise<PendingMint[]> {
+    return await db
+      .select()
+      .from(pendingMints)
+      .orderBy(pendingMints.createdAt)
+      .limit(limit);
+  }
+
+  async updatePendingMintRetry(id: string, error: string): Promise<PendingMint | undefined> {
+    const [updated] = await db
+      .update(pendingMints)
+      .set({
+        retryCount: sql`${pendingMints.retryCount} + 1`,
+        lastError: error,
+        lastAttemptAt: new Date()
+      })
+      .where(eq(pendingMints.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deletePendingMint(id: string): Promise<void> {
+    await db.delete(pendingMints).where(eq(pendingMints.id, id));
   }
 }
 

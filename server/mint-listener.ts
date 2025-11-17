@@ -142,14 +142,32 @@ export async function startMintEventListener() {
             
           } catch (error) {
             retryCount++;
-            console.error(`❌ Error processing mint (attempt ${retryCount}/${maxRetries}):`, error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error(`❌ Error processing mint (attempt ${retryCount}/${maxRetries}):`, errorMessage);
             
             if (retryCount >= maxRetries) {
-              console.error(`❌ CRITICAL: Failed to process mint after ${maxRetries} attempts`);
-              console.error(`   Token ID: ${tokenIdStr}`);
-              console.error(`   Transaction: ${txHash}`);
-              console.error(`   Block: ${blockNumber}`);
-              console.error(`   ⚠️ This mint is LOST - manual recovery needed`);
+              // Save to pending_mints for automatic retry
+              try {
+                await storage.createPendingMint({
+                  tokenId: tokenIdStr,
+                  contractAddress: '0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f',
+                  ownerAddress: to.toLowerCase(),
+                  transactionHash: txHash,
+                  retryCount: 0,
+                  lastError: errorMessage,
+                  lastAttemptAt: new Date()
+                });
+                console.log(`💾 Token #${tokenIdStr} saved to pending queue for automatic retry`);
+                console.log(`   Will retry metadata fetch automatically via metadata sync service`);
+                
+                // Mark as processed to avoid duplicate events
+                processedTxHashes.add(txHash);
+              } catch (dbError) {
+                console.error(`❌ CRITICAL: Failed to save pending mint:`, dbError);
+                console.error(`   Token ID: ${tokenIdStr}`);
+                console.error(`   Transaction: ${txHash}`);
+                console.error(`   ⚠️ Manual intervention required`);
+              }
             } else {
               // Wait before retry (exponential backoff: 1s, 2s, 4s)
               const backoffMs = 1000 * Math.pow(2, retryCount - 1);
