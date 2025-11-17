@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createApp } from "./createApp";
 import { startQuestEventListener } from "./quest-listener";
+import { startMintEventListener } from "./mint-listener";
 
 const app = createApp();
 
@@ -79,6 +80,9 @@ if (!process.env.VERCEL) {
 
     // Start QuestManager event listener
     startQuestEventListener();
+    
+    // Start NFT Mint event listener for real-time mint detection
+    startMintEventListener();
 
     // ALWAYS serve the app on the port specified in the environment variable PORT
     // Other ports are firewalled. Default to 5000 if not specified.
