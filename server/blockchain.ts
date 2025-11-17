@@ -1642,10 +1642,12 @@ export class BlockchainService {
       const tokenIds = new Set<string>();
       const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
       
-      // Get contract creation block (start of contract history)
-      const START_BLOCK = 21857712; // TravelNFT deployment block
+      // Smart scanning: Start from a recent block instead of contract deployment
+      // This dramatically reduces scan time from 16M blocks to ~200K blocks
+      const FALLBACK_START_BLOCK = 37900000; // ~30 days ago, safe fallback
+      const START_BLOCK = FALLBACK_START_BLOCK;
       const currentBlock = await currentProvider.getBlockNumber();
-      console.log(`📊 Scanning from block ${START_BLOCK} to ${currentBlock}`);
+      console.log(`📊 Smart scan from block ${START_BLOCK} to ${currentBlock} (scanning recent ~${Math.floor((currentBlock - START_BLOCK) / 1000)}K blocks)`);
       
       // Query Transfer events in chunks (from zero address = mint)
       const CHUNK_SIZE = 50000; // Maximum allowed by most RPC providers
