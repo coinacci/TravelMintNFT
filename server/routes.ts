@@ -4194,11 +4194,11 @@ export async function registerRoutes(app: Express) {
   console.log('🔧 Running initial metadata sync to fix broken tokens...');
   metadataSyncService.runMetadataSync();
   
-  // Run metadata sync every 2 minutes to keep all tokens updated
+  // Run metadata sync every 15 seconds to meet 10-15 second SLA for pending mints
   setInterval(() => {
     metadataSyncService.runMetadataSync();
-  }, 120000); // 2 minutes
-  console.log('⏰ Metadata sync enabled (every 2 minutes)');
+  }, 15000); // 15 seconds - ensures pending mints are retried within SLA
+  console.log('⏰ Metadata sync enabled (every 15 seconds)');
 
   return createServer(app);
 }
