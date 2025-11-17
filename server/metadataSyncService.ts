@@ -149,9 +149,86 @@ export class MetadataSyncService {
     }
   }
 
+  async processPendingMints(): Promise<void> {
+    try {
+      console.log('🔍 Checking for pending mints...');
+      
+      const pendingMints = await this.storage.getPendingMints(50);
+      
+      if (pendingMints.length === 0) {
+        return;
+      }
+
+      console.log(`📋 Found ${pendingMints.length} pending mints to retry`);
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const pending of pendingMints) {
+        try {
+          console.log(`🔄 Retrying token #${pending.tokenId} (attempt ${(pending.retryCount || 0) + 1})...`);
+          
+          const metadata = await this.fetchTokenMetadata(pending.tokenId);
+          
+          if (!metadata) {
+            throw new Error('Failed to fetch metadata from all RPC providers');
+          }
+
+          const { location, latitude, longitude } = this.extractLocationData(metadata);
+          
+          const newNFT = {
+            title: metadata.name || `TravelNFT #${pending.tokenId}`,
+            description: metadata.description || '',
+            imageUrl: metadata.image || '',
+            objectStorageUrl: null,
+            location: location,
+            latitude: latitude,
+            longitude: longitude,
+            category: 'travel',
+            price: '0',
+            isForSale: 0,
+            creatorAddress: pending.ownerAddress,
+            ownerAddress: pending.ownerAddress,
+            farcasterCreatorUsername: null,
+            farcasterOwnerUsername: null,
+            farcasterCreatorFid: null,
+            farcasterOwnerFid: null,
+            mintPrice: '1',
+            royaltyPercentage: '5',
+            tokenId: pending.tokenId,
+            contractAddress: pending.contractAddress,
+            transactionHash: pending.transactionHash,
+            metadata: metadata
+          };
+          
+          await this.storage.createNFT(newNFT);
+          await this.storage.deletePendingMint(pending.id);
+          
+          console.log(`✅ Successfully processed pending token #${pending.tokenId}: ${metadata.name}`);
+          successCount++;
+          
+        } catch (error: any) {
+          const errorMessage = error.message || String(error);
+          console.log(`❌ Failed to process pending token #${pending.tokenId}: ${errorMessage}`);
+          
+          await this.storage.updatePendingMintRetry(pending.id, errorMessage);
+          failCount++;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      console.log(`✅ Pending mints processed: ${successCount} succeeded, ${failCount} failed`);
+    } catch (error: any) {
+      console.log('❌ Pending mints processing error:', error.message);
+    }
+  }
+
   async runMetadataSync(): Promise<void> {
     try {
       console.log('🔍 Checking for tokens needing metadata sync...');
+      
+      await this.processPendingMints();
       
       const tokensToSync = await this.findTokensNeedingMetadataSync();
       
