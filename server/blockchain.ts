@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { getAllTokenIdsFromContract } from "./basescan.js";
 
 // Use multiple high-performance RPC providers (avoiding rate-limited official endpoint)
 const BASE_RPC_URLS = [
@@ -1635,14 +1634,79 @@ export class BlockchainService {
     }
   }
 
-  // 🌐 Sync NFTs using Basescan API (more reliable than RPC for discovery)
-  async syncNFTsFromBasescan(storage: any): Promise<{ newNFTs: BlockchainNFT[], missingTokens: string[] }> {
-    console.log(`🌐 Starting Basescan API sync...`);
+  // 🔍 Get all minted token IDs directly from blockchain (no API dependency)
+  async getAllMintedTokenIds(): Promise<Set<string>> {
+    console.log(`🔍 Scanning blockchain for all minted tokens...`);
     
     try {
-      // Get all token IDs from Basescan API
-      const basescanTokenIds = await getAllTokenIdsFromContract();
-      console.log(`📊 Basescan reports ${basescanTokenIds.size} total tokens minted`);
+      const tokenIds = new Set<string>();
+      const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+      
+      // Get contract creation block (start of contract history)
+      const START_BLOCK = 21857712; // TravelNFT deployment block
+      const currentBlock = await currentProvider.getBlockNumber();
+      console.log(`📊 Scanning from block ${START_BLOCK} to ${currentBlock}`);
+      
+      // Query Transfer events in chunks (from zero address = mint)
+      const CHUNK_SIZE = 50000; // Maximum allowed by most RPC providers
+      let processedBlock = START_BLOCK;
+      
+      while (processedBlock <= currentBlock) {
+        const toBlock = Math.min(processedBlock + CHUNK_SIZE - 1, currentBlock);
+        
+        try {
+          console.log(`🔎 Scanning blocks ${processedBlock} to ${toBlock}...`);
+          
+          const filter = currentNftContract.filters.Transfer(ZERO_ADDRESS, null, null);
+          const events = await currentNftContract.queryFilter(filter, processedBlock, toBlock);
+          
+          for (const event of events) {
+            if ('args' in event) {
+              const tokenId = event.args?.tokenId?.toString();
+              if (tokenId) {
+                tokenIds.add(tokenId);
+              }
+            }
+          }
+          
+          console.log(`📦 Found ${events.length} mints in this chunk (total: ${tokenIds.size})`);
+          processedBlock = toBlock + 1;
+          
+          // Small delay to avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error: any) {
+          console.error(`❌ Error scanning blocks ${processedBlock}-${toBlock}:`, error.message);
+          
+          // If RPC error, try rotating provider
+          if (error.message?.includes('timeout') || error.message?.includes('limit')) {
+            console.log(`⚠️ RPC issue detected, rotating provider...`);
+            rotateRpcProvider();
+            continue; // Retry same chunk
+          }
+          
+          // Skip problematic chunk and continue
+          processedBlock = toBlock + 1;
+        }
+      }
+      
+      console.log(`✅ Blockchain scan complete! Found ${tokenIds.size} total minted tokens`);
+      return tokenIds;
+      
+    } catch (error) {
+      console.error(`❌ Error scanning blockchain for mints:`, error);
+      throw error;
+    }
+  }
+
+  // 🌐 Sync NFTs using blockchain RPC (no API dependency)
+  async syncNFTsFromBasescan(storage: any): Promise<{ newNFTs: BlockchainNFT[], missingTokens: string[] }> {
+    console.log(`🌐 Starting blockchain sync for NFT discovery...`);
+    
+    try {
+      // Get all token IDs from blockchain (direct RPC, no Moralis)
+      const blockchainTokenIds = await this.getAllMintedTokenIds();
+      console.log(`📊 Blockchain reports ${blockchainTokenIds.size} total tokens minted`);
       
       // Get existing tokens from database
       const existingNFTs = await storage.getAllNFTs();
@@ -1651,7 +1715,7 @@ export class BlockchainService {
       
       // Find missing tokens
       const missingTokens: string[] = [];
-      for (const tokenId of Array.from(basescanTokenIds)) {
+      for (const tokenId of Array.from(blockchainTokenIds)) {
         if (!existingTokenIds.has(tokenId)) {
           missingTokens.push(tokenId);
         }

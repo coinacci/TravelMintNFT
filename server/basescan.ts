@@ -1,7 +1,11 @@
 import fetch from 'node-fetch';
 
+// LEGACY FILE: No longer used for NFT discovery (replaced by direct RPC in blockchain.ts)
+// Keeping for potential future use with transfer history queries
+
 // Use Moralis API instead of deprecated Basescan V1
 const MORALIS_API_URL = 'https://deep-index.moralis.io/api/v2.2';
+const BASESCAN_API_URL = 'https://api.basescan.org/api'; // Legacy constant
 const API_KEY = process.env.MORALIS_API_KEY;
 const NFT_CONTRACT_ADDRESS = '0x8c12c9ebf7db0a6370361ce9225e3b77d22a558f';
 const CHAIN = 'base'; // Base mainnet
