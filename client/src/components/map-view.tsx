@@ -391,12 +391,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[220px] p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search country..." className="text-black" data-testid="country-search-input" />
-                <CommandList>
-                  <CommandEmpty>No country found.</CommandEmpty>
-                  <CommandGroup>
+            <PopoverContent className="w-[220px] p-0 bg-white" align="start">
+              <Command className="bg-white">
+                <CommandInput placeholder="Search country..." className="text-black bg-white" data-testid="country-search-input" />
+                <CommandList className="bg-white">
+                  <CommandEmpty className="text-black">No country found.</CommandEmpty>
+                  <CommandGroup className="bg-white">
                     {countries.map((country) => (
                       <CommandItem
                         key={country}
