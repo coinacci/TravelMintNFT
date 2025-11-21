@@ -30,13 +30,13 @@ interface NFT {
 
 interface MapViewProps {
   onNFTSelect?: (nft: NFT) => void;
+  countryFilter?: string;
 }
 
-export default function MapView({ onNFTSelect }: MapViewProps) {
+export default function MapView({ onNFTSelect, countryFilter = "" }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const queryClient = useQueryClient();
-  const [countryFilter, setCountryFilter] = useState("");
   const [showBrandOnly, setShowBrandOnly] = useState(false);
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({

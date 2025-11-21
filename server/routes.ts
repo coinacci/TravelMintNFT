@@ -3,6 +3,7 @@ import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { blockchainService, withRetry } from "./blockchain";
 import { MetadataSyncService } from "./metadataSyncService";
+import { geoJsonService } from "./geoJsonService";
 import { 
   insertNFTSchema, 
   insertTransactionSchema, 
@@ -78,6 +79,30 @@ function createUserObject(walletAddress: string, farcasterUsername?: string | nu
       farcasterFid: null
     };
   }
+}
+
+// Helper function to determine NFT's country using Natural Earth boundaries
+function getNFTCountry(nft: { latitude: string | null; longitude: string | null }): string | null {
+  if (!nft.latitude || !nft.longitude || !geoJsonService.isReady()) {
+    return null;
+  }
+
+  const lat = parseFloat(nft.latitude);
+  const lng = parseFloat(nft.longitude);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    return null;
+  }
+
+  const countries = geoJsonService.getAllCountries();
+  
+  for (const country of countries) {
+    if (geoJsonService.isPointInCountry(lat, lng, country.properties.NAME)) {
+      return country.properties.NAME;
+    }
+  }
+
+  return null;
 }
 
 // Admin security enhancement - rate limiting and audit logging
@@ -664,7 +689,8 @@ export async function registerRoutes(app: Express) {
                 objectStorageUrl: nft.objectStorageUrl,
                 tokenURI: nft.tokenURI,
                 owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
-                creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
+                creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+                country: getNFTCountry(nft) // Add country for filtering
               };
             })
           );
@@ -681,6 +707,82 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching NFTs:", error);
       res.status(500).json({ message: "Failed to fetch NFTs" });
+    }
+  });
+
+  // Get countries list for autocomplete
+  app.get("/api/countries", async (req, res) => {
+    try {
+      if (!geoJsonService.isReady()) {
+        return res.status(503).json({ message: "Country data not yet loaded" });
+      }
+
+      const countries = geoJsonService.getCountriesList();
+      res.json(countries);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      res.status(500).json({ message: "Failed to fetch countries" });
+    }
+  });
+
+  // Get NFTs filtered by country
+  app.get("/api/nfts/by-country", async (req, res) => {
+    try {
+      const countryName = req.query.country as string;
+      
+      if (!countryName) {
+        return res.status(400).json({ message: "Country parameter is required" });
+      }
+
+      if (!geoJsonService.isReady()) {
+        return res.status(503).json({ message: "Country data not yet loaded" });
+      }
+
+      // Verify country exists
+      const country = geoJsonService.getCountryGeometry(countryName);
+      if (!country) {
+        return res.status(404).json({ message: `Country '${countryName}' not found` });
+      }
+
+      // Get all NFTs from database
+      const allDbNFTs = await storage.getAllNFTs();
+      const contractNFTs = allDbNFTs.filter(nft => 
+        !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
+      );
+
+      // Filter NFTs by country using point-in-polygon
+      const filteredNFTs = geoJsonService.filterNFTsByCountry(contractNFTs, countryName);
+
+      // Process filtered NFTs for response
+      const nftsWithOwners = await Promise.all(
+        filteredNFTs.map(async (nft: any) => {
+          let parsedMetadata = null;
+          try {
+            if (nft.metadata && typeof nft.metadata === 'string') {
+              parsedMetadata = JSON.parse(nft.metadata);
+            }
+          } catch (e) {
+            // Skip parse errors
+          }
+
+          return {
+            ...nft,
+            title: parsedMetadata?.name || nft.title,
+            imageUrl: nft.imageUrl || parsedMetadata?.image,
+            objectStorageUrl: nft.objectStorageUrl,
+            tokenURI: nft.tokenURI,
+            owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+            country: country.properties.NAME
+          };
+        })
+      );
+
+      console.log(`🌍 Filtered ${nftsWithOwners.length} NFTs in ${countryName}`);
+      res.json(nftsWithOwners);
+    } catch (error) {
+      console.error("Error filtering NFTs by country:", error);
+      res.status(500).json({ message: "Failed to filter NFTs by country" });
     }
   });
 
