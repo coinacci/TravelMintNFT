@@ -82,7 +82,13 @@ function createUserObject(walletAddress: string, farcasterUsername?: string | nu
 }
 
 // Helper function to determine NFT's country using Natural Earth boundaries
-function getNFTCountry(nft: { latitude: string | null; longitude: string | null }): string | null {
+function getNFTCountry(nft: { latitude: string | null; longitude: string | null; country?: string | null }): string | null {
+  // If country is already stored in database, use it (fast path)
+  if (nft.country) {
+    return nft.country;
+  }
+  
+  // Otherwise, calculate it from coordinates (slow path, should only happen for new NFTs)
   if (!nft.latitude || !nft.longitude || !geoJsonService.isReady()) {
     return null;
   }
