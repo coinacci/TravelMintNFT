@@ -3,9 +3,13 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
-import { Search } from "lucide-react";
+import { Search, ChevronsUpDown, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatUserDisplayName } from "@/lib/userDisplay";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface NFT {
   id: string;
@@ -30,14 +34,15 @@ interface NFT {
 
 interface MapViewProps {
   onNFTSelect?: (nft: NFT) => void;
-  countryFilter?: string;
 }
 
-export default function MapView({ onNFTSelect, countryFilter = "" }: MapViewProps) {
+export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const queryClient = useQueryClient();
   const [showBrandOnly, setShowBrandOnly] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [isCountrySelectOpen, setIsCountrySelectOpen] = useState(false);
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
@@ -50,11 +55,17 @@ export default function MapView({ onNFTSelect, countryFilter = "" }: MapViewProp
     retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
 
+  // Fetch countries for filtering
+  const { data: countries = [] } = useQuery<string[]>({
+    queryKey: ["/api/countries"],
+    staleTime: 60 * 60 * 1000, // Cache for 1 hour
+  });
+
   // Filter NFTs by country and brand category
   const filteredNfts = nfts.filter(nft => {
     // Country filter
-    const matchesCountry = countryFilter.trim()
-      ? nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
+    const matchesCountry = selectedCountry.trim()
+      ? nft.country?.toLowerCase().includes(selectedCountry.toLowerCase())
       : true;
     
     // Brand filter - exclude "Zora $10" from Brand filter display (handles emojis and extra characters)
@@ -67,6 +78,14 @@ export default function MapView({ onNFTSelect, countryFilter = "" }: MapViewProp
     
     return matchesCountry && matchesBrand;
   });
+  
+  // Debug logging for country filter
+  useEffect(() => {
+    if (selectedCountry) {
+      console.log('🌍 Country filter active:', selectedCountry);
+      console.log('📊 Filtered results:', filteredNfts.length, 'NFTs');
+    }
+  }, [selectedCountry, filteredNfts.length]);
   
   // Log errors for troubleshooting
   if (isError) {
@@ -339,8 +358,8 @@ export default function MapView({ onNFTSelect, countryFilter = "" }: MapViewProp
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Filters - Country filter hidden, Brand filter visible */}
-      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
+      {/* Filters - Brand and Country */}
+      <div className="absolute top-4 right-4 z-10 w-48 md:w-64 space-y-2">
         {/* Brand Filter Checkbox */}
         <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
           <label className="flex items-center space-x-2 cursor-pointer">
@@ -355,8 +374,76 @@ export default function MapView({ onNFTSelect, countryFilter = "" }: MapViewProp
           </label>
         </div>
         
-        {showBrandOnly && (
-          <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
+        {/* Country Filter */}
+        <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
+          <Popover open={isCountrySelectOpen} onOpenChange={setIsCountrySelectOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={isCountrySelectOpen}
+                className="w-full justify-between bg-white hover:bg-gray-50 text-black"
+                data-testid="country-filter-button"
+              >
+                <span className="text-black truncate">
+                  {selectedCountry || "Filter by country..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search country..." className="text-black" data-testid="country-search-input" />
+                <CommandList>
+                  <CommandEmpty>No country found.</CommandEmpty>
+                  <CommandGroup>
+                    {countries.map((country) => (
+                      <CommandItem
+                        key={country}
+                        value={country}
+                        onSelect={(currentValue) => {
+                          // Find original country name (CommandItem lowercases the value)
+                          const originalCountry = countries.find(c => c.toLowerCase() === currentValue.toLowerCase());
+                          const isCurrentlySelected = selectedCountry.toLowerCase() === currentValue.toLowerCase();
+                          setSelectedCountry(isCurrentlySelected ? "" : (originalCountry || ""));
+                          setIsCountrySelectOpen(false);
+                        }}
+                        className="text-black"
+                        data-testid={`country-option-${country.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedCountry.toLowerCase() === country.toLowerCase() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {country}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          
+          {/* Clear filter button */}
+          {selectedCountry && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-1 text-black hover:bg-gray-100"
+              onClick={() => setSelectedCountry("")}
+              data-testid="clear-country-filter"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear filter
+            </Button>
+          )}
+        </div>
+        
+        {/* Results count */}
+        {(showBrandOnly || selectedCountry) && (
+          <div className="text-xs text-black bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
             {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
           </div>
         )}

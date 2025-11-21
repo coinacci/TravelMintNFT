@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MapPin, User, Clock, Upload, Check, ChevronsUpDown, X } from "lucide-react";
+import { MapPin, User, Clock, Upload } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +11,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 import sdk from "@farcaster/frame-sdk";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 // Simple modal placeholder for loading
 const MODAL_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="340" height="260" rx="12" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="3"/><circle cx="200" cy="160" r="30" fill="%23fbbf24"/><text x="200" y="290" text-anchor="middle" fill="%23475569" font-size="14" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
@@ -205,20 +202,10 @@ export default function Explore() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { address: walletAddress, isConnected } = useAccount();
-  
-  // Country filter state
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [isCountrySelectOpen, setIsCountrySelectOpen] = useState(false);
 
   // Fetch stats for welcome dialog
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/stats"],
-  });
-
-  // Fetch countries list for filter
-  const { data: countries = [] } = useQuery<string[]>({
-    queryKey: ["/api/countries"],
-    staleTime: 60 * 60 * 1000, // Cache for 1 hour (countries don't change often)
   });
 
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
@@ -427,67 +414,7 @@ export default function Explore() {
 
   return (
     <div className="bg-white relative">
-      {/* Country Filter - Floating above map */}
-      <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg">
-        <Popover open={isCountrySelectOpen} onOpenChange={setIsCountrySelectOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={isCountrySelectOpen}
-              className="w-[280px] justify-between bg-white hover:bg-gray-50"
-              data-testid="country-filter-button"
-            >
-              {selectedCountry || "Filter by country..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[280px] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search country..." data-testid="country-search-input" />
-              <CommandList>
-                <CommandEmpty>No country found.</CommandEmpty>
-                <CommandGroup>
-                  {countries.map((country) => (
-                    <CommandItem
-                      key={country}
-                      value={country}
-                      onSelect={(currentValue) => {
-                        setSelectedCountry(currentValue === selectedCountry ? "" : currentValue);
-                        setIsCountrySelectOpen(false);
-                      }}
-                      data-testid={`country-option-${country.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedCountry === country ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {country}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        
-        {/* Clear filter button */}
-        {selectedCountry && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-            onClick={() => setSelectedCountry("")}
-            data-testid="clear-country-filter"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      <MapView onNFTSelect={handleNFTSelect} countryFilter={selectedCountry} />
+      <MapView onNFTSelect={handleNFTSelect} />
 
       {/* Welcome Dialog */}
       <Dialog open={isWelcomeOpen} onOpenChange={handleWelcomeClose}>
