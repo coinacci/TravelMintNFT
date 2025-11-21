@@ -4,7 +4,6 @@ import { setupVite, serveStatic, log } from "./vite";
 import { createApp } from "./createApp";
 import { startQuestEventListener } from "./quest-listener";
 import { startMintEventListener } from "./mint-listener";
-import { geoJsonService } from "./geoJsonService";
 
 const app = createApp();
 
@@ -60,9 +59,6 @@ app.use((req, res, next) => {
 // Only start server if not in Vercel serverless environment
 if (!process.env.VERCEL) {
   (async () => {
-    // Initialize GeoJSON service before starting server
-    await geoJsonService.initialize();
-    
     const server = await registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

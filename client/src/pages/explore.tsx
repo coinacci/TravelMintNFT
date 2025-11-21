@@ -34,16 +34,8 @@ interface NFT {
   price: string;
   isForSale: number;
   createdAt: string;
-  ownerAddress: string;
-  creatorAddress: string;
-  farcasterOwnerUsername?: string | null;
-  farcasterOwnerFid?: string | null;
-  farcasterCreatorUsername?: string | null;
-  farcasterCreatorFid?: string | null;
-  creator?: { username: string; avatar?: string } | null;
-  owner?: { username: string; avatar?: string } | null;
-  country?: string;
-  category?: string;
+  creator: { username: string; avatar?: string } | null;
+  owner: { username: string; avatar?: string } | null;
 }
 
 interface Transaction {
@@ -413,7 +405,7 @@ export default function Explore() {
   };
 
   return (
-    <div className="bg-white relative">
+    <div className="bg-white">
       <MapView onNFTSelect={handleNFTSelect} />
 
       {/* Welcome Dialog */}
