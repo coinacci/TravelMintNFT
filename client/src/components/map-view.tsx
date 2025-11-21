@@ -36,7 +36,6 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const queryClient = useQueryClient();
-  const [countryFilter, setCountryFilter] = useState("");
   const [showBrandOnly, setShowBrandOnly] = useState(false);
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
@@ -50,13 +49,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
 
-  // Filter NFTs by country and brand category
+  // Filter NFTs by brand category only
   const filteredNfts = nfts.filter(nft => {
-    // Country filter
-    const matchesCountry = countryFilter.trim()
-      ? nft.country?.toLowerCase().includes(countryFilter.toLowerCase())
-      : true;
-    
     // Brand filter - exclude "Zora $10" from Brand filter display (handles emojis and extra characters)
     // Match only titles that start with "zora $10 " (with space) or are exactly "zora $10"
     const normalizedTitle = nft.title.trim().toLowerCase();
@@ -65,7 +59,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       ? (nft.category?.toLowerCase() === 'brand' && !isZora10)
       : true;
     
-    return matchesCountry && matchesBrand;
+    return matchesBrand;
   });
   
   // Log errors for troubleshooting
@@ -339,7 +333,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Filters - Country filter hidden, Brand filter visible */}
+      {/* Brand Filter */}
       <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
         {/* Brand Filter Checkbox */}
         <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
