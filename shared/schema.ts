@@ -21,6 +21,7 @@ export const nfts = pgTable("nfts", {
   location: text("location").notNull(),
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  country: text("country"), // Detected country based on coordinates
   category: text("category").notNull(),
   price: decimal("price", { precision: 18, scale: 6 }).notNull(),
   isForSale: integer("is_for_sale").default(0).notNull(), // 0 = false, 1 = true
