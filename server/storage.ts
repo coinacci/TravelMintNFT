@@ -12,10 +12,10 @@ export interface IStorage {
 
   // NFT operations
   getNFT(id: string): Promise<NFT | undefined>;
-  getAllNFTs(): Promise<NFT[]>;
+  getAllNFTs(sortBy?: string): Promise<NFT[]>;
   getNFTsByLocation(lat: number, lng: number, radius: number): Promise<NFT[]>;
   getNFTsByOwner(ownerAddress: string): Promise<NFT[]>;
-  getNFTsForSale(): Promise<NFT[]>;
+  getNFTsForSale(sortBy?: string): Promise<NFT[]>;
   createNFT(nft: InsertNFT): Promise<NFT>;
   upsertNFTByTokenId(nft: InsertNFT): Promise<NFT>;
   updateNFT(id: string, updates: Partial<NFT>): Promise<NFT | undefined>;
@@ -149,11 +149,20 @@ export class DatabaseStorage implements IStorage {
     return nft || undefined;
   }
 
-  async getAllNFTs(): Promise<NFT[]> {
-    return await db
-      .select()
-      .from(nfts)
-      .orderBy(sql`${nfts.createdAt} DESC`);
+  async getAllNFTs(sortBy?: string): Promise<NFT[]> {
+    // Apply sorting based on sortBy parameter
+    if (sortBy === 'likeCount' || sortBy === 'popular') {
+      return await db
+        .select()
+        .from(nfts)
+        .orderBy(sql`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
+    } else {
+      // Default: sort by creation date
+      return await db
+        .select()
+        .from(nfts)
+        .orderBy(sql`${nfts.createdAt} DESC`);
+    }
   }
 
   async getNFTsByLocation(lat: number, lng: number, radius: number): Promise<NFT[]> {
@@ -174,12 +183,22 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`${nfts.createdAt} DESC`);
   }
 
-  async getNFTsForSale(): Promise<NFT[]> {
-    return await db
-      .select()
-      .from(nfts)
-      .where(eq(nfts.isForSale, 1))
-      .orderBy(sql`${nfts.createdAt} DESC`);
+  async getNFTsForSale(sortBy?: string): Promise<NFT[]> {
+    // Apply sorting based on sortBy parameter
+    if (sortBy === 'likeCount' || sortBy === 'popular') {
+      return await db
+        .select()
+        .from(nfts)
+        .where(eq(nfts.isForSale, 1))
+        .orderBy(sql`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
+    } else {
+      // Default: sort by creation date
+      return await db
+        .select()
+        .from(nfts)
+        .where(eq(nfts.isForSale, 1))
+        .orderBy(sql`${nfts.createdAt} DESC`);
+    }
   }
 
   async createNFT(insertNFT: InsertNFT): Promise<NFT> {

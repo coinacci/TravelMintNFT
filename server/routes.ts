@@ -491,16 +491,19 @@ export async function registerRoutes(app: Express) {
   // Get all NFTs - fast cached version
   app.get("/api/nfts", async (req, res) => {
     try {
+      const sortBy = req.query.sortBy as string | undefined;
+      const cacheKey = sortBy ? `all-nfts-${sortBy}` : 'all-nfts';
+      
       // Check cache first for instant response
-      if (isCacheValid('all-nfts')) {
-        console.log("⚡ Returning cached NFTs (instant response)");
-        return res.json(nftCache['all-nfts'].data);
+      if (isCacheValid(cacheKey)) {
+        console.log(`⚡ Returning cached NFTs (instant response, sortBy: ${sortBy || 'default'})`);
+        return res.json(nftCache[cacheKey].data);
       }
 
-      console.log("🔗 Cache miss - fetching NFTs from database...");
+      console.log(`🔗 Cache miss - fetching NFTs from database (sortBy: ${sortBy || 'default'})...`);
       
       // Get all NFTs from database immediately (fast response)
-      const allDbNFTs = await storage.getAllNFTs();
+      const allDbNFTs = await storage.getAllNFTs(sortBy);
       const contractNFTs = allDbNFTs.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
@@ -533,7 +536,7 @@ export async function registerRoutes(app: Express) {
       );
       
       // Cache the processed results for fast future requests
-      setCacheEntry('all-nfts', nftsWithOwners);
+      setCacheEntry(cacheKey, nftsWithOwners);
       console.log(`✅ Returning ${nftsWithOwners.length} total NFTs (cached for fast access)`);
       
       // Immediate cache clear and aggressive blockchain sync (non-blocking)
@@ -640,38 +643,48 @@ export async function registerRoutes(app: Express) {
           
           console.log("✅ Background blockchain sync completed");
           
-          // Refresh cache with updated data instead of just clearing it
-          const freshDbNFTs = await storage.getAllNFTs();
-          const freshContractNFTs = freshDbNFTs.filter(nft => 
-            !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
-          );
-          
-          const freshNFTsWithOwners = await Promise.all(
-            freshContractNFTs.map(async (nft: any) => {
-              let parsedMetadata = null;
-              try {
-                if (nft.metadata && typeof nft.metadata === 'string') {
-                  parsedMetadata = JSON.parse(nft.metadata);
+          // Refresh cache with updated data for all sort variants
+          const refreshCacheForSort = async (sortByParam: string | undefined, cacheKey: string) => {
+            const freshDbNFTs = await storage.getAllNFTs(sortByParam);
+            const freshContractNFTs = freshDbNFTs.filter(nft => 
+              !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
+            );
+            
+            const freshNFTsWithOwners = await Promise.all(
+              freshContractNFTs.map(async (nft: any) => {
+                let parsedMetadata = null;
+                try {
+                  if (nft.metadata && typeof nft.metadata === 'string') {
+                    parsedMetadata = JSON.parse(nft.metadata);
+                  }
+                } catch (e) {
+                  // Skip parsing errors
                 }
-              } catch (e) {
-                // Skip parsing errors
-              }
 
-              return {
-                ...nft,
-                title: parsedMetadata?.name || nft.title,
-                imageUrl: nft.imageUrl || parsedMetadata?.image,
-                objectStorageUrl: nft.objectStorageUrl,
-                tokenURI: nft.tokenURI,
-                owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
-                creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
-              };
-            })
-          );
+                return {
+                  ...nft,
+                  title: parsedMetadata?.name || nft.title,
+                  imageUrl: nft.imageUrl || parsedMetadata?.image,
+                  objectStorageUrl: nft.objectStorageUrl,
+                  tokenURI: nft.tokenURI,
+                  owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+                  creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+                  country: getNFTCountry(nft)
+                };
+              })
+            );
+            
+            setCacheEntry(cacheKey, freshNFTsWithOwners);
+            return freshNFTsWithOwners.length;
+          };
           
-          // Update cache with fresh data
-          setCacheEntry('all-nfts', freshNFTsWithOwners);
-          console.log(`🔄 Cache refreshed with ${freshNFTsWithOwners.length} NFTs`);
+          // Update both default and popular sort caches
+          const [defaultCount, popularCount] = await Promise.all([
+            refreshCacheForSort(undefined, 'all-nfts'),
+            refreshCacheForSort('popular', 'all-nfts-popular')
+          ]);
+          
+          console.log(`🔄 Cache refreshed: ${defaultCount} NFTs (default), ${popularCount} NFTs (popular)`);
         } catch (error) {
           console.error("Background sync failed:", error);
         }
@@ -687,7 +700,8 @@ export async function registerRoutes(app: Express) {
   // Get NFTs for sale
   app.get("/api/nfts/for-sale", async (req, res) => {
     try {
-      const allNfts = await storage.getNFTsForSale();
+      const sortBy = req.query.sortBy as string | undefined;
+      const allNfts = await storage.getNFTsForSale(sortBy);
       // Filter by allowed contract only
       const nfts = allNfts.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT

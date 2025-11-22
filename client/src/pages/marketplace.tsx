@@ -115,10 +115,15 @@ export default function Marketplace() {
   };
 
   // Dynamic API endpoint based on NFT status filter
-  const apiEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
+  const baseEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
+  
+  // Add sortBy parameter for "popular" sorting (like count)
+  const apiEndpoint = sortBy === "popular" 
+    ? `${baseEndpoint}?sortBy=popular`
+    : baseEndpoint;
   
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
-    queryKey: [apiEndpoint],
+    queryKey: [apiEndpoint], // Use full apiEndpoint so sortBy changes trigger refetch
     staleTime: 2 * 1000, // 2 seconds for immediate updates
     gcTime: 10 * 1000, // 10 seconds cache time
     refetchInterval: 5 * 1000, // Auto-refetch every 5 seconds
