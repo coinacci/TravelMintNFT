@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, decimal, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, decimal, timestamp, json, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -36,6 +36,7 @@ export const nfts = pgTable("nfts", {
   contractAddress: text("contract_address"), // NFT contract address
   transactionHash: text("transaction_hash"), // Mint transaction hash
   metadata: json("metadata"),
+  likeCount: integer("like_count").default(0).notNull(), // Total number of likes
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -51,6 +52,15 @@ export const transactions = pgTable("transactions", {
   blockchainTxHash: text("blockchain_tx_hash").unique(), // On-chain transaction hash - unique to prevent duplicates
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const nftLikes = pgTable("nft_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nftId: varchar("nft_id").notNull().references(() => nfts.id),
+  farcasterFid: text("farcaster_fid").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  nftFidUnique: uniqueIndex("nft_likes_nft_fid_unique").on(table.nftId, table.farcasterFid),
+}));
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -68,6 +78,11 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
 });
 
+export const insertNFTLikeSchema = createInsertSchema(nftLikes).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -76,6 +91,9 @@ export type NFT = typeof nfts.$inferSelect;
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+export type InsertNFTLike = z.infer<typeof insertNFTLikeSchema>;
+export type NFTLike = typeof nftLikes.$inferSelect;
 
 // Quest System Tables
 export const userStats = pgTable("user_stats", {

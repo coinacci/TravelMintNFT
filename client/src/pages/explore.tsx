@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MapPin, User, Clock, Upload } from "lucide-react";
+import { MapPin, User, Clock, Upload, Heart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,8 @@ interface NFT {
   price: string;
   isForSale: number;
   createdAt: string;
+  likeCount?: number;
+  isLiked?: boolean;
   creator: { username: string; avatar?: string } | null;
   owner: { username: string; avatar?: string } | null;
 }
@@ -190,10 +192,25 @@ export default function Explore() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [addMiniAppPrompted, setAddMiniAppPrompted] = useState(false);
+  const [farcasterFid, setFarcasterFid] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { address: walletAddress, isConnected } = useAccount();
+
+  useEffect(() => {
+    const loadFarcasterContext = async () => {
+      try {
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+          setFarcasterFid(context.user.fid.toString());
+        }
+      } catch (error) {
+        console.log('Failed to load Farcaster context:', error);
+      }
+    };
+    loadFarcasterContext();
+  }, []);
 
   // Fetch stats for welcome dialog
   const { data: stats } = useQuery<Stats>({
@@ -201,15 +218,44 @@ export default function Explore() {
   });
 
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
-    queryKey: ["/api/nfts", selectedNFT?.id],
+    queryKey: ["/api/nfts", selectedNFT?.id, farcasterFid],
+    queryFn: async () => {
+      if (!selectedNFT?.id) return null;
+      const url = farcasterFid 
+        ? `/api/nfts/${selectedNFT.id}?farcasterFid=${farcasterFid}`
+        : `/api/nfts/${selectedNFT.id}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch NFT details');
+      return response.json();
+    },
     enabled: !!selectedNFT?.id,
-    staleTime: 10 * 1000, // 10 seconds for faster updates
-    gcTime: 30 * 1000, // 30 seconds cache time
+    staleTime: 10 * 1000,
+    gcTime: 30 * 1000,
   });
 
   const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async (nftId: string) => {
+      if (!farcasterFid) {
+        throw new Error("Please connect your Farcaster account to like NFTs");
+      }
+      const response = await apiRequest("POST", `/api/nfts/${nftId}/like`, { farcasterFid });
+      return response as unknown as { liked: boolean; likeCount: number };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts", selectedNFT?.id, farcasterFid] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to like NFT",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
   });
 
   // Purchase mutation
@@ -481,11 +527,30 @@ export default function Explore() {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Image */}
                 <div className="space-y-4">
-                  <SimpleImage 
-                    nft={nftDetails} 
-                    className="w-full h-64 md:h-80 object-cover rounded-lg"
-                    data-testid="modal-nft-image"
-                  />
+                  <div className="relative">
+                    <SimpleImage 
+                      nft={nftDetails} 
+                      className="w-full h-64 md:h-80 object-cover rounded-lg"
+                      data-testid="modal-nft-image"
+                    />
+                    <button
+                      onClick={() => likeMutation.mutate(nftDetails.id)}
+                      disabled={likeMutation.isPending || !farcasterFid}
+                      className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white px-3 py-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="button-like-nft"
+                    >
+                      <Heart
+                        className={`w-5 h-5 transition-all duration-200 ${
+                          nftDetails.isLiked 
+                            ? 'fill-red-500 text-red-500' 
+                            : 'fill-transparent text-white hover:scale-110'
+                        }`}
+                      />
+                      <span className="text-sm font-medium">
+                        {nftDetails.likeCount || 0}
+                      </span>
+                    </button>
+                  </div>
                   
                   {/* Price and Action */}
                   <div className="flex items-center justify-between p-4 bg-muted rounded-lg">

@@ -1,4 +1,4 @@
-import { users, nfts, transactions, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, pendingMints, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, type PendingMint, type InsertPendingMint, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
+import { users, nfts, transactions, nftLikes, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, pendingMints, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type NFTLike, type InsertNFTLike, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, type PendingMint, type InsertPendingMint, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -21,6 +21,10 @@ export interface IStorage {
   updateNFT(id: string, updates: Partial<NFT>): Promise<NFT | undefined>;
   updateNFTCoordinates(tokenId: string, latitude: number, longitude: number): Promise<NFT | undefined>;
   getNFTByTokenId(tokenId: string): Promise<NFT | undefined>;
+  
+  // NFT Like operations
+  toggleNFTLike(nftId: string, farcasterFid: string): Promise<{ liked: boolean; likeCount: number }>;
+  checkNFTLiked(nftId: string, farcasterFid: string): Promise<boolean>;
 
   // Transaction operations
   getTransaction(id: string): Promise<Transaction | undefined>;
@@ -289,6 +293,50 @@ export class DatabaseStorage implements IStorage {
   async getNFTByTokenId(tokenId: string): Promise<NFT | undefined> {
     const [nft] = await db.select().from(nfts).where(eq(nfts.tokenId, tokenId));
     return nft || undefined;
+  }
+
+  async toggleNFTLike(nftId: string, farcasterFid: string): Promise<{ liked: boolean; likeCount: number }> {
+    return await db.transaction(async (tx) => {
+      const existingLike = await tx
+        .select()
+        .from(nftLikes)
+        .where(and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)));
+
+      if (existingLike.length > 0) {
+        await tx
+          .delete(nftLikes)
+          .where(and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)));
+        
+        const [updatedNFT] = await tx
+          .update(nfts)
+          .set({ likeCount: sql`GREATEST(0, ${nfts.likeCount} - 1)` })
+          .where(eq(nfts.id, nftId))
+          .returning();
+        
+        return { liked: false, likeCount: updatedNFT?.likeCount || 0 };
+      } else {
+        await tx.insert(nftLikes).values({
+          nftId,
+          farcasterFid,
+        });
+        
+        const [updatedNFT] = await tx
+          .update(nfts)
+          .set({ likeCount: sql`${nfts.likeCount} + 1` })
+          .where(eq(nfts.id, nftId))
+          .returning();
+        
+        return { liked: true, likeCount: updatedNFT?.likeCount || 1 };
+      }
+    });
+  }
+
+  async checkNFTLiked(nftId: string, farcasterFid: string): Promise<boolean> {
+    const [like] = await db
+      .select()
+      .from(nftLikes)
+      .where(and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)));
+    return !!like;
   }
 
   // Transaction operations

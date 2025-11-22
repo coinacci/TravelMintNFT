@@ -741,6 +741,11 @@ export async function registerRoutes(app: Express) {
         console.log('Failed to parse metadata for NFT:', nft.id);
       }
 
+      const farcasterFid = req.query.farcasterFid as string;
+      let isLiked = false;
+      if (farcasterFid) {
+        isLiked = await storage.checkNFTLiked(req.params.id, farcasterFid);
+      }
 
       res.json({
         ...nft,
@@ -748,7 +753,8 @@ export async function registerRoutes(app: Express) {
         title: parsedMetadata?.name || nft.title,
         imageUrl: nft.imageUrl || parsedMetadata?.image,
         owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
-        creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
+        creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+        isLiked
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch NFT" });
@@ -850,6 +856,33 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error updating NFT:', error);
       res.status(500).json({ message: "Failed to update NFT" });
+    }
+  });
+
+  app.post("/api/nfts/:id/like", async (req, res) => {
+    try {
+      const likeSchema = z.object({
+        farcasterFid: z.string().trim().min(1, "Farcaster FID is required"),
+      });
+      
+      const validated = likeSchema.parse(req.body);
+
+      const nft = await storage.getNFT(req.params.id);
+      if (!nft) {
+        return res.status(404).json({ message: "NFT not found" });
+      }
+
+      const result = await storage.toggleNFTLike(req.params.id, validated.farcasterFid);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error('Error toggling NFT like:', error);
+      if ((error as any).code === '23505') {
+        return res.status(409).json({ message: "Like operation conflict. Please try again." });
+      }
+      res.status(500).json({ message: "Failed to toggle NFT like" });
     }
   });
 
