@@ -248,10 +248,11 @@ export default function Quests() {
     onSuccess: (response: any) => {
       console.log('📥 Referral claim response:', response);
       const pointsEarned = response.pointsEarned || 0;
-      console.log('🎁 Points earned:', pointsEarned);
+      const displayPoints = parseFloat(pointsToDisplay(pointsEarned));
+      console.log('🎁 Points earned (fixed-point):', pointsEarned, '→ Display:', displayPoints);
       toast({
         title: "Referral rewards claimed! 🎁",
-        description: `+${pointsEarned} point${pointsEarned > 1 ? 's' : ''} earned from referrals!`
+        description: `+${displayPoints} point${displayPoints !== 1 ? 's' : ''} earned from referrals!`
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
     },

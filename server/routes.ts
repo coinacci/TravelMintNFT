@@ -3032,9 +3032,8 @@ export async function registerRoutes(app: Express) {
       const pointsPerReferral = 1;
       const fixedPointsPerReferral = pointsPerReferral * 100;
       const totalPointsToAward = referralsToClaim * fixedPointsPerReferral;
-      const displayPoints = totalPointsToAward / 100; // Convert fixed-point to display points
       
-      console.log(`🎁 Claiming ${referralsToClaim} referrals = ${displayPoints} points for @${userStats.farcasterUsername}`);
+      console.log(`🎁 Claiming ${referralsToClaim} referrals = ${totalPointsToAward / 100} points for @${userStats.farcasterUsername}`);
       
       // Update user stats: add points and reset unclaimed count
       await storage.updateUserStats(farcasterFid, {
@@ -3045,7 +3044,7 @@ export async function registerRoutes(app: Express) {
       
       const responseData = {
         success: true,
-        pointsEarned: displayPoints, // Send display points (1, 2, 3...) not referral count
+        pointsEarned: totalPointsToAward, // Send fixed-point (100, 200, 300...) - frontend converts to display
         totalPoints: userStats.totalPoints + totalPointsToAward,
         message: `Successfully claimed ${referralsToClaim} referral reward${referralsToClaim > 1 ? 's' : ''}!`
       };
