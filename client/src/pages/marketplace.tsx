@@ -635,9 +635,10 @@ export default function Marketplace() {
         case "price-high":
           return parseFloat(b.price) - parseFloat(a.price);
         case "popular":
-          return b.title.localeCompare(a.title); // Placeholder sort
+          // Backend already sorted by like count - preserve order
+          return 0;
         default:
-          return 0; // Recent (default order)
+          return 0; // Recent (default order from backend)
       }
     });
 
