@@ -7,6 +7,7 @@ import { MapPin, User, Clock, Upload, Heart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
@@ -192,25 +193,12 @@ export default function Explore() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [addMiniAppPrompted, setAddMiniAppPrompted] = useState(false);
-  const [farcasterFid, setFarcasterFid] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { address: walletAddress, isConnected } = useAccount();
-
-  useEffect(() => {
-    const loadFarcasterContext = async () => {
-      try {
-        const context = await sdk.context;
-        if (context?.user?.fid) {
-          setFarcasterFid(context.user.fid.toString());
-        }
-      } catch (error) {
-        console.log('Failed to load Farcaster context:', error);
-      }
-    };
-    loadFarcasterContext();
-  }, []);
+  const { user: farcasterUser } = useFarcasterAuth();
+  const farcasterFid = farcasterUser?.fid ? farcasterUser.fid.toString() : null;
 
   // Fetch stats for welcome dialog
   const { data: stats } = useQuery<Stats>({
