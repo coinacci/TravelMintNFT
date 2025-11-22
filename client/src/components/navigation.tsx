@@ -133,19 +133,19 @@ export default function Navigation() {
             return (
               <Link key={item.path} href={item.path}>
                 <div 
-                  className={`flex flex-col items-center px-0.5 py-2 min-w-[42px] transition-colors duration-200 ${
-                    isActive 
-                      ? 'text-white' 
-                      : 'text-gray-400 hover:text-gray-200'
-                  }`}
+                  className="flex flex-col items-center px-0.5 py-2 min-w-[42px] transition-colors duration-200"
                   data-testid={`nav-tab-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <Icon className="h-3.5 w-3.5 mb-0.5" />
-                  {isActive && (
-                    <span className="text-[9px] font-medium text-center leading-tight whitespace-nowrap">
-                      {item.label}
-                    </span>
-                  )}
+                  <Icon className={`h-3.5 w-3.5 mb-0.5 ${
+                    isActive ? 'text-white' : 'text-gray-400'
+                  }`} />
+                  <span className={`text-[9px] text-center leading-tight whitespace-nowrap ${
+                    isActive 
+                      ? 'font-semibold text-white' 
+                      : 'font-normal text-gray-300'
+                  }`}>
+                    {item.label}
+                  </span>
                 </div>
               </Link>
             );
