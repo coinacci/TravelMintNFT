@@ -36,9 +36,9 @@ export default function Navigation() {
   // All navigation items - available to everyone
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
-    { path: "/marketplace", label: "Market", icon: Store },
+    { path: "/marketplace", label: "Marketplace", icon: Store },
     { path: "/quests", label: "Quests", icon: Target },
-    { path: "/leaderboard", label: "Board", icon: Trophy },
+    { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
     { path: "/my-nfts", label: "Profile", icon: User },
   ];
 
