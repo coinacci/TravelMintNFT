@@ -14,8 +14,9 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { parseUnits, encodeFunctionData } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { User, Clock, MapPin } from "lucide-react";
+import { User, Clock, MapPin, Heart } from "lucide-react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
+import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 
 interface NFT {
   id: string;
@@ -35,6 +36,8 @@ interface NFT {
   farcasterOwnerFid?: string | null;
   farcasterCreatorUsername?: string | null;
   farcasterCreatorFid?: string | null;
+  likeCount?: number;
+  isLiked?: boolean;
 }
 
 interface Transaction {
@@ -85,6 +88,8 @@ export default function Marketplace() {
   const queryClient = useQueryClient();
   const { address: walletAddress, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
+  const { user: farcasterUser } = useFarcasterAuth();
+  const farcasterFid = farcasterUser?.fid ? farcasterUser.fid.toString() : null;
 
   // Update sorting when NFT status changes
   useEffect(() => {
@@ -260,6 +265,27 @@ export default function Marketplace() {
     query: {
       enabled: !!walletAddress
     }
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async (nftId: string) => {
+      if (!farcasterFid) {
+        throw new Error("Please connect your Farcaster account to like NFTs");
+      }
+      const response = await apiRequest("POST", `/api/nfts/${nftId}/like`, { farcasterFid });
+      return response as unknown as { liked: boolean; likeCount: number };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to like NFT",
+        variant: "destructive",
+      });
+    },
   });
 
   const purchaseMutation = useMutation({
@@ -602,7 +628,7 @@ export default function Marketplace() {
 
       toast({
         title: "Donation Successful!",
-        description: `${donationAmount} USDC donated to ${creatorName}! (${(donationAmount * 0.9).toFixed(2)} to creator, ${(donationAmount * 0.1).toFixed(2)} platform fee)`,
+        description: `You donated ${donationAmount} USDC to ${creatorName}`,
       });
 
       // Reset donation state
@@ -853,7 +879,10 @@ export default function Marketplace() {
                       nft={nft}
                       onPurchase={() => handlePurchase(nft)}
                       onSelect={() => handleNFTClick(nft)}
+                      onLike={() => likeMutation.mutate(nft.id)}
                       showPurchaseButton={Boolean(nft.isForSale)}
+                      showLikeButton={true}
+                      isLikePending={likeMutation.isPending}
                     />
                   ))}
                 </div>
@@ -981,17 +1010,68 @@ export default function Marketplace() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Image Section */}
               <div className="space-y-4">
-                <img
-                  src={nftDetails.imageUrl}
-                  alt={nftDetails.title}
-                  className="w-full h-96 object-cover rounded-lg"
-                  loading="lazy"
-                />
-                
+                <div className="relative">
+                  <img
+                    src={nftDetails.imageUrl}
+                    alt={nftDetails.title}
+                    className="w-full h-96 object-cover rounded-lg"
+                    loading="lazy"
+                  />
+                  <button
+                    onClick={() => likeMutation.mutate(nftDetails.id)}
+                    disabled={likeMutation.isPending || !farcasterFid}
+                    className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white px-3 py-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="button-like-nft"
+                  >
+                    <Heart
+                      className={`w-5 h-5 transition-all duration-200 ${
+                        nftDetails.isLiked 
+                          ? 'fill-red-500 text-red-500'
+                          : 'fill-none text-white'
+                      }`}
+                    />
+                    <span className="text-sm font-medium">{nftDetails.likeCount || 0}</span>
+                  </button>
+                </div>
               </div>
               
               {/* Details Section */}
               <div className="space-y-6">
+                {/* Donation Section */}
+                {isConnected && walletAddress?.toLowerCase() !== nftDetails.creatorAddress.toLowerCase() && (
+                  <div className="border-b pb-6">
+                    <h4 className="font-medium mb-3">Support the Creator</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Donate USDC to {formatUserDisplayName({
+                        walletAddress: nftDetails.creatorAddress,
+                        farcasterUsername: nftDetails.farcasterCreatorUsername,
+                        farcasterFid: nftDetails.farcasterCreatorFid
+                      })}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[0.1, 0.5, 1].map((amount) => (
+                        <Button
+                          key={amount}
+                          onClick={() => handleDonation(amount)}
+                          disabled={isDonating || isDonationPending}
+                          variant={donationAmount === amount ? "default" : "outline"}
+                          className="w-full"
+                          data-testid={`donation-button-${amount}`}
+                        >
+                          {(isDonating || isDonationPending) && donationAmount === amount ? (
+                            <span className="flex items-center gap-2">
+                              <span className="animate-spin">⏳</span>
+                              {amount}
+                            </span>
+                          ) : (
+                            `${amount} USDC`
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Description</h3>
                   <p className="text-muted-foreground">
@@ -1056,41 +1136,6 @@ export default function Marketplace() {
                     </div>
                   </div>
                 </div>
-                
-                {/* Donation Section */}
-                {isConnected && walletAddress?.toLowerCase() !== nftDetails.creatorAddress.toLowerCase() && (
-                  <div className="border-t pt-6">
-                    <h4 className="font-medium mb-3">Support the Creator</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Donate USDC to {formatUserDisplayName({
-                        walletAddress: nftDetails.creatorAddress,
-                        farcasterUsername: nftDetails.farcasterCreatorUsername,
-                        farcasterFid: nftDetails.farcasterCreatorFid
-                      })} (90% to creator, 10% platform fee)
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[0.1, 0.5, 1].map((amount) => (
-                        <Button
-                          key={amount}
-                          onClick={() => handleDonation(amount)}
-                          disabled={isDonating || isDonationPending}
-                          variant={donationAmount === amount ? "default" : "outline"}
-                          className="w-full"
-                          data-testid={`donation-button-${amount}`}
-                        >
-                          {(isDonating || isDonationPending) && donationAmount === amount ? (
-                            <span className="flex items-center gap-2">
-                              <span className="animate-spin">⏳</span>
-                              {amount}
-                            </span>
-                          ) : (
-                            `${amount} USDC`
-                          )}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 
                 {/* Created Date */}
                 {nftDetails.createdAt && (

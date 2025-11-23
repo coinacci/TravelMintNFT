@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { MapPin, Heart } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
@@ -22,17 +22,22 @@ interface NFTCardProps {
     farcasterOwnerFid?: string | null;
     farcasterCreatorUsername?: string | null;
     farcasterCreatorFid?: string | null;
+    likeCount?: number;
+    isLiked?: boolean;
   };
   onSelect?: () => void;
   onPurchase?: () => void;
+  onLike?: () => void;
   showPurchaseButton?: boolean;
+  showLikeButton?: boolean;
+  isLikePending?: boolean;
 }
 
 // Simple loading placeholder
 const LOADING_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="192" viewBox="0 0 320 192"><rect width="100%" height="100%" fill="%23f8fafc"/><rect x="30" y="30" width="260" height="132" rx="8" fill="%23e2e8f0" stroke="%23cbd5e1" stroke-width="2"/><circle cx="160" cy="96" r="20" fill="%23fbbf24"/><text x="160" y="170" text-anchor="middle" fill="%23475569" font-size="12" font-family="Inter,sans-serif">📷 Loading...</text></svg>`;
 
 
-export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton = true }: NFTCardProps) {
+export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchaseButton = true, showLikeButton = false, isLikePending = false }: NFTCardProps) {
   const { address: connectedWallet } = useAccount();
   const [imageLoading, setImageLoading] = useState(true);
   const [imageSrc, setImageSrc] = useState(LOADING_PLACEHOLDER);
@@ -187,7 +192,6 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           </div>
         )}
         
-        
         <img
           src={imageSrc}
           alt={nft.title}
@@ -196,6 +200,27 @@ export default function NFTCard({ nft, onSelect, onPurchase, showPurchaseButton 
           }`}
           data-testid={`nft-image-${nft.id}`}
         />
+        
+        {showLikeButton && onLike && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onLike();
+            }}
+            disabled={isLikePending}
+            className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 hover:bg-black/80 text-white px-2 py-1 rounded-full transition-all duration-200 disabled:opacity-50"
+            data-testid={`like-button-${nft.id}`}
+          >
+            <Heart
+              className={`w-4 h-4 transition-all ${
+                nft.isLiked 
+                  ? 'fill-red-500 text-red-500'
+                  : 'fill-none text-white'
+              }`}
+            />
+            <span className="text-xs font-medium">{nft.likeCount || 0}</span>
+          </button>
+        )}
       </div>
       
       <CardContent className="p-4">
