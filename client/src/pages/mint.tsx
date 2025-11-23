@@ -185,7 +185,7 @@ export default function Mint() {
   const [useManualLocation, setUseManualLocation] = useState(false); // Force GPS only
   const [manualLocation, setManualLocation] = useState('');
   const [selectedCoords, setSelectedCoords] = useState<{lat: number, lng: number} | null>(null);
-  // Payment method selection
+  // Payment method selection (ETH hidden from UI but code kept for future)
   const [paymentMethod, setPaymentMethod] = useState<'usdc' | 'eth'>('usdc');
   const [estimatedEthCost, setEstimatedEthCost] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -198,7 +198,7 @@ export default function Mint() {
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
   
-  // ETH balance check for payment
+  // ETH balance check for payment (hidden from UI, but functional)
   const { data: ethBalance } = useBalance({
     address,
     query: {
@@ -255,7 +255,7 @@ export default function Mint() {
     }
   }, [getCurrentLocation, useManualLocation]);
 
-  // Get real-time ETH quote from Uniswap Quoter V2 (only when ETH payment is selected)
+  // Get real-time ETH quote from Uniswap Quoter V2 (hidden from UI, but functional)
   const { data: quoteData } = useReadContract({
     address: UNISWAP_QUOTER_V2_ADDRESS,
     abi: QUOTER_V2_ABI,
@@ -273,7 +273,7 @@ export default function Mint() {
     }
   });
 
-  // Update estimated ETH cost when quote data changes
+  // Update estimated ETH cost when quote data changes (hidden from UI, but functional)
   useEffect(() => {
     if (quoteData && paymentMethod === 'eth') {
       const amountInWei = quoteData[0]; // First return value is amountIn
@@ -754,7 +754,7 @@ export default function Mint() {
       
       let batchCalls: any[] = [];
       
-      if (paymentMethod === 'eth') {
+      if (paymentMethod === 'eth') { // ETH payment (hidden from UI but functional)
         // ETH Payment: Swap ETH → USDC, then approve + mint
         if (!quoteData) {
           throw new Error('ETH quote not available. Please try again.');
@@ -1200,34 +1200,6 @@ export default function Mint() {
                       </Button>
                       */}
                     </div>
-                  )}
-                </div>
-
-                {/* Payment Method Selection */}
-                <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
-                  <Label className="text-sm font-medium mb-3 block">Payment Method</Label>
-                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'usdc' | 'eth')}>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <RadioGroupItem value="usdc" id="payment-usdc" />
-                      <Label htmlFor="payment-usdc" className="cursor-pointer flex-1 flex items-center justify-between">
-                        <span>Pay with USDC</span>
-                        <span className="text-sm text-muted-foreground">1 USDC</span>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="eth" id="payment-eth" />
-                      <Label htmlFor="payment-eth" className="cursor-pointer flex-1 flex items-center justify-between">
-                        <span>Pay with ETH</span>
-                        <span className="text-sm text-muted-foreground">
-                          {estimatedEthCost ? `~${estimatedEthCost} ETH` : 'Calculating...'}
-                        </span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  {paymentMethod === 'eth' && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      ETH will be automatically swapped to USDC via Uniswap
-                    </p>
                   )}
                 </div>
 
