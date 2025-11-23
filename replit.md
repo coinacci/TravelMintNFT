@@ -2,8 +2,17 @@
 
 This is a travel-focused NFT marketplace application where users can mint, buy, and sell location-based travel photo NFTs. The application features an interactive map view for discovering NFTs by location, a marketplace for trading, and a minting system for creating new travel photo NFTs. Built with a modern React frontend and Express backend, it uses PostgreSQL for data persistence and includes a comprehensive UI component library based on shadcn/ui.
 
-## Recent Updates (November 12, 2025)
+## Recent Updates
 
+### November 23, 2025
+- **Creator Donation System**: Implemented atomic USDC donation feature on NFT detail pages
+  - Preset donation amounts: 0.1, 0.5, 1 USDC
+  - 90% goes to NFT creator, 10% platform fee to treasury (`0x7CDe7822456AAC667Df0420cD048295b92704084`)
+  - Uses batch transaction (sendCalls API) for atomic execution
+  - Self-donation prevention and balance checks
+  - Success notifications with creator name and fee breakdown
+
+### November 12, 2025
 - **QuestManager Smart Contract Deployment**: Deployed dedicated quest contract to Base mainnet at `0xC280030c2d15EF42C207a35CcF7a63A4760d8967`
   - Implements on-chain quest tracking with daily replay protection
   - Enforces NFT holder verification (only TravelNFT holders can complete quests)
