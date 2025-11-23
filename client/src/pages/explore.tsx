@@ -680,15 +680,15 @@ export default function Explore() {
                     </button>
                   </div>
                   
-                  {/* Price and Action */}
-                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Current Price</p>
-                      <p className="text-2xl font-bold" data-testid="modal-nft-price">
-                        {parseFloat(nftDetails.price).toFixed(0)} USDC
-                      </p>
-                    </div>
-                    {nftDetails.isForSale === 1 && (
+                  {/* Buy Button (if for sale) */}
+                  {nftDetails.isForSale === 1 && (
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Price</p>
+                        <p className="text-2xl font-bold" data-testid="modal-nft-price">
+                          {parseFloat(nftDetails.price).toFixed(0)} USDC
+                        </p>
+                      </div>
                       <Button 
                         className="bg-primary hover:bg-primary/90 text-primary-foreground"
                         data-testid="modal-buy-button"
@@ -697,8 +697,8 @@ export default function Explore() {
                       >
                         {purchaseMutation.isPending ? "Processing..." : "Buy Now"}
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Details */}
@@ -776,8 +776,8 @@ export default function Explore() {
                     </div>
                   </div>
 
-                  {/* Donation Section */}
-                  {isConnected && nftDetails && walletAddress?.toLowerCase() !== nftDetails.creatorAddress?.toLowerCase() && (
+                  {/* Donation Section - show for all NFTs except your own */}
+                  {nftDetails && (!walletAddress || walletAddress.toLowerCase() !== nftDetails.creatorAddress?.toLowerCase()) && (
                     <div className="border-t pt-6">
                       <h4 className="font-semibold mb-3">Support the Creator</h4>
                       <p className="text-sm text-muted-foreground mb-4">
