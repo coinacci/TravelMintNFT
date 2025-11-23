@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain } from "wagmi";
-import { parseUnits } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain, useSendCalls } from "wagmi";
+import { parseUnits, encodeFunctionData } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { User, Clock, MapPin } from "lucide-react";
@@ -78,6 +78,8 @@ export default function Marketplace() {
   const [transactionStep, setTransactionStep] = useState<'idle' | 'usdc_approval' | 'nft_purchase'>('idle');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [donationAmount, setDonationAmount] = useState<number | null>(null);
+  const [isDonating, setIsDonating] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -149,11 +151,13 @@ export default function Marketplace() {
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
   });
+  const { data: donationCallsData, sendCalls: sendDonationCalls, isPending: isDonationPending } = useSendCalls();
 
   // Contract addresses
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
   const MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c";
+  const TREASURY_ADDRESS = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform treasury for 10% fee
 
   // TravelMarketplace Contract ABI - marketplace functions
   const MARKETPLACE_ABI = [
@@ -220,6 +224,16 @@ export default function Marketplace() {
       stateMutability: "nonpayable",
       inputs: [
         { name: "spender", type: "address" },
+        { name: "amount", type: "uint256" }
+      ],
+      outputs: [{ name: "", type: "bool" }]
+    },
+    {
+      name: "transfer",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "to", type: "address" },
         { name: "amount", type: "uint256" }
       ],
       outputs: [{ name: "", type: "bool" }]
@@ -575,9 +589,136 @@ export default function Marketplace() {
     }
   }, [txHash, isConfirming, transactionStep, walletAddress, currentPurchaseNftId, queryClient, nfts]);
 
+  // Handle successful donation batch transaction
+  useEffect(() => {
+    if (donationCallsData && isDonating && selectedNFT && donationAmount) {
+      console.log('🎉 Donation batch transaction completed!', donationCallsData);
+      
+      const creatorName = formatUserDisplayName({
+        walletAddress: selectedNFT.creatorAddress,
+        farcasterUsername: selectedNFT.farcasterCreatorUsername,
+        farcasterFid: selectedNFT.farcasterCreatorFid
+      });
+
+      toast({
+        title: "Donation Successful!",
+        description: `${donationAmount} USDC donated to ${creatorName}! (${(donationAmount * 0.9).toFixed(2)} to creator, ${(donationAmount * 0.1).toFixed(2)} platform fee)`,
+      });
+
+      // Reset donation state
+      setDonationAmount(null);
+      setIsDonating(false);
+    }
+  }, [donationCallsData, isDonating, selectedNFT, donationAmount, toast]);
+
   const handleNFTClick = (nft: NFT) => {
     setSelectedNFT(nft);
     setIsModalOpen(true);
+  };
+
+  // Donation handler - atomic batch USDC transfer to creator (90%) and treasury (10%)
+  const handleDonation = async (amount: number) => {
+    if (!isConnected || !walletAddress) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to donate",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedNFT) {
+      toast({
+        title: "Error",
+        description: "No NFT selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if donating to yourself
+    if (selectedNFT.creatorAddress.toLowerCase() === walletAddress.toLowerCase()) {
+      toast({
+        title: "Cannot Donate to Yourself",
+        description: "You cannot donate to your own NFT",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const networkOk = await ensureBaseNetwork();
+    if (!networkOk) {
+      return;
+    }
+
+    setDonationAmount(amount);
+    setIsDonating(true);
+
+    try {
+      const donationWei = parseUnits(amount.toString(), 6); // USDC has 6 decimals
+      const creatorAmount = (donationWei * BigInt(90)) / BigInt(100); // 90% to creator
+      const treasuryAmount = (donationWei * BigInt(10)) / BigInt(100); // 10% to treasury
+
+      // Check balance
+      const currentBalance = (usdcBalance as bigint) || BigInt(0);
+      if (currentBalance < donationWei) {
+        throw new Error(`Insufficient USDC balance. Required: ${amount} USDC, Available: ${(Number(currentBalance) / 1000000).toFixed(6)} USDC`);
+      }
+
+      toast({
+        title: "Processing Donation",
+        description: `Donating ${amount} USDC (${(amount * 0.9).toFixed(2)} to creator, ${(amount * 0.1).toFixed(2)} platform fee)`,
+      });
+
+      console.log("💝 Donation details:", {
+        totalAmount: amount,
+        creatorAmount: Number(creatorAmount) / 1000000,
+        treasuryAmount: Number(treasuryAmount) / 1000000,
+        creator: selectedNFT.creatorAddress,
+        treasury: TREASURY_ADDRESS,
+      });
+
+      // Build atomic batch transaction: both transfers in single call
+      const batchCalls = [
+        // Transfer 1: Creator gets 90%
+        {
+          to: USDC_ADDRESS as `0x${string}`,
+          data: encodeFunctionData({
+            abi: USDC_ABI,
+            functionName: "transfer",
+            args: [selectedNFT.creatorAddress as `0x${string}`, creatorAmount],
+          }),
+        },
+        // Transfer 2: Treasury gets 10%
+        {
+          to: USDC_ADDRESS as `0x${string}`,
+          data: encodeFunctionData({
+            abi: USDC_ABI,
+            functionName: "transfer",
+            args: [TREASURY_ADDRESS as `0x${string}`, treasuryAmount],
+          }),
+        },
+      ];
+
+      console.log("🎯 Sending atomic batch donation...", batchCalls);
+
+      // Execute atomic batch transaction
+      await sendDonationCalls({
+        calls: batchCalls,
+      });
+
+      console.log("✅ Batch donation transaction sent, waiting for confirmation...");
+
+    } catch (error: any) {
+      console.error("Donation error:", error);
+      toast({
+        title: "Donation Failed",
+        description: error.message || "Could not process donation",
+        variant: "destructive",
+      });
+      setDonationAmount(null);
+      setIsDonating(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -915,6 +1056,41 @@ export default function Marketplace() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Donation Section */}
+                {isConnected && walletAddress?.toLowerCase() !== nftDetails.creatorAddress.toLowerCase() && (
+                  <div className="border-t pt-6">
+                    <h4 className="font-medium mb-3">Support the Creator</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Donate USDC to {formatUserDisplayName({
+                        walletAddress: nftDetails.creatorAddress,
+                        farcasterUsername: nftDetails.farcasterCreatorUsername,
+                        farcasterFid: nftDetails.farcasterCreatorFid
+                      })} (90% to creator, 10% platform fee)
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[0.1, 0.5, 1].map((amount) => (
+                        <Button
+                          key={amount}
+                          onClick={() => handleDonation(amount)}
+                          disabled={isDonating || isDonationPending}
+                          variant={donationAmount === amount ? "default" : "outline"}
+                          className="w-full"
+                          data-testid={`donation-button-${amount}`}
+                        >
+                          {(isDonating || isDonationPending) && donationAmount === amount ? (
+                            <span className="flex items-center gap-2">
+                              <span className="animate-spin">⏳</span>
+                              {amount}
+                            </span>
+                          ) : (
+                            `${amount} USDC`
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Created Date */}
                 {nftDetails.createdAt && (
