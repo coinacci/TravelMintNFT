@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas, useSendCalls } from "wagmi";
-import { parseEther, formatGwei, encodeFunctionData } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useFeeData, useEstimateGas, useSendCalls, useReadContract, usePublicClient, useBalance } from "wagmi";
+import { parseEther, formatGwei, encodeFunctionData, formatEther } from "viem";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,86 @@ const USDC_ABI = [
       { name: 'amount', type: 'uint256' }
     ],
     outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const;
+
+// Uniswap V3 SwapRouter on Base mainnet
+const UNISWAP_ROUTER_ADDRESS = '0x2626664c2603336E57B271c5C0b26F421741e481' as const;
+const UNISWAP_QUOTER_V2_ADDRESS = '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a' as const;
+const WETH_ADDRESS = '0x4200000000000000000000000000000000000006' as const;
+
+const SWAP_ROUTER_ABI = [
+  {
+    name: 'exactInputSingle',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [{
+      name: 'params',
+      type: 'tuple',
+      components: [
+        { name: 'tokenIn', type: 'address' },
+        { name: 'tokenOut', type: 'address' },
+        { name: 'fee', type: 'uint24' },
+        { name: 'recipient', type: 'address' },
+        { name: 'deadline', type: 'uint256' },
+        { name: 'amountIn', type: 'uint256' },
+        { name: 'amountOutMinimum', type: 'uint256' },
+        { name: 'sqrtPriceLimitX96', type: 'uint160' }
+      ]
+    }],
+    outputs: [{ name: 'amountOut', type: 'uint256' }]
+  }
+] as const;
+
+const WETH_ABI = [
+  {
+    name: 'deposit',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [],
+    outputs: []
+  },
+  {
+    name: 'approve',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  }
+] as const;
+
+const QUOTER_V2_ABI = [
+  {
+    name: 'quoteExactOutputSingle',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{
+      name: 'params',
+      type: 'tuple',
+      components: [
+        { name: 'tokenIn', type: 'address' },
+        { name: 'tokenOut', type: 'address' },
+        { name: 'amount', type: 'uint256' },
+        { name: 'fee', type: 'uint24' },
+        { name: 'sqrtPriceLimitX96', type: 'uint160' }
+      ]
+    }],
+    outputs: [
+      { name: 'amountIn', type: 'uint256' },
+      { name: 'sqrtPriceX96After', type: 'uint160' },
+      { name: 'initializedTicksCrossed', type: 'uint32' },
+      { name: 'gasEstimate', type: 'uint256' }
+    ]
   }
 ] as const;
 
@@ -105,6 +185,9 @@ export default function Mint() {
   const [useManualLocation, setUseManualLocation] = useState(false); // Force GPS only
   const [manualLocation, setManualLocation] = useState('');
   const [selectedCoords, setSelectedCoords] = useState<{lat: number, lng: number} | null>(null);
+  // Payment method selection
+  const [paymentMethod, setPaymentMethod] = useState<'usdc' | 'eth'>('usdc');
+  const [estimatedEthCost, setEstimatedEthCost] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -114,6 +197,14 @@ export default function Mint() {
   const queryClient = useQueryClient();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { address, isConnected, connector } = useAccount();
+  
+  // ETH balance check for payment
+  const { data: ethBalance } = useBalance({
+    address,
+    query: {
+      enabled: !!address && paymentMethod === 'eth',
+    }
+  });
   
   // ⚡ REAL BLOCKCHAIN TRANSACTIONS - Enabled for production
   const { data: hash, error: contractError, isPending: isContractPending, writeContract, reset: resetWriteContract } = useWriteContract();
@@ -163,6 +254,38 @@ export default function Mint() {
       getCurrentLocation();
     }
   }, [getCurrentLocation, useManualLocation]);
+
+  // Get real-time ETH quote from Uniswap Quoter V2 (only when ETH payment is selected)
+  const { data: quoteData } = useReadContract({
+    address: UNISWAP_QUOTER_V2_ADDRESS,
+    abi: QUOTER_V2_ABI,
+    functionName: 'quoteExactOutputSingle',
+    args: [{
+      tokenIn: WETH_ADDRESS,
+      tokenOut: USDC_CONTRACT_ADDRESS,
+      amount: USDC_MINT_AMOUNT, // 1 USDC (6 decimals)
+      fee: 3000, // 0.3% pool fee (most liquid WETH/USDC pool)
+      sqrtPriceLimitX96: BigInt(0) // No price limit
+    }],
+    query: {
+      enabled: paymentMethod === 'eth', // Only fetch when ETH payment is selected
+      refetchInterval: 30000, // Refresh every 30 seconds
+    }
+  });
+
+  // Update estimated ETH cost when quote data changes
+  useEffect(() => {
+    if (quoteData && paymentMethod === 'eth') {
+      const amountInWei = quoteData[0]; // First return value is amountIn
+      const slippageTolerance = 1.02; // 2% slippage
+      const amountInWithSlippage = BigInt(Math.floor(Number(amountInWei) * slippageTolerance));
+      const ethCost = (Number(amountInWithSlippage) / 1e18).toFixed(6);
+      setEstimatedEthCost(ethCost);
+      console.log('💰 Real-time ETH quote for 1 USDC:', ethCost, 'ETH (with 2% slippage)');
+    } else {
+      setEstimatedEthCost(null);
+    }
+  }, [quoteData, paymentMethod]);
 
   // Handle successful batch transaction (sendCalls) - MAIN SUCCESS HANDLER
   useEffect(() => {
@@ -625,17 +748,74 @@ export default function Mint() {
         console.log('✅ Using fallback metadata URL:', metadataUrl);
       }
       
-      // Step 2: Batch approve + mint with metadata URL
+      // Step 2: Build batch transaction based on payment method
       setMintingStep('approving');
       setUploadProgress('');
-      console.log('🎯 Creating batch transaction: approve + mint with metadata');
       
-      // 🚀 REAL BLOCKCHAIN: Batch approve + mint in ONE Farcaster confirmation!
-      console.log('⚡ STARTING REAL BLOCKCHAIN MINT...');
+      let batchCalls: any[] = [];
       
-      await sendCalls({
-        calls: [
-          // 1. Approve USDC spending first
+      if (paymentMethod === 'eth') {
+        // ETH Payment: Swap ETH → USDC, then approve + mint
+        if (!quoteData) {
+          throw new Error('ETH quote not available. Please try again.');
+        }
+        
+        const amountInWei = quoteData[0];
+        const slippageTolerance = 1.02; // 2% slippage
+        const amountInMax = BigInt(Math.floor(Number(amountInWei) * slippageTolerance));
+        
+        // Check ETH balance (including gas buffer)
+        const gasBuffer = parseEther('0.001'); // ~0.001 ETH for gas
+        const totalEthNeeded = amountInMax + gasBuffer;
+        
+        if (!ethBalance || ethBalance.value < totalEthNeeded) {
+          const needed = formatEther(totalEthNeeded);
+          const available = ethBalance ? formatEther(ethBalance.value) : '0';
+          throw new Error(`Insufficient ETH balance. Need: ${needed} ETH (including gas), Available: ${available} ETH`);
+        }
+        
+        console.log('🎯 ETH Payment: Wrap → Swap → Approve → Mint (5 calls)');
+        console.log('💰 ETH amount (with slippage):', (Number(amountInMax) / 1e18).toFixed(6), 'ETH');
+        console.log('✅ ETH balance check passed:', formatEther(ethBalance.value), 'ETH available');
+        
+        batchCalls = [
+          // 1. Wrap ETH → WETH
+          {
+            to: WETH_ADDRESS,
+            value: amountInMax, // Send ETH to wrap
+            data: encodeFunctionData({
+              abi: WETH_ABI,
+              functionName: 'deposit'
+            })
+          },
+          // 2. Approve WETH spending for Uniswap Router
+          {
+            to: WETH_ADDRESS,
+            data: encodeFunctionData({
+              abi: WETH_ABI,
+              functionName: 'approve',
+              args: [UNISWAP_ROUTER_ADDRESS, amountInMax] // ✅ Correct: Router address
+            })
+          },
+          // 3. Swap WETH → USDC via Uniswap
+          {
+            to: UNISWAP_ROUTER_ADDRESS,
+            data: encodeFunctionData({
+              abi: SWAP_ROUTER_ABI,
+              functionName: 'exactInputSingle',
+              args: [{
+                tokenIn: WETH_ADDRESS,
+                tokenOut: USDC_CONTRACT_ADDRESS,
+                fee: 3000, // 0.3% pool
+                recipient: address,
+                deadline: BigInt(Math.floor(Date.now() / 1000) + 300), // 5 min deadline
+                amountIn: amountInMax,
+                amountOutMinimum: USDC_MINT_AMOUNT, // Must get at least 1 USDC
+                sqrtPriceLimitX96: BigInt(0)
+              }]
+            })
+          },
+          // 4. Approve USDC spending for NFT contract
           {
             to: USDC_CONTRACT_ADDRESS,
             data: encodeFunctionData({
@@ -644,7 +824,7 @@ export default function Mint() {
               args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
             })
           },
-          // 2. Mint NFT with metadata URL
+          // 5. Mint NFT
           {
             to: NFT_CONTRACT_ADDRESS,
             data: encodeFunctionData({
@@ -656,11 +836,49 @@ export default function Mint() {
                 useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
                 useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
                 category,
-                metadataUrl // Metadata URL (IPFS or fallback)
+                metadataUrl
               ]
             })
           }
-        ]
+        ];
+      } else {
+        // USDC Payment: Approve + Mint (existing flow)
+        console.log('🎯 USDC Payment: Approve + Mint');
+        
+        batchCalls = [
+          // 1. Approve USDC spending
+          {
+            to: USDC_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: USDC_ABI,
+              functionName: 'approve',
+              args: [NFT_CONTRACT_ADDRESS, USDC_MINT_AMOUNT]
+            })
+          },
+          // 2. Mint NFT
+          {
+            to: NFT_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: NFT_ABI,
+              functionName: 'mintTravelNFT',
+              args: [
+                address,
+                useManualLocation ? manualLocation : (location?.city || `${location?.latitude.toFixed(4)}, ${location?.longitude.toFixed(4)}`),
+                useManualLocation ? (selectedCoords ? selectedCoords.lat.toString() : "0") : (location?.latitude.toString() || "0"),
+                useManualLocation ? (selectedCoords ? selectedCoords.lng.toString() : "0") : (location?.longitude.toString() || "0"), 
+                category,
+                metadataUrl
+              ]
+            })
+          }
+        ];
+      }
+      
+      // 🚀 REAL BLOCKCHAIN: Execute batch transaction
+      console.log('⚡ STARTING REAL BLOCKCHAIN MINT...');
+      
+      await sendCalls({
+        calls: batchCalls
       });
       
       console.log('✅ Blockchain transaction batch sent with metadata!');
@@ -982,6 +1200,34 @@ export default function Mint() {
                       </Button>
                       */}
                     </div>
+                  )}
+                </div>
+
+                {/* Payment Method Selection */}
+                <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
+                  <Label className="text-sm font-medium mb-3 block">Payment Method</Label>
+                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'usdc' | 'eth')}>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <RadioGroupItem value="usdc" id="payment-usdc" />
+                      <Label htmlFor="payment-usdc" className="cursor-pointer flex-1 flex items-center justify-between">
+                        <span>Pay with USDC</span>
+                        <span className="text-sm text-muted-foreground">1 USDC</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="eth" id="payment-eth" />
+                      <Label htmlFor="payment-eth" className="cursor-pointer flex-1 flex items-center justify-between">
+                        <span>Pay with ETH</span>
+                        <span className="text-sm text-muted-foreground">
+                          {estimatedEthCost ? `~${estimatedEthCost} ETH` : 'Calculating...'}
+                        </span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  {paymentMethod === 'eth' && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      ETH will be automatically swapped to USDC via Uniswap
+                    </p>
                   )}
                 </div>
 
