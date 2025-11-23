@@ -703,6 +703,37 @@ export default function Explore() {
 
                 {/* Details */}
                 <div className="space-y-6">
+                  {/* Donation Section - show for all NFTs except your own */}
+                  {nftDetails && (!walletAddress || walletAddress.toLowerCase() !== nftDetails.creatorAddress?.toLowerCase()) && (
+                    <div className="border-b pb-6">
+                      <h4 className="font-semibold mb-3">Support the Creator</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Donate USDC to @{nftDetails.creator?.username || nftDetails.farcasterCreatorUsername || 'creator'}
+                      </p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[0.1, 0.5, 1].map((amount) => (
+                          <Button
+                            key={amount}
+                            onClick={() => handleDonation(amount)}
+                            disabled={isDonating || isDonationPending}
+                            variant={donationAmount === amount ? "default" : "outline"}
+                            className="w-full"
+                            data-testid={`donation-button-${amount}`}
+                          >
+                            {(isDonating || isDonationPending) && donationAmount === amount ? (
+                              <span className="flex items-center gap-2">
+                                <span className="animate-spin">⏳</span>
+                                {amount}
+                              </span>
+                            ) : (
+                              `${amount} USDC`
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Description */}
                   {nftDetails.description && (
                     <div>
@@ -775,37 +806,6 @@ export default function Explore() {
                       <span data-testid="modal-nft-created">{formatDate(nftDetails.createdAt)}</span>
                     </div>
                   </div>
-
-                  {/* Donation Section - show for all NFTs except your own */}
-                  {nftDetails && (!walletAddress || walletAddress.toLowerCase() !== nftDetails.creatorAddress?.toLowerCase()) && (
-                    <div className="border-t pt-6">
-                      <h4 className="font-semibold mb-3">Support the Creator</h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Donate USDC to @{nftDetails.creator?.username || nftDetails.farcasterCreatorUsername || 'creator'}
-                      </p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[0.1, 0.5, 1].map((amount) => (
-                          <Button
-                            key={amount}
-                            onClick={() => handleDonation(amount)}
-                            disabled={isDonating || isDonationPending}
-                            variant={donationAmount === amount ? "default" : "outline"}
-                            className="w-full"
-                            data-testid={`donation-button-${amount}`}
-                          >
-                            {(isDonating || isDonationPending) && donationAmount === amount ? (
-                              <span className="flex items-center gap-2">
-                                <span className="animate-spin">⏳</span>
-                                {amount}
-                              </span>
-                            ) : (
-                              `${amount} USDC`
-                            )}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                 </div>
               </div>
