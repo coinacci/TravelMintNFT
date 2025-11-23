@@ -565,7 +565,7 @@ export default function Explore() {
 
       toast({
         title: "Donation Successful!",
-        description: `${donationAmount} USDC donated to @${creatorName}! (${(donationAmount * 0.9).toFixed(2)} to creator, ${(donationAmount * 0.1).toFixed(2)} platform fee)`,
+        description: `You donated ${donationAmount} USDC to @${creatorName}`,
       });
 
       // Reset donation state
