@@ -781,7 +781,7 @@ export default function Explore() {
                     <div className="border-t pt-6">
                       <h4 className="font-semibold mb-3">Support the Creator</h4>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Donate USDC to @{nftDetails.creator?.username || nftDetails.farcasterCreatorUsername || 'creator'} (90% to creator, 10% platform fee)
+                        Donate USDC to @{nftDetails.creator?.username || nftDetails.farcasterCreatorUsername || 'creator'}
                       </p>
                       <div className="grid grid-cols-3 gap-3">
                         {[0.1, 0.5, 1].map((amount) => (
