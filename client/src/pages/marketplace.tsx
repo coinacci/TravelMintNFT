@@ -617,7 +617,7 @@ export default function Marketplace() {
 
   // Handle successful donation batch transaction
   useEffect(() => {
-    if (donationCallsData && isDonating && selectedNFT && donationAmount) {
+    if (donationCallsData && isDonating && selectedNFT && donationAmount && walletAddress) {
       console.log('🎉 Donation batch transaction completed!', donationCallsData);
       
       const creatorName = formatUserDisplayName({
@@ -625,6 +625,31 @@ export default function Marketplace() {
         farcasterUsername: selectedNFT.farcasterCreatorUsername,
         farcasterFid: selectedNFT.farcasterCreatorFid
       });
+
+      // Record donation in backend
+      const recordDonation = async () => {
+        try {
+          const platformFee = donationAmount * 0.1;
+          const creatorAmount = donationAmount * 0.9;
+          
+          await fetch('/api/donations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftId: selectedNFT.id,
+              fromAddress: walletAddress,
+              toAddress: selectedNFT.creatorAddress,
+              amount: creatorAmount.toString(),
+              platformFee: platformFee.toString(),
+              blockchainTxHash: typeof donationCallsData === 'string' ? donationCallsData : donationCallsData.id || `donation-${Date.now()}`,
+            }),
+          });
+          console.log('💝 Donation recorded in database');
+        } catch (error) {
+          console.error('Failed to record donation:', error);
+        }
+      };
+      recordDonation();
 
       toast({
         title: "Donation Successful!",
@@ -635,7 +660,7 @@ export default function Marketplace() {
       setDonationAmount(null);
       setIsDonating(false);
     }
-  }, [donationCallsData, isDonating, selectedNFT, donationAmount, toast]);
+  }, [donationCallsData, isDonating, selectedNFT, donationAmount, walletAddress, toast]);
 
   const handleNFTClick = (nft: NFT) => {
     setSelectedNFT(nft);

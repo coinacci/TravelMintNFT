@@ -1085,6 +1085,74 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Record a donation transaction
+  app.post("/api/donations", async (req, res) => {
+    try {
+      const { nftId, fromAddress, toAddress, amount, platformFee, blockchainTxHash } = req.body;
+
+      // Validate required fields
+      if (!nftId || !fromAddress || !toAddress || !amount || !blockchainTxHash) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if transaction already recorded (prevent duplicates)
+      const existingTx = await storage.getTransactionByHash(blockchainTxHash);
+      if (existingTx) {
+        return res.status(200).json({ message: "Donation already recorded", transaction: existingTx });
+      }
+
+      // Create donation transaction record
+      const transaction = await storage.createTransaction({
+        nftId,
+        fromAddress: fromAddress.toLowerCase(),
+        toAddress: toAddress.toLowerCase(),
+        transactionType: "donation",
+        amount: amount.toString(),
+        platformFee: platformFee?.toString() || "0",
+        blockchainTxHash,
+      });
+
+      console.log(`💝 Donation recorded: ${amount} USDC from ${fromAddress} to ${toAddress} for NFT ${nftId}`);
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error recording donation:", error);
+      res.status(500).json({ message: "Failed to record donation" });
+    }
+  });
+
+  // Get donation statistics
+  app.get("/api/donations/stats", async (req, res) => {
+    try {
+      const stats = await storage.getDonationStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching donation stats:", error);
+      res.status(500).json({ message: "Failed to fetch donation stats" });
+    }
+  });
+
+  // Get donations by NFT
+  app.get("/api/donations/nft/:nftId", async (req, res) => {
+    try {
+      const donations = await storage.getDonationsByNFT(req.params.nftId);
+      res.json(donations);
+    } catch (error) {
+      console.error("Error fetching NFT donations:", error);
+      res.status(500).json({ message: "Failed to fetch NFT donations" });
+    }
+  });
+
+  // Get donations received by a wallet
+  app.get("/api/donations/received/:address", async (req, res) => {
+    try {
+      const donations = await storage.getDonationsReceivedByWallet(req.params.address.toLowerCase());
+      res.json(donations);
+    } catch (error) {
+      console.error("Error fetching received donations:", error);
+      res.status(500).json({ message: "Failed to fetch received donations" });
+    }
+  });
+
   // Blockchain sync endpoint - fetches real blockchain data
   app.post("/api/sync/wallet/:address", async (req, res) => {
     try {

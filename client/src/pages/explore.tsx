@@ -556,12 +556,37 @@ export default function Explore() {
 
   // Handle successful donation batch transaction
   React.useEffect(() => {
-    if (donationCallsData && isDonating && nftDetails && donationAmount) {
+    if (donationCallsData && isDonating && nftDetails && donationAmount && walletAddress) {
       console.log('🎉 Donation batch transaction completed!', donationCallsData);
       
       const creatorName = nftDetails.creator?.username || 
                          nftDetails.farcasterCreatorUsername || 
                          `${nftDetails.creatorAddress.slice(0, 6)}...${nftDetails.creatorAddress.slice(-4)}`;
+
+      // Record donation in backend
+      const recordDonation = async () => {
+        try {
+          const platformFee = donationAmount * 0.1;
+          const creatorAmount = donationAmount * 0.9;
+          
+          await fetch('/api/donations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftId: nftDetails.id,
+              fromAddress: walletAddress,
+              toAddress: nftDetails.creatorAddress,
+              amount: creatorAmount.toString(),
+              platformFee: platformFee.toString(),
+              blockchainTxHash: typeof donationCallsData === 'string' ? donationCallsData : donationCallsData.id || `donation-${Date.now()}`,
+            }),
+          });
+          console.log('💝 Donation recorded in database');
+        } catch (error) {
+          console.error('Failed to record donation:', error);
+        }
+      };
+      recordDonation();
 
       toast({
         title: "Donation Successful!",
@@ -572,7 +597,7 @@ export default function Explore() {
       setDonationAmount(null);
       setIsDonating(false);
     }
-  }, [donationCallsData, isDonating, nftDetails, donationAmount, toast]);
+  }, [donationCallsData, isDonating, nftDetails, donationAmount, walletAddress, toast]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();

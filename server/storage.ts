@@ -32,6 +32,19 @@ export interface IStorage {
   getTransactionsByUser(userAddress: string): Promise<Transaction[]>;
   getRecentTransactions(limit?: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  getTransactionByHash(blockchainTxHash: string): Promise<Transaction | undefined>;
+  
+  // Donation operations
+  getDonationStats(): Promise<{
+    totalDonations: number;
+    totalAmount: string;
+    uniqueDonors: number;
+    uniqueRecipients: number;
+    topRecipients: Array<{ address: string; totalReceived: string; donationCount: number }>;
+    topNFTs: Array<{ nftId: string; title: string; totalReceived: string; donationCount: number }>;
+  }>;
+  getDonationsByNFT(nftId: string): Promise<Transaction[]>;
+  getDonationsReceivedByWallet(walletAddress: string): Promise<Transaction[]>;
 
   // Quest system operations
   getUserStats(farcasterFid: string): Promise<UserStats | undefined>;
@@ -414,6 +427,103 @@ export class DatabaseStorage implements IStorage {
       .values(insertTransaction)
       .returning();
     return transaction;
+  }
+
+  async getTransactionByHash(blockchainTxHash: string): Promise<Transaction | undefined> {
+    const [tx] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.blockchainTxHash, blockchainTxHash));
+    return tx || undefined;
+  }
+
+  // Donation operations
+  async getDonationStats(): Promise<{
+    totalDonations: number;
+    totalAmount: string;
+    uniqueDonors: number;
+    uniqueRecipients: number;
+    topRecipients: Array<{ address: string; totalReceived: string; donationCount: number }>;
+    topNFTs: Array<{ nftId: string; title: string; totalReceived: string; donationCount: number }>;
+  }> {
+    // Get basic stats
+    const [basicStats] = await db
+      .select({
+        totalDonations: sql<number>`COUNT(*)::int`,
+        totalAmount: sql<string>`COALESCE(SUM(${transactions.amount}::numeric), 0)::text`,
+        uniqueDonors: sql<number>`COUNT(DISTINCT ${transactions.fromAddress})::int`,
+        uniqueRecipients: sql<number>`COUNT(DISTINCT ${transactions.toAddress})::int`,
+      })
+      .from(transactions)
+      .where(eq(transactions.transactionType, 'donation'));
+
+    // Get top recipients
+    const topRecipients = await db
+      .select({
+        address: transactions.toAddress,
+        totalReceived: sql<string>`SUM(${transactions.amount}::numeric)::text`,
+        donationCount: sql<number>`COUNT(*)::int`,
+      })
+      .from(transactions)
+      .where(eq(transactions.transactionType, 'donation'))
+      .groupBy(transactions.toAddress)
+      .orderBy(sql`SUM(${transactions.amount}::numeric) DESC`)
+      .limit(10);
+
+    // Get top NFTs by donation
+    const topNFTs = await db
+      .select({
+        nftId: transactions.nftId,
+        title: nfts.title,
+        totalReceived: sql<string>`SUM(${transactions.amount}::numeric)::text`,
+        donationCount: sql<number>`COUNT(*)::int`,
+      })
+      .from(transactions)
+      .leftJoin(nfts, eq(transactions.nftId, nfts.id))
+      .where(eq(transactions.transactionType, 'donation'))
+      .groupBy(transactions.nftId, nfts.title)
+      .orderBy(sql`SUM(${transactions.amount}::numeric) DESC`)
+      .limit(10);
+
+    return {
+      totalDonations: basicStats?.totalDonations || 0,
+      totalAmount: basicStats?.totalAmount || '0',
+      uniqueDonors: basicStats?.uniqueDonors || 0,
+      uniqueRecipients: basicStats?.uniqueRecipients || 0,
+      topRecipients: topRecipients.map(r => ({
+        address: r.address || '',
+        totalReceived: r.totalReceived || '0',
+        donationCount: r.donationCount || 0,
+      })),
+      topNFTs: topNFTs.map(n => ({
+        nftId: n.nftId || '',
+        title: n.title || 'Unknown',
+        totalReceived: n.totalReceived || '0',
+        donationCount: n.donationCount || 0,
+      })),
+    };
+  }
+
+  async getDonationsByNFT(nftId: string): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(and(
+        eq(transactions.nftId, nftId),
+        eq(transactions.transactionType, 'donation')
+      ))
+      .orderBy(sql`${transactions.createdAt} DESC`);
+  }
+
+  async getDonationsReceivedByWallet(walletAddress: string): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(and(
+        eq(transactions.toAddress, walletAddress),
+        eq(transactions.transactionType, 'donation')
+      ))
+      .orderBy(sql`${transactions.createdAt} DESC`);
   }
 
   // Quest system operations
