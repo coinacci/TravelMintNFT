@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Users, UserCheck, Star, AlertCircle } from "lucide-react";
+import { Shield, Star, AlertCircle } from "lucide-react";
 
 interface NeynarScoreData {
   fid: number;
@@ -54,7 +54,7 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
     return (
       <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
             <Shield className="w-4 h-4 text-purple-500" />
             Neynar Score
           </CardTitle>
@@ -70,7 +70,7 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
     return (
       <Card className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 border-gray-200 dark:border-gray-700">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
             <Shield className="w-4 h-4 text-gray-400" />
             Neynar Score
           </CardTitle>
@@ -91,17 +91,17 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
   return (
     <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800" data-testid="neynar-score-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
           <Shield className="w-4 h-4 text-purple-500" />
           Neynar Score
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${getScoreBgColor(score)}`}>
-              <span className={`text-2xl font-bold ${getScoreColor(score)}`} data-testid="neynar-score-value">
-                {scorePercent}
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center ${getScoreBgColor(score)}`}>
+              <span className={`text-lg font-bold ${getScoreColor(score)}`} data-testid="neynar-score-value">
+                {score.toFixed(2)}
               </span>
             </div>
             <div>
@@ -113,9 +113,7 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <Star className={`w-6 h-6 ${getScoreColor(score)}`} />
-          </div>
+          <Star className={`w-5 h-5 ${getScoreColor(score)}`} />
         </div>
 
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -129,32 +127,6 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
             style={{ width: `${scorePercent}%` }}
             data-testid="neynar-score-bar"
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Followers:</span>
-            <span className="font-medium" data-testid="neynar-followers">{data.followerCount.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <UserCheck className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Following:</span>
-            <span className="font-medium" data-testid="neynar-following">{data.followingCount.toLocaleString()}</span>
-          </div>
-        </div>
-
-        {data.verifiedAddresses && data.verifiedAddresses.length > 0 && (
-          <div className="pt-2 border-t border-purple-200 dark:border-purple-700">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Shield className="w-3 h-3 text-green-500" />
-              <span>{data.verifiedAddresses.length} verified wallet{data.verifiedAddresses.length > 1 ? 's' : ''}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="text-xs text-muted-foreground text-center pt-1">
-          Powered by Neynar • Score updates weekly
         </div>
       </CardContent>
     </Card>
