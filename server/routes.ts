@@ -2528,6 +2528,59 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // ===== NEYNAR API ENDPOINTS =====
+  
+  // Get Neynar User Score for a Farcaster user
+  app.get("/api/neynar/score/:fid", async (req, res) => {
+    try {
+      const fid = req.params.fid;
+      
+      if (!fid || !/^\d+$/.test(fid)) {
+        return res.status(400).json({ message: "Invalid FID" });
+      }
+
+      const neynarApiKey = process.env.NEYNAR_API_KEY;
+      if (!neynarApiKey) {
+        return res.status(500).json({ message: "Neynar API key not configured" });
+      }
+
+      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': neynarApiKey,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Neynar API error:', response.status, await response.text());
+        return res.status(response.status).json({ message: "Failed to fetch from Neynar API" });
+      }
+
+      const data = await response.json();
+      
+      if (!data.users || data.users.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const user = data.users[0];
+      
+      res.json({
+        fid: user.fid,
+        username: user.username,
+        displayName: user.display_name,
+        pfpUrl: user.pfp_url,
+        followerCount: user.follower_count,
+        followingCount: user.following_count,
+        neynarScore: user.neynar_user_score || 0,
+        activeStatus: user.active_status,
+        verifiedAddresses: user.verified_addresses?.eth_addresses || [],
+      });
+    } catch (error) {
+      console.error('Error fetching Neynar score:', error);
+      res.status(500).json({ message: "Failed to fetch Neynar score" });
+    }
+  });
+
   // ===== QUEST SYSTEM API ENDPOINTS =====
   
   // Get user stats for quest system - SECURED
