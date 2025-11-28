@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Star, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Shield, Star, Loader2, RefreshCw } from "lucide-react";
 
 interface NeynarScoreData {
   fid: number;
@@ -20,10 +21,10 @@ interface NeynarScoreProps {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 0.8) return "text-green-500";
-  if (score >= 0.6) return "text-blue-500";
-  if (score >= 0.4) return "text-yellow-500";
-  return "text-red-500";
+  if (score >= 0.8) return "text-green-400";
+  if (score >= 0.6) return "text-blue-400";
+  if (score >= 0.4) return "text-yellow-400";
+  return "text-red-400";
 }
 
 function getScoreLabel(score: number): string {
@@ -34,33 +35,67 @@ function getScoreLabel(score: number): string {
 }
 
 function getScoreBgColor(score: number): string {
-  if (score >= 0.8) return "bg-green-500/10";
-  if (score >= 0.6) return "bg-blue-500/10";
-  if (score >= 0.4) return "bg-yellow-500/10";
-  return "bg-red-500/10";
+  if (score >= 0.8) return "bg-green-500/20";
+  if (score >= 0.6) return "bg-blue-500/20";
+  if (score >= 0.4) return "bg-yellow-500/20";
+  return "bg-red-500/20";
+}
+
+function getBarColor(score: number): string {
+  if (score >= 0.8) return "bg-green-500";
+  if (score >= 0.6) return "bg-blue-500";
+  if (score >= 0.4) return "bg-yellow-500";
+  return "bg-red-500";
 }
 
 export default function NeynarScore({ fid }: NeynarScoreProps) {
-  const { data, isLoading, error } = useQuery<NeynarScoreData>({
+  const [hasChecked, setHasChecked] = useState(false);
+
+  const { data, isFetching, error, refetch } = useQuery<NeynarScoreData>({
     queryKey: ['/api/neynar/score', fid],
-    enabled: !!fid,
+    enabled: false,
+    retry: 1,
   });
+
+  useEffect(() => {
+    setHasChecked(false);
+  }, [fid]);
 
   if (!fid) {
     return null;
   }
 
-  if (isLoading) {
+  const handleCheckScore = async () => {
+    if (!fid) return;
+    setHasChecked(true);
+    await refetch();
+  };
+
+  if (!hasChecked) {
     return (
-      <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
-            <Shield className="w-4 h-4 text-purple-500" />
-            Neynar Score
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-16 w-full" />
+      <Card className="bg-black border-gray-800" data-testid="neynar-score-card">
+        <CardContent className="p-4">
+          <Button
+            onClick={handleCheckScore}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium"
+            data-testid="button-check-neynar-score"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Check your Neynar Score
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isFetching) {
+    return (
+      <Card className="bg-black border-gray-800" data-testid="neynar-score-card">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-center gap-2 text-white">
+            <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+            <span>Checking your score...</span>
+          </div>
         </CardContent>
       </Card>
     );
@@ -68,17 +103,20 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
 
   if (error || !data) {
     return (
-      <Card className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 border-gray-200 dark:border-gray-700">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
-            <Shield className="w-4 h-4 text-gray-400" />
-            Neynar Score
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <AlertCircle className="w-4 h-4" />
-            <span>Unable to load score</span>
+      <Card className="bg-black border-gray-800" data-testid="neynar-score-card">
+        <CardContent className="p-4">
+          <div className="text-center">
+            <p className="text-gray-400 text-sm mb-3">Unable to load score</p>
+            <Button
+              onClick={handleCheckScore}
+              variant="outline"
+              size="sm"
+              className="border-gray-600 text-white hover:bg-gray-800"
+              data-testid="button-retry-neynar-score"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -89,14 +127,24 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
   const scorePercent = Math.round(score * 100);
 
   return (
-    <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800" data-testid="neynar-score-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
-          <Shield className="w-4 h-4 text-purple-500" />
-          Neynar Score
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Card className="bg-black border-gray-800" data-testid="neynar-score-card">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white text-sm font-medium">
+            <Shield className="w-4 h-4 text-purple-400" />
+            Neynar Score
+          </div>
+          <Button
+            onClick={handleCheckScore}
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+            data-testid="button-refresh-neynar-score"
+          >
+            <RefreshCw className="w-3 h-3" />
+          </Button>
+        </div>
+        
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-14 h-14 rounded-full flex items-center justify-center ${getScoreBgColor(score)}`}>
@@ -108,7 +156,7 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
               <div className={`text-lg font-semibold ${getScoreColor(score)}`} data-testid="neynar-score-label">
                 {getScoreLabel(score)}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-gray-400">
                 Account Quality Score
               </div>
             </div>
@@ -116,14 +164,9 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
           <Star className={`w-5 h-5 ${getScoreColor(score)}`} />
         </div>
 
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div className="w-full bg-gray-800 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all duration-500 ${
-              score >= 0.8 ? 'bg-green-500' :
-              score >= 0.6 ? 'bg-blue-500' :
-              score >= 0.4 ? 'bg-yellow-500' :
-              'bg-red-500'
-            }`}
+            className={`h-2 rounded-full transition-all duration-500 ${getBarColor(score)}`}
             style={{ width: `${scorePercent}%` }}
             data-testid="neynar-score-bar"
           />
