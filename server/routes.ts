@@ -2564,6 +2564,9 @@ export async function registerRoutes(app: Express) {
 
       const user = data.users[0];
       
+      // Use new 'score' field (stable), fallback to experimental neynar_user_score
+      const neynarScore = user.score ?? user.experimental?.neynar_user_score ?? 0;
+      
       res.json({
         fid: user.fid,
         username: user.username,
@@ -2571,7 +2574,7 @@ export async function registerRoutes(app: Express) {
         pfpUrl: user.pfp_url,
         followerCount: user.follower_count,
         followingCount: user.following_count,
-        neynarScore: user.neynar_user_score || 0,
+        neynarScore: neynarScore,
         activeStatus: user.active_status,
         verifiedAddresses: user.verified_addresses?.eth_addresses || [],
       });

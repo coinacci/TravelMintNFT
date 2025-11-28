@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSimulateContract, useSwitchChain } from "wagmi";
 import { parseUnits } from "viem";
 import NFTCard from "@/components/nft-card";
+import NeynarScore from "@/components/neynar-score";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -996,6 +997,11 @@ export default function MyNFTs() {
               </div>
             </div>
             
+            {/* Neynar Score Section */}
+            <div className="mt-6 w-full max-w-md">
+              <NeynarScore fid={farcasterUser.fid ? String(farcasterUser.fid) : null} />
+            </div>
+
             {/* Referral Invitation Section */}
             {userStats?.referralCode && (
               <div className="mt-6 w-full max-w-md border border-border rounded-lg p-4 bg-card/50">
