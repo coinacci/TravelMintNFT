@@ -93,13 +93,12 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
       const score = data.neynarScore;
       const label = getScoreLabel(score);
       const appUrl = "https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint";
-      const imageUrl = `https://travelmint.replit.app/api/neynar/share-image/${fid}`;
       
       const castText = `My Neynar Score is ${score.toFixed(2)} (${label})! 🎯\n\nCheck your Neynar Score on TravelMint:`;
       
       await sdk.actions.composeCast({
         text: castText,
-        embeds: [imageUrl, appUrl],
+        embeds: [appUrl],
       });
       
       toast({
