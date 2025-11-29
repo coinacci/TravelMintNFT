@@ -350,7 +350,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
       {/* Filters Dropdown */}
-      <div className="absolute top-4 right-4 z-10 w-48 md:w-56">
+      <div className="absolute top-4 md:top-20 right-4 z-10 w-48 md:w-56">
         <div className="bg-background/95 backdrop-blur shadow-lg rounded overflow-hidden">
           {/* Filters Header Button */}
           <button

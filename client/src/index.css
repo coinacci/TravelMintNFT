@@ -190,9 +190,15 @@
   background: hsl(var(--card));
 }
 
-/* Leaflet zoom control positioning - below header */
+/* Leaflet zoom control positioning - below header on desktop */
 .leaflet-top.leaflet-left {
-  top: 16px !important; /* Position just below app header */
+  top: 16px !important;
+}
+
+@media (min-width: 768px) {
+  .leaflet-top.leaflet-left {
+    top: 80px !important; /* Position below header on desktop */
+  }
 }
 
 /* Mobile responsive adjustments */
