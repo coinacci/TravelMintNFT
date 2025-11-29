@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import MapView from "@/components/map-view";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MapPin, User, Clock, Upload, Heart } from "lucide-react";
+import { MapPin, User, Clock, Upload, Heart, Shield } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -657,6 +657,22 @@ export default function Explore() {
               >
                 <MapPin className="w-4 h-4 mr-2" />
                 Explore Map
+              </Button>
+            </div>
+            
+            {/* Neynar Score Button */}
+            <div className="flex justify-center">
+              <Button 
+                size="default" 
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2"
+                data-testid="welcome-neynar-score-button"
+                onClick={() => {
+                  handleWelcomeClose();
+                  setLocation('/my-nfts');
+                }}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Check your Neynar Score
               </Button>
             </div>
           </div>
