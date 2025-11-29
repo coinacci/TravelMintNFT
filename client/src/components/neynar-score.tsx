@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Star, Loader2, RefreshCw } from "lucide-react";
+import { Shield, Star, Loader2, RefreshCw, Share2 } from "lucide-react";
+import sdk from "@farcaster/frame-sdk";
+import { useToast } from "@/hooks/use-toast";
 
 interface NeynarScoreData {
   fid: number;
@@ -50,6 +52,8 @@ function getBarColor(score: number): string {
 
 export default function NeynarScore({ fid }: NeynarScoreProps) {
   const [hasChecked, setHasChecked] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const { toast } = useToast();
 
   const { data, isFetching, error, refetch } = useQuery<NeynarScoreData>({
     queryKey: ['/api/neynar/score', fid],
@@ -69,6 +73,48 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
     if (!fid) return;
     setHasChecked(true);
     await refetch();
+  };
+
+  const handleShareScore = async () => {
+    if (!data) return;
+    
+    setIsSharing(true);
+    try {
+      // Check if Farcaster SDK is available
+      if (!sdk?.actions?.composeCast) {
+        toast({
+          title: "Share unavailable",
+          description: "Please open in Farcaster to share",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const score = data.neynarScore;
+      const label = getScoreLabel(score);
+      const appUrl = "https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint";
+      
+      const castText = `My Neynar Score is ${score.toFixed(2)} (${label})! 🎯\n\nCheck your account quality score on TravelMint:`;
+      
+      await sdk.actions.composeCast({
+        text: castText,
+        embeds: [appUrl],
+      });
+      
+      toast({
+        title: "Cast composed!",
+        description: "Share your Neynar Score with your followers",
+      });
+    } catch (error) {
+      console.error('Failed to share score:', error);
+      toast({
+        title: "Share failed",
+        description: "Could not open compose window",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   if (!hasChecked) {
@@ -134,15 +180,27 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
             <Shield className="w-4 h-4 text-purple-400" />
             Neynar Score
           </div>
-          <Button
-            onClick={handleCheckScore}
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
-            data-testid="button-refresh-neynar-score"
-          >
-            <RefreshCw className="w-3 h-3" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              onClick={handleShareScore}
+              disabled={isSharing}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-purple-400 hover:text-purple-300 hover:bg-gray-800"
+              data-testid="button-share-neynar-score"
+            >
+              {isSharing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
+            </Button>
+            <Button
+              onClick={handleCheckScore}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+              data-testid="button-refresh-neynar-score"
+            >
+              <RefreshCw className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
         
         <div className="flex items-center justify-between">
