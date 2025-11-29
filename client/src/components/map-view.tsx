@@ -3,7 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
-import { Search } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 import { useAccount } from "wagmi";
@@ -39,6 +39,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const queryClient = useQueryClient();
   const [showBrandOnly, setShowBrandOnly] = useState(false);
   const [showOnlyYours, setShowOnlyYours] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { address: walletAddress } = useAccount();
   
   // Reset "Only Yours" filter when wallet disconnects
@@ -348,42 +349,68 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Filters */}
-      <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
-        {/* Brand Filter Checkbox */}
-        <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showBrandOnly}
-              onChange={(e) => setShowBrandOnly(e.target.checked)}
-              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-              data-testid="checkbox-brand-filter"
-            />
-            <span className="text-sm text-black">Show Brand NFTs Only</span>
-          </label>
+      {/* Filters Dropdown */}
+      <div className="absolute top-4 right-4 z-10 w-48 md:w-56">
+        <div className="bg-background/95 backdrop-blur shadow-lg rounded overflow-hidden">
+          {/* Filters Header Button */}
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-100/50 transition-colors"
+            data-testid="button-filters-toggle"
+          >
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-black" />
+              <span className="text-sm font-medium text-black">Filters</span>
+              {(showBrandOnly || showOnlyYours) && (
+                <span className="bg-primary text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {(showBrandOnly ? 1 : 0) + (showOnlyYours ? 1 : 0)}
+                </span>
+              )}
+            </div>
+            {filtersOpen ? (
+              <ChevronUp className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            )}
+          </button>
+          
+          {/* Filter Options */}
+          {filtersOpen && (
+            <div className="border-t border-gray-200 px-3 py-2 space-y-2">
+              {/* Brand Filter Checkbox */}
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showBrandOnly}
+                  onChange={(e) => setShowBrandOnly(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  data-testid="checkbox-brand-filter"
+                />
+                <span className="text-sm text-black">Show Brand NFTs Only</span>
+              </label>
+              
+              {/* Only Yours Filter Checkbox */}
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showOnlyYours}
+                  onChange={(e) => setShowOnlyYours(e.target.checked)}
+                  disabled={!walletAddress}
+                  className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50"
+                  data-testid="checkbox-only-yours-filter"
+                />
+                <span className={`text-sm ${walletAddress ? 'text-black' : 'text-gray-400'}`}>Only Yours</span>
+              </label>
+              
+              {/* Filter Count */}
+              {(showBrandOnly || showOnlyYours) && (
+                <div className="text-xs text-muted-foreground text-right pt-1 border-t border-gray-100">
+                  {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        
-        {/* Only Yours Filter Checkbox */}
-        <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2 mt-2">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showOnlyYours}
-              onChange={(e) => setShowOnlyYours(e.target.checked)}
-              disabled={!walletAddress}
-              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50"
-              data-testid="checkbox-only-yours-filter"
-            />
-            <span className={`text-sm ${walletAddress ? 'text-black' : 'text-gray-400'}`}>Only Yours</span>
-          </label>
-        </div>
-        
-        {(showBrandOnly || showOnlyYours) && (
-          <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
-            {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
-          </div>
-        )}
       </div>
 
     </div>
