@@ -242,9 +242,12 @@ export default function Quests() {
 
   // Claim referral rewards mutation
   const claimReferralMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/quests/claim-referral', {
-      farcasterFid: String(farcasterUser.fid)
-    }),
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/quests/claim-referral', {
+        farcasterFid: String(farcasterUser.fid)
+      });
+      return await res.json();
+    },
     onSuccess: (response: any) => {
       console.log('📥 Referral claim response:', response);
       const pointsEarned = response.pointsEarned || 0;
