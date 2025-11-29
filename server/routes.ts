@@ -25,6 +25,20 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { farcasterCastValidator } from "./farcaster-validation";
 import { getNotificationService, isNotificationServiceAvailable } from "./notificationService";
 import multer from "multer";
+import satori from "satori";
+import { Resvg } from "@resvg/resvg-js";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// Load Inter fonts for share image generation
+let interRegular: Buffer | null = null;
+let interBold: Buffer | null = null;
+try {
+  interRegular = readFileSync(join(process.cwd(), 'server/fonts/Inter-Regular.ttf'));
+  interBold = readFileSync(join(process.cwd(), 'server/fonts/Inter-Bold.ttf'));
+} catch (e) {
+  console.warn('Failed to load Inter fonts, share images will use fallback');
+}
 
 const ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
 const PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform commission wallet
@@ -2581,6 +2595,175 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching Neynar score:', error);
       res.status(500).json({ message: "Failed to fetch Neynar score" });
+    }
+  });
+
+  // Neynar Score Share Image - generates dynamic PNG for Farcaster sharing
+  app.get("/api/neynar/share-image/:fid", async (req, res) => {
+    try {
+      const fid = req.params.fid;
+      
+      if (!fid || !/^\d+$/.test(fid)) {
+        return res.status(400).json({ message: "Invalid FID" });
+      }
+
+      const neynarApiKey = process.env.NEYNAR_API_KEY;
+      if (!neynarApiKey) {
+        return res.status(500).json({ message: "Neynar API key not configured" });
+      }
+
+      // Fetch user data from Neynar
+      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': neynarApiKey,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Neynar API error:', response.status);
+        return res.status(response.status).json({ message: "Failed to fetch from Neynar API" });
+      }
+
+      const data = await response.json();
+      
+      if (!data.users || data.users.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const user = data.users[0];
+      const neynarScore = user.score ?? user.experimental?.neynar_user_score ?? 0;
+      const username = user.username || 'Anonymous';
+      const pfpUrl = user.pfp_url;
+
+      // Fetch profile image and convert to base64
+      let avatarDataUrl = '';
+      if (pfpUrl) {
+        try {
+          const avatarResponse = await fetch(pfpUrl);
+          if (avatarResponse.ok) {
+            const avatarBuffer = await avatarResponse.arrayBuffer();
+            const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
+            avatarDataUrl = `data:${contentType};base64,${Buffer.from(avatarBuffer).toString('base64')}`;
+          }
+        } catch (e) {
+          console.error('Failed to fetch avatar:', e);
+        }
+      }
+
+      // Generate SVG with Satori
+      const svg = await satori(
+        {
+          type: 'div',
+          props: {
+            style: {
+              width: '1200px',
+              height: '630px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, #FF7A18 0%, #AF1EB6 50%, #833AB4 100%)',
+              fontFamily: 'Inter',
+            },
+            children: [
+              // Avatar
+              avatarDataUrl ? {
+                type: 'img',
+                props: {
+                  src: avatarDataUrl,
+                  width: 140,
+                  height: 140,
+                  style: {
+                    width: '140px',
+                    height: '140px',
+                    borderRadius: '70px',
+                    border: '4px solid rgba(255,255,255,0.5)',
+                    marginBottom: '24px',
+                    objectFit: 'cover',
+                  },
+                },
+              } : null,
+              // Username's Neynar Score
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    color: 'white',
+                    fontSize: '42px',
+                    fontWeight: '500',
+                    marginBottom: '16px',
+                  },
+                  children: `${username}'s Neynar Score`,
+                },
+              },
+              // Score value
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    color: 'white',
+                    fontSize: '120px',
+                    fontWeight: '700',
+                    marginBottom: '24px',
+                  },
+                  children: neynarScore.toFixed(2),
+                },
+              },
+              // CTA text
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    color: 'rgba(255,255,255,0.8)',
+                    fontSize: '32px',
+                    fontWeight: '400',
+                  },
+                  children: 'Check your Neynar Score',
+                },
+              },
+            ].filter(Boolean),
+          },
+        },
+        {
+          width: 1200,
+          height: 630,
+          fonts: [
+            {
+              name: 'Inter',
+              data: interRegular!,
+              weight: 400,
+              style: 'normal' as const,
+            },
+            {
+              name: 'Inter',
+              data: interBold!,
+              weight: 700,
+              style: 'normal' as const,
+            },
+          ],
+        }
+      );
+
+      // Convert SVG to PNG
+      const resvg = new Resvg(svg, {
+        fitTo: {
+          mode: 'width',
+          value: 1200,
+        },
+      });
+      const pngData = resvg.render();
+      const pngBuffer = pngData.asPng();
+
+      // Set cache headers and return PNG
+      res.set({
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=300, s-maxage=3600',
+      });
+      res.send(pngBuffer);
+    } catch (error) {
+      console.error('Error generating share image:', error);
+      res.status(500).json({ message: "Failed to generate share image" });
     }
   });
 
