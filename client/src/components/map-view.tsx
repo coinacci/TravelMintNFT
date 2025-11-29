@@ -6,6 +6,7 @@ import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatUserDisplayName } from "@/lib/userDisplay";
+import { useAccount } from "wagmi";
 
 interface NFT {
   id: string;
@@ -35,8 +36,18 @@ interface MapViewProps {
 export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const polylineRef = useRef<L.Polyline | null>(null);
   const queryClient = useQueryClient();
   const [showBrandOnly, setShowBrandOnly] = useState(false);
+  const [showOnlyYours, setShowOnlyYours] = useState(false);
+  const { address: walletAddress } = useAccount();
+  
+  // Reset "Only Yours" filter when wallet disconnects
+  useEffect(() => {
+    if (!walletAddress && showOnlyYours) {
+      setShowOnlyYours(false);
+    }
+  }, [walletAddress, showOnlyYours]);
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
@@ -49,7 +60,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
 
-  // Filter NFTs by brand category only
+  // Filter NFTs by brand category and owner
   const filteredNfts = nfts.filter(nft => {
     // Brand filter - exclude "Zora $10" from Brand filter display (handles emojis and extra characters)
     // Match only titles that start with "zora $10 " (with space) or are exactly "zora $10"
@@ -59,7 +70,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       ? (nft.category?.toLowerCase() === 'brand' && !isZora10)
       : true;
     
-    return matchesBrand;
+    // Only Yours filter - show only NFTs owned by current user
+    const matchesOwner = showOnlyYours && walletAddress
+      ? nft.ownerAddress?.toLowerCase() === walletAddress.toLowerCase()
+      : true;
+    
+    return matchesBrand && matchesOwner;
   });
   
   // Log errors for troubleshooting
@@ -138,12 +154,17 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     const map = mapInstanceRef.current;
 
-    // Clear existing markers (Leaflet style)
+    // Clear existing markers and polylines (Leaflet style)
     map.eachLayer((layer: any) => {
-      if (layer instanceof L.Marker) {
+      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
         map.removeLayer(layer);
       }
     });
+    
+    // Clear existing polyline ref
+    if (polylineRef.current) {
+      polylineRef.current = null;
+    }
 
     // Group NFTs by location for clustering support
     const nftsByLocation = new Map<string, NFT[]>();
@@ -320,6 +341,34 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       }
     });
 
+    // Draw polyline connecting user's NFTs when "Only Yours" filter is active
+    if (showOnlyYours && walletAddress && filteredNfts.length > 1) {
+      // Get unique coordinates from filtered NFTs (sorted by creation date for path order)
+      const sortedNfts = [...filteredNfts].sort((a, b) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
+      const coordinates: L.LatLngExpression[] = sortedNfts
+        .map(nft => {
+          const lat = typeof nft.latitude === 'string' ? parseFloat(nft.latitude) : (nft.latitude || 0);
+          const lng = typeof nft.longitude === 'string' ? parseFloat(nft.longitude) : (nft.longitude || 0);
+          if (isNaN(lat) || isNaN(lng)) return null;
+          return [lat, lng] as L.LatLngExpression;
+        })
+        .filter((coord): coord is L.LatLngExpression => coord !== null);
+      
+      if (coordinates.length > 1) {
+        polylineRef.current = L.polyline(coordinates, {
+          color: '#0000ff',
+          weight: 3,
+          opacity: 0.7,
+          dashArray: '10, 10',
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(map);
+      }
+    }
+
     // Global function to handle NFT selection from popup
     (window as any).selectNFT = (nftId: string) => {
       const selectedNFT = nfts.find((nft) => nft.id === nftId);
@@ -327,13 +376,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         onNFTSelect(selectedNFT);
       }
     };
-  }, [filteredNfts, nfts, onNFTSelect]);
+  }, [filteredNfts, nfts, onNFTSelect, showOnlyYours, walletAddress]);
 
   return (
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
 
-      {/* Brand Filter */}
+      {/* Filters */}
       <div className="absolute top-4 right-4 z-10 w-48 md:w-64">
         {/* Brand Filter Checkbox */}
         <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2">
@@ -349,7 +398,22 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </label>
         </div>
         
-        {showBrandOnly && (
+        {/* Only Yours Filter Checkbox */}
+        <div className="bg-background/95 backdrop-blur shadow-lg rounded px-3 py-2 mt-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showOnlyYours}
+              onChange={(e) => setShowOnlyYours(e.target.checked)}
+              disabled={!walletAddress}
+              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50"
+              data-testid="checkbox-only-yours-filter"
+            />
+            <span className={`text-sm ${walletAddress ? 'text-black' : 'text-gray-400'}`}>Only Yours</span>
+          </label>
+        </div>
+        
+        {(showBrandOnly || showOnlyYours) && (
           <div className="mt-2 text-xs text-muted-foreground bg-background/95 backdrop-blur px-2 py-1 rounded shadow-lg text-right">
             {filteredNfts.length} NFT{filteredNfts.length !== 1 ? 's' : ''}
           </div>
