@@ -638,10 +638,10 @@ export default function Explore() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col gap-3">
               <Button 
                 size="default" 
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2"
                 data-testid="welcome-mint-button"
                 onClick={handleMintClick}
               >
@@ -651,20 +651,16 @@ export default function Explore() {
               <Button 
                 variant="outline" 
                 size="default" 
-                className="px-6 py-2"
+                className="w-full px-6 py-2"
                 data-testid="welcome-explore-button"
                 onClick={handleWelcomeClose}
               >
                 <MapPin className="w-4 h-4 mr-2" />
                 Explore Map
               </Button>
-            </div>
-            
-            {/* Neynar Score Button */}
-            <div className="flex justify-center">
               <Button 
                 size="default" 
-                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2"
                 data-testid="welcome-neynar-score-button"
                 onClick={() => {
                   handleWelcomeClose();
