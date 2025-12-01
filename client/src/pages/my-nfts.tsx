@@ -21,6 +21,7 @@ import { base } from "wagmi/chains";
 import ComposeCastButton from "@/components/ComposeCastButton";
 import { getQuestDay } from "@shared/schema";
 import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
+import sdk from "@farcaster/frame-sdk";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 
 interface NFT {
@@ -878,37 +879,28 @@ export default function MyNFTs() {
       const productionDomain = 'https://travelnft.replit.app';
       const frameUrl = `${productionDomain}/api/frames/nft/${nft.tokenId}`;
       
-      // Create share message (without location for privacy)
-      const shareMessage = `Minted on TravelMint: ${nft.title}`;
+      // Create share message with NFT title
+      const shareMessage = `Support the creator on TravelMint: ${nft.title}`;
       
-      // Create Warpcast compose URL with embedded frame
-      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareMessage)}&embeds[]=${encodeURIComponent(frameUrl)}`;
-      
-      // Redirect to Warpcast in same tab (keeps Farcaster experience)
-      window.location.href = warpcastUrl;
-      
-      toast({
-        title: "Redirecting to Warpcast! 🚀",
-        description: "Your NFT frame is ready to post on Farcaster!",
+      // Use Farcaster SDK to open native cast composer within the app
+      const result = await sdk.actions.composeCast({
+        text: shareMessage,
+        embeds: [frameUrl] as [string],
       });
-    } catch (error) {
-      // Fallback to clipboard if something goes wrong
-      const productionDomain = 'https://travelnft.replit.app';
-      const frameUrl = `${productionDomain}/api/frames/nft/${nft.tokenId}`;
-      
-      try {
-        await navigator.clipboard.writeText(frameUrl);
+
+      if (result) {
         toast({
-          title: "Frame URL Copied! 🖼️",
-          description: "Paste this URL in your Farcaster post to share your NFT as a frame!",
-        });
-      } catch (clipboardError) {
-        toast({
-          title: "Error Sharing NFT",
-          description: "Please try again later.",
-          variant: "destructive",
+          title: "Cast composed!",
+          description: "Your NFT has been shared to Farcaster.",
         });
       }
+    } catch (error) {
+      console.error('Failed to compose cast:', error);
+      toast({
+        title: "Failed to share",
+        description: "Could not open cast composer. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsGeneratingFrame(false);
     }
