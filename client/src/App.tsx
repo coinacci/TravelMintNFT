@@ -113,15 +113,30 @@ function DeepLinkHandler() {
           const context = await Promise.resolve(sdk.context);
           
           // Farcaster provides the launch URL via context.location
-          if (context?.location?.pathname) {
-            const pathname = context.location.pathname;
-            console.log('🔗 Farcaster deep link detected:', pathname);
+          // Use type assertion as location structure varies
+          const location = context?.location as { url?: string; pathname?: string } | undefined;
+          
+          if (location) {
+            // Try pathname first, then parse from url
+            let pathname = location.pathname;
+            if (!pathname && location.url) {
+              try {
+                const url = new URL(location.url);
+                pathname = url.pathname;
+              } catch (e) {
+                console.log('⚠️ Failed to parse location URL');
+              }
+            }
             
-            // Handle /nft/:tokenId deep link
-            if (pathname.startsWith('/nft/')) {
-              console.log('📍 Navigating to NFT detail:', pathname);
-              setLocation(pathname);
-              return;
+            if (pathname) {
+              console.log('🔗 Farcaster deep link detected:', pathname);
+              
+              // Handle /nft/:tokenId deep link
+              if (pathname.startsWith('/nft/')) {
+                console.log('📍 Navigating to NFT detail:', pathname);
+                setLocation(pathname);
+                return;
+              }
             }
           }
         }
