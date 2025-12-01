@@ -18,6 +18,7 @@ import AdminNotifications from "@/pages/admin-notifications";
 import Faq from "@/pages/faq";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
+import NFTDetail from "@/pages/nft-detail";
 import Navigation from "@/components/navigation";
 
 // Browser-safe Farcaster SDK initialization
@@ -161,6 +162,7 @@ function Router() {
         <Route path="/contact" component={Contact} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/admin/notifications" component={AdminNotifications} />
+        <Route path="/nft/:tokenId" component={NFTDetail} />
         <Route>
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">

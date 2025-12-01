@@ -789,6 +789,51 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get NFT by Token ID (for deep links)
+  app.get("/api/nft/token/:tokenId", async (req, res) => {
+    try {
+      const { tokenId } = req.params;
+      
+      if (!tokenId) {
+        return res.status(400).json({ message: "Token ID is required" });
+      }
+      
+      const nft = await storage.getNFTByTokenId(tokenId);
+      
+      if (!nft) {
+        return res.status(404).json({ message: "NFT not found" });
+      }
+
+      // Parse metadata for display
+      let parsedMetadata = null;
+      try {
+        if (nft.metadata && typeof nft.metadata === 'string') {
+          parsedMetadata = JSON.parse(nft.metadata);
+        }
+      } catch (e) {
+        console.log('Failed to parse metadata for NFT:', nft.id);
+      }
+
+      const farcasterFid = req.query.farcasterFid as string;
+      let isLiked = false;
+      if (farcasterFid) {
+        isLiked = await storage.checkNFTLiked(nft.id, farcasterFid);
+      }
+
+      res.json({
+        ...nft,
+        title: parsedMetadata?.name || nft.title,
+        imageUrl: nft.imageUrl || parsedMetadata?.image,
+        owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
+        creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+        isLiked
+      });
+    } catch (error) {
+      console.error('Error fetching NFT by tokenId:', error);
+      res.status(500).json({ message: "Failed to fetch NFT" });
+    }
+  });
+
   // Create NFT (mint)
   app.post("/api/nfts", async (req, res) => {
     try {
@@ -3458,6 +3503,291 @@ export async function registerRoutes(app: Express) {
     return urlStr;
   };
 
+  // Dynamic NFT Share Image - generates branded PNG for Farcaster frame sharing
+  app.get("/api/nft-share-image/:tokenId", async (req, res) => {
+    try {
+      const { tokenId } = req.params;
+      
+      // Get NFT data from database
+      const nft = await storage.getNFTByTokenId(tokenId);
+      
+      if (!nft) {
+        return res.status(404).json({ message: "NFT not found" });
+      }
+
+      // Fetch NFT image and convert to base64
+      let nftImageDataUrl = '';
+      const imageUrl = nft.objectStorageUrl || nft.imageUrl;
+      if (imageUrl) {
+        try {
+          const imageResponse = await fetch(imageUrl);
+          if (imageResponse.ok) {
+            const imageBuffer = await imageResponse.arrayBuffer();
+            const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+            nftImageDataUrl = `data:${contentType};base64,${Buffer.from(imageBuffer).toString('base64')}`;
+          }
+        } catch (e) {
+          console.error('Failed to fetch NFT image:', e);
+        }
+      }
+
+      // Get creator display name
+      const creatorName = nft.farcasterCreatorUsername 
+        ? `@${nft.farcasterCreatorUsername}` 
+        : nft.creatorAddress 
+          ? `${nft.creatorAddress.slice(0, 6)}...${nft.creatorAddress.slice(-4)}`
+          : 'Unknown';
+
+      // Generate SVG with Satori - NFT Card Design
+      const svg = await satori(
+        {
+          type: 'div',
+          props: {
+            style: {
+              width: '1200px',
+              height: '630px',
+              display: 'flex',
+              flexDirection: 'row',
+              background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
+              fontFamily: 'Inter',
+              padding: '40px',
+            },
+            children: [
+              // Left side - NFT Image
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    display: 'flex',
+                    width: '520px',
+                    height: '550px',
+                    borderRadius: '24px',
+                    overflow: 'hidden',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                  },
+                  children: nftImageDataUrl ? {
+                    type: 'img',
+                    props: {
+                      src: nftImageDataUrl,
+                      width: 520,
+                      height: 550,
+                      style: {
+                        width: '520px',
+                        height: '550px',
+                        objectFit: 'cover',
+                      },
+                    },
+                  } : {
+                    type: 'div',
+                    props: {
+                      style: {
+                        width: '520px',
+                        height: '550px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '80px',
+                      },
+                      children: '🗺️',
+                    },
+                  },
+                },
+              },
+              // Right side - Info
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    paddingLeft: '50px',
+                    flex: '1',
+                  },
+                  children: [
+                    // TravelMint Logo/Brand
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginBottom: '30px',
+                        },
+                        children: [
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                fontSize: '28px',
+                                marginRight: '12px',
+                              },
+                              children: '✈️',
+                            },
+                          },
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                color: '#00b4d8',
+                                fontSize: '28px',
+                                fontWeight: '700',
+                              },
+                              children: 'TravelMint',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    // NFT Title
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          color: 'white',
+                          fontSize: '44px',
+                          fontWeight: '700',
+                          marginBottom: '20px',
+                          lineHeight: '1.2',
+                        },
+                        children: nft.title.length > 40 ? nft.title.slice(0, 40) + '...' : nft.title,
+                      },
+                    },
+                    // Location
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginBottom: '24px',
+                        },
+                        children: [
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                fontSize: '24px',
+                                marginRight: '10px',
+                              },
+                              children: '📍',
+                            },
+                          },
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                color: 'rgba(255,255,255,0.8)',
+                                fontSize: '26px',
+                                fontWeight: '500',
+                              },
+                              children: nft.location.length > 30 ? nft.location.slice(0, 30) + '...' : nft.location,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    // Creator
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginBottom: '40px',
+                        },
+                        children: [
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                fontSize: '22px',
+                                marginRight: '10px',
+                              },
+                              children: '🎨',
+                            },
+                          },
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                color: 'rgba(255,255,255,0.7)',
+                                fontSize: '22px',
+                              },
+                              children: `by ${creatorName}`,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    // CTA
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          display: 'flex',
+                          background: 'linear-gradient(135deg, #00b4d8 0%, #0077b6 100%)',
+                          color: 'white',
+                          padding: '18px 36px',
+                          borderRadius: '16px',
+                          fontSize: '24px',
+                          fontWeight: '600',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '280px',
+                        },
+                        children: '💰 Tip the Creator',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        {
+          width: 1200,
+          height: 630,
+          fonts: interRegular && interBold ? [
+            {
+              name: 'Inter',
+              data: interRegular,
+              weight: 400,
+              style: 'normal' as const,
+            },
+            {
+              name: 'Inter',
+              data: interBold,
+              weight: 700,
+              style: 'normal' as const,
+            },
+          ] : [],
+        }
+      );
+
+      // Convert SVG to PNG
+      const resvg = new Resvg(svg, {
+        fitTo: {
+          mode: 'width',
+          value: 1200,
+        },
+      });
+      const pngData = resvg.render();
+      const pngBuffer = pngData.asPng();
+
+      // Set cache headers and return PNG
+      res.set({
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      });
+      res.send(pngBuffer);
+    } catch (error) {
+      console.error('Error generating NFT share image:', error);
+      res.status(500).json({ message: "Failed to generate NFT share image" });
+    }
+  });
+
   // NFT Frame endpoint for Farcaster sharing
   app.get("/api/frames/nft/:tokenId", async (req, res) => {
     try {
@@ -3485,18 +3815,23 @@ export async function registerRoutes(app: Express) {
       // Escape user data to prevent XSS
       const safeTitle = escapeHtml(nft.title);
       const safeLocation = escapeHtml(nft.location);
-      const safeDescription = escapeHtml(`Minted on TravelMint: ${nft.title}`);
-      
-      // Sanitize and escape image URL to prevent XSS
-      const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
-      const sanitizedImageUrl = sanitizeUrl(rawImageUrl);
-      const safeImageUrl = escapeHtml(sanitizedImageUrl);
+      const safeDescription = escapeHtml(`${nft.title} by ${nft.farcasterCreatorUsername ? '@' + nft.farcasterCreatorUsername : 'creator'} - Tip the creator on TravelMint`);
       
       // Generate secure URLs
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
       const frameUrl = `${protocol}://${host}/api/frames/nft/${tokenId}`;
-      const appUrl = `${protocol}://${host}/marketplace`;
+      
+      // Dynamic share image URL (generated by Satori)
+      const shareImageUrl = `${protocol}://${host}/api/nft-share-image/${tokenId}`;
+      
+      // Deep link to NFT detail - opens explore with this NFT selected
+      const nftDetailUrl = `${protocol}://${host}/nft/${tokenId}`;
+      
+      // Raw NFT image for body preview
+      const rawImageUrl = nft.objectStorageUrl || nft.imageUrl || '';
+      const sanitizedImageUrl = sanitizeUrl(rawImageUrl);
+      const safeRawImageUrl = escapeHtml(sanitizedImageUrl);
       
       const frameHtml = `
 <!DOCTYPE html>
@@ -3510,29 +3845,31 @@ export async function registerRoutes(app: Express) {
     <meta property="og:url" content="${frameUrl}">
     <meta property="og:title" content="${safeTitle} - TravelMint">
     <meta property="og:description" content="${safeDescription}">
-    <meta property="og:image" content="${safeImageUrl}">
+    <meta property="og:image" content="${shareImageUrl}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="${frameUrl}">
     <meta property="twitter:title" content="${safeTitle} - TravelMint">
     <meta property="twitter:description" content="${safeDescription}">
-    <meta property="twitter:image" content="${safeImageUrl}">
+    <meta property="twitter:image" content="${shareImageUrl}">
     
     <!-- Farcaster Frame -->
     <meta property="fc:frame" content="vNext">
-    <meta property="fc:frame:image" content="${safeImageUrl}">
+    <meta property="fc:frame:image" content="${shareImageUrl}">
     <meta property="fc:frame:image:aspect_ratio" content="1.91:1">
-    <meta property="fc:frame:button:1" content="Open">
+    <meta property="fc:frame:button:1" content="💰 Tip Creator">
     <meta property="fc:frame:button:1:action" content="link">
-    <meta property="fc:frame:button:1:target" content="${appUrl}">
+    <meta property="fc:frame:button:1:target" content="${nftDetailUrl}">
   </head>
   <body>
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
-      <img src="${safeImageUrl}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px;">
+      <img src="${safeRawImageUrl}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px;">
       <h1 style="color: #333; margin-bottom: 10px;">${safeTitle}</h1>
       <p style="color: #888; margin-bottom: 20px;">Minted on TravelMint</p>
-      <a href="${appUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open in TravelMint</a>
+      <a href="${nftDetailUrl}" style="background: #00b4d8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">💰 Tip the Creator</a>
     </div>
   </body>
 </html>`;
