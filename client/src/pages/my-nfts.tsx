@@ -874,9 +874,9 @@ export default function MyNFTs() {
 
     setIsGeneratingFrame(true);
     try {
-      // Generate frame URL
-      const baseUrl = window.location.origin;
-      const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
+      // Use production domain for Farcaster frame URL (must match registered domain)
+      const productionDomain = 'https://travelnft.replit.app';
+      const frameUrl = `${productionDomain}/api/frames/nft/${nft.tokenId}`;
       
       // Create share message (without location for privacy)
       const shareMessage = `Minted on TravelMint: ${nft.title}`;
@@ -893,8 +893,8 @@ export default function MyNFTs() {
       });
     } catch (error) {
       // Fallback to clipboard if something goes wrong
-      const baseUrl = window.location.origin;
-      const frameUrl = `${baseUrl}/api/frames/nft/${nft.tokenId}`;
+      const productionDomain = 'https://travelnft.replit.app';
+      const frameUrl = `${productionDomain}/api/frames/nft/${nft.tokenId}`;
       
       try {
         await navigator.clipboard.writeText(frameUrl);
