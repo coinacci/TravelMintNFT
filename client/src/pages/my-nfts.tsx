@@ -1111,16 +1111,6 @@ export default function MyNFTs() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <ComposeCastButton
-                            type="nft"
-                            nftName={nft.title}
-                            nftLocation={nft.location}
-                            nftImageUrl={nft.imageUrl}
-                            nftTokenId={nft.tokenId}
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-foreground"
-                          />
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1146,16 +1136,6 @@ export default function MyNFTs() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <ComposeCastButton
-                            type="nft"
-                            nftName={nft.title}
-                            nftLocation={nft.location}
-                            nftImageUrl={nft.imageUrl}
-                            nftTokenId={nft.tokenId}
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-foreground"
-                          />
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1239,6 +1219,25 @@ export default function MyNFTs() {
                   loading="lazy"
                 />
                 
+                {/* Share Button - Uses dynamic frame URL with token ID */}
+                <Button
+                  onClick={() => handleShareNFT(nftDetails)}
+                  disabled={isGeneratingFrame || !nftDetails.tokenId}
+                  className="w-full gap-2"
+                  data-testid="share-nft-button"
+                >
+                  {isGeneratingFrame ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating Frame...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      Share on Farcaster
+                    </>
+                  )}
+                </Button>
               </div>
               
               {/* Details Section */}
