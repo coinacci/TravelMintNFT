@@ -3507,28 +3507,46 @@ export async function registerRoutes(app: Express) {
   app.get("/api/nft-share-image/:tokenId", async (req, res) => {
     try {
       const { tokenId } = req.params;
+      console.log(`🖼️ Generating share image for token ${tokenId}`);
       
       // Get NFT data from database
       const nft = await storage.getNFTByTokenId(tokenId);
       
       if (!nft) {
+        console.log(`❌ NFT not found for token ${tokenId}`);
         return res.status(404).json({ message: "NFT not found" });
       }
+
+      console.log(`📸 NFT found: ${nft.title}, image: ${nft.objectStorageUrl || nft.imageUrl}`);
 
       // Fetch NFT image and convert to base64
       let nftImageDataUrl = '';
       const imageUrl = nft.objectStorageUrl || nft.imageUrl;
       if (imageUrl) {
         try {
-          const imageResponse = await fetch(imageUrl);
+          // Handle relative URLs by making them absolute
+          let fetchUrl = imageUrl;
+          if (imageUrl.startsWith('/')) {
+            const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+            const host = req.get('host');
+            fetchUrl = `${protocol}://${host}${imageUrl}`;
+          }
+          console.log(`📥 Fetching image from: ${fetchUrl}`);
+          
+          const imageResponse = await fetch(fetchUrl);
           if (imageResponse.ok) {
             const imageBuffer = await imageResponse.arrayBuffer();
             const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
             nftImageDataUrl = `data:${contentType};base64,${Buffer.from(imageBuffer).toString('base64')}`;
+            console.log(`✅ Image loaded successfully (${Math.round(imageBuffer.byteLength / 1024)}KB)`);
+          } else {
+            console.log(`❌ Image fetch failed: ${imageResponse.status} ${imageResponse.statusText}`);
           }
         } catch (e) {
-          console.error('Failed to fetch NFT image:', e);
+          console.error('❌ Failed to fetch NFT image:', e);
         }
+      } else {
+        console.log('⚠️ No image URL found for NFT');
       }
 
       // Get creator display name
@@ -3856,12 +3874,12 @@ export async function registerRoutes(app: Express) {
     <meta property="twitter:description" content="${safeDescription}">
     <meta property="twitter:image" content="${shareImageUrl}">
     
-    <!-- Farcaster Frame -->
+    <!-- Farcaster Frame (Mini App) -->
     <meta property="fc:frame" content="vNext">
     <meta property="fc:frame:image" content="${shareImageUrl}">
     <meta property="fc:frame:image:aspect_ratio" content="1.91:1">
     <meta property="fc:frame:button:1" content="💰 Tip Creator">
-    <meta property="fc:frame:button:1:action" content="link">
+    <meta property="fc:frame:button:1:action" content="launch_frame">
     <meta property="fc:frame:button:1:target" content="${nftDetailUrl}">
   </head>
   <body>

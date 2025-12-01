@@ -102,6 +102,47 @@ class ErrorBoundary extends Component<{children: ReactNode}, ErrorBoundaryState>
   }
 }
 
+function DeepLinkHandler() {
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    const handleDeepLink = async () => {
+      try {
+        // Check Farcaster SDK context for deep link URL
+        if (typeof window !== 'undefined' && sdk?.context) {
+          const context = await Promise.resolve(sdk.context);
+          
+          // Farcaster provides the launch URL via context.location
+          if (context?.location?.pathname) {
+            const pathname = context.location.pathname;
+            console.log('🔗 Farcaster deep link detected:', pathname);
+            
+            // Handle /nft/:tokenId deep link
+            if (pathname.startsWith('/nft/')) {
+              console.log('📍 Navigating to NFT detail:', pathname);
+              setLocation(pathname);
+              return;
+            }
+          }
+        }
+        
+        // Also check browser URL for /nft/:tokenId (for direct browser access)
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/nft/')) {
+          console.log('🔗 Direct NFT URL access:', currentPath);
+          // Already at the right path, wouter will handle it
+        }
+      } catch (error) {
+        console.log('⚠️ Deep link check failed:', error);
+      }
+    };
+    
+    handleDeepLink();
+  }, [setLocation]);
+  
+  return null;
+}
+
 function ReferralHandler() {
   const [, setLocation] = useLocation();
   
@@ -143,6 +184,7 @@ function Router() {
   return (
     <>
       <Navigation />
+      <DeepLinkHandler />
       <ReferralHandler />
       <Switch>
         <Route path="/" component={Explore} />
