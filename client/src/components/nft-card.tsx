@@ -1,8 +1,8 @@
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Heart } from "lucide-react";
 import { useAccount } from "wagmi";
-import { useState, useEffect } from "react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 
 interface NFTCardProps {
@@ -42,6 +42,27 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
   const { address: connectedWallet } = useAccount();
   const [imageLoading, setImageLoading] = useState(true);
   const [imageSrc, setImageSrc] = useState(LOADING_PLACEHOLDER);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Lazy load: Only start loading when card is visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px' } // Start loading 100px before visible
+    );
+    
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+    
+    return () => observer.disconnect();
+  }, []);
   
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price);
@@ -50,7 +71,9 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
   };
   
   // Smart image loading with robust IPFS gateway fallbacks and improved timeouts
+  // Only load when card becomes visible (lazy loading)
   useEffect(() => {
+    if (!isVisible) return; // Wait until card is visible
     // Expand IPFS URLs to multiple gateways for redundancy
     const expandIPFSUrl = (url: string): string[] => {
       if (!url) return [];
@@ -180,7 +203,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
     return () => {
       isCompleted = true;
     };
-  }, [nft.objectStorageUrl, nft.imageUrl, nft.tokenURI]);
+  }, [isVisible, nft.objectStorageUrl, nft.imageUrl, nft.tokenURI]);
   
   // Check if the connected wallet owns this NFT
   const isOwnNFT = connectedWallet && nft.ownerAddress && 
@@ -195,6 +218,7 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
 
   return (
     <Card 
+      ref={cardRef}
       className="group cursor-pointer hover:shadow-lg transition-all duration-200 bg-card border-border/40 overflow-hidden"
       onClick={onSelect}
       data-testid={`nft-card-${nft.id}`}

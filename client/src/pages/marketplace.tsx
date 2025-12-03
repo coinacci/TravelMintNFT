@@ -134,9 +134,9 @@ export default function Marketplace() {
   
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
     queryKey: [apiEndpoint], // Use full apiEndpoint so sortBy changes trigger refetch
-    staleTime: 2 * 1000, // 2 seconds for immediate updates
-    gcTime: 10 * 1000, // 10 seconds cache time
-    refetchInterval: 5 * 1000, // Auto-refetch every 5 seconds
+    staleTime: sortBy === 'tips' ? 30 * 1000 : 2 * 1000, // 30s for tips (expensive), 2s for others
+    gcTime: sortBy === 'tips' ? 60 * 1000 : 10 * 1000, // Longer cache for tips
+    refetchInterval: sortBy === 'tips' ? 30 * 1000 : 5 * 1000, // Less aggressive refetch for tips
   });
 
   // Get detailed NFT data when one is selected

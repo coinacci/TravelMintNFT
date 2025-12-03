@@ -52,11 +52,14 @@ interface CacheEntry {
 
 const nftCache: { [key: string]: CacheEntry } = {};
 const CACHE_DURATION = 5 * 1000; // 5 seconds cache for real-time detection
+const CACHE_DURATION_TIPS = 30 * 1000; // 30 seconds for tips sorting (more expensive query)
 
 function isCacheValid(key: string): boolean {
   const entry = nftCache[key];
   if (!entry) return false;
-  return (Date.now() - entry.timestamp) < CACHE_DURATION;
+  // Use longer cache for tips queries (expensive JOIN operation)
+  const duration = key.includes('tips') ? CACHE_DURATION_TIPS : CACHE_DURATION;
+  return (Date.now() - entry.timestamp) < duration;
 }
 
 function setCacheEntry(key: string, data: any[]): void {
