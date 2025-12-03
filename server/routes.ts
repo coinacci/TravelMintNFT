@@ -51,8 +51,8 @@ interface CacheEntry {
 }
 
 const nftCache: { [key: string]: CacheEntry } = {};
-const CACHE_DURATION = 5 * 1000; // 5 seconds cache for real-time detection
-const CACHE_DURATION_TIPS = 30 * 1000; // 30 seconds for tips sorting (more expensive query)
+const CACHE_DURATION = 30 * 1000; // 30 seconds default cache to reduce API load
+const CACHE_DURATION_TIPS = 60 * 1000; // 60 seconds for tips sorting (expensive JOIN query)
 
 function isCacheValid(key: string): boolean {
   const entry = nftCache[key];
