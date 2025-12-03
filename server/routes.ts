@@ -517,7 +517,10 @@ export async function registerRoutes(app: Express) {
       console.log(`🔗 Cache miss - fetching NFTs from database (sortBy: ${sortBy || 'default'})...`);
       
       // Get all NFTs from database immediately (fast response)
-      const allDbNFTs = await storage.getAllNFTs(sortBy);
+      const [allDbNFTs, tipTotals] = await Promise.all([
+        storage.getAllNFTs(sortBy),
+        storage.getNFTTipTotals()
+      ]);
       const contractNFTs = allDbNFTs.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
       );
@@ -544,7 +547,8 @@ export async function registerRoutes(app: Express) {
             tokenURI: nft.tokenURI, // Add tokenURI for frontend fallback (for tokens like #47 where image URL is broken but tokenURI works)
             owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
             creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
-            country: getNFTCountry(nft) // Add country for filtering
+            country: getNFTCountry(nft), // Add country for filtering
+            totalTips: tipTotals.get(nft.id) || 0 // Add total tips received
           };
         })
       );
@@ -659,7 +663,10 @@ export async function registerRoutes(app: Express) {
           
           // Refresh cache with updated data for all sort variants
           const refreshCacheForSort = async (sortByParam: string | undefined, cacheKey: string) => {
-            const freshDbNFTs = await storage.getAllNFTs(sortByParam);
+            const [freshDbNFTs, freshTipTotals] = await Promise.all([
+              storage.getAllNFTs(sortByParam),
+              storage.getNFTTipTotals()
+            ]);
             const freshContractNFTs = freshDbNFTs.filter(nft => 
               !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
             );
@@ -683,7 +690,8 @@ export async function registerRoutes(app: Express) {
                   tokenURI: nft.tokenURI,
                   owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
                   creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
-                  country: getNFTCountry(nft)
+                  country: getNFTCountry(nft),
+                  totalTips: freshTipTotals.get(nft.id) || 0
                 };
               })
             );
@@ -692,13 +700,14 @@ export async function registerRoutes(app: Express) {
             return freshNFTsWithOwners.length;
           };
           
-          // Update both default and popular sort caches
-          const [defaultCount, popularCount] = await Promise.all([
+          // Update default, popular, and tips sort caches
+          const [defaultCount, popularCount, tipsCount] = await Promise.all([
             refreshCacheForSort(undefined, 'all-nfts'),
-            refreshCacheForSort('popular', 'all-nfts-popular')
+            refreshCacheForSort('popular', 'all-nfts-popular'),
+            refreshCacheForSort('tips', 'all-nfts-tips')
           ]);
           
-          console.log(`🔄 Cache refreshed: ${defaultCount} NFTs (default), ${popularCount} NFTs (popular)`);
+          console.log(`🔄 Cache refreshed: ${defaultCount} NFTs (default), ${popularCount} NFTs (popular), ${tipsCount} NFTs (tips)`);
         } catch (error) {
           console.error("Background sync failed:", error);
         }
@@ -715,7 +724,10 @@ export async function registerRoutes(app: Express) {
   app.get("/api/nfts/for-sale", async (req, res) => {
     try {
       const sortBy = req.query.sortBy as string | undefined;
-      const allNfts = await storage.getNFTsForSale(sortBy);
+      const [allNfts, tipTotals] = await Promise.all([
+        storage.getNFTsForSale(sortBy),
+        storage.getNFTTipTotals()
+      ]);
       // Filter by allowed contract only
       const nfts = allNfts.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
@@ -741,7 +753,8 @@ export async function registerRoutes(app: Express) {
             objectStorageUrl: nft.objectStorageUrl, // Include Object Storage URL for frontend priority
             ownerAddress: nft.ownerAddress, // Include raw owner address for purchases
             owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
-            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid)
+            creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
+            totalTips: tipTotals.get(nft.id) || 0
           };
         })
       );

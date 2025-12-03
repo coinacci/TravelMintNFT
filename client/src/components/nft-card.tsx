@@ -24,6 +24,7 @@ interface NFTCardProps {
     farcasterCreatorFid?: string | null;
     likeCount?: number;
     isLiked?: boolean;
+    totalTips?: number;
   };
   onSelect?: () => void;
   onPurchase?: () => void;
@@ -243,13 +244,19 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
           </div>
           
           <div className="flex items-center space-x-2">
+            {/* Show tip amount if NFT has received tips */}
+            {nft.totalTips && nft.totalTips > 0 && (
+              <span className="text-xs text-amber-500 flex items-center gap-1" data-testid={`nft-tips-${nft.id}`}>
+                💰 {nft.totalTips.toFixed(1)} USDC
+              </span>
+            )}
+            
             {/* Always show price for NFTs for sale */}
             {nft.isForSale === 1 && (
               <span className="text-sm font-semibold text-primary" data-testid={`nft-price-${nft.id}`}>
                 {formatPrice(nft.price)} USDC
               </span>
             )}
-            
             
             {/* Purchase button for NFTs owned by others */}
             {showPurchaseButton && nft.isForSale === 1 && !isOwnNFT && (

@@ -38,6 +38,7 @@ interface NFT {
   farcasterCreatorFid?: string | null;
   likeCount?: number;
   isLiked?: boolean;
+  totalTips?: number;
 }
 
 interface Transaction {
@@ -124,9 +125,11 @@ export default function Marketplace() {
   // Dynamic API endpoint based on NFT status filter
   const baseEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
   
-  // Add sortBy parameter for "popular" sorting (like count)
+  // Add sortBy parameter for special sorting (popular = like count, tips = donation amount)
   const apiEndpoint = sortBy === "popular" 
     ? `${baseEndpoint}?sortBy=popular`
+    : sortBy === "tips"
+    ? `${baseEndpoint}?sortBy=tips`
     : baseEndpoint;
   
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
@@ -881,6 +884,7 @@ export default function Marketplace() {
                   <SelectItem value="price-low">Price: Low to High</SelectItem>
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                   <SelectItem value="popular">Most Popular</SelectItem>
+                  <SelectItem value="tips">Most Tips</SelectItem>
                 </SelectContent>
               </Select>
             </div>

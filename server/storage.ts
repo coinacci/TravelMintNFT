@@ -45,6 +45,7 @@ export interface IStorage {
   }>;
   getDonationsByNFT(nftId: string): Promise<Transaction[]>;
   getDonationsReceivedByWallet(walletAddress: string): Promise<Transaction[]>;
+  getNFTTipTotals(): Promise<Map<string, number>>;
 
   // Quest system operations
   getUserStats(farcasterFid: string): Promise<UserStats | undefined>;
@@ -169,6 +170,22 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(nfts)
         .orderBy(sql`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
+    } else if (sortBy === 'tips') {
+      // Sort by total tips received (only count donation transactions)
+      const result = await db
+        .select({
+          nft: nfts,
+          totalTips: sql<string>`COALESCE(SUM(CAST(${transactions.amount} AS DECIMAL)), 0)`.as('total_tips')
+        })
+        .from(nfts)
+        .leftJoin(transactions, and(
+          eq(nfts.id, transactions.nftId),
+          eq(transactions.transactionType, 'donation')
+        ))
+        .groupBy(nfts.id)
+        .orderBy(sql`total_tips DESC, ${nfts.createdAt} DESC`);
+      
+      return result.map(r => r.nft);
     } else {
       // Default: sort by creation date
       return await db
@@ -204,6 +221,23 @@ export class DatabaseStorage implements IStorage {
         .from(nfts)
         .where(eq(nfts.isForSale, 1))
         .orderBy(sql`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
+    } else if (sortBy === 'tips') {
+      // Sort by total tips received (only count donation transactions)
+      const result = await db
+        .select({
+          nft: nfts,
+          totalTips: sql<string>`COALESCE(SUM(CAST(${transactions.amount} AS DECIMAL)), 0)`.as('total_tips')
+        })
+        .from(nfts)
+        .leftJoin(transactions, and(
+          eq(nfts.id, transactions.nftId),
+          eq(transactions.transactionType, 'donation')
+        ))
+        .where(eq(nfts.isForSale, 1))
+        .groupBy(nfts.id)
+        .orderBy(sql`total_tips DESC, ${nfts.createdAt} DESC`);
+      
+      return result.map(r => r.nft);
     } else {
       // Default: sort by creation date
       return await db
@@ -524,6 +558,23 @@ export class DatabaseStorage implements IStorage {
         eq(transactions.transactionType, 'donation')
       ))
       .orderBy(sql`${transactions.createdAt} DESC`);
+  }
+
+  async getNFTTipTotals(): Promise<Map<string, number>> {
+    const result = await db
+      .select({
+        nftId: transactions.nftId,
+        totalTips: sql<string>`SUM(CAST(${transactions.amount} AS DECIMAL))`.as('total_tips')
+      })
+      .from(transactions)
+      .where(eq(transactions.transactionType, 'donation'))
+      .groupBy(transactions.nftId);
+    
+    const tipMap = new Map<string, number>();
+    for (const row of result) {
+      tipMap.set(row.nftId, parseFloat(row.totalTips || '0'));
+    }
+    return tipMap;
   }
 
   // Quest system operations
