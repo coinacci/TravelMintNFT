@@ -19,10 +19,25 @@ const DELAY_BETWEEN_DOWNLOADS = 500;
 function extractIpfsCid(url: string): string | null {
   if (!url) return null;
   
+  // Handle ipfs:// protocol (e.g., ipfs://QmXxx or ipfs://ipfs/QmXxx)
   if (url.startsWith('ipfs://')) {
-    return url.replace('ipfs://', '');
+    let path = url.slice(7); // Remove 'ipfs://'
+    // Handle ipfs://ipfs/QmXxx format
+    if (path.startsWith('ipfs/')) {
+      path = path.slice(5);
+    }
+    // Extract just the CID (remove query params and paths)
+    const cid = path.split('?')[0].split('/')[0];
+    return cid.length > 10 ? cid : null;
   }
   
+  // Handle subdomain-style gateways (e.g., https://<cid>.ipfs.dweb.link/)
+  const subdomainMatch = url.match(/https?:\/\/([a-zA-Z0-9]+)\.ipfs\./);
+  if (subdomainMatch) {
+    return subdomainMatch[1];
+  }
+  
+  // Handle path-style gateways (e.g., https://gateway.com/ipfs/<cid>)
   const ipfsMatch = url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
   if (ipfsMatch) {
     return ipfsMatch[1];
@@ -161,6 +176,9 @@ export async function syncAllImages(): Promise<{ synced: number; failed: number;
   
   const allNfts = await storage.getAllNFTs();
   
+  // Get tip totals to prioritize tipped NFTs
+  const tipTotals = await storage.getNFTTipTotals();
+  
   const nftsToSync = allNfts.filter(nft => {
     if (nft.objectStorageUrl) {
       return false;
@@ -171,7 +189,15 @@ export async function syncAllImages(): Promise<{ synced: number; failed: number;
     return true;
   });
   
-  console.log(`📊 Found ${nftsToSync.length} NFTs to sync (${allNfts.length} total)`);
+  // Prioritize tipped NFTs first (they appear in "Most Tips" filter)
+  nftsToSync.sort((a, b) => {
+    const tipsA = tipTotals.get(a.id) || 0;
+    const tipsB = tipTotals.get(b.id) || 0;
+    return tipsB - tipsA; // Higher tips first
+  });
+  
+  const tippedCount = nftsToSync.filter(nft => (tipTotals.get(nft.id) || 0) > 0).length;
+  console.log(`📊 Found ${nftsToSync.length} NFTs to sync (${tippedCount} with tips prioritized, ${allNfts.length} total)`);
   
   let synced = 0;
   let failed = 0;

@@ -55,21 +55,34 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
     const expandIPFSUrl = (url: string): string[] => {
       if (!url) return [];
       
-      // If already an IPFS gateway URL, extract hash and create fallbacks
-      if (url.includes('/ipfs/')) {
+      let cid: string | null = null;
+      
+      // Handle ipfs:// protocol URLs (e.g., ipfs://QmXxx or ipfs://ipfs/QmXxx)
+      if (url.startsWith('ipfs://')) {
+        const path = url.slice(7); // Remove 'ipfs://'
+        // Handle both ipfs://QmXxx and ipfs://ipfs/QmXxx formats
+        cid = path.startsWith('ipfs/') ? path.slice(5) : path;
+        cid = cid.split('?')[0].split('/')[0]; // Clean up any query params or paths
+      }
+      // Handle gateway URLs with /ipfs/ path
+      else if (url.includes('/ipfs/')) {
         const hash = url.split('/ipfs/')[1];
         if (hash) {
-          const cleanHash = hash.split('?')[0]; // Remove query params
-          return [
-            url, // Keep original first
-            `https://ipfs.io/ipfs/${cleanHash}`,              // Most reliable public gateway
-            `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,  // Fast CDN
-            `https://dweb.link/ipfs/${cleanHash}`,            // Protocol Labs
-            `https://4everland.io/ipfs/${cleanHash}`          // Alternative gateway
-          ];
+          cid = hash.split('?')[0].split('/')[0]; // Remove query params and paths
         }
       }
       
+      // If we found a CID, create gateway fallbacks
+      if (cid && cid.length > 10) { // Basic CID validation
+        return [
+          `https://ipfs.io/ipfs/${cid}`,              // Most reliable public gateway
+          `https://cloudflare-ipfs.com/ipfs/${cid}`,  // Fast CDN
+          `https://dweb.link/ipfs/${cid}`,            // Protocol Labs
+          `https://4everland.io/ipfs/${cid}`          // Alternative gateway
+        ];
+      }
+      
+      // For non-IPFS URLs, return as-is
       return [url];
     };
     
