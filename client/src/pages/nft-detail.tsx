@@ -64,6 +64,7 @@ export default function NFTDetail() {
   const [isDonating, setIsDonating] = useState(false);
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
   const [imageLoading, setImageLoading] = useState(true);
+  const [customTipAmount, setCustomTipAmount] = useState<string>("");
 
   const { data: donationCallsData, sendCalls: sendDonationCalls, isPending: isDonationPending } = useSendCalls();
 
@@ -89,6 +90,19 @@ export default function NFTDetail() {
     };
     img.src = url;
   }, [nft]);
+
+  const handleCustomTip = () => {
+    const amount = parseFloat(customTipAmount);
+    if (isNaN(amount) || amount < 1) {
+      toast({
+        title: "Invalid Amount",
+        description: "Minimum tip amount is 1 USDC",
+        variant: "destructive",
+      });
+      return;
+    }
+    handleDonation(amount);
+  };
 
   const handleDonation = async (amount: number) => {
     if (!isConnected || !walletAddress) {
@@ -169,6 +183,7 @@ export default function NFTDetail() {
     } finally {
       setIsDonating(false);
       setDonationAmount(null);
+      setCustomTipAmount("");
     }
   };
 
@@ -263,7 +278,7 @@ export default function NFTDetail() {
                 <p className="text-muted-foreground mb-4">
                   Donate USDC to @{nft.farcasterCreatorUsername || creatorName}
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3 mb-3">
                   {[0.1, 0.5, 1].map((amount) => (
                     <Button
                       key={amount}
@@ -283,6 +298,31 @@ export default function NFTDetail() {
                       )}
                     </Button>
                   ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.1"
+                    placeholder="Custom amount (min 1 USDC)"
+                    value={customTipAmount}
+                    onChange={(e) => setCustomTipAmount(e.target.value)}
+                    disabled={isDonating || isDonationPending || !isConnected}
+                    className="flex-1 px-4 py-3 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    data-testid="input-custom-tip"
+                  />
+                  <Button
+                    onClick={handleCustomTip}
+                    disabled={isDonating || isDonationPending || !isConnected || !customTipAmount}
+                    className="px-6 py-3"
+                    data-testid="button-custom-tip"
+                  >
+                    {(isDonating || isDonationPending) && donationAmount === parseFloat(customTipAmount) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Tip"
+                    )}
+                  </Button>
                 </div>
                 {!isConnected && (
                   <p className="text-sm text-muted-foreground mt-3 text-center">
