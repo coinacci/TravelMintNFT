@@ -24,6 +24,7 @@ import ipfsRoutes from "./routes/ipfs";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { farcasterCastValidator } from "./farcaster-validation";
 import { getNotificationService, isNotificationServiceAvailable } from "./notificationService";
+import { syncAllImages, syncSingleImage, getSyncStatus } from "./image-sync";
 import multer from "multer";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
@@ -4642,6 +4643,100 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Failed to get notification users", 
+        error: error.message 
+      });
+    }
+  });
+
+  // ===== IMAGE SYNC ENDPOINTS =====
+  
+  // Helper to validate admin access
+  const validateAdminAccess = (req: Request, res: Response): boolean => {
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret) {
+      console.error('❌ ADMIN_SECRET not configured - blocking admin access');
+      res.status(500).json({ message: "Admin access not configured" });
+      return false;
+    }
+    
+    const providedSecret = req.headers['x-admin-key'];
+    if (!providedSecret || providedSecret !== adminSecret) {
+      res.status(401).json({ message: "Unauthorized - invalid admin key" });
+      return false;
+    }
+    return true;
+  };
+  
+  // Get image sync status (protected)
+  app.get("/api/admin/image-sync/status", async (req, res) => {
+    try {
+      if (!validateAdminAccess(req, res)) return;
+      
+      const status = await getSyncStatus();
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error: any) {
+      console.error('❌ Get image sync status failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get sync status", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Trigger full image sync (protected, background)
+  app.post("/api/admin/image-sync/start", async (req, res) => {
+    try {
+      if (!validateAdminAccess(req, res)) return;
+      
+      console.log('🖼️ Image sync triggered via API');
+      
+      // Immediately return response
+      res.json({
+        success: true,
+        message: "Image sync started in background. Check /api/admin/image-sync/status for progress."
+      });
+
+      // Run sync in background (don't await)
+      syncAllImages().then(result => {
+        console.log(`🖼️ Background image sync complete: ${result.synced} synced, ${result.failed} failed`);
+      }).catch(error => {
+        console.error('❌ Background image sync failed:', error);
+      });
+
+    } catch (error: any) {
+      console.error('❌ Start image sync failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to start sync", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Sync single NFT image (protected)
+  app.post("/api/admin/image-sync/nft/:id", async (req, res) => {
+    try {
+      if (!validateAdminAccess(req, res)) return;
+      
+      const { id } = req.params;
+      console.log(`🖼️ Single NFT image sync triggered: ${id}`);
+      
+      const success = await syncSingleImage(id);
+      
+      res.json({
+        success,
+        message: success ? "Image synced successfully" : "Failed to sync image"
+      });
+
+    } catch (error: any) {
+      console.error('❌ Single image sync failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to sync image", 
         error: error.message 
       });
     }

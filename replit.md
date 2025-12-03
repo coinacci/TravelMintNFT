@@ -4,6 +4,18 @@ This is a travel-focused NFT marketplace application where users can mint, buy, 
 
 ## Recent Updates
 
+### December 3, 2025
+- **NFT Image Caching System**: Implemented dual-path image delivery for faster loading
+  - Background sync worker (`server/image-sync.ts`) downloads images from IPFS and caches to Object Storage
+  - Frontend prioritizes Object Storage URL, falls back to IPFS gateways if unavailable
+  - Auto-sync for new mints in `server/mint-listener.ts`
+  - Admin API endpoints (protected with ADMIN_SECRET):
+    - `GET /api/admin/image-sync/status` - Check sync progress
+    - `POST /api/admin/image-sync/start` - Start background sync
+    - `POST /api/admin/image-sync/nft/:id` - Sync single NFT
+  - Storage: ~303 NFTs, ~0.3-1.5 GB estimated
+  - IPFS remains source of truth, Object Storage as performance cache
+
 ### November 23, 2025
 - **Creator Donation System**: Implemented atomic USDC donation feature on NFT detail pages
   - Preset donation amounts: 0.1, 0.5, 1 USDC

@@ -1,5 +1,6 @@
 import { getNftContract } from "./blockchain.js";
 import { storage } from "./storage.js";
+import { syncSingleImage } from "./image-sync.js";
 import { nanoid } from "nanoid";
 
 let isListening = false;
@@ -127,11 +128,24 @@ export async function startMintEventListener() {
               metadata: metadata
             };
             
-            await storage.createNFT(newNFT);
+            const createdNFT = await storage.createNFT(newNFT);
             
             console.log(`✅ Token #${tokenIdStr} added to database successfully!`);
             console.log(`   Transaction: ${txHash}`);
             console.log(`🔄 New mint will appear on explore page within cache TTL (~10 seconds)`);
+            
+            // Sync image to Object Storage in background for faster loading
+            if (createdNFT && createdNFT.id) {
+              syncSingleImage(createdNFT.id).then(success => {
+                if (success) {
+                  console.log(`🖼️ Token #${tokenIdStr} image cached to Object Storage`);
+                } else {
+                  console.log(`⚠️ Token #${tokenIdStr} image cache failed (will use IPFS fallback)`);
+                }
+              }).catch(err => {
+                console.error(`❌ Image sync error for token #${tokenIdStr}:`, err.message);
+              });
+            }
             
             // Mark as processed
             processedTxHashes.add(txHash);
