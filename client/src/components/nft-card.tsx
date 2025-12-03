@@ -244,10 +244,10 @@ export default function NFTCard({ nft, onSelect, onPurchase, onLike, showPurchas
           </div>
           
           <div className="flex items-center space-x-2">
-            {/* Show tip amount if NFT has received tips */}
-            {nft.totalTips && nft.totalTips > 0 && (
+            {/* Show tip amount only if NFT has received tips */}
+            {Number(nft.totalTips) > 0 && (
               <span className="text-xs text-amber-500 flex items-center gap-1" data-testid={`nft-tips-${nft.id}`}>
-                💰 {nft.totalTips.toFixed(1)} USDC
+                💰 {Number(nft.totalTips).toFixed(1)} USDC
               </span>
             )}
             
