@@ -11,8 +11,12 @@ module.exports = {
     }
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      type: "edr-simulated",
+      chainType: "l1"
+    },
     base: {
+      type: "http",
       url: "https://mainnet.base.org",
       chainId: 8453,
       accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
