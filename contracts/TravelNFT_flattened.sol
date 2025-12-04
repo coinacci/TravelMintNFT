@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// TravelNFT Flattened - Correctly ordered dependencies
 
 // File npm/@openzeppelin/contracts@5.4.0/utils/Context.sol
 // OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)

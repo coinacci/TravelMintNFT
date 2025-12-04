@@ -1,5 +1,3 @@
-require("@nomicfoundation/hardhat-verify");
-
 module.exports = {
   solidity: {
     version: "0.8.20",
@@ -7,7 +5,11 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 200
-      }
+      },
+      metadata: {
+        bytecodeHash: "none"
+      },
+      evmVersion: "paris"
     }
   },
   networks: {
@@ -22,19 +24,10 @@ module.exports = {
       accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
     }
   },
-  etherscan: {
-    apiKey: {
-      base: process.env.BASESCAN_API_KEY || ""
-    },
-    customChains: [
-      {
-        network: "base",
-        chainId: 8453,
-        urls: {
-          apiURL: "https://api.basescan.org/api",
-          browserURL: "https://basescan.org"
-        }
-      }
-    ]
+  // Hardhat 3 verify config
+  verify: {
+    etherscan: {
+      apiKey: process.env.BASESCAN_API_KEY || ""
+    }
   }
 };
