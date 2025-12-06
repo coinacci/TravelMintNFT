@@ -1189,6 +1189,13 @@ export async function registerRoutes(app: Express) {
       });
 
       console.log(`💝 Donation recorded: ${amount} USDC from ${fromAddress} to ${toAddress} for NFT ${nftId}`);
+      
+      // Clear cache so tip shows immediately in marketplace "Most Tips" filter
+      delete nftCache['all-nfts'];
+      delete nftCache['all-nfts-tips'];
+      delete nftCache['all-nfts-popular'];
+      console.log('🔄 Cache cleared after donation - tips will appear immediately');
+      
       res.status(201).json(transaction);
     } catch (error) {
       console.error("Error recording donation:", error);
