@@ -65,6 +65,7 @@ export default function NFTDetail() {
   const [imageSrc, setImageSrc] = useState(MODAL_PLACEHOLDER);
   const [imageLoading, setImageLoading] = useState(true);
   const [customTipAmount, setCustomTipAmount] = useState<string>("");
+  const [donationRecorded, setDonationRecorded] = useState(false);
 
   const { data: donationCallsData, sendCalls: sendDonationCalls, isPending: isDonationPending } = useSendCalls();
 
@@ -90,6 +91,52 @@ export default function NFTDetail() {
     };
     img.src = url;
   }, [nft]);
+
+  // Record donation to database when blockchain transaction completes
+  useEffect(() => {
+    if (!donationCallsData || !isDonating || !nft || !donationAmount || !walletAddress || donationRecorded) return;
+    
+    console.log('🎉 Donation batch transaction completed!', donationCallsData);
+    setDonationRecorded(true);
+    
+    const recordDonation = async () => {
+      try {
+        const platformFee = donationAmount * 0.1;
+        const creatorAmount = donationAmount * 0.9;
+        
+        await fetch('/api/donations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nftId: nft.id,
+            fromAddress: walletAddress,
+            toAddress: nft.creatorAddress,
+            amount: creatorAmount.toString(),
+            platformFee: platformFee.toString(),
+            blockchainTxHash: typeof donationCallsData === 'string' ? donationCallsData : (donationCallsData as any).id || `donation-${Date.now()}`,
+          }),
+        });
+        console.log('💝 Donation recorded in database');
+      } catch (error) {
+        console.error('Failed to record donation:', error);
+      }
+    };
+    
+    recordDonation();
+    
+    const creatorName = nft.farcasterCreatorUsername || 
+                       nft.creator?.username || 
+                       `${nft.creatorAddress.slice(0, 6)}...${nft.creatorAddress.slice(-4)}`;
+    
+    toast({
+      title: "Donation Sent!",
+      description: `Thank you for supporting @${creatorName}!`,
+    });
+    
+    setIsDonating(false);
+    setDonationAmount(null);
+    setCustomTipAmount("");
+  }, [donationCallsData, isDonating, nft, donationAmount, walletAddress, donationRecorded, toast]);
 
   const handleCustomTip = () => {
     const amount = parseFloat(customTipAmount);
@@ -134,15 +181,19 @@ export default function NFTDetail() {
 
     setDonationAmount(amount);
     setIsDonating(true);
+    setDonationRecorded(false); // Reset for new donation
 
     try {
       const donationWei = parseUnits(amount.toString(), 6);
       const creatorAmount = (donationWei * BigInt(90)) / BigInt(100);
       const treasuryAmount = (donationWei * BigInt(10)) / BigInt(100);
+      
+      const creatorAmountDecimal = Number(creatorAmount) / 1e6;
+      const platformFeeDecimal = Number(treasuryAmount) / 1e6;
 
       toast({
         title: "Processing Donation",
-        description: `Donating ${amount} USDC (${(amount * 0.9).toFixed(2)} to creator, ${(amount * 0.1).toFixed(2)} platform fee)`,
+        description: `Donating ${amount} USDC (${creatorAmountDecimal.toFixed(2)} to creator, ${platformFeeDecimal.toFixed(2)} platform fee)`,
       });
 
       const batchCalls = [
@@ -164,26 +215,20 @@ export default function NFTDetail() {
         },
       ];
 
+      // Send blockchain transaction - useEffect will handle recording to database
       await sendDonationCalls({
         calls: batchCalls,
       });
 
-      toast({
-        title: "Donation Sent!",
-        description: `Thank you for supporting @${nft.farcasterCreatorUsername || 'creator'}!`,
-      });
-
     } catch (error: any) {
       console.error("Donation error:", error);
+      setIsDonating(false);
+      setDonationAmount(null);
       toast({
         title: "Donation Failed",
         description: error?.message || "Transaction was cancelled or failed",
         variant: "destructive",
       });
-    } finally {
-      setIsDonating(false);
-      setDonationAmount(null);
-      setCustomTipAmount("");
     }
   };
 
