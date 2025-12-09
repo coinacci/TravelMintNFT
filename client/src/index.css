@@ -147,13 +147,19 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* Emoji marker styling - remove Leaflet default divIcon background */
+.emoji-marker {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25)) !important;
+}
+
 /* Cluster marker styling for multiple NFTs at same location */
 .cluster-marker {
-  border: 3px solid hsl(33, 100%, 50%) !important;
-  border-radius: 50% !important;
-  box-shadow: 0 2px 8px rgba(255, 165, 0, 0.4) !important;
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(2px) !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
 }
 
 .upload-dropzone {

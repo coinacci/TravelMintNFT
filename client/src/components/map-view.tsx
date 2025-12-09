@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import cameraMarkerImage from "@assets/IMG_4179_1756807183245.png";
 import { Search, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatUserDisplayName } from "@/lib/userDisplay";
@@ -194,14 +193,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       const [lat, lng] = locationKey.split(',').map(Number);
       
       if (locationNFTs.length === 1) {
-        // Single NFT - create Leaflet marker with custom icon  
+        // Single NFT - create Leaflet marker with emoji icon  
         const nft = locationNFTs[0];
         
-        const customIcon = L.icon({
-          iconUrl: cameraMarkerImage,
+        const customIcon = L.divIcon({
+          html: '<span style="font-size: 28px; line-height: 1;">📍</span>',
+          className: 'emoji-marker',
           iconSize: [32, 32],
-          iconAnchor: [16, 16],
-          popupAnchor: [0, -16],
+          iconAnchor: [16, 28],
+          popupAnchor: [0, -24],
         });
 
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
@@ -260,12 +260,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         marker.bindPopup(popupContent);
       } else {
         // Multiple NFTs at same location - create cluster marker with special popup
-        const clusterIcon = L.icon({
-          iconUrl: cameraMarkerImage,
+        const clusterIcon = L.divIcon({
+          html: '<span style="font-size: 36px; line-height: 1;">📍</span>',
+          className: 'emoji-marker cluster-marker',
           iconSize: [40, 40], // Slightly larger for cluster
-          iconAnchor: [20, 20],
-          popupAnchor: [0, -20],
-          className: 'cluster-marker' // For special styling
+          iconAnchor: [20, 32],
+          popupAnchor: [0, -28],
         });
 
         const marker = L.marker([lat, lng], { icon: clusterIcon }).addTo(map);
