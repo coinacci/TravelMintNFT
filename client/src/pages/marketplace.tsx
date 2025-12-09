@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain, useSendCalls } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain, useSendCalls, useChainId, useCapabilities } from "wagmi";
 import { parseUnits, encodeFunctionData } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -155,11 +155,21 @@ export default function Marketplace() {
     refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds for real-time feel
   });
 
-  const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
+  const { writeContract, writeContractAsync, isPending: isTransactionPending, data: txHash } = useWriteContract();
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
   });
   const { data: donationCallsData, sendCalls: sendDonationCalls, isPending: isDonationPending } = useSendCalls();
+  
+  // EIP-5792 capability detection for batch transactions
+  const chainId = useChainId();
+  const { data: capabilities } = useCapabilities();
+  const supportsBatchCalls = React.useMemo(() => {
+    if (!capabilities || !chainId) return false;
+    const chainCapabilities = capabilities[chainId];
+    return chainCapabilities?.atomic?.status === "supported" || 
+           chainCapabilities?.atomic?.status === "ready";
+  }, [capabilities, chainId]);
 
   // Contract addresses
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -675,6 +685,7 @@ export default function Marketplace() {
   };
 
   // Donation handler - atomic batch USDC transfer to creator (90%) and treasury (10%)
+  // Falls back to sequential transfers for wallets that don't support EIP-5792
   const handleDonation = async (amount: number) => {
     if (!isConnected || !walletAddress) {
       toast({
@@ -734,38 +745,98 @@ export default function Marketplace() {
         treasuryAmount: Number(treasuryAmount) / 1000000,
         creator: selectedNFT.creatorAddress,
         treasury: TREASURY_ADDRESS,
+        supportsBatchCalls,
       });
 
-      // Build atomic batch transaction: both transfers in single call
-      const batchCalls = [
-        // Transfer 1: Creator gets 90%
-        {
-          to: USDC_ADDRESS as `0x${string}`,
-          data: encodeFunctionData({
-            abi: USDC_ABI,
-            functionName: "transfer",
-            args: [selectedNFT.creatorAddress as `0x${string}`, creatorAmount],
-          }),
-        },
-        // Transfer 2: Treasury gets 10%
-        {
-          to: USDC_ADDRESS as `0x${string}`,
-          data: encodeFunctionData({
-            abi: USDC_ABI,
-            functionName: "transfer",
-            args: [TREASURY_ADDRESS as `0x${string}`, treasuryAmount],
-          }),
-        },
-      ];
+      if (supportsBatchCalls) {
+        // Use atomic batch transaction for Smart Wallets (EIP-5792)
+        const batchCalls = [
+          {
+            to: USDC_ADDRESS as `0x${string}`,
+            data: encodeFunctionData({
+              abi: USDC_ABI,
+              functionName: "transfer",
+              args: [selectedNFT.creatorAddress as `0x${string}`, creatorAmount],
+            }),
+          },
+          {
+            to: USDC_ADDRESS as `0x${string}`,
+            data: encodeFunctionData({
+              abi: USDC_ABI,
+              functionName: "transfer",
+              args: [TREASURY_ADDRESS as `0x${string}`, treasuryAmount],
+            }),
+          },
+        ];
 
-      console.log("🎯 Sending atomic batch donation...", batchCalls);
+        console.log("🎯 Sending atomic batch donation (EIP-5792)...", batchCalls);
+        await sendDonationCalls({ calls: batchCalls });
+        console.log("✅ Batch donation transaction sent, waiting for confirmation...");
+      } else {
+        // Fallback: Sequential transfers for standard wallets (MetaMask, etc.)
+        console.log("🔄 Using sequential transfers (wallet doesn't support EIP-5792)...");
+        
+        toast({
+          title: "Step 1 of 2",
+          description: "Please approve the first transfer to the creator",
+        });
 
-      // Execute atomic batch transaction
-      await sendDonationCalls({
-        calls: batchCalls,
-      });
+        // First transfer: Creator gets 90%
+        const creatorTxHash = await writeContractAsync({
+          address: USDC_ADDRESS as `0x${string}`,
+          abi: USDC_ABI,
+          functionName: "transfer",
+          args: [selectedNFT.creatorAddress as `0x${string}`, creatorAmount],
+        });
+        console.log("✅ Creator transfer sent:", creatorTxHash);
 
-      console.log("✅ Batch donation transaction sent, waiting for confirmation...");
+        toast({
+          title: "Step 2 of 2",
+          description: "Please approve the platform fee transfer",
+        });
+
+        // Second transfer: Treasury gets 10%
+        const treasuryTxHash = await writeContractAsync({
+          address: USDC_ADDRESS as `0x${string}`,
+          abi: USDC_ABI,
+          functionName: "transfer",
+          args: [TREASURY_ADDRESS as `0x${string}`, treasuryAmount],
+        });
+        console.log("✅ Treasury transfer sent:", treasuryTxHash);
+
+        // Record donation for sequential path
+        const creatorName = formatUserDisplayName({
+          walletAddress: selectedNFT.creatorAddress,
+          farcasterUsername: selectedNFT.farcasterCreatorUsername,
+          farcasterFid: selectedNFT.farcasterCreatorFid
+        });
+
+        try {
+          await fetch('/api/donations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftId: selectedNFT.id,
+              fromAddress: walletAddress,
+              toAddress: selectedNFT.creatorAddress,
+              amount: (amount * 0.9).toString(),
+              platformFee: (amount * 0.1).toString(),
+              blockchainTxHash: creatorTxHash,
+            }),
+          });
+          console.log('💝 Donation recorded in database');
+        } catch (dbError) {
+          console.error('Failed to record donation:', dbError);
+        }
+
+        toast({
+          title: "Donation Successful!",
+          description: `You donated ${amount} USDC to ${creatorName}`,
+        });
+
+        setDonationAmount(null);
+        setIsDonating(false);
+      }
 
     } catch (error: any) {
       console.error("Donation error:", error);
