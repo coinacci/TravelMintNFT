@@ -101,3 +101,8 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_websocket:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+VITE_DONATION_SPLITTER_ADDRESS = "0x6F54cBc7fc0729F00bcdB5C8445B1823053aA684"
