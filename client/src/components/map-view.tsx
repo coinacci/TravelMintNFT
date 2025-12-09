@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import "leaflet.markercluster";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, ChevronDown, ChevronUp, Filter } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 import { useAccount } from "wagmi";
 
@@ -35,6 +37,7 @@ interface MapViewProps {
 export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const queryClient = useQueryClient();
   const [showBrandOnly, setShowBrandOnly] = useState(false);
   const [showOnlyYours, setShowOnlyYours] = useState(false);
@@ -153,16 +156,51 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     const map = mapInstanceRef.current;
 
-    // Clear existing markers (Leaflet style)
-    map.eachLayer((layer: any) => {
-      if (layer instanceof L.Marker) {
-        map.removeLayer(layer);
+    // Clear existing cluster group
+    if (clusterGroupRef.current) {
+      map.removeLayer(clusterGroupRef.current);
+    }
+
+    // Create cluster group with custom icon function
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 60, // Cluster markers within 60px
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount();
+        // Scale emoji size based on count
+        let fontSize = 32;
+        let iconSize = 40;
+        if (count >= 50) {
+          fontSize = 52;
+          iconSize = 60;
+        } else if (count >= 20) {
+          fontSize = 44;
+          iconSize = 52;
+        } else if (count >= 10) {
+          fontSize = 40;
+          iconSize = 48;
+        } else if (count >= 5) {
+          fontSize = 36;
+          iconSize = 44;
+        }
+        
+        return L.divIcon({
+          html: `<div class="cluster-emoji-container">
+            <span style="font-size: ${fontSize}px; line-height: 1;">📍</span>
+            <span class="cluster-count">${count}</span>
+          </div>`,
+          className: 'emoji-marker cluster-marker',
+          iconSize: [iconSize, iconSize],
+          iconAnchor: [iconSize / 2, iconSize - 8],
+        });
       }
     });
 
-    // Group NFTs by location for clustering support
-    const nftsByLocation = new Map<string, NFT[]>();
-    
+    clusterGroupRef.current = clusterGroup;
+
+    // Add individual markers to cluster group
     filteredNfts.forEach((nft) => {
       // Parse coordinates safely with fallbacks
       const lat = typeof nft.latitude === 'string' ? parseFloat(nft.latitude) : (nft.latitude || 0);
@@ -170,171 +208,70 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
       // Only skip NFTs with truly invalid coordinates
       if (isNaN(lat) || isNaN(lng)) {
-        console.warn('⚠️ Skipping NFT with NaN coordinates:', nft.title, { lat: nft.latitude, lng: nft.longitude, parsed: { lat, lng } });
+        console.warn('⚠️ Skipping NFT with NaN coordinates:', nft.title);
         return;
       }
-      
-      // Allow (0,0) coordinates for now but log them for debugging
-      if (lat === 0 && lng === 0) {
-        console.warn('⚠️ NFT has (0,0) coordinates but showing anyway:', nft.title, { lat: nft.latitude, lng: nft.longitude });
-      }
 
-      // Create location key for 1 km² clustering (2 decimal precision ≈ 1 km² grid)
-      const locationKey = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+      // Create individual marker with emoji icon
+      const customIcon = L.divIcon({
+        html: '<span style="font-size: 28px; line-height: 1;">📍</span>',
+        className: `emoji-marker${nft.category?.toLowerCase() === 'brand' ? ' brand-marker' : ''}`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 28],
+        popupAnchor: [0, -24],
+      });
+
+      const marker = L.marker([lat, lng], { icon: customIcon });
+
+      // Smart image URL selection: Object Storage first, then IPFS fallback
+      const imageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
+        ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+        : nft.imageUrl);
       
-      if (!nftsByLocation.has(locationKey)) {
-        nftsByLocation.set(locationKey, []);
-      }
-      nftsByLocation.get(locationKey)!.push(nft);
+      const fallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
+        ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
+        : nft.imageUrl;
+
+      // Format owner display name
+      const ownerDisplay = formatUserDisplayName({
+        walletAddress: nft.ownerAddress,
+        farcasterUsername: nft.farcasterOwnerUsername,
+        farcasterFid: nft.farcasterOwnerFid
+      });
+
+      const popupContent = `
+        <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
+          <img src="${imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
+               onerror="
+                 this.onerror=null;
+                 this.src='${fallbackUrl}';
+                 this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
+               " />
+          <h3 class="font-semibold text-sm mb-1" style="color: #000">${nft.title}</h3>
+          <p class="text-xs text-gray-600 mb-1">${nft.location}</p>
+          <p class="text-xs text-gray-500 mb-2">Owner: ${ownerDisplay}</p>
+          ${nft.isForSale === 1 ? `
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs text-gray-500">Price:</span>
+            <span class="font-medium text-sm" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
+          </div>
+          ` : ''}
+          <button 
+            onclick="window.selectNFT('${nft.id}')"
+            class="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+            style="background-color: hsl(199, 89%, 48%)"
+          >
+            View Details
+          </button>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      clusterGroup.addLayer(marker);
     });
 
-    // Add markers for each location group
-    nftsByLocation.forEach((locationNFTs, locationKey) => {
-      const [lat, lng] = locationKey.split(',').map(Number);
-      
-      if (locationNFTs.length === 1) {
-        // Single NFT - create Leaflet marker with emoji icon  
-        const nft = locationNFTs[0];
-        
-        const customIcon = L.divIcon({
-          html: '<span style="font-size: 28px; line-height: 1;">📍</span>',
-          className: 'emoji-marker',
-          iconSize: [32, 32],
-          iconAnchor: [16, 28],
-          popupAnchor: [0, -24],
-        });
-
-        const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
-
-        // Add blue halo effect for Brand category NFTs
-        if (nft.category?.toLowerCase() === 'brand') {
-          const markerElement = marker.getElement();
-          if (markerElement) {
-            markerElement.style.filter = 'drop-shadow(0 0 12px rgba(60, 138, 255, 0.8))';
-          }
-        }
-
-        // Smart image URL selection: Object Storage first, then IPFS fallback
-        const imageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
-          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-          : nft.imageUrl);
-        
-        const fallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
-          ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-          : nft.imageUrl;
-
-        // Format owner display name
-        const ownerDisplay = formatUserDisplayName({
-          walletAddress: nft.ownerAddress,
-          farcasterUsername: nft.farcasterOwnerUsername,
-          farcasterFid: nft.farcasterOwnerFid
-        });
-
-        const popupContent = `
-          <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
-            <img src="${imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
-                 onerror="
-                   this.onerror=null;
-                   this.src='${fallbackUrl}';
-                   this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2296%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
-                 " />
-            <h3 class="font-semibold text-sm mb-1" style="color: #000">${nft.title}</h3>
-            <p class="text-xs text-gray-600 mb-1">${nft.location}</p>
-            <p class="text-xs text-gray-500 mb-2">Owner: ${ownerDisplay}</p>
-            ${nft.isForSale === 1 ? `
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-xs text-gray-500">Price:</span>
-              <span class="font-medium text-sm" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
-            </div>
-            ` : ''}
-            <button 
-              onclick="window.selectNFT('${nft.id}')"
-              class="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
-              style="background-color: hsl(199, 89%, 48%)"
-            >
-              View Details
-            </button>
-          </div>
-        `;
-
-        marker.bindPopup(popupContent);
-      } else {
-        // Multiple NFTs at same location - create cluster marker with special popup
-        const clusterIcon = L.divIcon({
-          html: '<span style="font-size: 36px; line-height: 1;">📍</span>',
-          className: 'emoji-marker cluster-marker',
-          iconSize: [40, 40], // Slightly larger for cluster
-          iconAnchor: [20, 32],
-          popupAnchor: [0, -28],
-        });
-
-        const marker = L.marker([lat, lng], { icon: clusterIcon }).addTo(map);
-
-        // Add double halo effect if any NFT in cluster is Brand category
-        // Inner orange ring + outer blue ring for Brand clusters
-        const hasBrandNFT = locationNFTs.some(nft => nft.category?.toLowerCase() === 'brand');
-        if (hasBrandNFT) {
-          const markerElement = marker.getElement();
-          if (markerElement) {
-            // Sharp dual-ring: tight orange + outer blue with minimal blur
-            markerElement.style.filter = 'drop-shadow(0 0 3px rgba(255, 138, 60, 1)) drop-shadow(0 0 3px rgba(255, 138, 60, 0.8)) drop-shadow(0 0 12px rgba(60, 138, 255, 1)) drop-shadow(0 0 16px rgba(60, 138, 255, 0.6))';
-          }
-        }
-
-        // Create multi-NFT popup content
-        const multiPopupContent = `
-          <div class="text-center p-3 min-w-[240px]" style="font-family: Inter, system-ui, sans-serif;">
-            <div class="text-sm font-semibold mb-3 text-center" style="color: hsl(33, 100%, 50%)">
-              ${locationNFTs.length} NFTs at ${locationNFTs[0].location}
-            </div>
-            ${locationNFTs.map(nft => {
-              const clusterImageUrl = (nft as any).objectStorageUrl || (nft.imageUrl.includes('gateway.pinata.cloud') 
-                ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-                : nft.imageUrl);
-              
-              const clusterFallbackUrl = nft.imageUrl.includes('gateway.pinata.cloud') 
-                ? nft.imageUrl.replace('gateway.pinata.cloud', 'ipfs.io')
-                : nft.imageUrl;
-              
-              // Format owner display name
-              const clusterOwnerDisplay = formatUserDisplayName({
-                walletAddress: nft.ownerAddress,
-                farcasterUsername: nft.farcasterOwnerUsername,
-                farcasterFid: nft.farcasterOwnerFid
-              });
-                
-              return `
-              <div class="border rounded mb-2 p-2 bg-gray-50">
-                <img src="${clusterImageUrl}" alt="${nft.title}" class="w-full h-16 object-cover rounded mb-1" 
-                     onerror="
-                       this.onerror=null;
-                       this.src='${clusterFallbackUrl}';
-                       this.onerror=function(){this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2264%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>Image not found</text></svg>'};
-                     " />
-                <h4 class="font-medium text-xs mb-1" style="color: #000">${nft.title}</h4>
-                <p class="text-xs text-gray-500 mb-1">Owner: ${clusterOwnerDisplay}</p>
-                ${nft.isForSale === 1 ? `
-                <div class="flex justify-between items-center mb-1">
-                  <span class="text-xs text-gray-500">Price:</span>
-                  <span class="font-medium text-xs" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
-                </div>
-                ` : ''}
-                <button 
-                  onclick="window.selectNFT('${nft.id}')"
-                  class="w-full bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
-                  style="background-color: hsl(199, 89%, 48%)"
-                >
-                  View Details
-                </button>
-              </div>
-            `;
-            }).join('')}
-          </div>
-        `;
-
-        marker.bindPopup(multiPopupContent);
-      }
-    });
+    // Add cluster group to map
+    map.addLayer(clusterGroup);
 
     // Global function to handle NFT selection from popup
     (window as any).selectNFT = (nftId: string) => {

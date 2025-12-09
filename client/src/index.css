@@ -162,6 +162,46 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
 }
 
+/* Cluster emoji container with count badge */
+.cluster-emoji-container {
+  position: relative;
+  display: inline-block;
+}
+
+.cluster-count {
+  position: absolute;
+  bottom: -4px;
+  right: -8px;
+  background: hsl(33, 100%, 50%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* Brand marker blue halo */
+.brand-marker {
+  filter: drop-shadow(0 0 12px rgba(60, 138, 255, 0.8)) !important;
+}
+
+/* Override default markercluster styles */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background: transparent !important;
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: transparent !important;
+}
+
 .upload-dropzone {
   border: 2px dashed hsl(var(--border));
   transition: all 0.3s ease;
