@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain, useSendCalls, useChainId, useCapabilities } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain, useSendCalls, useChainId, useCapabilities, usePublicClient } from "wagmi";
 import { parseUnits, encodeFunctionData } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 
 interface NFT {
   id: string;
+  tokenId?: string;
   title: string;
   description?: string;
   imageUrl: string;
@@ -170,12 +171,15 @@ export default function Marketplace() {
     return chainCapabilities?.atomic?.status === "supported" || 
            chainCapabilities?.atomic?.status === "ready";
   }, [capabilities, chainId]);
+  
+  const publicClient = usePublicClient();
 
   // Contract addresses
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
   const MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c";
   const TREASURY_ADDRESS = "0x7CDe7822456AAC667Df0420cD048295b92704084"; // Platform treasury for 10% fee
+  const DONATION_SPLITTER_ADDRESS = (import.meta.env.VITE_DONATION_SPLITTER_ADDRESS || "0x6F54cBc7fc0729F00bcdB5C8445B1823053aA684") as `0x${string}`;
 
   // TravelMarketplace Contract ABI - marketplace functions
   const MARKETPLACE_ABI = [
@@ -255,6 +259,20 @@ export default function Marketplace() {
         { name: "amount", type: "uint256" }
       ],
       outputs: [{ name: "", type: "bool" }]
+    }
+  ] as const;
+
+  const DONATION_SPLITTER_ABI = [
+    {
+      name: "donate",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "nftId", type: "uint256" },
+        { name: "creator", type: "address" },
+        { name: "amount", type: "uint256" }
+      ],
+      outputs: []
     }
   ] as const;
 
@@ -684,8 +702,9 @@ export default function Marketplace() {
     setIsModalOpen(true);
   };
 
-  // Donation handler - atomic batch USDC transfer to creator (90%) and treasury (10%)
-  // Falls back to sequential transfers for wallets that don't support EIP-5792
+  // Donation handler - uses DonationSplitter contract for atomic split (90% creator, 10% treasury)
+  // EIP-5792 batch: approve + donate in one batch
+  // Standard wallets: approve first, then donate (2 transactions, but atomic split)
   const handleDonation = async (amount: number) => {
     if (!isConnected || !walletAddress) {
       toast({
@@ -725,8 +744,7 @@ export default function Marketplace() {
 
     try {
       const donationWei = parseUnits(amount.toString(), 6); // USDC has 6 decimals
-      const creatorAmount = (donationWei * BigInt(90)) / BigInt(100); // 90% to creator
-      const treasuryAmount = (donationWei * BigInt(10)) / BigInt(100); // 10% to treasury
+      const nftTokenId = BigInt(selectedNFT.tokenId || 0);
 
       // Check balance
       const currentBalance = (usdcBalance as bigint) || BigInt(0);
@@ -741,10 +759,8 @@ export default function Marketplace() {
 
       console.log("💝 Donation details:", {
         totalAmount: amount,
-        creatorAmount: Number(creatorAmount) / 1000000,
-        treasuryAmount: Number(treasuryAmount) / 1000000,
         creator: selectedNFT.creatorAddress,
-        treasury: TREASURY_ADDRESS,
+        splitterContract: DONATION_SPLITTER_ADDRESS,
         supportsBatchCalls,
       });
 
@@ -755,16 +771,16 @@ export default function Marketplace() {
             to: USDC_ADDRESS as `0x${string}`,
             data: encodeFunctionData({
               abi: USDC_ABI,
-              functionName: "transfer",
-              args: [selectedNFT.creatorAddress as `0x${string}`, creatorAmount],
+              functionName: "approve",
+              args: [DONATION_SPLITTER_ADDRESS, donationWei],
             }),
           },
           {
-            to: USDC_ADDRESS as `0x${string}`,
+            to: DONATION_SPLITTER_ADDRESS,
             data: encodeFunctionData({
-              abi: USDC_ABI,
-              functionName: "transfer",
-              args: [TREASURY_ADDRESS as `0x${string}`, treasuryAmount],
+              abi: DONATION_SPLITTER_ABI,
+              functionName: "donate",
+              args: [nftTokenId, selectedNFT.creatorAddress as `0x${string}`, donationWei],
             }),
           },
         ];
@@ -773,38 +789,67 @@ export default function Marketplace() {
         await sendDonationCalls({ calls: batchCalls });
         console.log("✅ Batch donation transaction sent, waiting for confirmation...");
       } else {
-        // Fallback: Sequential transfers for standard wallets (MetaMask, etc.)
-        console.log("🔄 Using sequential transfers (wallet doesn't support EIP-5792)...");
+        // Standard wallets: check allowance, approve if needed, then donate
+        console.log("🔄 Using approve + donate (wallet doesn't support EIP-5792)...");
         
-        toast({
-          title: "Step 1 of 2",
-          description: "Please approve the first transfer to the creator",
-        });
-
-        // First transfer: Creator gets 90%
-        const creatorTxHash = await writeContractAsync({
+        // Check current allowance to avoid USDC's allowance-change guard
+        const currentAllowance = await publicClient?.readContract({
           address: USDC_ADDRESS as `0x${string}`,
           abi: USDC_ABI,
-          functionName: "transfer",
-          args: [selectedNFT.creatorAddress as `0x${string}`, creatorAmount],
-        });
-        console.log("✅ Creator transfer sent:", creatorTxHash);
+          functionName: "allowance",
+          args: [walletAddress as `0x${string}`, DONATION_SPLITTER_ADDRESS],
+        }) as bigint || BigInt(0);
+        
+        console.log("📊 Current USDC allowance:", currentAllowance.toString());
+        
+        // Only approve if current allowance is insufficient
+        if (currentAllowance < donationWei) {
+          toast({
+            title: "Approval Required",
+            description: "Please approve USDC spending for donations",
+          });
+          
+          // If there's existing non-zero allowance, reset to 0 first (USDC FiatTokenV2 requirement)
+          if (currentAllowance > BigInt(0)) {
+            console.log("🔄 Resetting allowance to 0 first (USDC requirement)...");
+            const resetTxHash = await writeContractAsync({
+              address: USDC_ADDRESS as `0x${string}`,
+              abi: USDC_ABI,
+              functionName: "approve",
+              args: [DONATION_SPLITTER_ADDRESS, BigInt(0)],
+            });
+            // Wait for reset tx to confirm
+            await publicClient?.waitForTransactionReceipt({ hash: resetTxHash });
+            console.log("✅ Allowance reset to 0 (confirmed)");
+          }
+          
+          // Approve exact donation amount
+          const approveTxHash = await writeContractAsync({
+            address: USDC_ADDRESS as `0x${string}`,
+            abi: USDC_ABI,
+            functionName: "approve",
+            args: [DONATION_SPLITTER_ADDRESS, donationWei],
+          });
+          // Wait for approval tx to confirm
+          await publicClient?.waitForTransactionReceipt({ hash: approveTxHash });
+          console.log("✅ USDC approval confirmed for", donationWei.toString());
+        } else {
+          console.log("✅ Sufficient allowance exists, skipping approve step");
+        }
 
         toast({
-          title: "Step 2 of 2",
-          description: "Please approve the platform fee transfer",
+          title: "Confirming Donation",
+          description: "Please confirm the donation transaction",
         });
 
-        // Second transfer: Treasury gets 10%
-        const treasuryTxHash = await writeContractAsync({
-          address: USDC_ADDRESS as `0x${string}`,
-          abi: USDC_ABI,
-          functionName: "transfer",
-          args: [TREASURY_ADDRESS as `0x${string}`, treasuryAmount],
+        const donateTxHash = await writeContractAsync({
+          address: DONATION_SPLITTER_ADDRESS,
+          abi: DONATION_SPLITTER_ABI,
+          functionName: "donate",
+          args: [nftTokenId, selectedNFT.creatorAddress as `0x${string}`, donationWei],
         });
-        console.log("✅ Treasury transfer sent:", treasuryTxHash);
+        console.log("✅ Donation transaction sent:", donateTxHash);
 
-        // Record donation for sequential path
         const creatorName = formatUserDisplayName({
           walletAddress: selectedNFT.creatorAddress,
           farcasterUsername: selectedNFT.farcasterCreatorUsername,
@@ -821,7 +866,7 @@ export default function Marketplace() {
               toAddress: selectedNFT.creatorAddress,
               amount: (amount * 0.9).toString(),
               platformFee: (amount * 0.1).toString(),
-              blockchainTxHash: creatorTxHash,
+              blockchainTxHash: donateTxHash,
             }),
           });
           console.log('💝 Donation recorded in database');
