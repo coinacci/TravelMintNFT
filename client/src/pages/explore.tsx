@@ -619,7 +619,7 @@ export default function Explore() {
   };
 
   return (
-    <div className="w-full h-full overflow-hidden">
+    <div className="bg-white">
       <MapView onNFTSelect={handleNFTSelect} />
 
       {/* Welcome Dialog */}

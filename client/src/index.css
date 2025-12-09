@@ -96,12 +96,6 @@
     @apply border-border;
   }
 
-  html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-  }
-
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
@@ -113,15 +107,10 @@
 
 .map-container {
   height: 100vh;
-  width: 100vw;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
+  position: relative;
+  margin-top: -3rem;
+  padding-top: 3rem;
+  background-color: white;
 }
 
 .floating-panel {
