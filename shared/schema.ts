@@ -56,10 +56,12 @@ export const transactions = pgTable("transactions", {
 export const nftLikes = pgTable("nft_likes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   nftId: varchar("nft_id").notNull().references(() => nfts.id),
-  farcasterFid: text("farcaster_fid").notNull(),
+  farcasterFid: text("farcaster_fid"), // Optional - for Farcaster users
+  walletAddress: text("wallet_address"), // Optional - for wallet-only users
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   nftFidUnique: uniqueIndex("nft_likes_nft_fid_unique").on(table.nftId, table.farcasterFid),
+  nftWalletUnique: uniqueIndex("nft_likes_nft_wallet_unique").on(table.nftId, table.walletAddress),
 }));
 
 export const insertUserSchema = createInsertSchema(users).omit({

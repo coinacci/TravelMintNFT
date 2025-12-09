@@ -951,8 +951,12 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/nfts/:id/like", async (req, res) => {
     try {
+      // Accept either farcasterFid OR walletAddress (at least one required)
       const likeSchema = z.object({
-        farcasterFid: z.string().trim().min(1, "Farcaster FID is required"),
+        farcasterFid: z.string().trim().min(1).optional(),
+        walletAddress: z.string().trim().min(1).optional(),
+      }).refine(data => data.farcasterFid || data.walletAddress, {
+        message: "Either farcasterFid or walletAddress is required"
       });
       
       const validated = likeSchema.parse(req.body);
@@ -962,7 +966,10 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "NFT not found" });
       }
 
-      const result = await storage.toggleNFTLike(req.params.id, validated.farcasterFid);
+      const result = await storage.toggleNFTLike(req.params.id, {
+        farcasterFid: validated.farcasterFid,
+        walletAddress: validated.walletAddress,
+      });
       res.json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {

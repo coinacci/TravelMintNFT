@@ -23,8 +23,8 @@ export interface IStorage {
   getNFTByTokenId(tokenId: string): Promise<NFT | undefined>;
   
   // NFT Like operations
-  toggleNFTLike(nftId: string, farcasterFid: string): Promise<{ liked: boolean; likeCount: number }>;
-  checkNFTLiked(nftId: string, farcasterFid: string): Promise<boolean>;
+  toggleNFTLike(nftId: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<{ liked: boolean; likeCount: number }>;
+  checkNFTLiked(nftId: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<boolean>;
 
   // Transaction operations
   getTransaction(id: string): Promise<Transaction | undefined>;
@@ -361,17 +361,26 @@ export class DatabaseStorage implements IStorage {
     return nft || undefined;
   }
 
-  async toggleNFTLike(nftId: string, farcasterFid: string): Promise<{ liked: boolean; likeCount: number }> {
+  async toggleNFTLike(nftId: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<{ liked: boolean; likeCount: number }> {
+    const { farcasterFid, walletAddress } = identifier;
+    
+    if (!farcasterFid && !walletAddress) {
+      throw new Error("Either farcasterFid or walletAddress is required");
+    }
+
     return await db.transaction(async (tx) => {
+      // Build the where condition based on available identifier
+      const whereCondition = farcasterFid 
+        ? and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid))
+        : and(eq(nftLikes.nftId, nftId), eq(nftLikes.walletAddress, walletAddress!.toLowerCase()));
+
       const existingLike = await tx
         .select()
         .from(nftLikes)
-        .where(and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)));
+        .where(whereCondition);
 
       if (existingLike.length > 0) {
-        await tx
-          .delete(nftLikes)
-          .where(and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)));
+        await tx.delete(nftLikes).where(whereCondition);
         
         const [updatedNFT] = await tx
           .update(nfts)
@@ -383,7 +392,8 @@ export class DatabaseStorage implements IStorage {
       } else {
         await tx.insert(nftLikes).values({
           nftId,
-          farcasterFid,
+          farcasterFid: farcasterFid || null,
+          walletAddress: walletAddress?.toLowerCase() || null,
         });
         
         const [updatedNFT] = await tx
@@ -397,11 +407,21 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async checkNFTLiked(nftId: string, farcasterFid: string): Promise<boolean> {
+  async checkNFTLiked(nftId: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<boolean> {
+    const { farcasterFid, walletAddress } = identifier;
+    
+    if (!farcasterFid && !walletAddress) {
+      return false;
+    }
+
+    const whereCondition = farcasterFid 
+      ? and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid))
+      : and(eq(nftLikes.nftId, nftId), eq(nftLikes.walletAddress, walletAddress!.toLowerCase()));
+
     const [like] = await db
       .select()
       .from(nftLikes)
-      .where(and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)));
+      .where(whereCondition);
     return !!like;
   }
 

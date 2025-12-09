@@ -272,10 +272,14 @@ export default function Marketplace() {
 
   const likeMutation = useMutation({
     mutationFn: async (nftId: string) => {
-      if (!farcasterFid) {
-        throw new Error("Please connect your Farcaster account to like NFTs");
+      // Allow like with either Farcaster FID or wallet address
+      if (!farcasterFid && !walletAddress) {
+        throw new Error("Please connect your wallet or Farcaster account to like NFTs");
       }
-      const response = await apiRequest("POST", `/api/nfts/${nftId}/like`, { farcasterFid });
+      const payload = farcasterFid 
+        ? { farcasterFid } 
+        : { walletAddress };
+      const response = await apiRequest("POST", `/api/nfts/${nftId}/like`, payload);
       return response as unknown as { liked: boolean; likeCount: number };
     },
     onSuccess: () => {
@@ -1048,7 +1052,7 @@ export default function Marketplace() {
                   />
                   <button
                     onClick={() => likeMutation.mutate(nftDetails.id)}
-                    disabled={likeMutation.isPending || !farcasterFid}
+                    disabled={likeMutation.isPending || (!farcasterFid && !walletAddress)}
                     className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white px-3 py-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-like-nft"
                   >
