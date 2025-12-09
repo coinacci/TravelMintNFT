@@ -9,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSendCalls, useChainId, useCapabilities, usePublicClient } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSendCalls } from "wagmi";
 import { parseUnits, encodeFunctionData } from "viem";
 import sdk from "@farcaster/frame-sdk";
 
@@ -25,7 +25,6 @@ interface Stats {
 
 interface NFT {
   id: string;
-  tokenId?: string;
   title: string;
   description?: string;
   imageUrl: string;
@@ -241,26 +240,15 @@ export default function Explore() {
     gcTime: 30 * 1000,
   });
 
-  const { writeContract, writeContractAsync, isPending: isTransactionPending, data: txHash } = useWriteContract();
+  const { writeContract, isPending: isTransactionPending, data: txHash } = useWriteContract();
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
   });
   const { data: donationCallsData, sendCalls: sendDonationCalls, isPending: isDonationPending } = useSendCalls();
-  
-  // EIP-5792 capability detection for batch transactions
-  const chainId = useChainId();
-  const { data: capabilities } = useCapabilities();
-  const supportsBatchCalls = React.useMemo(() => {
-    if (!capabilities || !chainId) return false;
-    const chainCapabilities = capabilities[chainId];
-    return chainCapabilities?.atomic?.status === "supported" || 
-           chainCapabilities?.atomic?.status === "ready";
-  }, [capabilities, chainId]);
 
   // Contract addresses and ABIs
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`;
   const TREASURY_ADDRESS = "0x7CDe7822456AAC667Df0420cD048295b92704084" as `0x${string}`;
-  const DONATION_SPLITTER_ADDRESS = (import.meta.env.VITE_DONATION_SPLITTER_ADDRESS || "0x6F54cBc7fc0729F00bcdB5C8445B1823053aA684") as `0x${string}`;
   
   const USDC_ABI = [
     {
@@ -272,42 +260,6 @@ export default function Explore() {
         { name: "amount", type: "uint256" }
       ],
       outputs: [{ name: "", type: "bool" }]
-    },
-    {
-      name: "approve",
-      type: "function",
-      stateMutability: "nonpayable",
-      inputs: [
-        { name: "spender", type: "address" },
-        { name: "amount", type: "uint256" }
-      ],
-      outputs: [{ name: "", type: "bool" }]
-    },
-    {
-      name: "allowance",
-      type: "function",
-      stateMutability: "view",
-      inputs: [
-        { name: "owner", type: "address" },
-        { name: "spender", type: "address" }
-      ],
-      outputs: [{ name: "", type: "uint256" }]
-    }
-  ] as const;
-  
-  const publicClient = usePublicClient();
-
-  const DONATION_SPLITTER_ABI = [
-    {
-      name: "donate",
-      type: "function",
-      stateMutability: "nonpayable",
-      inputs: [
-        { name: "nftId", type: "uint256" },
-        { name: "creator", type: "address" },
-        { name: "amount", type: "uint256" }
-      ],
-      outputs: []
     }
   ] as const;
 
@@ -523,9 +475,7 @@ export default function Explore() {
     }
   }, [txHash, isConfirming, walletAddress, queryClient, toast, nftDetails, setIsModalOpen, setSelectedNFT]);
 
-  // Donation handler - uses DonationSplitter contract for atomic split (90% creator, 10% treasury)
-  // EIP-5792 batch: approve + donate in one batch
-  // Standard wallets: approve first, then donate (2 transactions, but atomic split)
+  // Donation handler - atomic batch USDC transfer to creator (90%) and treasury (10%)
   const handleDonation = async (amount: number) => {
     if (!isConnected || !walletAddress) {
       toast({
@@ -560,7 +510,8 @@ export default function Explore() {
 
     try {
       const donationWei = parseUnits(amount.toString(), 6); // USDC has 6 decimals
-      const nftTokenId = BigInt(nftDetails.tokenId || 0);
+      const creatorAmount = (donationWei * BigInt(90)) / BigInt(100); // 90% to creator
+      const treasuryAmount = (donationWei * BigInt(10)) / BigInt(100); // 10% to treasury
 
       toast({
         title: "Processing Donation",
@@ -569,130 +520,42 @@ export default function Explore() {
 
       console.log("💝 Donation details:", {
         totalAmount: amount,
+        creatorAmount: Number(creatorAmount) / 1000000,
+        treasuryAmount: Number(treasuryAmount) / 1000000,
         creator: nftDetails.creatorAddress,
-        splitterContract: DONATION_SPLITTER_ADDRESS,
-        supportsBatchCalls,
+        treasury: TREASURY_ADDRESS,
       });
 
-      if (supportsBatchCalls) {
-        // Use atomic batch transaction for Smart Wallets (EIP-5792)
-        // approve + donate in single batch
-        const batchCalls = [
-          {
-            to: USDC_ADDRESS,
-            data: encodeFunctionData({
-              abi: USDC_ABI,
-              functionName: "approve",
-              args: [DONATION_SPLITTER_ADDRESS, donationWei],
-            }),
-          },
-          {
-            to: DONATION_SPLITTER_ADDRESS,
-            data: encodeFunctionData({
-              abi: DONATION_SPLITTER_ABI,
-              functionName: "donate",
-              args: [nftTokenId, nftDetails.creatorAddress as `0x${string}`, donationWei],
-            }),
-          },
-        ];
-
-        console.log("🎯 Sending atomic batch donation (EIP-5792)...", batchCalls);
-        await sendDonationCalls({ calls: batchCalls });
-        console.log("✅ Batch donation transaction sent, waiting for confirmation...");
-      } else {
-        // Standard wallets: check allowance, approve if needed, then donate
-        console.log("🔄 Using approve + donate (wallet doesn't support EIP-5792)...");
-        
-        // Check current allowance to avoid USDC's allowance-change guard
-        const currentAllowance = await publicClient?.readContract({
-          address: USDC_ADDRESS,
-          abi: USDC_ABI,
-          functionName: "allowance",
-          args: [walletAddress as `0x${string}`, DONATION_SPLITTER_ADDRESS],
-        }) as bigint || BigInt(0);
-        
-        console.log("📊 Current USDC allowance:", currentAllowance.toString());
-        
-        // Only approve if current allowance is insufficient
-        if (currentAllowance < donationWei) {
-          toast({
-            title: "Approval Required",
-            description: "Please approve USDC spending for donations",
-          });
-          
-          // If there's existing non-zero allowance, reset to 0 first (USDC FiatTokenV2 requirement)
-          if (currentAllowance > BigInt(0)) {
-            console.log("🔄 Resetting allowance to 0 first (USDC requirement)...");
-            const resetTxHash = await writeContractAsync({
-              address: USDC_ADDRESS,
-              abi: USDC_ABI,
-              functionName: "approve",
-              args: [DONATION_SPLITTER_ADDRESS, BigInt(0)],
-            });
-            // Wait for reset tx to confirm
-            await publicClient?.waitForTransactionReceipt({ hash: resetTxHash });
-            console.log("✅ Allowance reset to 0 (confirmed)");
-          }
-          
-          // Approve exact donation amount
-          const approveTxHash = await writeContractAsync({
-            address: USDC_ADDRESS,
+      // Build atomic batch transaction: both transfers in single call
+      const batchCalls = [
+        // Transfer 1: Creator gets 90%
+        {
+          to: USDC_ADDRESS,
+          data: encodeFunctionData({
             abi: USDC_ABI,
-            functionName: "approve",
-            args: [DONATION_SPLITTER_ADDRESS, donationWei],
-          });
-          // Wait for approval tx to confirm
-          await publicClient?.waitForTransactionReceipt({ hash: approveTxHash });
-          console.log("✅ USDC approval confirmed for", donationWei.toString());
-        } else {
-          console.log("✅ Sufficient allowance exists, skipping approve step");
-        }
+            functionName: "transfer",
+            args: [nftDetails.creatorAddress as `0x${string}`, creatorAmount],
+          }),
+        },
+        // Transfer 2: Treasury gets 10%
+        {
+          to: USDC_ADDRESS,
+          data: encodeFunctionData({
+            abi: USDC_ABI,
+            functionName: "transfer",
+            args: [TREASURY_ADDRESS, treasuryAmount],
+          }),
+        },
+      ];
 
-        toast({
-          title: "Confirming Donation",
-          description: "Please confirm the donation transaction",
-        });
+      console.log("🎯 Sending atomic batch donation...", batchCalls);
 
-        // Call donate on DonationSplitter (atomic split happens here)
-        const donateTxHash = await writeContractAsync({
-          address: DONATION_SPLITTER_ADDRESS,
-          abi: DONATION_SPLITTER_ABI,
-          functionName: "donate",
-          args: [nftTokenId, nftDetails.creatorAddress as `0x${string}`, donationWei],
-        });
-        console.log("✅ Donation transaction sent:", donateTxHash);
+      // Execute atomic batch transaction
+      await sendDonationCalls({
+        calls: batchCalls,
+      });
 
-        // Record donation
-        const creatorName = nftDetails.creator?.username || 
-                           nftDetails.farcasterCreatorUsername || 
-                           `${nftDetails.creatorAddress.slice(0, 6)}...${nftDetails.creatorAddress.slice(-4)}`;
-
-        try {
-          await fetch('/api/donations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              nftId: nftDetails.id,
-              fromAddress: walletAddress,
-              toAddress: nftDetails.creatorAddress,
-              amount: (amount * 0.9).toString(),
-              platformFee: (amount * 0.1).toString(),
-              blockchainTxHash: donateTxHash,
-            }),
-          });
-          console.log('💝 Donation recorded in database');
-        } catch (dbError) {
-          console.error('Failed to record donation:', dbError);
-        }
-
-        toast({
-          title: "Donation Sent!",
-          description: `Thank you for supporting ${creatorName}!`,
-        });
-
-        setIsDonating(false);
-        setDonationAmount(null);
-      }
+      console.log("✅ Batch donation transaction sent, waiting for confirmation...");
 
     } catch (error: any) {
       console.error("Donation error:", error);
