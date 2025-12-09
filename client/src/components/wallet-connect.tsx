@@ -7,7 +7,6 @@ import { Wallet, LogOut, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AuthKitProvider, useSignIn } from "@farcaster/auth-kit";
 import QRCodeSVG from "react-qr-code";
-import sdk from "@farcaster/frame-sdk";
 
 // Farcaster AuthKit configuration
 const authConfig = {
@@ -91,7 +90,6 @@ function FarcasterQRAuth({ onSuccess, onError, onBack }: {
 export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasInjectedProvider, setHasInjectedProvider] = useState(false);
-  const [isInFarcasterApp, setIsInFarcasterApp] = useState(false);
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
@@ -102,25 +100,6 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
     if (typeof window !== 'undefined') {
       setHasInjectedProvider(!!window.ethereum);
     }
-  }, []);
-  
-  // Check if we're inside Farcaster Mini App environment
-  useEffect(() => {
-    const checkFarcasterContext = async () => {
-      try {
-        if (typeof window !== 'undefined' && sdk?.context) {
-          const context = await Promise.resolve(sdk.context);
-          if (context?.user) {
-            setIsInFarcasterApp(true);
-            console.log('✅ Running inside Farcaster app');
-          }
-        }
-      } catch (error) {
-        console.log('📱 Running in web browser (not in Farcaster app)');
-        setIsInFarcasterApp(false);
-      }
-    };
-    checkFarcasterContext();
   }, []);
 
   useEffect(() => {
@@ -136,28 +115,12 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
 
   // Removed wallet connected popup as requested
 
-  const handleConnect = async (connector: any, isFarcasterButton?: boolean) => {
+  const handleConnect = async (connector: any) => {
     try {
-      // If clicking Farcaster button on web browser (not in Farcaster app),
-      // use WalletConnect instead to show QR code for Warpcast scanning
-      let actualConnector = connector;
-      
-      if (isFarcasterButton && !isInFarcasterApp) {
-        console.log('📱 Farcaster button clicked on web - using WalletConnect for QR code');
-        const walletConnectConnector = connectors.find(c => c.name.toLowerCase().includes('walletconnect'));
-        if (walletConnectConnector) {
-          actualConnector = walletConnectConnector;
-          toast({
-            title: "Scan with Warpcast",
-            description: "Scan the QR code with your Warpcast app to connect your Farcaster wallet",
-          });
-        }
-      }
-      
-      console.log('Attempting to connect with:', actualConnector.name);
+      console.log('Attempting to connect with:', connector.name);
       
       // Add connection timeout
-      const connectionPromise = connect({ connector: actualConnector });
+      const connectionPromise = connect({ connector });
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Connection timeout')), 30000)
       );
@@ -352,7 +315,7 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
               if (nameLower.includes('farcaster')) {
                 return {
                   icon: <Wallet className="w-5 h-5 text-purple-500" />,
-                  description: isInFarcasterApp ? 'Farcaster native wallet' : 'Scan QR with Warpcast'
+                  description: 'Farcaster native wallet'
                 };
               }
               
@@ -364,15 +327,14 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
             
             const { icon, description } = getConnectorInfo(connector.name);
             
-            // Check connector types
+            // Check if this is an injected connector and if provider exists
             const isInjectedConnector = connector.type === 'injected';
-            const isFarcasterConnector = connector.name.toLowerCase().includes('farcaster');
             const isDisabled = isPending || (isInjectedConnector && !hasInjectedProvider);
             
             return (
               <Button
                 key={connector.uid}
-                onClick={() => handleConnect(connector, isFarcasterConnector)}
+                onClick={() => handleConnect(connector)}
                 variant="outline"
                 className="w-full justify-start h-auto p-4"
                 disabled={isDisabled}
