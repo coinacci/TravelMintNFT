@@ -44,7 +44,7 @@ export default function Navigation() {
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
-    { path: "/guide", label: "Rehber", icon: MapPin },
+    { path: "/guide", label: "Trip", icon: MapPin },
     { path: "/quests", label: "Rewards", icon: Target, hasSubmenu: true },
     { path: "/badges", label: "Badges", icon: Award },
     { path: "/my-nfts", label: "Profile", icon: User },
