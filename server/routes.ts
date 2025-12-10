@@ -1,6 +1,8 @@
 import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
+import { db } from "./db";
+import { transactions, nftLikes, questCompletions, userStats } from "@shared/schema";
 import { blockchainService, withRetry } from "./blockchain";
 import { MetadataSyncService } from "./metadataSyncService";
 import { 
@@ -3116,6 +3118,337 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error checking EarlyBird NFT:', error);
       res.json({ hasEarlyBird: false, balance: "0", imageUrl: null });
+    }
+  });
+
+  // Admin endpoint for retroactive badge awarding - SECRET PROTECTED
+  app.post("/api/admin/backfill-badges", async (req, res) => {
+    try {
+      const adminSecret = process.env.ADMIN_SECRET || 'dev-admin-secret-2024';
+      const providedSecret = req.headers.authorization || req.headers['x-admin-secret'];
+      
+      if (!providedSecret || providedSecret !== adminSecret) {
+        return res.status(401).json({ message: "Unauthorized - invalid admin secret" });
+      }
+
+      console.log('🏆 Starting retroactive badge backfill...');
+      
+      const badgesAwarded: { badge: string; identifier: string }[] = [];
+      
+      // Badge definitions with their criteria
+      const BADGE_CRITERIA = {
+        // Mint badges - based on number of NFTs minted
+        mint: [
+          { code: 'first_mint', requirement: 1 },
+          { code: 'explorer', requirement: 5 },
+          { code: 'globetrotter', requirement: 10 },
+          { code: 'nft_master', requirement: 25 },
+        ],
+        // Location badges - based on unique countries/cities
+        country: [
+          { code: 'multi_country', requirement: 3 },
+          { code: 'world_traveler', requirement: 5 },
+          { code: 'global_citizen', requirement: 10 },
+        ],
+        city: [
+          { code: 'multi_city', requirement: 3 },
+          { code: 'city_explorer', requirement: 5 },
+          { code: 'urban_nomad', requirement: 10 },
+        ],
+        // Social badges - tips given
+        tipsGiven: [
+          { code: 'first_tipper', requirement: 1 },
+          { code: 'generous', requirement: 5 },
+          { code: 'philanthropist', requirement: 10 },
+        ],
+        // Social badges - likes received
+        likesReceived: [
+          { code: 'first_like', requirement: 1 },
+          { code: 'liked', requirement: 5 },
+          { code: 'popular', requirement: 10 },
+          { code: 'superstar', requirement: 50 },
+        ],
+        // Social badges - tips received
+        tipsReceived: [
+          { code: 'tip_receiver', requirement: 1 },
+          { code: 'tip_collector', requirement: 5 },
+          { code: 'tip_magnet', requirement: 10 },
+        ],
+        // Loyalty badges - quest completions
+        quests: [
+          { code: 'task_beginner', requirement: 1 },
+          { code: 'task_enthusiast', requirement: 5 },
+          { code: 'task_veteran', requirement: 10 },
+          { code: 'task_master', requirement: 20 },
+        ],
+      };
+
+      // Country name mapping for location extraction
+      const CITY_TO_COUNTRY: Record<string, string> = {
+        'tiflis': 'Georgia', 'tbilisi': 'Georgia',
+        'dubai': 'UAE', 'abu dhabi': 'UAE',
+        'paris': 'France', 'nice': 'France', 'lyon': 'France',
+        'london': 'UK', 'manchester': 'UK', 'edinburgh': 'UK',
+        'new york': 'USA', 'los angeles': 'USA', 'miami': 'USA', 'san francisco': 'USA',
+        'tokyo': 'Japan', 'osaka': 'Japan', 'kyoto': 'Japan',
+        'istanbul': 'Turkey', 'ankara': 'Turkey', 'antalya': 'Turkey',
+        'berlin': 'Germany', 'munich': 'Germany', 'frankfurt': 'Germany',
+        'rome': 'Italy', 'milan': 'Italy', 'venice': 'Italy', 'florence': 'Italy',
+        'barcelona': 'Spain', 'madrid': 'Spain', 'seville': 'Spain',
+        'amsterdam': 'Netherlands', 'rotterdam': 'Netherlands',
+        'vienna': 'Austria', 'salzburg': 'Austria',
+        'prague': 'Czech Republic', 'brno': 'Czech Republic',
+        'athens': 'Greece', 'santorini': 'Greece',
+        'lisbon': 'Portugal', 'porto': 'Portugal',
+        'dublin': 'Ireland',
+        'brussels': 'Belgium',
+        'zurich': 'Switzerland', 'geneva': 'Switzerland',
+        'stockholm': 'Sweden',
+        'copenhagen': 'Denmark',
+        'oslo': 'Norway',
+        'helsinki': 'Finland',
+        'warsaw': 'Poland', 'krakow': 'Poland',
+        'budapest': 'Hungary',
+        'bangkok': 'Thailand', 'phuket': 'Thailand', 'chiang mai': 'Thailand',
+        'singapore': 'Singapore',
+        'hong kong': 'Hong Kong',
+        'seoul': 'South Korea', 'busan': 'South Korea',
+        'sydney': 'Australia', 'melbourne': 'Australia',
+        'cairo': 'Egypt',
+        'cape town': 'South Africa', 'johannesburg': 'South Africa',
+        'moscow': 'Russia', 'st petersburg': 'Russia',
+        'beijing': 'China', 'shanghai': 'China',
+        'mumbai': 'India', 'delhi': 'India', 'bangalore': 'India',
+        'mexico city': 'Mexico', 'cancun': 'Mexico',
+        'sao paulo': 'Brazil', 'rio de janeiro': 'Brazil',
+        'buenos aires': 'Argentina',
+        'marrakech': 'Morocco',
+        'toronto': 'Canada', 'vancouver': 'Canada', 'montreal': 'Canada',
+      };
+
+      const extractCountryFromLocation = (location: string): string | null => {
+        const locationLower = location.toLowerCase();
+        for (const [city, country] of Object.entries(CITY_TO_COUNTRY)) {
+          if (locationLower.includes(city)) {
+            return country;
+          }
+        }
+        const parts = location.split(',').map(p => p.trim());
+        if (parts.length >= 2) {
+          return parts[parts.length - 1];
+        }
+        return null;
+      };
+
+      const extractCityFromLocation = (location: string): string | null => {
+        const parts = location.split(',').map(p => p.trim());
+        if (parts.length >= 1) {
+          return parts[0];
+        }
+        return location;
+      };
+
+      // Get all NFTs
+      const allNfts = await storage.getAllNFTs();
+      
+      // Get all transactions
+      const allTransactions = await db.select().from(transactions);
+      
+      // Get all likes
+      const allLikes = await db.select().from(nftLikes);
+      
+      // Get all quest completions
+      const allQuestCompletions = await db.select().from(questCompletions);
+      
+      // Get all user stats for FID mapping
+      const allUserStats = await db.select().from(userStats);
+      const fidToWallet = new Map<string, string>();
+      const walletToFid = new Map<string, string>();
+      for (const us of allUserStats) {
+        if (us.walletAddress) {
+          fidToWallet.set(us.farcasterFid, us.walletAddress.toLowerCase());
+          walletToFid.set(us.walletAddress.toLowerCase(), us.farcasterFid);
+        }
+      }
+
+      // Build aggregations per wallet/fid
+      const userMints = new Map<string, number>(); // wallet -> count
+      const userCountries = new Map<string, Set<string>>(); // wallet -> countries
+      const userCities = new Map<string, Set<string>>(); // wallet -> cities
+      const userTipsGiven = new Map<string, Set<string>>(); // wallet -> unique creators tipped
+      const userLikesReceived = new Map<string, number>(); // wallet -> count
+      const userTipsReceived = new Map<string, number>(); // wallet -> count
+      const fidQuestCompletions = new Map<string, number>(); // fid -> count
+
+      // Aggregate mint data
+      for (const nft of allNfts) {
+        const wallet = nft.creatorAddress.toLowerCase();
+        userMints.set(wallet, (userMints.get(wallet) || 0) + 1);
+        
+        // Extract location data
+        const country = extractCountryFromLocation(nft.location);
+        const city = extractCityFromLocation(nft.location);
+        
+        if (country) {
+          if (!userCountries.has(wallet)) userCountries.set(wallet, new Set());
+          userCountries.get(wallet)!.add(country);
+        }
+        if (city) {
+          if (!userCities.has(wallet)) userCities.set(wallet, new Set());
+          userCities.get(wallet)!.add(city);
+        }
+      }
+
+      // Aggregate tips given and received
+      for (const tx of allTransactions) {
+        if (tx.transactionType === 'tip' || tx.transactionType === 'donation') {
+          if (tx.fromAddress) {
+            const fromWallet = tx.fromAddress.toLowerCase();
+            const toWallet = tx.toAddress.toLowerCase();
+            
+            if (!userTipsGiven.has(fromWallet)) userTipsGiven.set(fromWallet, new Set());
+            userTipsGiven.get(fromWallet)!.add(toWallet);
+            
+            userTipsReceived.set(toWallet, (userTipsReceived.get(toWallet) || 0) + 1);
+          }
+        }
+      }
+
+      // Aggregate likes received per NFT creator
+      const nftIdToCreator = new Map<string, string>();
+      for (const nft of allNfts) {
+        nftIdToCreator.set(nft.id, nft.creatorAddress.toLowerCase());
+      }
+      
+      for (const like of allLikes) {
+        const creatorWallet = nftIdToCreator.get(like.nftId);
+        if (creatorWallet) {
+          userLikesReceived.set(creatorWallet, (userLikesReceived.get(creatorWallet) || 0) + 1);
+        }
+      }
+
+      // Aggregate quest completions
+      for (const qc of allQuestCompletions) {
+        fidQuestCompletions.set(qc.farcasterFid, (fidQuestCompletions.get(qc.farcasterFid) || 0) + 1);
+      }
+
+      // Award badges based on aggregations
+      const awardBadgeIfEligible = async (badgeCode: string, identifier: { farcasterFid?: string; walletAddress?: string }) => {
+        try {
+          const result = await storage.awardBadge(badgeCode, identifier);
+          if (result) {
+            const id = identifier.farcasterFid || identifier.walletAddress || 'unknown';
+            badgesAwarded.push({ badge: badgeCode, identifier: id });
+            console.log(`  ✓ Awarded ${badgeCode} to ${id}`);
+          }
+        } catch (error) {
+          // Badge already awarded or other error - skip
+        }
+      };
+
+      // Process mint badges
+      console.log('📦 Processing mint badges...');
+      for (const [wallet, count] of Array.from(userMints)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        
+        for (const badge of BADGE_CRITERIA.mint) {
+          if (count >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      // Process location badges
+      console.log('🌍 Processing location badges...');
+      for (const [wallet, countries] of Array.from(userCountries)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        
+        for (const badge of BADGE_CRITERIA.country) {
+          if (countries.size >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      for (const [wallet, cities] of Array.from(userCities)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        
+        for (const badge of BADGE_CRITERIA.city) {
+          if (cities.size >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      // Process tips given badges
+      console.log('💝 Processing tips given badges...');
+      for (const [wallet, creators] of Array.from(userTipsGiven)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        
+        for (const badge of BADGE_CRITERIA.tipsGiven) {
+          if (creators.size >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      // Process likes received badges
+      console.log('❤️ Processing likes received badges...');
+      for (const [wallet, count] of Array.from(userLikesReceived)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        
+        for (const badge of BADGE_CRITERIA.likesReceived) {
+          if (count >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      // Process tips received badges
+      console.log('💰 Processing tips received badges...');
+      for (const [wallet, count] of Array.from(userTipsReceived)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        
+        for (const badge of BADGE_CRITERIA.tipsReceived) {
+          if (count >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      // Process quest completion badges
+      console.log('🎯 Processing quest badges...');
+      for (const [fid, count] of Array.from(fidQuestCompletions)) {
+        const identifier = { farcasterFid: fid };
+        
+        for (const badge of BADGE_CRITERIA.quests) {
+          if (count >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+
+      console.log(`✅ Badge backfill complete! Awarded ${badgesAwarded.length} badges.`);
+      
+      res.json({
+        success: true,
+        badgesAwarded: badgesAwarded.length,
+        details: badgesAwarded,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Badge backfill failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Badge backfill failed", 
+        error: error.message 
+      });
     }
   });
 
