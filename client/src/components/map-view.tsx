@@ -318,14 +318,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Add cluster group to map
     map.addLayer(clusterGroup);
 
-    // Remove existing polyline and arrow markers if any
+    // Remove existing polyline if any
     if (polylineRef.current) {
-      // Remove all arrow markers if exist
-      if ((polylineRef.current as any)._arrowMarkers) {
-        (polylineRef.current as any)._arrowMarkers.forEach((marker: L.Marker) => {
-          map.removeLayer(marker);
-        });
-      }
       map.removeLayer(polylineRef.current);
       polylineRef.current = null;
     }
@@ -353,51 +347,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         // Create styled polyline - travel route from first mint to last mint
         const polyline = L.polyline(coordinates, {
           color: '#0000FF', // Pure blue
-          weight: 2, // Thinner line
+          weight: 1.5, // Thin line
           opacity: 0.8,
+          dashArray: '8, 6', // Dashed line pattern
           lineCap: 'round',
           lineJoin: 'round'
         });
 
         polyline.addTo(map);
         polylineRef.current = polyline;
-
-        // Add single arrow near the first NFT to show route direction
-        const firstCoord = coordinates[0] as [number, number];
-        const secondCoord = coordinates[1] as [number, number];
-        
-        // Calculate great-circle bearing from first to second NFT
-        const lat1 = firstCoord[0] * Math.PI / 180;
-        const lat2 = secondCoord[0] * Math.PI / 180;
-        const deltaLng = (secondCoord[1] - firstCoord[1]) * Math.PI / 180;
-        
-        const y = Math.sin(deltaLng) * Math.cos(lat2);
-        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
-        const bearingRad = Math.atan2(y, x);
-        const bearingDeg = ((bearingRad * 180 / Math.PI) + 360) % 360;
-
-        // Place arrow just after the first NFT (15% along the first segment)
-        const arrowLat = firstCoord[0] + (secondCoord[0] - firstCoord[0]) * 0.15;
-        const arrowLng = firstCoord[1] + (secondCoord[1] - firstCoord[1]) * 0.15;
-
-        const arrowIcon = L.divIcon({
-          html: `<div style="
-            font-size: 18px;
-            color: #0000FF;
-            transform: rotate(${bearingDeg}deg);
-            text-shadow: 0 0 2px white, 0 0 2px white;
-          ">➤</div>`,
-          className: 'arrow-marker',
-          iconSize: [18, 18],
-          iconAnchor: [9, 9]
-        });
-
-        // Place arrow right after first NFT to indicate route direction
-        const arrowMarker = L.marker([arrowLat, arrowLng], { icon: arrowIcon, interactive: false });
-        arrowMarker.addTo(map);
-
-        // Store arrow with polyline for cleanup
-        (polylineRef.current as any)._arrowMarkers = [arrowMarker];
       }
     }
 
