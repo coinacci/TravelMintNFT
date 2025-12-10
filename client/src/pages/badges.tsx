@@ -232,12 +232,9 @@ export default function Badges() {
                         </div>
                       )}
                       
-                      <h3 className={`font-semibold text-sm ${isEarned ? "text-white" : "text-gray-500"}`}>
+                      <h3 className={`font-semibold text-sm text-center ${isEarned ? "text-white" : "text-gray-500"}`}>
                         {badge.name}
                       </h3>
-                      <p className={`text-xs mt-1 ${isEarned ? "text-gray-400" : "text-gray-600"}`}>
-                        {badge.description}
-                      </p>
                     </CardContent>
                   </Card>
                 );
