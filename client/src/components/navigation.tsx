@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { Store, Globe, User, Trophy, Target, Menu, LogOut, TrendingUp, Award } from "lucide-react";
+import { Store, Globe, User, Trophy, Target, Menu, LogOut, TrendingUp, Award, MapPin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
@@ -44,6 +44,7 @@ export default function Navigation() {
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
+    { path: "/guide", label: "Trip", icon: MapPin },
     { path: "/quests", label: "Rewards", icon: Target, hasSubmenu: true },
     { path: "/badges", label: "Badges", icon: Award },
     { path: "/my-nfts", label: "Profile", icon: User },

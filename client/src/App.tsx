@@ -20,6 +20,7 @@ import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import NFTDetail from "@/pages/nft-detail";
 import Badges from "@/pages/badges";
+import Guide from "@/pages/guide";
 import Navigation from "@/components/navigation";
 
 // Browser-safe Farcaster SDK initialization
@@ -216,6 +217,7 @@ function Router() {
         <Route path="/quests" component={Quests} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/badges" component={Badges} />
+        <Route path="/guide" component={Guide} />
         <Route path="/faq">{() => <Faq />}</Route>
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
