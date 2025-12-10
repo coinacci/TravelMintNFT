@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAccount } from "wagmi";
-import { Store, Globe, User, Trophy, Target, Menu, LogOut, TrendingUp } from "lucide-react";
+import { Store, Globe, User, Trophy, Target, Menu, LogOut, TrendingUp, Award } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
@@ -40,11 +40,12 @@ export default function Navigation() {
   // AuthKit sign in/out
   const { signOut } = useSignIn();
 
-  // Navigation items - Quests has submenu, Leaderboard removed from main nav
+  // Navigation items - Quests has submenu, Badges is separate
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
     { path: "/quests", label: "Quests", icon: Target, hasSubmenu: true },
+    { path: "/badges", label: "Badges", icon: Award },
     { path: "/my-nfts", label: "Profile", icon: User },
   ];
   

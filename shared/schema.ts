@@ -363,3 +363,42 @@ export const insertPendingMintSchema = createInsertSchema(pendingMints).omit({
 
 export type InsertPendingMint = z.infer<typeof insertPendingMintSchema>;
 export type PendingMint = typeof pendingMints.$inferSelect;
+
+// Badges System Tables
+export const badges = pgTable("badges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(), // Unique badge code (e.g., 'first_mint', 'explorer')
+  name: text("name").notNull(), // Display name
+  description: text("description").notNull(), // How to earn this badge
+  category: text("category").notNull(), // 'mint', 'location', 'social', 'quest'
+  imageUrl: text("image_url").notNull(), // Badge image URL
+  requirement: integer("requirement").notNull(), // Numeric requirement (e.g., 5 mints, 3 countries)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userBadges = pgTable("user_badges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull(),
+  walletAddress: text("wallet_address"), // For wallet-only users
+  badgeId: varchar("badge_id").notNull().references(() => badges.id),
+  earnedAt: timestamp("earned_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueUserBadge: uniqueIndex("user_badges_unique").on(table.farcasterFid, table.badgeId),
+  uniqueWalletBadge: uniqueIndex("user_badges_wallet_unique").on(table.walletAddress, table.badgeId),
+}));
+
+export const insertBadgeSchema = createInsertSchema(badges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export type InsertBadge = z.infer<typeof insertBadgeSchema>;
+export type Badge = typeof badges.$inferSelect;
+
+export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
+export type UserBadge = typeof userBadges.$inferSelect;

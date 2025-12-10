@@ -3044,6 +3044,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Badge API Routes
+  app.get("/api/badges/user/:identifier", async (req, res) => {
+    try {
+      const { identifier } = req.params;
+      
+      // Check if identifier is an FID (numeric) or wallet address (0x...)
+      let earnedBadges: string[];
+      if (identifier.startsWith('0x')) {
+        earnedBadges = await storage.getUserBadges({ walletAddress: identifier });
+      } else {
+        earnedBadges = await storage.getUserBadges({ farcasterFid: identifier });
+      }
+      
+      res.json({ earnedBadges });
+    } catch (error) {
+      console.error('Error fetching user badges:', error);
+      res.status(500).json({ message: "Failed to fetch user badges" });
+    }
+  });
+
   // Admin endpoint for one-time weekly points backfill - SECRET PROTECTED
   app.post("/api/admin/backfill-weekly", async (req, res) => {
     try {

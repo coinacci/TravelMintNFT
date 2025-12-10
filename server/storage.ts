@@ -1,4 +1,4 @@
-import { users, nfts, transactions, nftLikes, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, pendingMints, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type NFTLike, type InsertNFTLike, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, type PendingMint, type InsertPendingMint, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
+import { users, nfts, transactions, nftLikes, userStats, questCompletions, userWallets, weeklyChampions, notificationHistory, syncState, pendingMints, badges, userBadges, type User, type InsertUser, type NFT, type InsertNFT, type Transaction, type InsertTransaction, type NFTLike, type InsertNFTLike, type UserStats, type InsertUserStats, type QuestCompletion, type InsertQuestCompletion, type UserWallet, type InsertUserWallet, type WeeklyChampion, type InsertWeeklyChampion, type NotificationHistory, type InsertNotificationHistory, type SyncState, type InsertSyncState, type PendingMint, type InsertPendingMint, type Badge, type InsertBadge, type UserBadge, type InsertUserBadge, getCurrentWeekStart, getWeekEnd, getWeekNumber, getQuestDay } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -121,6 +121,11 @@ export interface IStorage {
   getPendingMints(limit?: number): Promise<PendingMint[]>;
   updatePendingMintRetry(id: string, error: string): Promise<PendingMint | undefined>;
   deletePendingMint(id: string): Promise<void>;
+
+  // Badge operations
+  getAllBadges(): Promise<Badge[]>;
+  getUserBadges(identifier: { farcasterFid?: string; walletAddress?: string }): Promise<string[]>;
+  awardBadge(badgeCode: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<UserBadge | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1659,6 +1664,66 @@ export class DatabaseStorage implements IStorage {
 
   async deletePendingMint(id: string): Promise<void> {
     await db.delete(pendingMints).where(eq(pendingMints.id, id));
+  }
+
+  // Badge operations
+  async getAllBadges(): Promise<Badge[]> {
+    return await db.select().from(badges).orderBy(badges.category, badges.requirement);
+  }
+
+  async getUserBadges(identifier: { farcasterFid?: string; walletAddress?: string }): Promise<string[]> {
+    const { farcasterFid, walletAddress } = identifier;
+    
+    let userBadgeRecords: UserBadge[] = [];
+    
+    if (farcasterFid) {
+      userBadgeRecords = await db
+        .select()
+        .from(userBadges)
+        .where(eq(userBadges.farcasterFid, farcasterFid));
+    } else if (walletAddress) {
+      userBadgeRecords = await db
+        .select()
+        .from(userBadges)
+        .where(sql`LOWER(${userBadges.walletAddress}) = LOWER(${walletAddress})`);
+    }
+    
+    // Get badge codes for earned badges
+    const badgeIds = userBadgeRecords.map(ub => ub.badgeId);
+    if (badgeIds.length === 0) return [];
+    
+    const earnedBadges = await db
+      .select()
+      .from(badges)
+      .where(sql`${badges.id} IN (${sql.join(badgeIds.map(id => sql`${id}`), sql`, `)})`);
+    
+    return earnedBadges.map(b => b.code);
+  }
+
+  async awardBadge(badgeCode: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<UserBadge | undefined> {
+    const { farcasterFid, walletAddress } = identifier;
+    
+    // Get the badge
+    const [badge] = await db.select().from(badges).where(eq(badges.code, badgeCode));
+    if (!badge) return undefined;
+    
+    try {
+      const [userBadge] = await db
+        .insert(userBadges)
+        .values({
+          farcasterFid: farcasterFid || '',
+          walletAddress: walletAddress || null,
+          badgeId: badge.id,
+        })
+        .returning();
+      return userBadge;
+    } catch (error: any) {
+      // Already has badge (unique constraint)
+      if (error.code === '23505') {
+        return undefined;
+      }
+      throw error;
+    }
   }
 }
 
