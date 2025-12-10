@@ -309,6 +309,7 @@ interface UserBadgeData {
 interface EarlyBirdData {
   hasEarlyBird: boolean;
   balance: string;
+  imageUrl: string | null;
 }
 
 export default function Badges() {
@@ -330,6 +331,7 @@ export default function Badges() {
   });
   
   const hasEarlyBird = earlyBirdData?.hasEarlyBird || false;
+  const earlyBirdImage = earlyBirdData?.imageUrl || null;
   
   const earnedBadgeCodes = new Set(userBadgeData?.earnedBadges || []);
   
@@ -416,13 +418,23 @@ export default function Badges() {
               onClick={() => setShowEarlyBirdDialog(true)}
             >
               <div 
-                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-lg ${
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden ${
                   hasEarlyBird 
-                    ? "bg-gradient-to-br from-yellow-400 to-orange-500" 
+                    ? "" 
                     : "bg-gray-700 opacity-40"
                 }`}
               >
-                <Bird className={`w-8 h-8 sm:w-10 sm:h-10 ${hasEarlyBird ? "text-white" : "text-gray-400"}`} />
+                {earlyBirdImage ? (
+                  <img 
+                    src={earlyBirdImage} 
+                    alt="EarlyBird NFT" 
+                    className={`w-full h-full object-cover ${hasEarlyBird ? "" : "grayscale"}`}
+                  />
+                ) : (
+                  <div className={`w-full h-full flex items-center justify-center ${hasEarlyBird ? "bg-gradient-to-br from-yellow-400 to-orange-500" : ""}`}>
+                    <Bird className={`w-8 h-8 sm:w-10 sm:h-10 ${hasEarlyBird ? "text-white" : "text-gray-400"}`} />
+                  </div>
+                )}
               </div>
               
               <span className={`mt-2 text-xs text-center font-medium ${hasEarlyBird ? "text-white" : "text-gray-500"}`}>
@@ -456,13 +468,23 @@ export default function Badges() {
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="relative">
               <div 
-                className={`w-32 h-32 rounded-3xl flex items-center justify-center shadow-xl ${
+                className={`w-32 h-32 rounded-3xl flex items-center justify-center shadow-xl overflow-hidden ${
                   hasEarlyBird 
-                    ? "bg-gradient-to-br from-yellow-400 to-orange-500" 
+                    ? "" 
                     : "bg-gray-700 opacity-40"
                 }`}
               >
-                <Bird className={`w-16 h-16 ${hasEarlyBird ? "text-white" : "text-gray-400"}`} />
+                {earlyBirdImage ? (
+                  <img 
+                    src={earlyBirdImage} 
+                    alt="EarlyBird NFT" 
+                    className={`w-full h-full object-cover ${hasEarlyBird ? "" : "grayscale"}`}
+                  />
+                ) : (
+                  <div className={`w-full h-full flex items-center justify-center ${hasEarlyBird ? "bg-gradient-to-br from-yellow-400 to-orange-500" : ""}`}>
+                    <Bird className={`w-16 h-16 ${hasEarlyBird ? "text-white" : "text-gray-400"}`} />
+                  </div>
+                )}
               </div>
               {hasEarlyBird && (
                 <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">

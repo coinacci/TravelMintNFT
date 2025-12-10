@@ -3066,7 +3066,11 @@ export async function registerRoutes(app: Express) {
 
   // Check EarlyBird NFT ownership
   const EARLYBIRD_CONTRACT = "0xe52DB67CcFFead0a751C667829B250a356e7aa08";
-  const ERC721_BALANCE_ABI = ["function balanceOf(address owner) view returns (uint256)"];
+  const ERC721_EARLYBIRD_ABI = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+    "function tokenURI(uint256 tokenId) view returns (string)"
+  ];
   
   app.get("/api/badges/earlybird/:walletAddress", async (req, res) => {
     try {
@@ -3077,15 +3081,41 @@ export async function registerRoutes(app: Express) {
       }
       
       const provider = new ethers.JsonRpcProvider("https://base-rpc.publicnode.com");
-      const contract = new ethers.Contract(EARLYBIRD_CONTRACT, ERC721_BALANCE_ABI, provider);
+      const contract = new ethers.Contract(EARLYBIRD_CONTRACT, ERC721_EARLYBIRD_ABI, provider);
       
       const balance = await contract.balanceOf(walletAddress);
       const hasEarlyBird = balance > 0n;
       
-      res.json({ hasEarlyBird, balance: balance.toString() });
+      let imageUrl = null;
+      
+      if (hasEarlyBird) {
+        try {
+          const tokenId = await contract.tokenOfOwnerByIndex(walletAddress, 0);
+          const tokenURI = await contract.tokenURI(tokenId);
+          
+          let metadataUrl = tokenURI;
+          if (tokenURI.startsWith('ipfs://')) {
+            metadataUrl = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+          }
+          
+          const metadataResponse = await fetch(metadataUrl);
+          const metadata = await metadataResponse.json();
+          
+          if (metadata.image) {
+            imageUrl = metadata.image;
+            if (imageUrl.startsWith('ipfs://')) {
+              imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+            }
+          }
+        } catch (metaError) {
+          console.error('Error fetching EarlyBird metadata:', metaError);
+        }
+      }
+      
+      res.json({ hasEarlyBird, balance: balance.toString(), imageUrl });
     } catch (error) {
       console.error('Error checking EarlyBird NFT:', error);
-      res.json({ hasEarlyBird: false, balance: "0" });
+      res.json({ hasEarlyBird: false, balance: "0", imageUrl: null });
     }
   });
 
