@@ -16,10 +16,13 @@ import {
   questCompletionsParamsSchema,
   holderStatusParamsSchema,
   leaderboardQuerySchema,
+  guideCitySearchSchema,
+  guideSpotQuerySchema,
   type QuestClaimRequest,
   getQuestDay,
   getYesterdayQuestDay
 } from "@shared/schema";
+import { placesService } from "./places-service";
 import { z } from "zod";
 import { ethers } from "ethers";
 import ipfsRoutes from "./routes/ipfs";
@@ -5504,6 +5507,127 @@ export async function registerRoutes(app: Express) {
     metadataSyncService.runMetadataSync();
   }, 15000); // 15 seconds - ensures pending mints are retried within SLA
   console.log('⏰ Metadata sync enabled (every 15 seconds)');
+
+  // ================== TRAVEL GUIDE API (Holder-Only Feature) ==================
+  
+  // Helper: Check if wallet holds TravelMint NFT
+  async function isNFTHolder(walletAddress: string): Promise<boolean> {
+    if (!walletAddress || !ethers.isAddress(walletAddress)) return false;
+    try {
+      const holderStatus = await storage.checkHolderStatus(walletAddress.toLowerCase());
+      return holderStatus.isHolder;
+    } catch (error) {
+      console.error('Error checking NFT holder status:', error);
+      return false;
+    }
+  }
+
+  // GET /api/guide/cities/search - Search cities (public, returns limited results for non-holders)
+  app.get("/api/guide/cities/search", async (req: Request, res: Response) => {
+    try {
+      const { query, walletAddress } = req.query;
+      
+      const parsed = guideCitySearchSchema.safeParse({ query });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+
+      const isHolder = walletAddress ? await isNFTHolder(walletAddress as string) : false;
+      const cities = await placesService.searchCities(parsed.data.query);
+      
+      // Non-holders get max 3 cities, holders get all
+      const limitedCities = isHolder ? cities : cities.slice(0, 3);
+      
+      res.json({ 
+        cities: limitedCities,
+        isHolder,
+        totalResults: cities.length,
+        message: !isHolder && cities.length > 3 ? 'Mint a TravelMint NFT to unlock all cities!' : undefined
+      });
+    } catch (error) {
+      console.error('Error searching cities:', error);
+      res.status(500).json({ error: 'Failed to search cities' });
+    }
+  });
+
+  // GET /api/guide/cities/popular - Get popular cities (public)
+  app.get("/api/guide/cities/popular", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress } = req.query;
+      const isHolder = walletAddress ? await isNFTHolder(walletAddress as string) : false;
+      
+      const cities = await placesService.getPopularCities(10);
+      const limitedCities = isHolder ? cities : cities.slice(0, 3);
+      
+      res.json({ 
+        cities: limitedCities,
+        isHolder,
+        message: !isHolder && cities.length > 3 ? 'Mint a TravelMint NFT to unlock all cities!' : undefined
+      });
+    } catch (error) {
+      console.error('Error getting popular cities:', error);
+      res.status(500).json({ error: 'Failed to get popular cities' });
+    }
+  });
+
+  // GET /api/guide/cities/:cityId - Get city details with spots
+  app.get("/api/guide/cities/:cityId", async (req: Request, res: Response) => {
+    try {
+      const { cityId } = req.params;
+      const { category, limit, walletAddress } = req.query;
+      
+      const parsed = guideSpotQuerySchema.safeParse({ category, limit });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+
+      const isHolder = walletAddress ? await isNFTHolder(walletAddress as string) : false;
+      const city = await placesService.getCityById(cityId);
+      
+      if (!city) {
+        return res.status(404).json({ error: 'City not found' });
+      }
+
+      const spots = await placesService.getSpotsByCity(
+        cityId,
+        parsed.data.category,
+        parseInt(parsed.data.limit || '20'),
+        isHolder
+      );
+
+      res.json({
+        city,
+        spots,
+        isHolder,
+        message: !isHolder ? 'Mint a TravelMint NFT to see all spots and details!' : undefined
+      });
+    } catch (error) {
+      console.error('Error getting city details:', error);
+      res.status(500).json({ error: 'Failed to get city details' });
+    }
+  });
+
+  // GET /api/guide/holder-status - Check if wallet is NFT holder
+  app.get("/api/guide/holder-status", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress } = req.query;
+      
+      if (!walletAddress || typeof walletAddress !== 'string') {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+
+      const isHolder = await isNFTHolder(walletAddress);
+      
+      res.json({ 
+        isHolder,
+        walletAddress,
+        message: isHolder ? 'Welcome, TravelMint holder! Full guide access unlocked.' : 'Mint a TravelMint NFT to unlock the full travel guide!'
+      });
+    } catch (error) {
+      console.error('Error checking holder status:', error);
+      res.status(500).json({ error: 'Failed to check holder status' });
+    }
+  });
 
   return createServer(app);
 }

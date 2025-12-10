@@ -402,3 +402,74 @@ export type Badge = typeof badges.$inferSelect;
 
 export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 export type UserBadge = typeof userBadges.$inferSelect;
+
+// Travel Guide Tables - Holder-only feature with Google Places API
+export const guideCities = pgTable("guide_cities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  placeId: text("place_id").notNull().unique(), // Google Places place_id
+  name: text("name").notNull(), // City name
+  country: text("country").notNull(), // Country name
+  countryCode: text("country_code"), // ISO country code (e.g., 'TR', 'US')
+  heroImageUrl: text("hero_image_url"), // City hero image
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  searchCount: integer("search_count").default(0).notNull(), // Popularity tracking
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const guideSpots = pgTable("guide_spots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cityId: varchar("city_id").notNull().references(() => guideCities.id),
+  placeId: text("place_id").notNull().unique(), // Google Places place_id
+  name: text("name").notNull(),
+  category: text("category").notNull(), // 'landmark', 'cafe', 'restaurant', 'hidden_gem'
+  description: text("description"), // Place description/summary
+  address: text("address"), // Formatted address
+  rating: decimal("rating", { precision: 3, scale: 2 }), // 0.00 - 5.00
+  userRatingsTotal: integer("user_ratings_total"), // Number of reviews
+  priceLevel: integer("price_level"), // 0-4 price range
+  photoUrl: text("photo_url"), // Main photo URL
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  openNow: boolean("open_now"), // Current open status
+  website: text("website"), // Official website
+  phoneNumber: text("phone_number"),
+  googleMapsUrl: text("google_maps_url"), // Link to Google Maps
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGuideCitySchema = createInsertSchema(guideCities).omit({
+  id: true,
+  createdAt: true,
+  lastSyncAt: true,
+});
+
+export const insertGuideSpotSchema = createInsertSchema(guideSpots).omit({
+  id: true,
+  createdAt: true,
+  lastSyncAt: true,
+});
+
+export type InsertGuideCity = z.infer<typeof insertGuideCitySchema>;
+export type GuideCity = typeof guideCities.$inferSelect;
+
+export type InsertGuideSpot = z.infer<typeof insertGuideSpotSchema>;
+export type GuideSpot = typeof guideSpots.$inferSelect;
+
+// Guide API Validation Schemas
+export const guideCitySearchSchema = z.object({
+  query: z.string().min(2, "Search query must be at least 2 characters"),
+});
+
+export const guideSpotCategorySchema = z.enum(['landmark', 'cafe', 'restaurant', 'hidden_gem']);
+
+export const guideSpotQuerySchema = z.object({
+  category: guideSpotCategorySchema.optional(),
+  limit: z.string().regex(/^\d+$/, "Limit must be a number").optional(),
+});
+
+export type GuideCitySearchRequest = z.infer<typeof guideCitySearchSchema>;
+export type GuideSpotCategory = z.infer<typeof guideSpotCategorySchema>;
+export type GuideSpotQuery = z.infer<typeof guideSpotQuerySchema>;
