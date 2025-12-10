@@ -1,8 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 import { useAccount } from "wagmi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Lock, CheckCircle } from "lucide-react";
 
 import firstMintBadge from "@assets/stock_images/golden_achievement_b_c5e2fcee.jpg";
 import explorerBadge from "@assets/stock_images/explorer_telescope_d_8ac92a5e.jpg";
@@ -150,6 +158,7 @@ interface UserBadgeData {
 export default function Badges() {
   const { isAuthenticated, user } = useFarcasterAuth();
   const { address } = useAccount();
+  const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
   
   const userIdentifier = user?.fid || address;
   
@@ -165,6 +174,8 @@ export default function Badges() {
     label: CATEGORY_LABELS[category],
     badges: BADGE_DEFINITIONS.filter(b => b.category === category),
   }));
+  
+  const isSelectedEarned = selectedBadge ? earnedBadgeCodes.has(selectedBadge.code) : false;
 
   return (
     <div className="min-h-screen bg-black text-white pb-32">
@@ -195,10 +206,11 @@ export default function Badges() {
                 return (
                   <Card 
                     key={badge.code}
-                    className={`bg-gray-900 border-gray-800 overflow-hidden transition-all ${
+                    className={`bg-gray-900 border-gray-800 overflow-hidden transition-all cursor-pointer hover:scale-105 ${
                       isEarned ? "ring-2 ring-primary" : ""
                     }`}
                     data-testid={`badge-card-${badge.code}`}
+                    onClick={() => setSelectedBadge(badge)}
                   >
                     <CardContent className="p-3">
                       {isLoading ? (
@@ -240,6 +252,57 @@ export default function Badges() {
           </p>
         </div>
       </div>
+      
+      <Dialog open={!!selectedBadge} onOpenChange={(open) => !open && setSelectedBadge(null)}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-sm">
+          {selectedBadge && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {isSelectedEarned ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-gray-500" />
+                  )}
+                  {selectedBadge.name}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="relative">
+                  <img
+                    src={selectedBadge.imageUrl}
+                    alt={selectedBadge.name}
+                    className={`w-48 h-48 object-cover rounded-xl ${
+                      isSelectedEarned ? "" : "grayscale opacity-50"
+                    }`}
+                  />
+                  {isSelectedEarned && (
+                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                      Earned!
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-gray-300 mb-2">{selectedBadge.description}</p>
+                  <p className="text-xs text-gray-500">
+                    Category: {CATEGORY_LABELS[selectedBadge.category]}
+                  </p>
+                </div>
+                
+                {!isSelectedEarned && (
+                  <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">
+                    <p className="text-sm text-gray-400">
+                      Keep going to unlock this badge!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
