@@ -5,57 +5,46 @@ import { eq, sql, ilike, desc } from "drizzle-orm";
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-interface GooglePlaceResult {
-  place_id: string;
-  name: string;
-  formatted_address?: string;
-  geometry?: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
+interface GooglePlaceNew {
+  id: string;
+  displayName?: { text: string; languageCode?: string };
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
   rating?: number;
-  user_ratings_total?: number;
-  price_level?: number;
-  photos?: { photo_reference: string }[];
-  opening_hours?: { open_now?: boolean };
-  website?: string;
-  formatted_phone_number?: string;
-  url?: string;
+  userRatingCount?: number;
+  priceLevel?: string;
+  photos?: { name: string }[];
+  regularOpeningHours?: { openNow?: boolean };
+  websiteUri?: string;
+  nationalPhoneNumber?: string;
+  googleMapsUri?: string;
   types?: string[];
-  editorial_summary?: { overview?: string };
-  address_components?: {
-    long_name: string;
-    short_name: string;
+  editorialSummary?: { text?: string };
+  addressComponents?: {
+    longText: string;
+    shortText: string;
     types: string[];
   }[];
 }
 
-interface PlacesSearchResponse {
-  results: GooglePlaceResult[];
-  status: string;
-  error_message?: string;
+interface PlacesSearchResponseNew {
+  places?: GooglePlaceNew[];
 }
 
-interface PlaceDetailsResponse {
-  result: GooglePlaceResult;
-  status: string;
-  error_message?: string;
+interface PlaceDetailsResponseNew extends GooglePlaceNew {}
+
+function getPhotoUrl(photoName: string, maxWidth: number = 400): string {
+  if (!GOOGLE_PLACES_API_KEY || !photoName) return '';
+  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth}&key=${GOOGLE_PLACES_API_KEY}`;
 }
 
-function getPhotoUrl(photoReference: string, maxWidth: number = 400): string {
-  if (!GOOGLE_PLACES_API_KEY) return '';
-  return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${GOOGLE_PLACES_API_KEY}`;
-}
-
-function extractCountryFromComponents(components?: { long_name: string; short_name: string; types: string[] }[]): { country: string; countryCode: string } {
+function extractCountryFromComponents(components?: { longText: string; shortText: string; types: string[] }[]): { country: string; countryCode: string } {
   if (!components) return { country: 'Unknown', countryCode: '' };
   
   const countryComponent = components.find(c => c.types.includes('country'));
   return {
-    country: countryComponent?.long_name || 'Unknown',
-    countryCode: countryComponent?.short_name || '',
+    country: countryComponent?.longText || 'Unknown',
+    countryCode: countryComponent?.shortText || '',
   };
 }
 
@@ -93,27 +82,44 @@ export class PlacesService {
       return existingCities;
     }
     
-    console.log(`🌐 No cached cities, calling Google Places API for "${query}"`...);
+    console.log(`🌐 No cached cities, calling Google Places API for "${query}"`);
 
     try {
+      const requestBody = {
+        textQuery: query,
+        maxResultCount: 5
+      };
+      
+      console.log(`🌐 Sending request to Places API (New):`, JSON.stringify(requestBody));
+      
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' city')}&type=locality&key=${GOOGLE_PLACES_API_KEY}`
+        'https://places.googleapis.com/v1/places:searchText',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.photos,places.addressComponents'
+          },
+          body: JSON.stringify(requestBody)
+        }
       );
       
-      const data: PlacesSearchResponse = await response.json();
-      console.log(`📊 Google Places API response status: ${data.status}, results: ${data.results?.length || 0}`);
+      const data = await response.json();
+      console.log(`📊 Google Places API (New) response status: ${response.status}`);
+      console.log(`📊 Google Places API (New) response:`, JSON.stringify(data).substring(0, 500));
       
-      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        console.error('❌ Places API error:', data.status, data.error_message);
+      if (!data.places || data.places.length === 0) {
+        console.log('📭 No places found for query');
         return [];
       }
 
       const cities: GuideCity[] = [];
       
-      for (const place of data.results.slice(0, 5)) {
+      for (const place of data.places) {
         const existingCity = await db.select()
           .from(guideCities)
-          .where(eq(guideCities.placeId, place.place_id))
+          .where(eq(guideCities.placeId, place.id))
           .limit(1);
 
         if (existingCity.length > 0) {
@@ -121,22 +127,17 @@ export class PlacesService {
           continue;
         }
 
-        const detailsResponse = await fetch(
-          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=address_components,photos&key=${GOOGLE_PLACES_API_KEY}`
-        );
-        const detailsData: PlaceDetailsResponse = await detailsResponse.json();
-        
-        const { country, countryCode } = extractCountryFromComponents(detailsData.result?.address_components);
-        const heroPhoto = detailsData.result?.photos?.[0]?.photo_reference;
+        const { country, countryCode } = extractCountryFromComponents(place.addressComponents);
+        const heroPhoto = place.photos?.[0]?.name;
 
         const cityData: InsertGuideCity = {
-          placeId: place.place_id,
-          name: place.name,
+          placeId: place.id,
+          name: place.displayName?.text || query,
           country,
           countryCode,
           heroImageUrl: heroPhoto ? getPhotoUrl(heroPhoto, 800) : null,
-          latitude: place.geometry?.location.lat?.toString() || null,
-          longitude: place.geometry?.location.lng?.toString() || null,
+          latitude: place.location?.latitude?.toString() || null,
+          longitude: place.location?.longitude?.toString() || null,
           searchCount: 1,
         };
 
@@ -145,11 +146,12 @@ export class PlacesService {
           .returning();
         
         cities.push(insertedCity);
+        console.log(`✅ Added city: ${cityData.name}, ${country}`);
       }
 
       return cities;
     } catch (error) {
-      console.error('Error searching cities:', error);
+      console.error('❌ Error searching cities:', error);
       return [];
     }
   }
@@ -252,59 +254,78 @@ export class PlacesService {
       
       try {
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${city.latitude},${city.longitude}&radius=5000&type=${types[0]}&key=${GOOGLE_PLACES_API_KEY}`
+          'https://places.googleapis.com/v1/places:searchText',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY!,
+              'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.photos,places.regularOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.googleMapsUri,places.editorialSummary'
+            },
+            body: JSON.stringify({
+              textQuery: `${types[0].replace('_', ' ')} in ${city.name}`,
+              locationBias: {
+                circle: {
+                  center: {
+                    latitude: parseFloat(city.latitude || '0'),
+                    longitude: parseFloat(city.longitude || '0')
+                  },
+                  radius: 5000.0
+                }
+              },
+              maxResultCount: 5
+            })
+          }
         );
         
-        const data: PlacesSearchResponse = await response.json();
+        const data: PlacesSearchResponseNew = await response.json();
         
-        if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-          console.error(`Places API error for ${category}:`, data.status);
+        if (!data.places || data.places.length === 0) {
+          console.log(`📭 No ${category} spots found for ${city.name}`);
           continue;
         }
 
-        for (const place of data.results.slice(0, 5)) {
+        console.log(`📍 Found ${data.places.length} ${category} spots for ${city.name}`);
+
+        for (const place of data.places) {
           const existing = await db.select()
             .from(guideSpots)
-            .where(eq(guideSpots.placeId, place.place_id))
+            .where(eq(guideSpots.placeId, place.id))
             .limit(1);
 
           if (existing.length > 0) {
             await db.update(guideSpots)
               .set({ 
                 rating: place.rating?.toString() || null,
-                userRatingsTotal: place.user_ratings_total || null,
-                openNow: place.opening_hours?.open_now || null,
+                userRatingsTotal: place.userRatingCount || null,
+                openNow: place.regularOpeningHours?.openNow || null,
                 lastSyncAt: new Date(),
               })
-              .where(eq(guideSpots.placeId, place.place_id));
+              .where(eq(guideSpots.placeId, place.id));
             continue;
           }
 
-          const detailsResponse = await fetch(
-            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=formatted_address,website,formatted_phone_number,url,editorial_summary&key=${GOOGLE_PLACES_API_KEY}`
-          );
-          const detailsData: PlaceDetailsResponse = await detailsResponse.json();
-          const details = detailsData.result || {};
-
-          const photoRef = place.photos?.[0]?.photo_reference;
+          const photoName = place.photos?.[0]?.name;
+          const priceLevelNum = place.priceLevel ? 
+            parseInt(place.priceLevel.replace('PRICE_LEVEL_', '')) - 1 : null;
 
           const spotData: InsertGuideSpot = {
             cityId,
-            placeId: place.place_id,
-            name: place.name,
+            placeId: place.id,
+            name: place.displayName?.text || 'Unknown',
             category,
-            description: details.editorial_summary?.overview || null,
-            address: details.formatted_address || place.formatted_address || null,
+            description: place.editorialSummary?.text || null,
+            address: place.formattedAddress || null,
             rating: place.rating?.toString() || null,
-            userRatingsTotal: place.user_ratings_total || null,
-            priceLevel: place.price_level || null,
-            photoUrl: photoRef ? getPhotoUrl(photoRef) : null,
-            latitude: place.geometry?.location.lat?.toString() || null,
-            longitude: place.geometry?.location.lng?.toString() || null,
-            openNow: place.opening_hours?.open_now || null,
-            website: details.website || null,
-            phoneNumber: details.formatted_phone_number || null,
-            googleMapsUrl: details.url || null,
+            userRatingsTotal: place.userRatingCount || null,
+            priceLevel: priceLevelNum,
+            photoUrl: photoName ? getPhotoUrl(photoName) : null,
+            latitude: place.location?.latitude?.toString() || null,
+            longitude: place.location?.longitude?.toString() || null,
+            openNow: place.regularOpeningHours?.openNow || null,
+            website: place.websiteUri || null,
+            phoneNumber: place.nationalPhoneNumber || null,
+            googleMapsUrl: place.googleMapsUri || null,
           };
 
           await db.insert(guideSpots)
@@ -312,7 +333,7 @@ export class PlacesService {
             .onConflictDoNothing();
         }
       } catch (error) {
-        console.error(`Error syncing ${category} spots:`, error);
+        console.error(`❌ Error syncing ${category} spots:`, error);
       }
     }
   }
