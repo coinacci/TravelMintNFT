@@ -318,11 +318,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Add cluster group to map
     map.addLayer(clusterGroup);
 
-    // Remove existing polyline and arrow marker if any
+    // Remove existing polyline and arrow markers if any
     if (polylineRef.current) {
-      // Also remove arrow marker if exists
-      if ((polylineRef.current as any)._arrowMarker) {
-        map.removeLayer((polylineRef.current as any)._arrowMarker);
+      // Remove all arrow markers if exist
+      if ((polylineRef.current as any)._arrowMarkers) {
+        (polylineRef.current as any)._arrowMarkers.forEach((marker: L.Marker) => {
+          map.removeLayer(marker);
+        });
       }
       map.removeLayer(polylineRef.current);
       polylineRef.current = null;
@@ -351,9 +353,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         // Create styled polyline - travel route from first mint to last mint
         const polyline = L.polyline(coordinates, {
           color: '#0000FF', // Pure blue
-          weight: 3,
+          weight: 2, // Thinner line
           opacity: 0.8,
-          dashArray: '10, 10', // Dashed line pattern
           lineCap: 'round',
           lineJoin: 'round'
         });
@@ -361,33 +362,39 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         polyline.addTo(map);
         polylineRef.current = polyline;
 
-        // Add arrow marker at the end (last minted NFT location)
-        const lastCoord = coordinates[coordinates.length - 1] as [number, number];
-        const secondLastCoord = coordinates[coordinates.length - 2] as [number, number];
+        // Add arrow markers between each segment (1→2, 2→3, etc.)
+        const arrowMarkers: L.Marker[] = [];
         
-        // Calculate angle for arrow direction
-        const angle = Math.atan2(
-          lastCoord[0] - secondLastCoord[0],
-          lastCoord[1] - secondLastCoord[1]
-        ) * (180 / Math.PI);
+        for (let i = 0; i < coordinates.length - 1; i++) {
+          const fromCoord = coordinates[i] as [number, number];
+          const toCoord = coordinates[i + 1] as [number, number];
+          
+          // Calculate angle for arrow direction
+          const angle = Math.atan2(
+            toCoord[0] - fromCoord[0],
+            toCoord[1] - fromCoord[1]
+          ) * (180 / Math.PI);
 
-        const arrowIcon = L.divIcon({
-          html: `<div style="
-            font-size: 20px;
-            color: #0000FF;
-            transform: rotate(${180 - angle}deg);
-            text-shadow: 0 0 2px white, 0 0 2px white;
-          ">▼</div>`,
-          className: 'arrow-marker',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        });
+          const arrowIcon = L.divIcon({
+            html: `<div style="
+              font-size: 16px;
+              color: #0000FF;
+              transform: rotate(${180 - angle}deg);
+              text-shadow: 0 0 2px white, 0 0 2px white;
+            ">▼</div>`,
+            className: 'arrow-marker',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          });
 
-        const arrowMarker = L.marker(lastCoord, { icon: arrowIcon, interactive: false });
-        arrowMarker.addTo(map);
+          // Place arrow at the end of each segment (destination point)
+          const arrowMarker = L.marker(toCoord, { icon: arrowIcon, interactive: false });
+          arrowMarker.addTo(map);
+          arrowMarkers.push(arrowMarker);
+        }
 
-        // Store arrow with polyline for cleanup
-        (polylineRef.current as any)._arrowMarker = arrowMarker;
+        // Store arrows with polyline for cleanup
+        (polylineRef.current as any)._arrowMarkers = arrowMarkers;
       }
     }
 
