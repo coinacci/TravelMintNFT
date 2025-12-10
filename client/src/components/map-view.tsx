@@ -362,43 +362,38 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         polyline.addTo(map);
         polylineRef.current = polyline;
 
-        // Add arrow markers between each segment (1→2, 2→3, etc.)
-        const arrowMarkers: L.Marker[] = [];
+        // Add single arrow near the first NFT to show route direction
+        const firstCoord = coordinates[0] as [number, number];
+        const secondCoord = coordinates[1] as [number, number];
         
-        for (let i = 0; i < coordinates.length - 1; i++) {
-          const fromCoord = coordinates[i] as [number, number];
-          const toCoord = coordinates[i + 1] as [number, number];
-          
-          // Calculate angle for arrow direction
-          const angle = Math.atan2(
-            toCoord[0] - fromCoord[0],
-            toCoord[1] - fromCoord[1]
-          ) * (180 / Math.PI);
+        // Calculate angle for arrow direction (pointing towards second NFT)
+        const angle = Math.atan2(
+          secondCoord[0] - firstCoord[0],
+          secondCoord[1] - firstCoord[1]
+        ) * (180 / Math.PI);
 
-          // Place arrow 75% along the way (before reaching destination)
-          const arrowLat = fromCoord[0] + (toCoord[0] - fromCoord[0]) * 0.75;
-          const arrowLng = fromCoord[1] + (toCoord[1] - fromCoord[1]) * 0.75;
+        // Place arrow just after the first NFT (15% along the first segment)
+        const arrowLat = firstCoord[0] + (secondCoord[0] - firstCoord[0]) * 0.15;
+        const arrowLng = firstCoord[1] + (secondCoord[1] - firstCoord[1]) * 0.15;
 
-          const arrowIcon = L.divIcon({
-            html: `<div style="
-              font-size: 16px;
-              color: #0000FF;
-              transform: rotate(${180 - angle}deg);
-              text-shadow: 0 0 2px white, 0 0 2px white;
-            ">▼</div>`,
-            className: 'arrow-marker',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
-          });
+        const arrowIcon = L.divIcon({
+          html: `<div style="
+            font-size: 18px;
+            color: #0000FF;
+            transform: rotate(${180 - angle}deg);
+            text-shadow: 0 0 2px white, 0 0 2px white;
+          ">▼</div>`,
+          className: 'arrow-marker',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
 
-          // Place arrow before destination to indicate direction
-          const arrowMarker = L.marker([arrowLat, arrowLng], { icon: arrowIcon, interactive: false });
-          arrowMarker.addTo(map);
-          arrowMarkers.push(arrowMarker);
-        }
+        // Place arrow right after first NFT to indicate route direction
+        const arrowMarker = L.marker([arrowLat, arrowLng], { icon: arrowIcon, interactive: false });
+        arrowMarker.addTo(map);
 
-        // Store arrows with polyline for cleanup
-        (polylineRef.current as any)._arrowMarkers = arrowMarkers;
+        // Store arrow with polyline for cleanup
+        (polylineRef.current as any)._arrowMarkers = [arrowMarker];
       }
     }
 
