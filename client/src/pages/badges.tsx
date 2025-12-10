@@ -167,6 +167,16 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     requirement: 5,
   },
   {
+    code: "philanthropist",
+    name: "Philanthropist",
+    description: "Tip 10 different creators",
+    category: "social",
+    icon: Heart,
+    bgColor: "bg-gradient-to-br from-red-400 to-rose-600",
+    iconColor: "text-white",
+    requirement: 10,
+  },
+  {
     code: "first_like",
     name: "First Like",
     description: "Receive 1 like on your NFTs",
