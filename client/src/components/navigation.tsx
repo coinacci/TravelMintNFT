@@ -40,18 +40,18 @@ export default function Navigation() {
   // AuthKit sign in/out
   const { signOut } = useSignIn();
 
-  // Navigation items - Quests has submenu, Badges is separate
+  // Navigation items - Rewards has submenu, Badges is separate
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
-    { path: "/quests", label: "Quests", icon: Target, hasSubmenu: true },
+    { path: "/quests", label: "Rewards", icon: Target, hasSubmenu: true },
     { path: "/badges", label: "Badges", icon: Award },
     { path: "/my-nfts", label: "Profile", icon: User },
   ];
   
-  // Quests submenu items
-  const questsSubItems = [
-    { path: "/quests", label: "Progress", icon: TrendingUp },
+  // Rewards submenu items
+  const rewardsSubItems = [
+    { path: "/quests", label: "Tasks", icon: TrendingUp },
     { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   ];
 
@@ -172,7 +172,7 @@ export default function Navigation() {
                     sideOffset={8}
                   >
                     <div className="flex flex-col space-y-1">
-                      {questsSubItems.map((subItem) => {
+                      {rewardsSubItems.map((subItem) => {
                         const SubIcon = subItem.icon;
                         const isSubActive = location === subItem.path;
                         return (
