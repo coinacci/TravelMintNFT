@@ -349,6 +349,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           color: '#0000FF', // Pure blue
           weight: 3,
           opacity: 0.8,
+          dashArray: '10, 10', // Dashed line pattern
           lineCap: 'round',
           lineJoin: 'round'
         });
