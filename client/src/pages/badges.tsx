@@ -35,6 +35,7 @@ import {
   Zap,
   Shield,
   Medal,
+  Bird,
   type LucideIcon
 } from "lucide-react";
 
@@ -305,10 +306,16 @@ interface UserBadgeData {
   earnedBadges: string[];
 }
 
+interface EarlyBirdData {
+  hasEarlyBird: boolean;
+  balance: string;
+}
+
 export default function Badges() {
   const { user } = useFarcasterAuth();
   const { address } = useAccount();
   const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
+  const [showEarlyBirdDialog, setShowEarlyBirdDialog] = useState(false);
   
   const userIdentifier = user?.fid || address;
   
@@ -316,6 +323,13 @@ export default function Badges() {
     queryKey: ["/api/badges/user", userIdentifier],
     enabled: !!userIdentifier,
   });
+  
+  const { data: earlyBirdData } = useQuery<EarlyBirdData>({
+    queryKey: ["/api/badges/earlybird", address],
+    enabled: !!address,
+  });
+  
+  const hasEarlyBird = earlyBirdData?.hasEarlyBird || false;
   
   const earnedBadgeCodes = new Set(userBadgeData?.earnedBadges || []);
   
@@ -391,12 +405,89 @@ export default function Badges() {
           </div>
         ))}
         
+        {/* Special Badges Section */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4 text-primary">Special Badges</h2>
+          
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            <div 
+              className="flex flex-col items-center cursor-pointer transition-transform hover:scale-105"
+              data-testid="badge-card-earlybird"
+              onClick={() => setShowEarlyBirdDialog(true)}
+            >
+              <div 
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-lg ${
+                  hasEarlyBird 
+                    ? "bg-gradient-to-br from-yellow-400 to-orange-500" 
+                    : "bg-gray-700 opacity-40"
+                }`}
+              >
+                <Bird className={`w-8 h-8 sm:w-10 sm:h-10 ${hasEarlyBird ? "text-white" : "text-gray-400"}`} />
+              </div>
+              
+              <span className={`mt-2 text-xs text-center font-medium ${hasEarlyBird ? "text-white" : "text-gray-500"}`}>
+                EarlyBird
+              </span>
+            </div>
+          </div>
+        </div>
+        
         <div className="text-center text-gray-500 text-sm mt-8">
           <p>
-            {earnedBadgeCodes.size} / {BADGE_DEFINITIONS.length} badges earned
+            {earnedBadgeCodes.size + (hasEarlyBird ? 1 : 0)} / {BADGE_DEFINITIONS.length + 1} badges earned
           </p>
         </div>
       </div>
+      
+      {/* EarlyBird Dialog */}
+      <Dialog open={showEarlyBirdDialog} onOpenChange={setShowEarlyBirdDialog}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {hasEarlyBird ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : (
+                <Lock className="w-5 h-5 text-gray-500" />
+              )}
+              EarlyBird Badge
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="relative">
+              <div 
+                className={`w-32 h-32 rounded-3xl flex items-center justify-center shadow-xl ${
+                  hasEarlyBird 
+                    ? "bg-gradient-to-br from-yellow-400 to-orange-500" 
+                    : "bg-gray-700 opacity-40"
+                }`}
+              >
+                <Bird className={`w-16 h-16 ${hasEarlyBird ? "text-white" : "text-gray-400"}`} />
+              </div>
+              {hasEarlyBird && (
+                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                  Earned!
+                </div>
+              )}
+            </div>
+            
+            <div className="text-center">
+              <p className="text-gray-300 mb-2">Exclusive badge for early TravelMint supporters</p>
+              <p className="text-xs text-gray-500">
+                Category: Special Badges
+              </p>
+            </div>
+            
+            {!hasEarlyBird && (
+              <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">
+                <p className="text-sm text-gray-400">
+                  This badge was given to early supporters only
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <Dialog open={!!selectedBadge} onOpenChange={(open) => !open && setSelectedBadge(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-sm">

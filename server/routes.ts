@@ -3064,6 +3064,31 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Check EarlyBird NFT ownership
+  const EARLYBIRD_CONTRACT = "0xe52DB67CcFFead0a751C667829B250a356e7aa08";
+  const ERC721_BALANCE_ABI = ["function balanceOf(address owner) view returns (uint256)"];
+  
+  app.get("/api/badges/earlybird/:walletAddress", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      
+      if (!walletAddress || !walletAddress.startsWith('0x')) {
+        return res.status(400).json({ hasEarlyBird: false, message: "Invalid wallet address" });
+      }
+      
+      const provider = new ethers.JsonRpcProvider("https://base-rpc.publicnode.com");
+      const contract = new ethers.Contract(EARLYBIRD_CONTRACT, ERC721_BALANCE_ABI, provider);
+      
+      const balance = await contract.balanceOf(walletAddress);
+      const hasEarlyBird = balance > 0n;
+      
+      res.json({ hasEarlyBird, balance: balance.toString() });
+    } catch (error) {
+      console.error('Error checking EarlyBird NFT:', error);
+      res.json({ hasEarlyBird: false, balance: "0" });
+    }
+  });
+
   // Admin endpoint for one-time weekly points backfill - SECRET PROTECTED
   app.post("/api/admin/backfill-weekly", async (req, res) => {
     try {
