@@ -5,7 +5,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Filter } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, X, User } from "lucide-react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 import { useAccount } from "wagmi";
 
@@ -42,6 +42,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [showBrandOnly, setShowBrandOnly] = useState(false);
   const [showOnlyYours, setShowOnlyYours] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const { address: walletAddress } = useAccount();
   
   // Reset "Only Yours" filter when wallet disconnects
@@ -62,7 +63,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     retryDelay: 500, // Wait 0.5 seconds between retries (faster)
   });
 
-  // Filter NFTs by brand category and owner
+  // Filter NFTs by brand category, owner, and selected creator
   const filteredNfts = nfts.filter(nft => {
     // Brand filter - exclude "Zora $10" from Brand filter display (handles emojis and extra characters)
     // Match only titles that start with "zora $10 " (with space) or are exactly "zora $10"
@@ -77,8 +78,28 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       ? nft.ownerAddress?.toLowerCase() === walletAddress.toLowerCase()
       : true;
     
-    return matchesBrand && matchesOwner;
+    // Selected Creator filter - show only NFTs by selected creator
+    const matchesCreator = selectedCreator
+      ? nft.creatorAddress?.toLowerCase() === selectedCreator.toLowerCase()
+      : true;
+    
+    return matchesBrand && matchesOwner && matchesCreator;
   });
+  
+  // Get selected creator info for display
+  const selectedCreatorInfo = selectedCreator ? nfts.find(nft => 
+    nft.creatorAddress?.toLowerCase() === selectedCreator.toLowerCase()
+  ) : null;
+  
+  const selectedCreatorName = selectedCreatorInfo ? formatUserDisplayName({
+    walletAddress: selectedCreatorInfo.creatorAddress,
+    farcasterUsername: selectedCreatorInfo.farcasterCreatorUsername,
+    farcasterFid: selectedCreatorInfo.farcasterCreatorFid
+  }) : null;
+  
+  const selectedCreatorNFTCount = selectedCreator ? nfts.filter(nft => 
+    nft.creatorAddress?.toLowerCase() === selectedCreator.toLowerCase()
+  ).length : 0;
   
   // Log errors for troubleshooting
   if (isError) {
@@ -142,6 +163,14 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     }).addTo(map);
 
     console.log('🗺️ Reliable OpenStreetMap tiles - no missing data at zoom levels');
+
+    // Clear creator filter when clicking on empty map area
+    map.on('click', () => {
+      // Use global function to check and clear filter
+      if ((window as any).clearCreatorFilter) {
+        (window as any).clearCreatorFilter();
+      }
+    });
 
     return () => {
       if (mapInstanceRef.current) {
@@ -239,6 +268,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         farcasterFid: nft.farcasterOwnerFid
       });
 
+      // Format creator display name
+      const creatorDisplay = formatUserDisplayName({
+        walletAddress: nft.creatorAddress,
+        farcasterUsername: nft.farcasterCreatorUsername,
+        farcasterFid: nft.farcasterCreatorFid
+      });
+
       const popupContent = `
         <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
           <img src="${imageUrl}" alt="${nft.title}" class="w-full h-24 object-cover rounded mb-2" 
@@ -249,20 +285,28 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                " />
           <h3 class="font-semibold text-sm mb-1" style="color: #000">${nft.title}</h3>
           <p class="text-xs text-gray-600 mb-1">${nft.location}</p>
-          <p class="text-xs text-gray-500 mb-2">Owner: ${ownerDisplay}</p>
+          <p class="text-xs text-gray-500 mb-2">By: ${creatorDisplay}</p>
           ${nft.isForSale === 1 ? `
           <div class="flex justify-between items-center mb-2">
             <span class="text-xs text-gray-500">Price:</span>
             <span class="font-medium text-sm" style="color: hsl(33, 100%, 50%)">${parseFloat(nft.price).toFixed(0)} USDC</span>
           </div>
           ` : ''}
-          <button 
-            onclick="window.selectNFT('${nft.id}')"
-            class="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
-            style="background-color: hsl(199, 89%, 48%)"
-          >
-            View Details
-          </button>
+          <div class="flex gap-1">
+            <button 
+              onclick="window.filterByCreator('${nft.creatorAddress}')"
+              class="flex-1 bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs hover:bg-gray-300 transition-colors"
+            >
+              All by Creator
+            </button>
+            <button 
+              onclick="window.selectNFT('${nft.id}')"
+              class="flex-1 bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+              style="background-color: hsl(199, 89%, 48%)"
+            >
+              Details
+            </button>
+          </div>
         </div>
       `;
 
@@ -280,11 +324,50 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         onNFTSelect(selectedNFT);
       }
     };
-  }, [filteredNfts, nfts, onNFTSelect]);
+    
+    // Global function to filter by creator address
+    (window as any).filterByCreator = (creatorAddress: string) => {
+      setSelectedCreator(creatorAddress);
+      // Close any open popups
+      map.closePopup();
+    };
+    
+    // Global function to clear creator filter
+    (window as any).clearCreatorFilter = () => {
+      setSelectedCreator(null);
+    };
+  }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator]);
 
   return (
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
+
+      {/* Selected Creator Banner */}
+      {selectedCreator && selectedCreatorName && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 max-w-[280px] md:max-w-sm">
+          <div className="bg-primary text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-3">
+            <User className="w-4 h-4 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs opacity-80">Showing NFTs by</p>
+              <p className="font-semibold text-sm truncate">{selectedCreatorName}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <span className="text-lg font-bold">{selectedCreatorNFTCount}</span>
+              <span className="text-xs opacity-80 ml-1">NFTs</span>
+            </div>
+            <button
+              onClick={() => setSelectedCreator(null)}
+              className="p-1 hover:bg-white/20 rounded transition-colors flex-shrink-0"
+              data-testid="button-clear-creator-filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-center text-xs text-gray-600 mt-1 bg-white/80 rounded px-2 py-0.5">
+            Tap empty area to show all
+          </p>
+        </div>
+      )}
 
       {/* Filters Dropdown */}
       <div className="absolute top-4 md:top-20 right-4 z-10 w-48 md:w-56">
