@@ -375,6 +375,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
             toCoord[1] - fromCoord[1]
           ) * (180 / Math.PI);
 
+          // Place arrow 75% along the way (before reaching destination)
+          const arrowLat = fromCoord[0] + (toCoord[0] - fromCoord[0]) * 0.75;
+          const arrowLng = fromCoord[1] + (toCoord[1] - fromCoord[1]) * 0.75;
+
           const arrowIcon = L.divIcon({
             html: `<div style="
               font-size: 16px;
@@ -387,8 +391,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
             iconAnchor: [8, 8]
           });
 
-          // Place arrow at the end of each segment (destination point)
-          const arrowMarker = L.marker(toCoord, { icon: arrowIcon, interactive: false });
+          // Place arrow before destination to indicate direction
+          const arrowMarker = L.marker([arrowLat, arrowLng], { icon: arrowIcon, interactive: false });
           arrowMarker.addTo(map);
           arrowMarkers.push(arrowMarker);
         }
