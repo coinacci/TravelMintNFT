@@ -19,18 +19,24 @@ import nftMasterBadge from "@assets/stock_images/rocket_launch_succes_9141f9fe.j
 import multiCountryBadge from "@assets/stock_images/travel_world_globe_b_1499489a.jpg";
 import worldTravelerBadge from "@assets/stock_images/airplane_travel_jour_a59043ab.jpg";
 import globalCitizenBadge from "@assets/stock_images/travel_world_globe_b_fd9b4de6.jpg";
+import multiCityBadge from "@assets/stock_images/city_skyline_travel__c7d7ed0f.jpg";
+import cityExplorerBadge from "@assets/stock_images/city_skyline_travel__6f73bbb6.jpg";
+import urbanNomadBadge from "@assets/stock_images/city_skyline_travel__da668483.jpg";
 import firstTipperBadge from "@assets/stock_images/heart_social_charity_79634b76.jpg";
 import generousBadge from "@assets/stock_images/heart_social_charity_367ead98.jpg";
 import popularBadge from "@assets/stock_images/star_celebrity_popul_e85201fe.jpg";
 import superstarBadge from "@assets/stock_images/star_celebrity_popul_a8c409fe.jpg";
-import questStarterBadge from "@assets/stock_images/target_quest_mission_51c4079f.jpg";
-import questMasterBadge from "@assets/stock_images/target_quest_mission_86d9467f.jpg";
+import firstLikeBadge from "@assets/stock_images/star_celebrity_popul_e85201fe.jpg";
+import likedBadge from "@assets/stock_images/star_celebrity_popul_a8c409fe.jpg";
+import tipReceiverBadge from "@assets/stock_images/golden_coin_money_ti_123d74f6.jpg";
+import tipCollectorBadge from "@assets/stock_images/golden_coin_money_ti_c7130813.jpg";
+import tipMagnetBadge from "@assets/stock_images/golden_coin_money_ti_1400937e.jpg";
 
 interface BadgeDefinition {
   code: string;
   name: string;
   description: string;
-  category: "mint" | "location" | "social" | "quest";
+  category: "mint" | "location" | "social";
   imageUrl: string;
   requirement: number;
 }
@@ -93,6 +99,30 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     requirement: 10,
   },
   {
+    code: "multi_city",
+    name: "Multi-City",
+    description: "Mint NFTs from 3 different cities",
+    category: "location",
+    imageUrl: multiCityBadge,
+    requirement: 3,
+  },
+  {
+    code: "city_explorer",
+    name: "City Explorer",
+    description: "Mint NFTs from 5 different cities",
+    category: "location",
+    imageUrl: cityExplorerBadge,
+    requirement: 5,
+  },
+  {
+    code: "urban_nomad",
+    name: "Urban Nomad",
+    description: "Mint NFTs from 10 different cities",
+    category: "location",
+    imageUrl: urbanNomadBadge,
+    requirement: 10,
+  },
+  {
     code: "first_tipper",
     name: "First Tipper",
     description: "Send your first tip to a creator",
@@ -106,6 +136,22 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     description: "Tip 5 different creators",
     category: "social",
     imageUrl: generousBadge,
+    requirement: 5,
+  },
+  {
+    code: "first_like",
+    name: "First Like",
+    description: "Receive 1 like on your NFTs",
+    category: "social",
+    imageUrl: firstLikeBadge,
+    requirement: 1,
+  },
+  {
+    code: "liked",
+    name: "Liked",
+    description: "Receive 5 likes on your NFTs",
+    category: "social",
+    imageUrl: likedBadge,
     requirement: 5,
   },
   {
@@ -125,20 +171,28 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     requirement: 50,
   },
   {
-    code: "quest_starter",
-    name: "Quest Starter",
-    description: "Complete your first quest",
-    category: "quest",
-    imageUrl: questStarterBadge,
+    code: "tip_receiver",
+    name: "Tip Receiver",
+    description: "Receive 1 tip on your NFTs",
+    category: "social",
+    imageUrl: tipReceiverBadge,
     requirement: 1,
   },
   {
-    code: "quest_master",
-    name: "Quest Master",
-    description: "Complete all available quests",
-    category: "quest",
-    imageUrl: questMasterBadge,
+    code: "tip_collector",
+    name: "Tip Collector",
+    description: "Receive 5 tips on your NFTs",
+    category: "social",
+    imageUrl: tipCollectorBadge,
     requirement: 5,
+  },
+  {
+    code: "tip_magnet",
+    name: "Tip Magnet",
+    description: "Receive 10 tips on your NFTs",
+    category: "social",
+    imageUrl: tipMagnetBadge,
+    requirement: 10,
   },
 ];
 
@@ -146,10 +200,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   mint: "Mint Badges",
   location: "Location Badges",
   social: "Social Badges",
-  quest: "Quest Badges",
 };
 
-const CATEGORY_ORDER = ["mint", "location", "social", "quest"];
+const CATEGORY_ORDER = ["mint", "location", "social"];
 
 interface UserBadgeData {
   earnedBadges: string[];
