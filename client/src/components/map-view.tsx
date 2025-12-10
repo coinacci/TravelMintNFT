@@ -344,12 +344,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         .filter((coord): coord is L.LatLngExpression => coord !== null);
 
       if (coordinates.length > 1) {
-        // Create styled polyline with blue dashed line
+        // Create styled polyline - travel route from first mint to last mint
         const polyline = L.polyline(coordinates, {
-          color: '#3B82F6', // Blue color
+          color: '#0000FF', // Pure blue
           weight: 3,
           opacity: 0.8,
-          dashArray: '10, 10', // Dashed line pattern
           lineCap: 'round',
           lineJoin: 'round'
         });
