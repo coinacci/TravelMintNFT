@@ -31,6 +31,10 @@ import {
   Coins,
   Wallet,
   TrendingUp,
+  Flame,
+  Zap,
+  Shield,
+  Medal,
   type LucideIcon
 } from "lucide-react";
 
@@ -38,7 +42,7 @@ interface BadgeDefinition {
   code: string;
   name: string;
   description: string;
-  category: "mint" | "location" | "social";
+  category: "mint" | "location" | "social" | "loyalty";
   icon: LucideIcon;
   bgColor: string;
   iconColor: string;
@@ -246,15 +250,56 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     iconColor: "text-white",
     requirement: 10,
   },
+  {
+    code: "task_beginner",
+    name: "Task Beginner",
+    description: "Complete 1 task",
+    category: "loyalty",
+    icon: Flame,
+    bgColor: "bg-gradient-to-br from-orange-400 to-amber-500",
+    iconColor: "text-white",
+    requirement: 1,
+  },
+  {
+    code: "task_enthusiast",
+    name: "Task Enthusiast",
+    description: "Complete 5 tasks",
+    category: "loyalty",
+    icon: Zap,
+    bgColor: "bg-gradient-to-br from-yellow-400 to-orange-500",
+    iconColor: "text-white",
+    requirement: 5,
+  },
+  {
+    code: "task_veteran",
+    name: "Task Veteran",
+    description: "Complete 10 tasks",
+    category: "loyalty",
+    icon: Shield,
+    bgColor: "bg-gradient-to-br from-indigo-400 to-purple-500",
+    iconColor: "text-white",
+    requirement: 10,
+  },
+  {
+    code: "task_master",
+    name: "Task Master",
+    description: "Complete 20 tasks",
+    category: "loyalty",
+    icon: Medal,
+    bgColor: "bg-gradient-to-br from-amber-300 to-yellow-400",
+    iconColor: "text-white",
+    requirement: 20,
+  },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
   mint: "Mint Badges",
   location: "Location Badges",
   social: "Social Badges",
+  loyalty: "Loyalty Badges",
 };
 
-const CATEGORY_ORDER = ["mint", "location", "social"];
+const CATEGORY_ORDER = ["mint", "location", "social", "loyalty"];
 
 interface UserBadgeData {
   earnedBadges: string[];
