@@ -10,34 +10,38 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Lock, CheckCircle } from "lucide-react";
-
-import firstMintBadge from "@assets/stock_images/golden_achievement_b_c5e2fcee.jpg";
-import explorerBadge from "@assets/stock_images/explorer_telescope_d_8ac92a5e.jpg";
-import globetrotterBadge from "@assets/stock_images/travel_world_globe_b_abba2058.jpg";
-import nftMasterBadge from "@assets/stock_images/rocket_launch_succes_9141f9fe.jpg";
-import multiCountryBadge from "@assets/stock_images/travel_world_globe_b_1499489a.jpg";
-import worldTravelerBadge from "@assets/stock_images/airplane_travel_jour_a59043ab.jpg";
-import globalCitizenBadge from "@assets/stock_images/travel_world_globe_b_fd9b4de6.jpg";
-import multiCityBadge from "@assets/stock_images/city_skyline_travel__c7d7ed0f.jpg";
-import cityExplorerBadge from "@assets/stock_images/city_skyline_travel__6f73bbb6.jpg";
-import urbanNomadBadge from "@assets/stock_images/city_skyline_travel__da668483.jpg";
-import firstTipperBadge from "@assets/stock_images/heart_social_charity_79634b76.jpg";
-import generousBadge from "@assets/stock_images/heart_social_charity_367ead98.jpg";
-import popularBadge from "@assets/stock_images/star_celebrity_popul_e85201fe.jpg";
-import superstarBadge from "@assets/stock_images/star_celebrity_popul_a8c409fe.jpg";
-import firstLikeBadge from "@assets/stock_images/star_celebrity_popul_e85201fe.jpg";
-import likedBadge from "@assets/stock_images/star_celebrity_popul_a8c409fe.jpg";
-import tipReceiverBadge from "@assets/stock_images/golden_coin_money_ti_123d74f6.jpg";
-import tipCollectorBadge from "@assets/stock_images/golden_coin_money_ti_c7130813.jpg";
-import tipMagnetBadge from "@assets/stock_images/golden_coin_money_ti_1400937e.jpg";
+import { 
+  Lock, 
+  CheckCircle,
+  Sparkles,
+  Compass,
+  Globe,
+  Crown,
+  MapPin,
+  Plane,
+  Earth,
+  Building2,
+  Map,
+  Landmark,
+  Heart,
+  Gift,
+  ThumbsUp,
+  Star,
+  Trophy,
+  Coins,
+  Wallet,
+  TrendingUp,
+  type LucideIcon
+} from "lucide-react";
 
 interface BadgeDefinition {
   code: string;
   name: string;
   description: string;
   category: "mint" | "location" | "social";
-  imageUrl: string;
+  icon: LucideIcon;
+  bgColor: string;
+  iconColor: string;
   requirement: number;
 }
 
@@ -47,7 +51,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "First Mint",
     description: "Mint your first NFT",
     category: "mint",
-    imageUrl: firstMintBadge,
+    icon: Sparkles,
+    bgColor: "bg-gradient-to-br from-amber-400 to-orange-500",
+    iconColor: "text-white",
     requirement: 1,
   },
   {
@@ -55,7 +61,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Explorer",
     description: "Mint 5 NFTs",
     category: "mint",
-    imageUrl: explorerBadge,
+    icon: Compass,
+    bgColor: "bg-gradient-to-br from-emerald-400 to-teal-500",
+    iconColor: "text-white",
     requirement: 5,
   },
   {
@@ -63,7 +71,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Globetrotter",
     description: "Mint 10 NFTs",
     category: "mint",
-    imageUrl: globetrotterBadge,
+    icon: Globe,
+    bgColor: "bg-gradient-to-br from-blue-400 to-indigo-500",
+    iconColor: "text-white",
     requirement: 10,
   },
   {
@@ -71,7 +81,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "NFT Master",
     description: "Mint 25 NFTs",
     category: "mint",
-    imageUrl: nftMasterBadge,
+    icon: Crown,
+    bgColor: "bg-gradient-to-br from-purple-400 to-pink-500",
+    iconColor: "text-white",
     requirement: 25,
   },
   {
@@ -79,7 +91,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Multi-Country",
     description: "Mint NFTs from 3 different countries",
     category: "location",
-    imageUrl: multiCountryBadge,
+    icon: MapPin,
+    bgColor: "bg-gradient-to-br from-rose-400 to-red-500",
+    iconColor: "text-white",
     requirement: 3,
   },
   {
@@ -87,7 +101,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "World Traveler",
     description: "Mint NFTs from 5 different countries",
     category: "location",
-    imageUrl: worldTravelerBadge,
+    icon: Plane,
+    bgColor: "bg-gradient-to-br from-sky-400 to-blue-500",
+    iconColor: "text-white",
     requirement: 5,
   },
   {
@@ -95,7 +111,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Global Citizen",
     description: "Mint NFTs from 10 different countries",
     category: "location",
-    imageUrl: globalCitizenBadge,
+    icon: Earth,
+    bgColor: "bg-gradient-to-br from-green-400 to-emerald-500",
+    iconColor: "text-white",
     requirement: 10,
   },
   {
@@ -103,7 +121,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Multi-City",
     description: "Mint NFTs from 3 different cities",
     category: "location",
-    imageUrl: multiCityBadge,
+    icon: Building2,
+    bgColor: "bg-gradient-to-br from-slate-400 to-gray-500",
+    iconColor: "text-white",
     requirement: 3,
   },
   {
@@ -111,7 +131,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "City Explorer",
     description: "Mint NFTs from 5 different cities",
     category: "location",
-    imageUrl: cityExplorerBadge,
+    icon: Map,
+    bgColor: "bg-gradient-to-br from-cyan-400 to-teal-500",
+    iconColor: "text-white",
     requirement: 5,
   },
   {
@@ -119,7 +141,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Urban Nomad",
     description: "Mint NFTs from 10 different cities",
     category: "location",
-    imageUrl: urbanNomadBadge,
+    icon: Landmark,
+    bgColor: "bg-gradient-to-br from-violet-400 to-purple-500",
+    iconColor: "text-white",
     requirement: 10,
   },
   {
@@ -127,7 +151,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "First Tipper",
     description: "Send your first tip to a creator",
     category: "social",
-    imageUrl: firstTipperBadge,
+    icon: Heart,
+    bgColor: "bg-gradient-to-br from-pink-400 to-rose-500",
+    iconColor: "text-white",
     requirement: 1,
   },
   {
@@ -135,7 +161,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Generous",
     description: "Tip 5 different creators",
     category: "social",
-    imageUrl: generousBadge,
+    icon: Gift,
+    bgColor: "bg-gradient-to-br from-fuchsia-400 to-pink-500",
+    iconColor: "text-white",
     requirement: 5,
   },
   {
@@ -143,7 +171,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "First Like",
     description: "Receive 1 like on your NFTs",
     category: "social",
-    imageUrl: firstLikeBadge,
+    icon: ThumbsUp,
+    bgColor: "bg-gradient-to-br from-blue-400 to-sky-500",
+    iconColor: "text-white",
     requirement: 1,
   },
   {
@@ -151,7 +181,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Liked",
     description: "Receive 5 likes on your NFTs",
     category: "social",
-    imageUrl: likedBadge,
+    icon: Star,
+    bgColor: "bg-gradient-to-br from-yellow-400 to-amber-500",
+    iconColor: "text-white",
     requirement: 5,
   },
   {
@@ -159,7 +191,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Popular",
     description: "Receive 10 likes on your NFTs",
     category: "social",
-    imageUrl: popularBadge,
+    icon: Trophy,
+    bgColor: "bg-gradient-to-br from-orange-400 to-red-500",
+    iconColor: "text-white",
     requirement: 10,
   },
   {
@@ -167,7 +201,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Superstar",
     description: "Receive 50 likes on your NFTs",
     category: "social",
-    imageUrl: superstarBadge,
+    icon: Crown,
+    bgColor: "bg-gradient-to-br from-amber-300 to-yellow-500",
+    iconColor: "text-white",
     requirement: 50,
   },
   {
@@ -175,7 +211,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Tip Receiver",
     description: "Receive 1 tip on your NFTs",
     category: "social",
-    imageUrl: tipReceiverBadge,
+    icon: Coins,
+    bgColor: "bg-gradient-to-br from-lime-400 to-green-500",
+    iconColor: "text-white",
     requirement: 1,
   },
   {
@@ -183,7 +221,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Tip Collector",
     description: "Receive 5 tips on your NFTs",
     category: "social",
-    imageUrl: tipCollectorBadge,
+    icon: Wallet,
+    bgColor: "bg-gradient-to-br from-emerald-400 to-green-500",
+    iconColor: "text-white",
     requirement: 5,
   },
   {
@@ -191,7 +231,9 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     name: "Tip Magnet",
     description: "Receive 10 tips on your NFTs",
     category: "social",
-    imageUrl: tipMagnetBadge,
+    icon: TrendingUp,
+    bgColor: "bg-gradient-to-br from-teal-400 to-cyan-500",
+    iconColor: "text-white",
     requirement: 10,
   },
 ];
@@ -209,7 +251,7 @@ interface UserBadgeData {
 }
 
 export default function Badges() {
-  const { isAuthenticated, user } = useFarcasterAuth();
+  const { user } = useFarcasterAuth();
   const { address } = useAccount();
   const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
   
@@ -252,44 +294,42 @@ export default function Badges() {
           <div key={category} className="mb-8">
             <h2 className="text-lg font-semibold mb-4 text-primary">{label}</h2>
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {badges.map((badge) => {
                 const isEarned = earnedBadgeCodes.has(badge.code);
+                const IconComponent = badge.icon;
                 
                 return (
-                  <Card 
+                  <div 
                     key={badge.code}
-                    className={`bg-gray-900 border-gray-800 overflow-hidden transition-all cursor-pointer hover:scale-105 ${
-                      isEarned ? "ring-2 ring-primary" : ""
-                    }`}
+                    className="flex flex-col items-center cursor-pointer transition-transform hover:scale-105"
                     data-testid={`badge-card-${badge.code}`}
                     onClick={() => setSelectedBadge(badge)}
                   >
-                    <CardContent className="p-3">
+                    <div 
+                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-lg ${
+                        isEarned 
+                          ? badge.bgColor 
+                          : "bg-gray-700"
+                      } ${isEarned ? "" : "opacity-40"}`}
+                    >
                       {isLoading ? (
-                        <Skeleton className="w-full aspect-square rounded-lg mb-2" />
+                        <Skeleton className="w-8 h-8 rounded-full" />
                       ) : (
-                        <div className="relative">
-                          <img
-                            src={badge.imageUrl}
-                            alt={badge.name}
-                            className={`w-full aspect-square object-cover rounded-lg mb-2 ${
-                              isEarned ? "" : "grayscale opacity-50"
-                            }`}
-                          />
-                          {isEarned && (
-                            <div className="absolute top-1 right-1 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full">
-                              Earned
-                            </div>
-                          )}
-                        </div>
+                        <IconComponent className={`w-8 h-8 sm:w-10 sm:h-10 ${isEarned ? badge.iconColor : "text-gray-400"}`} />
                       )}
-                      
-                      <h3 className={`font-semibold text-sm text-center ${isEarned ? "text-white" : "text-gray-500"}`}>
-                        {badge.name}
-                      </h3>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    
+                    {isEarned && (
+                      <div className="absolute -top-1 -right-1">
+                        <CheckCircle className="w-5 h-5 text-green-500 fill-green-500" />
+                      </div>
+                    )}
+                    
+                    <span className={`mt-2 text-xs text-center font-medium ${isEarned ? "text-white" : "text-gray-500"}`}>
+                      {badge.name}
+                    </span>
+                  </div>
                 );
               })}
             </div>
@@ -320,13 +360,15 @@ export default function Badges() {
               
               <div className="flex flex-col items-center gap-4 py-4">
                 <div className="relative">
-                  <img
-                    src={selectedBadge.imageUrl}
-                    alt={selectedBadge.name}
-                    className={`w-48 h-48 object-cover rounded-xl ${
-                      isSelectedEarned ? "" : "grayscale opacity-50"
-                    }`}
-                  />
+                  <div 
+                    className={`w-32 h-32 rounded-3xl flex items-center justify-center shadow-xl ${
+                      isSelectedEarned 
+                        ? selectedBadge.bgColor 
+                        : "bg-gray-700"
+                    } ${isSelectedEarned ? "" : "opacity-40"}`}
+                  >
+                    <selectedBadge.icon className={`w-16 h-16 ${isSelectedEarned ? selectedBadge.iconColor : "text-gray-400"}`} />
+                  </div>
                   {isSelectedEarned && (
                     <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
                       Earned!
