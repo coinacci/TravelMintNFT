@@ -209,44 +209,45 @@ export default function GuidePage() {
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  const holderStatusUrl = address ? `/api/guide/holder-status?walletAddress=${address}` : null;
   const { data: holderStatus } = useQuery<{ isHolder: boolean }>({
     queryKey: ["/api/guide/holder-status", address],
-    queryFn: async () => {
-      if (!holderStatusUrl) return { isHolder: false };
-      const res = await fetch(holderStatusUrl);
+    queryFn: async ({ queryKey }) => {
+      const [, walletAddr] = queryKey;
+      if (!walletAddr) return { isHolder: false };
+      const res = await fetch(`/api/guide/holder-status?walletAddress=${walletAddr}`);
       return res.json();
     },
     enabled: !!address,
   });
 
-  const popularUrl = `/api/guide/cities/popular${address ? `?walletAddress=${address}` : ''}`;
   const { data: popularCities, isLoading: isLoadingPopular } = useQuery<CitySearchResponse>({
     queryKey: ["/api/guide/cities/popular", address || "none"],
-    queryFn: async () => {
-      const res = await fetch(popularUrl);
+    queryFn: async ({ queryKey }) => {
+      const [, walletAddr] = queryKey;
+      const url = `/api/guide/cities/popular${walletAddr !== "none" ? `?walletAddress=${walletAddr}` : ''}`;
+      const res = await fetch(url);
       return res.json();
     },
   });
 
-  const searchUrl = `/api/guide/cities/search?query=${encodeURIComponent(searchQuery)}${address ? `&walletAddress=${address}` : ''}`;
   const { data: searchResults, isLoading: isSearching } = useQuery<CitySearchResponse>({
     queryKey: ["/api/guide/cities/search", searchQuery, address || "none"],
-    queryFn: async () => {
-      const res = await fetch(searchUrl);
+    queryFn: async ({ queryKey }) => {
+      const [, query, walletAddr] = queryKey;
+      const url = `/api/guide/cities/search?query=${encodeURIComponent(query as string)}${walletAddr !== "none" ? `&walletAddress=${walletAddr}` : ''}`;
+      const res = await fetch(url);
       return res.json();
     },
     enabled: searchQuery.length >= 2,
   });
 
-  const cityDetailUrl = selectedCityId 
-    ? `/api/guide/cities/${selectedCityId}?${activeCategory !== 'all' ? `category=${activeCategory}&` : ''}${address ? `walletAddress=${address}` : ''}`
-    : null;
   const { data: cityDetail, isLoading: isLoadingCity } = useQuery<CityDetailResponse>({
     queryKey: ["/api/guide/cities", selectedCityId, activeCategory, address || "none"],
-    queryFn: async () => {
-      if (!cityDetailUrl) throw new Error("No city selected");
-      const res = await fetch(cityDetailUrl);
+    queryFn: async ({ queryKey }) => {
+      const [, cityId, category, walletAddr] = queryKey;
+      if (!cityId) throw new Error("No city selected");
+      const url = `/api/guide/cities/${cityId}?${category !== 'all' ? `category=${category}&` : ''}${walletAddr !== "none" ? `walletAddress=${walletAddr}` : ''}`;
+      const res = await fetch(url);
       return res.json();
     },
     enabled: !!selectedCityId,

@@ -76,8 +76,10 @@ function mapCategoryToPlaceTypes(category: string): string[] {
 
 export class PlacesService {
   async searchCities(query: string): Promise<GuideCity[]> {
+    console.log(`🔍 Searching cities for: "${query}"`);
+    
     if (!GOOGLE_PLACES_API_KEY) {
-      console.error('GOOGLE_PLACES_API_KEY not configured');
+      console.error('❌ GOOGLE_PLACES_API_KEY not configured');
       return [];
     }
 
@@ -87,8 +89,11 @@ export class PlacesService {
       .limit(10);
 
     if (existingCities.length > 0) {
+      console.log(`✅ Found ${existingCities.length} cached cities for "${query}"`);
       return existingCities;
     }
+    
+    console.log(`🌐 No cached cities, calling Google Places API for "${query}"`...);
 
     try {
       const response = await fetch(
@@ -96,9 +101,10 @@ export class PlacesService {
       );
       
       const data: PlacesSearchResponse = await response.json();
+      console.log(`📊 Google Places API response status: ${data.status}, results: ${data.results?.length || 0}`);
       
       if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        console.error('Places API error:', data.status, data.error_message);
+        console.error('❌ Places API error:', data.status, data.error_message);
         return [];
       }
 
