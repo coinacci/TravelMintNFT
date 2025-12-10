@@ -318,8 +318,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Add cluster group to map
     map.addLayer(clusterGroup);
 
-    // Remove existing polyline if any
+    // Remove existing polyline and arrow marker if any
     if (polylineRef.current) {
+      // Also remove arrow marker if exists
+      if ((polylineRef.current as any)._arrowMarker) {
+        map.removeLayer((polylineRef.current as any)._arrowMarker);
+      }
       map.removeLayer(polylineRef.current);
       polylineRef.current = null;
     }
@@ -356,6 +360,34 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
         polyline.addTo(map);
         polylineRef.current = polyline;
+
+        // Add arrow marker at the end (last minted NFT location)
+        const lastCoord = coordinates[coordinates.length - 1] as [number, number];
+        const secondLastCoord = coordinates[coordinates.length - 2] as [number, number];
+        
+        // Calculate angle for arrow direction
+        const angle = Math.atan2(
+          lastCoord[0] - secondLastCoord[0],
+          lastCoord[1] - secondLastCoord[1]
+        ) * (180 / Math.PI);
+
+        const arrowIcon = L.divIcon({
+          html: `<div style="
+            font-size: 20px;
+            color: #0000FF;
+            transform: rotate(${180 - angle}deg);
+            text-shadow: 0 0 2px white, 0 0 2px white;
+          ">▼</div>`,
+          className: 'arrow-marker',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+
+        const arrowMarker = L.marker(lastCoord, { icon: arrowIcon, interactive: false });
+        arrowMarker.addTo(map);
+
+        // Store arrow with polyline for cleanup
+        (polylineRef.current as any)._arrowMarker = arrowMarker;
       }
     }
 
