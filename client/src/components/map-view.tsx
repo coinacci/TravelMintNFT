@@ -38,6 +38,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
+  const polylineRef = useRef<L.Polyline | null>(null);
   const queryClient = useQueryClient();
   const [showBrandOnly, setShowBrandOnly] = useState(false);
   const [showOnlyYours, setShowOnlyYours] = useState(false);
@@ -317,6 +318,47 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Add cluster group to map
     map.addLayer(clusterGroup);
 
+    // Remove existing polyline if any
+    if (polylineRef.current) {
+      map.removeLayer(polylineRef.current);
+      polylineRef.current = null;
+    }
+
+    // Draw travel route polyline when creator filter is active
+    if (selectedCreator && filteredNfts.length > 1) {
+      // Sort NFTs by creation date (oldest first) to show travel route
+      const sortedNfts = [...filteredNfts].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateA - dateB;
+      });
+
+      // Create coordinates array for polyline
+      const coordinates: L.LatLngExpression[] = sortedNfts
+        .map(nft => {
+          const lat = typeof nft.latitude === 'string' ? parseFloat(nft.latitude) : (nft.latitude || 0);
+          const lng = typeof nft.longitude === 'string' ? parseFloat(nft.longitude) : (nft.longitude || 0);
+          if (isNaN(lat) || isNaN(lng)) return null;
+          return [lat, lng] as L.LatLngExpression;
+        })
+        .filter((coord): coord is L.LatLngExpression => coord !== null);
+
+      if (coordinates.length > 1) {
+        // Create styled polyline with blue dashed line
+        const polyline = L.polyline(coordinates, {
+          color: '#3B82F6', // Blue color
+          weight: 3,
+          opacity: 0.8,
+          dashArray: '10, 10', // Dashed line pattern
+          lineCap: 'round',
+          lineJoin: 'round'
+        });
+
+        polyline.addTo(map);
+        polylineRef.current = polyline;
+      }
+    }
+
     // Global function to handle NFT selection from popup
     (window as any).selectNFT = (nftId: string) => {
       const selectedNFT = nfts.find((nft) => nft.id === nftId);
@@ -336,7 +378,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     (window as any).clearCreatorFilter = () => {
       setSelectedCreator(null);
     };
-  }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator]);
+  }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator]);
 
   return (
     <div className="relative">
