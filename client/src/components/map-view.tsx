@@ -366,12 +366,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         const firstCoord = coordinates[0] as [number, number];
         const secondCoord = coordinates[1] as [number, number];
         
-        // Calculate angle for arrow direction (pointing towards second NFT)
-        // Note: For map coordinates, longitude is X and latitude is Y
-        const angle = Math.atan2(
-          secondCoord[1] - firstCoord[1], // longitude difference (X)
-          secondCoord[0] - firstCoord[0]  // latitude difference (Y)
-        ) * (180 / Math.PI);
+        // Calculate great-circle bearing from first to second NFT
+        const lat1 = firstCoord[0] * Math.PI / 180;
+        const lat2 = secondCoord[0] * Math.PI / 180;
+        const deltaLng = (secondCoord[1] - firstCoord[1]) * Math.PI / 180;
+        
+        const y = Math.sin(deltaLng) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+        const bearingRad = Math.atan2(y, x);
+        const bearingDeg = ((bearingRad * 180 / Math.PI) + 360) % 360;
 
         // Place arrow just after the first NFT (15% along the first segment)
         const arrowLat = firstCoord[0] + (secondCoord[0] - firstCoord[0]) * 0.15;
@@ -381,7 +384,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           html: `<div style="
             font-size: 18px;
             color: #0000FF;
-            transform: rotate(${90 - angle}deg);
+            transform: rotate(${bearingDeg}deg);
             text-shadow: 0 0 2px white, 0 0 2px white;
           ">➤</div>`,
           className: 'arrow-marker',
