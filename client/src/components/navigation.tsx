@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAccount, useDisconnect } from "wagmi";
-import { Store, Globe, User, Trophy, Target, Menu, LogOut, TrendingUp, Award, MapPin, Bug } from "lucide-react";
+import { useAccount } from "wagmi";
+import { Store, Globe, User, Trophy, Target, Menu, LogOut, TrendingUp, Award } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useFarcasterNotifications } from "@/hooks/use-farcaster-notifications";
@@ -24,9 +24,7 @@ export default function Navigation() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
   const [questsMenuOpen, setQuestsMenuOpen] = useState(false);
-  const [devPanelOpen, setDevPanelOpen] = useState(false);
   
   // Initialize automatic notification token collection
   const { 
@@ -46,7 +44,6 @@ export default function Navigation() {
   const navItems = [
     { path: "/explore", label: "Explore", icon: Globe },
     { path: "/marketplace", label: "Marketplace", icon: Store },
-    { path: "/guide", label: "Trip", icon: MapPin },
     { path: "/quests", label: "Rewards", icon: Target, hasSubmenu: true },
     { path: "/badges", label: "Badges", icon: Award },
     { path: "/my-nfts", label: "Profile", icon: User },
@@ -104,46 +101,6 @@ export default function Navigation() {
               
               {/* Notification indicator removed - notifications work via FID-based system */}
               <WalletConnect farcasterUser={notificationUser} />
-              
-              {/* Dev Panel - Quick wallet disconnect for testing */}
-              <Popover open={devPanelOpen} onOpenChange={setDevPanelOpen}>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-yellow-500 hover:bg-gray-800"
-                    data-testid="dev-panel-button"
-                  >
-                    <Bug className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-64 p-3 bg-gray-900 border-gray-700">
-                  <div className="space-y-3">
-                    <div className="text-sm font-medium text-white">Dev Panel</div>
-                    <div className="text-xs text-gray-400">
-                      Wallet: {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : 'Not connected'}
-                    </div>
-                    {isConnected && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => {
-                          disconnect();
-                          setDevPanelOpen(false);
-                        }}
-                        data-testid="dev-disconnect-wallet"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Disconnect Wallet
-                      </Button>
-                    )}
-                    {!isConnected && (
-                      <div className="text-xs text-gray-500">No wallet connected</div>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
               
               {/* Hamburger Menu */}
               <DropdownMenu>
