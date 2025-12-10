@@ -46,10 +46,10 @@ const categoryIcons = {
 };
 
 const categoryLabels = {
-  landmark: "Önemli Yerler",
-  cafe: "Kafeler",
-  restaurant: "Restoranlar",
-  hidden_gem: "Gizli Hazineler",
+  landmark: "Landmarks",
+  cafe: "Cafes",
+  restaurant: "Restaurants",
+  hidden_gem: "Hidden Gems",
 };
 
 function PriceLevelBadge({ level }: { level: number | null }) {
@@ -130,7 +130,7 @@ function SpotCard({ spot, isHolder }: { spot: GuideSpot; isHolder: boolean }) {
                 <Button variant="outline" size="sm" asChild>
                   <a href={`tel:${spot.phoneNumber}`}>
                     <Phone className="w-3 h-3 mr-1" />
-                    Ara
+                    Call
                   </a>
                 </Button>
               )}
@@ -138,7 +138,7 @@ function SpotCard({ spot, isHolder }: { spot: GuideSpot; isHolder: boolean }) {
                 <Button variant="outline" size="sm" asChild>
                   <a href={spot.googleMapsUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-3 h-3 mr-1" />
-                    Harita
+                    Map
                   </a>
                 </Button>
               )}
@@ -147,7 +147,7 @@ function SpotCard({ spot, isHolder }: { spot: GuideSpot; isHolder: boolean }) {
         ) : (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Lock className="w-4 h-4" />
-            <span>Detayları görmek için NFT sahibi olun</span>
+            <span>Own an NFT to see details</span>
           </div>
         )}
       </CardContent>
@@ -191,12 +191,12 @@ function HolderGateMessage() {
     <Card className="border-amber-500/50 bg-amber-500/10">
       <CardContent className="p-6 text-center">
         <Sparkles className="w-12 h-12 mx-auto mb-4 text-amber-500" />
-        <h3 className="font-bold text-lg mb-2">TravelMint NFT Sahiplerine Özel!</h3>
+        <h3 className="font-bold text-lg mb-2">Exclusive for TravelMint NFT Holders!</h3>
         <p className="text-muted-foreground mb-4">
-          Tüm şehirleri ve detaylı mekan bilgilerini görmek için bir TravelMint NFT'si mint edin.
+          Mint a TravelMint NFT to unlock all cities and detailed place information.
         </p>
         <Button asChild className="bg-amber-500 hover:bg-amber-600">
-          <a href="/mint">NFT Mint Et</a>
+          <a href="/mint">Mint NFT</a>
         </Button>
       </CardContent>
     </Card>
@@ -273,7 +273,7 @@ export default function GuidePage() {
           className="mb-4"
           data-testid="back-button"
         >
-          ← Geri
+          ← Back
         </Button>
 
         <div className="mb-6">
@@ -307,22 +307,22 @@ export default function GuidePage() {
 
         <Tabs value={activeCategory} onValueChange={setActiveCategory} className="mb-6">
           <TabsList className="grid grid-cols-5 w-full">
-            <TabsTrigger value="all" data-testid="tab-all">Tümü</TabsTrigger>
+            <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
             <TabsTrigger value="landmark" data-testid="tab-landmark">
               <Landmark className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Yerler</span>
+              <span className="hidden sm:inline">Places</span>
             </TabsTrigger>
             <TabsTrigger value="cafe" data-testid="tab-cafe">
               <Coffee className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Kafe</span>
+              <span className="hidden sm:inline">Cafes</span>
             </TabsTrigger>
             <TabsTrigger value="restaurant" data-testid="tab-restaurant">
               <Utensils className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Restoran</span>
+              <span className="hidden sm:inline">Dining</span>
             </TabsTrigger>
             <TabsTrigger value="hidden_gem" data-testid="tab-hidden_gem">
               <Gem className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Gizli</span>
+              <span className="hidden sm:inline">Gems</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -337,7 +337,7 @@ export default function GuidePage() {
           <>
             {filteredSpots.length === 0 ? (
               <Card className="p-8 text-center">
-                <p className="text-muted-foreground">Bu kategoride henüz mekan bulunamadı.</p>
+                <p className="text-muted-foreground">No places found in this category yet.</p>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -355,10 +355,10 @@ export default function GuidePage() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Gezi Rehberi</h1>
+        <h1 className="text-3xl font-bold mb-2">Trip Guide</h1>
         <p className="text-muted-foreground">
-          Dünya'nın en güzel şehirlerini keşfedin
-          {!isHolder && " • NFT sahiplerine özel içerik"}
+          Discover the world's most beautiful cities
+          {!isHolder && " • Exclusive content for NFT holders"}
         </p>
       </div>
 
@@ -367,7 +367,7 @@ export default function GuidePage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Şehir ara... (örn: İstanbul, Paris, Tokyo)"
+            placeholder="Search cities... (e.g., Istanbul, Paris, Tokyo)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -398,7 +398,7 @@ export default function GuidePage() {
       ) : (
         <>
           <h2 className="text-xl font-semibold mb-4">
-            {searchQuery.length >= 2 ? "Arama Sonuçları" : "Popüler Şehirler"}
+            {searchQuery.length >= 2 ? "Search Results" : "Popular Cities"}
           </h2>
           
           {citiesToShow && citiesToShow.length > 0 ? (
@@ -416,8 +416,8 @@ export default function GuidePage() {
               <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
                 {searchQuery.length >= 2 
-                  ? "Aradığınız şehir bulunamadı. Farklı bir arama deneyin."
-                  : "Henüz popüler şehir bulunmuyor. Bir şehir arayarak başlayın."}
+                  ? "City not found. Try a different search."
+                  : "No popular cities yet. Start by searching for a city."}
               </p>
             </Card>
           )}
