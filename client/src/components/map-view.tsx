@@ -367,9 +367,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         const secondCoord = coordinates[1] as [number, number];
         
         // Calculate angle for arrow direction (pointing towards second NFT)
+        // Note: For map coordinates, longitude is X and latitude is Y
         const angle = Math.atan2(
-          secondCoord[0] - firstCoord[0],
-          secondCoord[1] - firstCoord[1]
+          secondCoord[1] - firstCoord[1], // longitude difference (X)
+          secondCoord[0] - firstCoord[0]  // latitude difference (Y)
         ) * (180 / Math.PI);
 
         // Place arrow just after the first NFT (15% along the first segment)
@@ -380,9 +381,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           html: `<div style="
             font-size: 18px;
             color: #0000FF;
-            transform: rotate(${180 - angle}deg);
+            transform: rotate(${90 - angle}deg);
             text-shadow: 0 0 2px white, 0 0 2px white;
-          ">▼</div>`,
+          ">➤</div>`,
           className: 'arrow-marker',
           iconSize: [18, 18],
           iconAnchor: [9, 9]
