@@ -2,7 +2,7 @@ import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { db } from "./db";
-import { transactions, nftLikes, questCompletions, userStats } from "@shared/schema";
+import { transactions, nftLikes, userStats, userBadges, badges } from "@shared/schema";
 import { blockchainService, withRetry } from "./blockchain";
 import { MetadataSyncService } from "./metadataSyncService";
 import { 
@@ -3174,8 +3174,8 @@ export async function registerRoutes(app: Express) {
           { code: 'tip_collector', requirement: 5 },
           { code: 'tip_magnet', requirement: 10 },
         ],
-        // Loyalty badges - quest completions
-        quests: [
+        // Loyalty badges - based on total badge count (excluding these loyalty badges themselves)
+        badgeCount: [
           { code: 'task_beginner', requirement: 1 },
           { code: 'task_enthusiast', requirement: 5 },
           { code: 'task_veteran', requirement: 10 },
@@ -3257,9 +3257,6 @@ export async function registerRoutes(app: Express) {
       // Get all likes
       const allLikes = await db.select().from(nftLikes);
       
-      // Get all quest completions
-      const allQuestCompletions = await db.select().from(questCompletions);
-      
       // Get all user stats for FID mapping
       const allUserStats = await db.select().from(userStats);
       const fidToWallet = new Map<string, string>();
@@ -3278,7 +3275,6 @@ export async function registerRoutes(app: Express) {
       const userTipsGiven = new Map<string, Set<string>>(); // wallet -> unique creators tipped
       const userLikesReceived = new Map<string, number>(); // wallet -> count
       const userTipsReceived = new Map<string, number>(); // wallet -> count
-      const fidQuestCompletions = new Map<string, number>(); // fid -> count
 
       // Aggregate mint data
       for (const nft of allNfts) {
@@ -3325,11 +3321,6 @@ export async function registerRoutes(app: Express) {
         if (creatorWallet) {
           userLikesReceived.set(creatorWallet, (userLikesReceived.get(creatorWallet) || 0) + 1);
         }
-      }
-
-      // Aggregate quest completions
-      for (const qc of allQuestCompletions) {
-        fidQuestCompletions.set(qc.farcasterFid, (fidQuestCompletions.get(qc.farcasterFid) || 0) + 1);
       }
 
       // Award badges based on aggregations
@@ -3422,12 +3413,49 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      // Process quest completion badges
-      console.log('🎯 Processing quest badges...');
-      for (const [fid, count] of Array.from(fidQuestCompletions)) {
-        const identifier = { farcasterFid: fid };
+      // Process badge count loyalty badges (after all other badges have been awarded)
+      console.log('🎯 Processing badge count loyalty badges...');
+      
+      // Get all user badges and count non-loyalty badges for each user
+      const allUserBadges = await db.select().from(userBadges);
+      const loyaltyCodes = new Set(['task_beginner', 'task_enthusiast', 'task_veteran', 'task_master']);
+      
+      // Get badge code for each badge id
+      const allBadgeRecords = await db.select().from(badges);
+      const badgeIdToCode = new Map<string, string>();
+      for (const badge of allBadgeRecords) {
+        badgeIdToCode.set(badge.id, badge.code);
+      }
+      
+      // Count non-loyalty badges per user (by fid or wallet)
+      const fidBadgeCount = new Map<string, number>();
+      const walletBadgeCount = new Map<string, number>();
+      
+      for (const ub of allUserBadges) {
+        const badgeCode = badgeIdToCode.get(ub.badgeId);
+        if (!badgeCode || loyaltyCodes.has(badgeCode)) continue; // Skip loyalty badges in count
         
-        for (const badge of BADGE_CRITERIA.quests) {
+        if (ub.farcasterFid) {
+          fidBadgeCount.set(ub.farcasterFid, (fidBadgeCount.get(ub.farcasterFid) || 0) + 1);
+        } else if (ub.walletAddress) {
+          walletBadgeCount.set(ub.walletAddress.toLowerCase(), (walletBadgeCount.get(ub.walletAddress.toLowerCase()) || 0) + 1);
+        }
+      }
+      
+      // Award badge count loyalty badges based on non-loyalty badge count
+      for (const [fid, count] of Array.from(fidBadgeCount)) {
+        const identifier = { farcasterFid: fid };
+        for (const badge of BADGE_CRITERIA.badgeCount) {
+          if (count >= badge.requirement) {
+            await awardBadgeIfEligible(badge.code, identifier);
+          }
+        }
+      }
+      
+      for (const [wallet, count] of Array.from(walletBadgeCount)) {
+        const fid = walletToFid.get(wallet);
+        const identifier = fid ? { farcasterFid: fid } : { walletAddress: wallet };
+        for (const badge of BADGE_CRITERIA.badgeCount) {
           if (count >= badge.requirement) {
             await awardBadgeIfEligible(badge.code, identifier);
           }

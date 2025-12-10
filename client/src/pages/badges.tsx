@@ -253,8 +253,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   },
   {
     code: "task_beginner",
-    name: "Task Beginner",
-    description: "Complete 1 task",
+    name: "Badge Collector",
+    description: "Collect 1 badge",
     category: "loyalty",
     icon: Flame,
     bgColor: "bg-gradient-to-br from-orange-400 to-amber-500",
@@ -263,8 +263,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   },
   {
     code: "task_enthusiast",
-    name: "Task Enthusiast",
-    description: "Complete 5 tasks",
+    name: "Badge Hunter",
+    description: "Collect 5 badges",
     category: "loyalty",
     icon: Zap,
     bgColor: "bg-gradient-to-br from-yellow-400 to-orange-500",
@@ -273,8 +273,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   },
   {
     code: "task_veteran",
-    name: "Task Veteran",
-    description: "Complete 10 tasks",
+    name: "Badge Veteran",
+    description: "Collect 10 badges",
     category: "loyalty",
     icon: Shield,
     bgColor: "bg-gradient-to-br from-indigo-400 to-purple-500",
@@ -283,8 +283,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   },
   {
     code: "task_master",
-    name: "Task Master",
-    description: "Complete 20 tasks",
+    name: "Badge Master",
+    description: "Collect 20 badges",
     category: "loyalty",
     icon: Medal,
     bgColor: "bg-gradient-to-br from-amber-300 to-yellow-400",
