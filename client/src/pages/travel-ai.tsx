@@ -172,8 +172,8 @@ export default function TravelAI() {
   }
 
   return (
-    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-80px)]">
-      <div className="mx-auto flex flex-col w-full max-w-4xl px-4 py-3 gap-3 min-h-0 flex-1 overflow-hidden">
+    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-90px)]">
+      <div className="mx-auto flex flex-col w-full max-w-4xl px-3 py-2 gap-2 min-h-0 flex-1 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -207,11 +207,12 @@ export default function TravelAI() {
         <Card className="bg-gray-900 border-gray-800 flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto p-3" ref={scrollRef}>
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-2">
-                <Sparkles className="h-8 w-8 text-purple-400 mb-2" />
-                <h2 className="text-sm font-semibold mb-1">Hello! 👋</h2>
-                <p className="text-gray-400 text-xs max-w-xs">
-                  I'm Travel AI. Tell me about the city you want to visit!
+              <div className="flex flex-col items-center justify-center text-center py-4">
+                <Sparkles className="h-10 w-10 text-purple-400 mb-3" />
+                <h2 className="text-base font-semibold mb-2">Hello! 👋</h2>
+                <p className="text-gray-400 text-sm max-w-sm">
+                  I'm Travel AI, your personal travel assistant. Tell me about the city you want to visit, 
+                  and I'll recommend the best places, cafes, and restaurants.
                 </p>
               </div>
             ) : (
