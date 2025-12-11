@@ -5629,5 +5629,45 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // ===== TRAVEL AI ENDPOINTS =====
+  
+  // POST /api/travel-ai/chat - Chat with Travel AI (holder-exclusive)
+  app.post("/api/travel-ai/chat", async (req: Request, res: Response) => {
+    try {
+      const { message, walletAddress } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+
+      // Verify holder status
+      const isHolder = await isNFTHolder(walletAddress);
+      if (!isHolder) {
+        return res.status(403).json({ 
+          error: 'Travel AI is exclusive to TravelMint NFT holders. Mint an NFT to unlock this feature!' 
+        });
+      }
+
+      // Import and call Gemini service
+      const { getTravelAdvice } = await import('./gemini-service');
+      const response = await getTravelAdvice(message);
+      
+      res.json({ 
+        success: true,
+        response 
+      });
+    } catch (error: any) {
+      console.error('Travel AI chat error:', error);
+      res.status(500).json({ 
+        error: 'Failed to get travel advice', 
+        message: error.message 
+      });
+    }
+  });
+
   return createServer(app);
 }
