@@ -40,7 +40,7 @@ export async function getTravelAdvice(userMessage: string): Promise<string> {
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       contents: [
         { role: "user", parts: [{ text: TRAVEL_SYSTEM_PROMPT }] },
         { role: "model", parts: [{ text: "Got it! I'm ready to help as your travel assistant. Which city or place would you like to know about?" }] },

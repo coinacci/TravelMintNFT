@@ -5729,8 +5729,18 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error: any) {
       console.error('Travel AI chat error:', error);
+      
+      // Handle rate limit errors gracefully
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED') || errorMessage.includes('quota')) {
+        return res.status(429).json({ 
+          error: 'AI service is temporarily busy. Please try again in a few moments.',
+          retryable: true
+        });
+      }
+      
       res.status(500).json({ 
-        error: 'Failed to get travel advice', 
+        error: 'Failed to get travel advice. Please try again.',
         message: error.message 
       });
     }
