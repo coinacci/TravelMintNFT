@@ -14,6 +14,16 @@ interface Message {
   timestamp: Date;
 }
 
+function renderMarkdown(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 interface TravelAIStatus {
   isHolder: boolean;
   queryCount: number;
@@ -251,7 +261,9 @@ export default function TravelAI() {
                           : "bg-gray-800 text-gray-100"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {message.role === "assistant" ? renderMarkdown(message.content) : message.content}
+                      </p>
                     </div>
                   </div>
                 ))}
