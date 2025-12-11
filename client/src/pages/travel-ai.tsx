@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Send, Loader2, Lock, MapPin, Coffee, Utensils, Landmark } from "lucide-react";
+import { Sparkles, Send, Loader2, Lock } from "lucide-react";
 
 interface Message {
   id: string;
@@ -110,19 +110,6 @@ export default function TravelAI() {
     }
   };
 
-  // Quick suggestions
-  const suggestions = [
-    { icon: Landmark, text: "Best places to visit in Barcelona" },
-    { icon: Coffee, text: "Top cafes in Paris" },
-    { icon: Utensils, text: "Food recommendations in Tokyo" },
-    { icon: MapPin, text: "Istanbul travel guide" },
-  ];
-
-  const handleSuggestionClick = (text: string) => {
-    setInputValue(text);
-    inputRef.current?.focus();
-  };
-
   // Not connected state
   if (!isConnected) {
     return (
@@ -221,28 +208,10 @@ export default function TravelAI() {
               <div className="flex flex-col items-center justify-center h-full text-center py-8">
                 <Sparkles className="h-12 w-12 text-purple-400 mb-4" />
                 <h2 className="text-lg font-semibold mb-2">Hello! 👋</h2>
-                <p className="text-gray-400 text-sm mb-6 max-w-sm">
+                <p className="text-gray-400 text-sm max-w-sm">
                   I'm Travel AI, your personal travel assistant. Tell me about the city you want to visit, 
                   and I'll recommend the best places, cafes, and restaurants.
                 </p>
-                
-                {/* Suggestions */}
-                <div className="grid grid-cols-1 gap-2 w-full max-w-sm">
-                  {suggestions.map((suggestion, index) => {
-                    const Icon = suggestion.icon;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion.text)}
-                        className="flex items-center gap-3 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-left transition-colors"
-                        data-testid={`suggestion-${index}`}
-                      >
-                        <Icon className="h-5 w-5 text-purple-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-300">{suggestion.text}</span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             ) : (
               <div className="space-y-4">
