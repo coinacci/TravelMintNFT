@@ -40,4 +40,4 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_websocket:1.0.0", "javascript_gemini:1.0.0"]
+integrations = ["javascript_websocket:1.0.0", "javascript_gemini:1.0.0", "javascript_openrouter_ai_integrations:1.0.0"]

@@ -5733,9 +5733,9 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // Import and call Gemini service with chat history for context
-      const { getTravelAdvice } = await import('./gemini-service');
-      const textResponse = await getTravelAdvice(message, validHistory);
+      // Import and call OpenRouter service with chat history for context
+      const { getTravelRecommendation } = await import('./openrouter-service');
+      const textResponse = await getTravelRecommendation(message, validHistory);
       
       // Extract place names from bold text (**Place Name**) and fetch Wikipedia images
       const { getWikipediaInfo } = await import('./wikipedia-service');
