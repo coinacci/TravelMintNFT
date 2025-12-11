@@ -204,7 +204,7 @@ export default function TravelAI() {
         </div>
 
         {/* Chat Area */}
-        <Card className="bg-gray-900 border-gray-800 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <Card className="bg-gray-900 border-gray-800 flex flex-col min-h-0 overflow-hidden max-h-[50vh]">
           <div className="flex-1 min-h-0 overflow-y-auto p-3" ref={scrollRef}>
             {messages.length === 0 ? (
               <div className="flex flex-col items-center text-center pt-8">
