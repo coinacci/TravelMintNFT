@@ -5688,7 +5688,7 @@ export async function registerRoutes(app: Express) {
   // POST /api/travel-ai/chat - Chat with Travel AI (3 free queries per day for non-holders)
   app.post("/api/travel-ai/chat", async (req: Request, res: Response) => {
     try {
-      const { message, walletAddress } = req.body;
+      const { message, walletAddress, chatHistory } = req.body;
       
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'Message is required' });
@@ -5697,6 +5697,11 @@ export async function registerRoutes(app: Express) {
       if (!walletAddress) {
         return res.status(400).json({ error: 'Wallet address is required' });
       }
+      
+      // Validate chat history format (for conversation continuity)
+      const validHistory = Array.isArray(chatHistory) ? chatHistory.filter(
+        (msg: any) => msg && typeof msg.role === 'string' && typeof msg.content === 'string'
+      ) : [];
 
       const normalizedAddress = walletAddress.toLowerCase();
       const today = getTodayDateString();
@@ -5728,9 +5733,34 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // Import and call Gemini service
+      // Import and call Gemini service with chat history for context
       const { getTravelAdvice } = await import('./gemini-service');
-      const response = await getTravelAdvice(message);
+      const textResponse = await getTravelAdvice(message, validHistory);
+      
+      // Extract place names from bold text (**Place Name**) and fetch Wikipedia images
+      const { getWikipediaInfo } = await import('./wikipedia-service');
+      const boldMatches = textResponse.match(/\*\*([^*]+)\*\*/g) || [];
+      const placeNames = boldMatches
+        .map(m => m.replace(/\*\*/g, ''))
+        .filter(name => !name.includes('Attractions') && !name.includes('Cafes') && !name.includes('Restaurants') && !name.includes('Sites') && name.length < 50)
+        .slice(0, 3); // Limit to 3 places to keep it fast
+      
+      // Fetch images in parallel (non-blocking, best effort)
+      const imagePromises = placeNames.map(async (name) => {
+        try {
+          const info = await getWikipediaInfo(name);
+          return info ? { name, ...info } : null;
+        } catch {
+          return null;
+        }
+      });
+      
+      const imageResults = await Promise.allSettled(imagePromises);
+      const images = imageResults
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+      
+      const response = textResponse;
       
       // Increment query count for non-holders with daily reset logic
       if (!isHolder) {
@@ -5755,6 +5785,7 @@ export async function registerRoutes(app: Express) {
       res.json({ 
         success: true,
         response,
+        images, // Wikipedia images for mentioned places
         isHolder,
         queryCount: newCount,
         remainingFreeQueries

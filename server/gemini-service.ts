@@ -41,20 +41,38 @@ Example - if user asks "best cafes in Paris":
 • **Shakespeare and Company Café** - Next to the famous bookshop
 • **Claus Paris** - Best breakfast spot in the city`;
 
-export async function getTravelAdvice(userMessage: string): Promise<string> {
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export async function getTravelAdvice(userMessage: string, chatHistory: ChatMessage[] = []): Promise<string> {
   try {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY is not configured");
     }
+
+    // Build contents array with chat history (last 8 messages for context)
+    const recentHistory = chatHistory.slice(-8);
+    const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
+    
+    // Add chat history
+    for (const msg of recentHistory) {
+      contents.push({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }]
+      });
+    }
+    
+    // Add current message
+    contents.push({ role: "user", parts: [{ text: userMessage }] });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       config: {
         systemInstruction: TRAVEL_SYSTEM_PROMPT,
       },
-      contents: [
-        { role: "user", parts: [{ text: userMessage }] }
-      ],
+      contents,
     });
 
     return response.text || "Sorry, I couldn't generate a response. Please try again.";

@@ -7,21 +7,33 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Send, Loader2, Lock } from "lucide-react";
 
+interface WikiImage {
+  name: string;
+  title: string;
+  thumbnailUrl: string | null;
+  pageUrl: string | null;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  images?: WikiImage[];
 }
 
 function renderMarkdown(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
 }
 
 interface TravelAIStatus {
@@ -77,13 +89,19 @@ export default function TravelAI() {
   const hasAccess = status?.hasAccess ?? false;
   const remainingFreeQueries = status?.remainingFreeQueries ?? 0;
 
-  // Chat mutation
+  // Chat mutation with conversation history for context
   const chatMutation = useMutation({
-    mutationFn: async (message: string) => {
+    mutationFn: async ({ message, history }: { message: string; history: Message[] }) => {
+      // Format history for API (exclude current message, limit to last 8)
+      const chatHistory = history.slice(-8).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+      
       const response = await fetch("/api/travel-ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, walletAddress: address }),
+        body: JSON.stringify({ message, walletAddress: address, chatHistory }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -97,6 +115,7 @@ export default function TravelAI() {
         role: "assistant",
         content: data.response,
         timestamp: new Date(),
+        images: data.images || [],
       };
       setMessages((prev) => [...prev, assistantMessage]);
       // Refresh status to update remaining queries
@@ -130,8 +149,10 @@ export default function TravelAI() {
       timestamp: new Date(),
     };
 
+    // Pass current messages as history before adding new user message
+    const currentHistory = [...messages];
     setMessages((prev) => [...prev, userMessage]);
-    chatMutation.mutate(inputValue.trim());
+    chatMutation.mutate({ message: inputValue.trim(), history: currentHistory });
     setInputValue("");
   };
 
@@ -252,7 +273,7 @@ export default function TravelAI() {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
                   >
                     <div
                       className={`max-w-[85%] rounded-2xl px-3 py-2 ${
@@ -265,6 +286,36 @@ export default function TravelAI() {
                         {message.role === "assistant" ? renderMarkdown(message.content) : message.content}
                       </p>
                     </div>
+                    {/* Wikipedia images for places mentioned */}
+                    {message.images && message.images.length > 0 && (
+                      <div className="flex gap-2 mt-2 max-w-[85%] overflow-x-auto pb-1">
+                        {message.images.map((img, idx) => (
+                          img.thumbnailUrl && (
+                            <a
+                              key={idx}
+                              href={img.pageUrl || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 group"
+                              data-testid={`link-wiki-image-${idx}`}
+                            >
+                              <div className="relative rounded-lg overflow-hidden w-20 h-20 bg-gray-700">
+                                <img
+                                  src={img.thumbnailUrl}
+                                  alt={img.name}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                  loading="lazy"
+                                  data-testid={`img-wiki-thumbnail-${idx}`}
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                                  <p className="text-[10px] text-white truncate">{img.name}</p>
+                                </div>
+                              </div>
+                            </a>
+                          )
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {chatMutation.isPending && (
