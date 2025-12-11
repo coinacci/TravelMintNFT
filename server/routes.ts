@@ -2,6 +2,7 @@ import { createServer } from "http";
 import express, { Request, Response, Express } from "express";
 import { storage } from "./storage";
 import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { transactions, nftLikes, userStats, userBadges, badges } from "@shared/schema";
 import { blockchainService, withRetry } from "./blockchain";
 import { MetadataSyncService } from "./metadataSyncService";
