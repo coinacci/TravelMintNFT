@@ -30,6 +30,28 @@ export default function TravelAI() {
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
+  // Lock body scroll when this page is active
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    const originalHtmlStyle = document.documentElement.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    
+    return () => {
+      document.body.style.overflow = originalStyle;
+      document.documentElement.style.overflow = originalHtmlStyle;
+      document.body.style.touchAction = originalTouchAction;
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, []);
+
   // Get Travel AI status (holder status + query count)
   const { data: status, isLoading: isCheckingStatus } = useQuery<TravelAIStatus>({
     queryKey: ["/api/travel-ai/status", address],
