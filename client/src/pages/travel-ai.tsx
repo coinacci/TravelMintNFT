@@ -172,7 +172,7 @@ export default function TravelAI() {
   }
 
   return (
-    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-140px)]">
+    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-160px)]">
       <div className="mx-auto flex flex-col w-full max-w-4xl px-3 py-2 gap-2 min-h-0 flex-1 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
