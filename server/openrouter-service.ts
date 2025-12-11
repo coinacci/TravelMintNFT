@@ -26,7 +26,8 @@ export async function getTravelRecommendation(
   query: string,
   chatHistory: ChatMessage[] = []
 ): Promise<string> {
-  const systemPrompt = `You are a helpful travel assistant. Provide concise, practical travel advice and recommendations. 
+  const systemPrompt = `You are a helpful travel assistant. Provide concise, practical travel advice and recommendations.
+IMPORTANT: Always respond in the SAME LANGUAGE as the user's message. If they write in Turkish, respond in Turkish. If they write in English, respond in English.
 When recommending places, use **bold** formatting for place names (e.g., **Hagia Sophia**, **Blue Mosque**).
 Focus only on what the user asks - don't add extra categories unless requested.
 Keep responses informative but concise (2-3 sentences per recommendation).
