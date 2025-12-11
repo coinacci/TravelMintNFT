@@ -5631,7 +5631,43 @@ export async function registerRoutes(app: Express) {
 
   // ===== TRAVEL AI ENDPOINTS =====
   
-  // POST /api/travel-ai/chat - Chat with Travel AI (holder-exclusive)
+  const FREE_QUERY_LIMIT = 3;
+  
+  // GET /api/travel-ai/status - Get query status for wallet
+  app.get("/api/travel-ai/status/:walletAddress", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress } = req.params;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+
+      const isHolder = await isNFTHolder(walletAddress);
+      
+      // Get current query count from database
+      const result = await db.execute(sql`
+        SELECT query_count FROM travel_ai_queries 
+        WHERE wallet_address = ${walletAddress.toLowerCase()}
+      `);
+      
+      const queryCount = result.rows.length > 0 ? Number(result.rows[0].query_count) : 0;
+      const remainingFreeQueries = Math.max(0, FREE_QUERY_LIMIT - queryCount);
+      const hasAccess = isHolder || remainingFreeQueries > 0;
+      
+      res.json({ 
+        isHolder,
+        queryCount,
+        remainingFreeQueries,
+        hasAccess,
+        freeQueryLimit: FREE_QUERY_LIMIT
+      });
+    } catch (error: any) {
+      console.error('Travel AI status error:', error);
+      res.status(500).json({ error: 'Failed to get status' });
+    }
+  });
+  
+  // POST /api/travel-ai/chat - Chat with Travel AI (3 free queries for non-holders)
   app.post("/api/travel-ai/chat", async (req: Request, res: Response) => {
     try {
       const { message, walletAddress } = req.body;
@@ -5644,11 +5680,25 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Wallet address is required' });
       }
 
-      // Verify holder status
+      const normalizedAddress = walletAddress.toLowerCase();
+      
+      // Check holder status
       const isHolder = await isNFTHolder(walletAddress);
-      if (!isHolder) {
+      
+      // Get current query count
+      const result = await db.execute(sql`
+        SELECT query_count FROM travel_ai_queries 
+        WHERE wallet_address = ${normalizedAddress}
+      `);
+      
+      const currentCount = result.rows.length > 0 ? Number(result.rows[0].query_count) : 0;
+      
+      // Check access - holders have unlimited, non-holders get 3 free
+      if (!isHolder && currentCount >= FREE_QUERY_LIMIT) {
         return res.status(403).json({ 
-          error: 'Travel AI is exclusive to TravelMint NFT holders. Mint an NFT to unlock this feature!' 
+          error: 'Free queries exhausted. Mint a TravelMint NFT for unlimited access!',
+          queryCount: currentCount,
+          remainingFreeQueries: 0
         });
       }
 
@@ -5656,9 +5706,25 @@ export async function registerRoutes(app: Express) {
       const { getTravelAdvice } = await import('./gemini-service');
       const response = await getTravelAdvice(message);
       
+      // Increment query count for non-holders using atomic UPSERT
+      if (!isHolder) {
+        await db.execute(sql`
+          INSERT INTO travel_ai_queries (wallet_address, query_count, updated_at)
+          VALUES (${normalizedAddress}, 1, NOW())
+          ON CONFLICT (wallet_address) 
+          DO UPDATE SET query_count = travel_ai_queries.query_count + 1, updated_at = NOW()
+        `);
+      }
+      
+      const newCount = isHolder ? currentCount : currentCount + 1;
+      const remainingFreeQueries = isHolder ? -1 : Math.max(0, FREE_QUERY_LIMIT - newCount);
+      
       res.json({ 
         success: true,
-        response 
+        response,
+        isHolder,
+        queryCount: newCount,
+        remainingFreeQueries
       });
     } catch (error: any) {
       console.error('Travel AI chat error:', error);

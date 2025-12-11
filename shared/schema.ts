@@ -473,3 +473,23 @@ export const guideSpotQuerySchema = z.object({
 export type GuideCitySearchRequest = z.infer<typeof guideCitySearchSchema>;
 export type GuideSpotCategory = z.infer<typeof guideSpotCategorySchema>;
 export type GuideSpotQuery = z.infer<typeof guideSpotQuerySchema>;
+
+// Travel AI Query Tracking - for free tier limits
+export const travelAiQueries = pgTable("travel_ai_queries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  queryCount: integer("query_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  walletUnique: uniqueIndex("travel_ai_wallet_unique").on(table.walletAddress),
+}));
+
+export const insertTravelAiQuerySchema = createInsertSchema(travelAiQueries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTravelAiQuery = z.infer<typeof insertTravelAiQuerySchema>;
+export type TravelAiQuery = typeof travelAiQueries.$inferSelect;

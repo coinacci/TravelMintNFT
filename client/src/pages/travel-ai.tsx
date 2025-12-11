@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -14,25 +14,36 @@ interface Message {
   timestamp: Date;
 }
 
+interface TravelAIStatus {
+  isHolder: boolean;
+  queryCount: number;
+  remainingFreeQueries: number;
+  hasAccess: boolean;
+  freeQueryLimit: number;
+}
+
 export default function TravelAI() {
   const { address, isConnected } = useAccount();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
-  // Check if user is a holder
-  const { data: holderStatus, isLoading: isCheckingHolder } = useQuery<{ isHolder: boolean }>({
-    queryKey: ["/api/holder-status", address],
+  // Get Travel AI status (holder status + query count)
+  const { data: status, isLoading: isCheckingStatus } = useQuery<TravelAIStatus>({
+    queryKey: ["/api/travel-ai/status", address],
     queryFn: async () => {
-      const response = await fetch(`/api/holder-status/${address}`);
-      if (!response.ok) throw new Error("Failed to check holder status");
+      const response = await fetch(`/api/travel-ai/status/${address}`);
+      if (!response.ok) throw new Error("Failed to check status");
       return response.json();
     },
     enabled: !!address,
   });
 
-  const isHolder = holderStatus?.isHolder ?? false;
+  const isHolder = status?.isHolder ?? false;
+  const hasAccess = status?.hasAccess ?? false;
+  const remainingFreeQueries = status?.remainingFreeQueries ?? 0;
 
   // Chat mutation
   const chatMutation = useMutation({
@@ -56,12 +67,14 @@ export default function TravelAI() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      // Refresh status to update remaining queries
+      queryClient.invalidateQueries({ queryKey: ["/api/travel-ai/status", address] });
     },
     onError: (error) => {
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: "Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.",
+        content: error.message || "Sorry, an error occurred. Please try again.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -99,10 +112,10 @@ export default function TravelAI() {
 
   // Quick suggestions
   const suggestions = [
-    { icon: Landmark, text: "Barcelona'da görülmesi gereken yerler" },
-    { icon: Coffee, text: "Paris'te en iyi kafeler" },
-    { icon: Utensils, text: "Tokyo'da yemek önerileri" },
-    { icon: MapPin, text: "İstanbul gezi rehberi" },
+    { icon: Landmark, text: "Best places to visit in Barcelona" },
+    { icon: Coffee, text: "Top cafes in Paris" },
+    { icon: Utensils, text: "Food recommendations in Tokyo" },
+    { icon: MapPin, text: "Istanbul travel guide" },
   ];
 
   const handleSuggestionClick = (text: string) => {
@@ -117,9 +130,9 @@ export default function TravelAI() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
             <Lock className="h-16 w-16 text-gray-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Cüzdan Bağlantısı Gerekli</h1>
+            <h1 className="text-2xl font-bold mb-2">Wallet Connection Required</h1>
             <p className="text-gray-400 max-w-md">
-              Travel AI özelliğini kullanmak için lütfen cüzdanınızı bağlayın.
+              Please connect your wallet to use the Travel AI feature.
             </p>
           </div>
         </div>
@@ -127,22 +140,22 @@ export default function TravelAI() {
     );
   }
 
-  // Checking holder status
-  if (isCheckingHolder) {
+  // Checking status
+  if (isCheckingStatus) {
     return (
       <div className="min-h-screen bg-black text-white pb-32">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-gray-400">Holder durumu kontrol ediliyor...</p>
+            <p className="text-gray-400">Checking access...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Not a holder state
-  if (!isHolder) {
+  // No access - free queries exhausted and not a holder
+  if (!hasAccess) {
     return (
       <div className="min-h-screen bg-black text-white pb-32">
         <div className="container mx-auto px-4 py-8">
@@ -150,10 +163,10 @@ export default function TravelAI() {
             <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-6 rounded-full mb-6">
               <Sparkles className="h-16 w-16 text-purple-400" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Holder Exclusive</h1>
+            <h1 className="text-2xl font-bold mb-2">Free Queries Used</h1>
             <p className="text-gray-400 max-w-md mb-6">
-              Travel AI, TravelMint NFT sahiplerine özel bir özelliktir. 
-              Kişiselleştirilmiş seyahat önerileri almak için bir NFT mint edin.
+              You've used all 3 free queries. Mint a TravelMint NFT to unlock unlimited access 
+              to your personal AI travel assistant.
             </p>
             <Button 
               onClick={() => window.location.href = "/mint"}
@@ -161,7 +174,7 @@ export default function TravelAI() {
               data-testid="button-mint-nft"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              NFT Mint Et
+              Mint NFT
             </Button>
           </div>
         </div>
@@ -173,14 +186,32 @@ export default function TravelAI() {
     <div className="min-h-screen bg-black text-white pb-32">
       <div className="container mx-auto px-4 py-4">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-gradient-to-br from-purple-500 to-blue-500 p-2 rounded-lg">
-            <Sparkles className="h-6 w-6 text-white" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-purple-500 to-blue-500 p-2 rounded-lg">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Travel AI</h1>
+              <p className="text-xs text-gray-400">Your personal travel assistant</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold">Travel AI</h1>
-            <p className="text-xs text-gray-400">Kişisel seyahat asistanınız</p>
-          </div>
+          
+          {/* Query counter for non-holders */}
+          {!isHolder && (
+            <div className="bg-gray-800 px-3 py-1.5 rounded-full">
+              <span className="text-xs text-gray-300">
+                {remainingFreeQueries} free {remainingFreeQueries === 1 ? 'query' : 'queries'} left
+              </span>
+            </div>
+          )}
+          
+          {/* Holder badge */}
+          {isHolder && (
+            <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 px-3 py-1.5 rounded-full border border-purple-500/30">
+              <span className="text-xs text-purple-300">Unlimited Access</span>
+            </div>
+          )}
         </div>
 
         {/* Chat Area */}
@@ -189,10 +220,10 @@ export default function TravelAI() {
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-8">
                 <Sparkles className="h-12 w-12 text-purple-400 mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Merhaba! 👋</h2>
+                <h2 className="text-lg font-semibold mb-2">Hello! 👋</h2>
                 <p className="text-gray-400 text-sm mb-6 max-w-sm">
-                  Ben Travel AI, seyahat asistanınızım. Gitmek istediğiniz şehri söyleyin, 
-                  size en iyi mekanları, kafeleri ve restoranları önereyim.
+                  I'm Travel AI, your personal travel assistant. Tell me about the city you want to visit, 
+                  and I'll recommend the best places, cafes, and restaurants.
                 </p>
                 
                 {/* Suggestions */}
@@ -236,7 +267,7 @@ export default function TravelAI() {
                     <div className="bg-gray-800 rounded-2xl px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                        <span className="text-sm text-gray-400">Düşünüyorum...</span>
+                        <span className="text-sm text-gray-400">Thinking...</span>
                       </div>
                     </div>
                   </div>
@@ -253,7 +284,7 @@ export default function TravelAI() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Bir şehir veya soru yazın..."
+                placeholder="Ask about a city or travel tip..."
                 className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                 disabled={chatMutation.isPending}
                 data-testid="input-chat-message"
