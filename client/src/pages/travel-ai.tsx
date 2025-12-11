@@ -112,7 +112,7 @@ export default function TravelAI() {
 
   // Shared wrapper for all states - viewport locked, no page scroll
   const FixedWrapper = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-80px)] pb-20">
+    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-80px)] pb-20" style={{ overscrollBehavior: 'none' }}>
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden px-4">
         {children}
       </div>
