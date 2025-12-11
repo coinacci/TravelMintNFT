@@ -5634,7 +5634,13 @@ export async function registerRoutes(app: Express) {
   
   const FREE_QUERY_LIMIT = 3;
   
-  // GET /api/travel-ai/status - Get query status for wallet
+  // Helper to get today's date in YYYY-MM-DD format (UTC)
+  const getTodayDateString = () => {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  };
+
+  // GET /api/travel-ai/status - Get query status for wallet (daily reset)
   app.get("/api/travel-ai/status/:walletAddress", async (req: Request, res: Response) => {
     try {
       const { walletAddress } = req.params;
@@ -5644,14 +5650,25 @@ export async function registerRoutes(app: Express) {
       }
 
       const isHolder = await isNFTHolder(walletAddress);
+      const today = getTodayDateString();
       
-      // Get current query count from database
+      // Get current query count and last query date from database
       const result = await db.execute(sql`
-        SELECT query_count FROM travel_ai_queries 
+        SELECT query_count, last_query_date FROM travel_ai_queries 
         WHERE wallet_address = ${walletAddress.toLowerCase()}
       `);
       
-      const queryCount = result.rows.length > 0 ? Number(result.rows[0].query_count) : 0;
+      let queryCount = 0;
+      if (result.rows.length > 0) {
+        const lastQueryDate = result.rows[0].last_query_date as string | null;
+        // If last query was on a different day, reset count to 0
+        if (lastQueryDate !== today) {
+          queryCount = 0;
+        } else {
+          queryCount = Number(result.rows[0].query_count);
+        }
+      }
+      
       const remainingFreeQueries = Math.max(0, FREE_QUERY_LIMIT - queryCount);
       const hasAccess = isHolder || remainingFreeQueries > 0;
       
@@ -5668,7 +5685,7 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // POST /api/travel-ai/chat - Chat with Travel AI (3 free queries for non-holders)
+  // POST /api/travel-ai/chat - Chat with Travel AI (3 free queries per day for non-holders)
   app.post("/api/travel-ai/chat", async (req: Request, res: Response) => {
     try {
       const { message, walletAddress } = req.body;
@@ -5682,22 +5699,30 @@ export async function registerRoutes(app: Express) {
       }
 
       const normalizedAddress = walletAddress.toLowerCase();
+      const today = getTodayDateString();
       
       // Check holder status
       const isHolder = await isNFTHolder(walletAddress);
       
-      // Get current query count
+      // Get current query count and last query date
       const result = await db.execute(sql`
-        SELECT query_count FROM travel_ai_queries 
+        SELECT query_count, last_query_date FROM travel_ai_queries 
         WHERE wallet_address = ${normalizedAddress}
       `);
       
-      const currentCount = result.rows.length > 0 ? Number(result.rows[0].query_count) : 0;
+      let currentCount = 0;
+      if (result.rows.length > 0) {
+        const lastQueryDate = result.rows[0].last_query_date as string | null;
+        // If last query was on a different day, count is reset to 0
+        if (lastQueryDate === today) {
+          currentCount = Number(result.rows[0].query_count);
+        }
+      }
       
-      // Check access - holders have unlimited, non-holders get 3 free
+      // Check access - holders have unlimited, non-holders get 3 free per day
       if (!isHolder && currentCount >= FREE_QUERY_LIMIT) {
         return res.status(403).json({ 
-          error: 'Free queries exhausted. Mint a TravelMint NFT for unlimited access!',
+          error: 'Daily limit reached. Mint a TravelMint NFT for unlimited access, or come back tomorrow!',
           queryCount: currentCount,
           remainingFreeQueries: 0
         });
@@ -5707,13 +5732,20 @@ export async function registerRoutes(app: Express) {
       const { getTravelAdvice } = await import('./gemini-service');
       const response = await getTravelAdvice(message);
       
-      // Increment query count for non-holders using atomic UPSERT
+      // Increment query count for non-holders with daily reset logic
       if (!isHolder) {
         await db.execute(sql`
-          INSERT INTO travel_ai_queries (wallet_address, query_count, updated_at)
-          VALUES (${normalizedAddress}, 1, NOW())
+          INSERT INTO travel_ai_queries (wallet_address, query_count, last_query_date, updated_at)
+          VALUES (${normalizedAddress}, 1, ${today}, NOW())
           ON CONFLICT (wallet_address) 
-          DO UPDATE SET query_count = travel_ai_queries.query_count + 1, updated_at = NOW()
+          DO UPDATE SET 
+            query_count = CASE 
+              WHEN travel_ai_queries.last_query_date = ${today} 
+              THEN travel_ai_queries.query_count + 1 
+              ELSE 1 
+            END,
+            last_query_date = ${today},
+            updated_at = NOW()
         `);
       }
       

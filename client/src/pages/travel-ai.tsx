@@ -142,26 +142,31 @@ export default function TravelAI() {
     );
   }
 
-  // No access - free queries exhausted and not a holder
+  // No access - daily free queries exhausted and not a holder
   if (!hasAccess) {
     return (
       <FixedWrapper>
-        <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-6 rounded-full mb-6">
-          <Sparkles className="h-16 w-16 text-purple-400" />
+        <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-4 rounded-full mb-4">
+          <Sparkles className="h-12 w-12 text-purple-400" />
         </div>
-        <h1 className="text-2xl font-bold mb-2 text-center">Free Queries Used</h1>
-        <p className="text-gray-400 max-w-md mb-6 text-center">
-          You've used all 3 free queries. Mint a TravelMint NFT to unlock unlimited access 
-          to your personal AI travel assistant.
+        <h1 className="text-xl font-bold mb-2 text-center">Daily Limit Reached</h1>
+        <p className="text-gray-400 max-w-sm mb-4 text-center text-sm">
+          You've used your 3 free daily queries. Mint a TravelMint NFT for unlimited access, 
+          or come back tomorrow for 3 more free queries!
         </p>
-        <Button 
-          onClick={() => window.location.href = "/mint"}
-          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-          data-testid="button-mint-nft"
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          Mint NFT
-        </Button>
+        <div className="flex flex-col gap-2 w-full max-w-xs">
+          <Button 
+            onClick={() => window.location.href = "/mint"}
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 w-full"
+            data-testid="button-mint-nft"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Mint NFT for Unlimited Access
+          </Button>
+          <p className="text-gray-500 text-xs text-center">
+            Free queries reset daily at midnight UTC
+          </p>
+        </div>
       </FixedWrapper>
     );
   }
@@ -202,12 +207,11 @@ export default function TravelAI() {
         <Card className="bg-gray-900 border-gray-800 flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto p-3" ref={scrollRef}>
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-4">
-                <Sparkles className="h-10 w-10 text-purple-400 mb-3" />
-                <h2 className="text-base font-semibold mb-2">Hello! 👋</h2>
-                <p className="text-gray-400 text-sm max-w-sm">
-                  I'm Travel AI, your personal travel assistant. Tell me about the city you want to visit, 
-                  and I'll recommend the best places, cafes, and restaurants.
+              <div className="flex flex-col items-center justify-center text-center py-2">
+                <Sparkles className="h-8 w-8 text-purple-400 mb-2" />
+                <h2 className="text-sm font-semibold mb-1">Hello! 👋</h2>
+                <p className="text-gray-400 text-xs max-w-xs">
+                  I'm Travel AI. Tell me about the city you want to visit!
                 </p>
               </div>
             ) : (

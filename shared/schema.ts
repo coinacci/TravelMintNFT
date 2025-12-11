@@ -479,6 +479,7 @@ export const travelAiQueries = pgTable("travel_ai_queries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   walletAddress: text("wallet_address").notNull(),
   queryCount: integer("query_count").default(0).notNull(),
+  lastQueryDate: text("last_query_date"), // YYYY-MM-DD format for daily reset tracking
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
