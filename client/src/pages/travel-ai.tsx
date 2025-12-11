@@ -110,76 +110,73 @@ export default function TravelAI() {
     }
   };
 
+  // Shared wrapper for all states - viewport locked, no page scroll
+  const FixedWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-80px)]">
+      <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden px-4">
+        {children}
+      </div>
+    </div>
+  );
+
   // Not connected state
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black text-white pb-32">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-            <Lock className="h-16 w-16 text-gray-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Wallet Connection Required</h1>
-            <p className="text-gray-400 max-w-md">
-              Please connect your wallet to use the Travel AI feature.
-            </p>
-          </div>
-        </div>
-      </div>
+      <FixedWrapper>
+        <Lock className="h-16 w-16 text-gray-500 mb-4" />
+        <h1 className="text-2xl font-bold mb-2 text-center">Wallet Connection Required</h1>
+        <p className="text-gray-400 max-w-md text-center">
+          Please connect your wallet to use the Travel AI feature.
+        </p>
+      </FixedWrapper>
     );
   }
 
   // Checking status
   if (isCheckingStatus) {
     return (
-      <div className="min-h-screen bg-black text-white pb-32">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-gray-400">Checking access...</p>
-          </div>
-        </div>
-      </div>
+      <FixedWrapper>
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-gray-400">Checking access...</p>
+      </FixedWrapper>
     );
   }
 
   // No access - free queries exhausted and not a holder
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-black text-white pb-32">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-            <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-6 rounded-full mb-6">
-              <Sparkles className="h-16 w-16 text-purple-400" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Free Queries Used</h1>
-            <p className="text-gray-400 max-w-md mb-6">
-              You've used all 3 free queries. Mint a TravelMint NFT to unlock unlimited access 
-              to your personal AI travel assistant.
-            </p>
-            <Button 
-              onClick={() => window.location.href = "/mint"}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-              data-testid="button-mint-nft"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Mint NFT
-            </Button>
-          </div>
+      <FixedWrapper>
+        <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-6 rounded-full mb-6">
+          <Sparkles className="h-16 w-16 text-purple-400" />
         </div>
-      </div>
+        <h1 className="text-2xl font-bold mb-2 text-center">Free Queries Used</h1>
+        <p className="text-gray-400 max-w-md mb-6 text-center">
+          You've used all 3 free queries. Mint a TravelMint NFT to unlock unlimited access 
+          to your personal AI travel assistant.
+        </p>
+        <Button 
+          onClick={() => window.location.href = "/mint"}
+          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+          data-testid="button-mint-nft"
+        >
+          <Sparkles className="h-4 w-4 mr-2" />
+          Mint NFT
+        </Button>
+      </FixedWrapper>
     );
   }
 
   return (
-    <div className="flex flex-col bg-black text-white overflow-hidden" style={{ height: '100dvh' }}>
-      <div className="mx-auto flex flex-col w-full max-w-4xl px-4 py-4 gap-4 overflow-hidden" style={{ height: 'calc(100dvh - 80px)' }}>
+    <div className="flex flex-col bg-black text-white overflow-hidden h-[calc(100dvh-80px)]">
+      <div className="mx-auto flex flex-col w-full max-w-4xl px-4 py-3 gap-3 min-h-0 flex-1 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-br from-purple-500 to-blue-500 p-2 rounded-lg">
-              <Sparkles className="h-6 w-6 text-white" />
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Travel AI</h1>
+              <h1 className="text-lg font-bold">Travel AI</h1>
               <p className="text-xs text-gray-400">Your personal travel assistant</p>
             </div>
           </div>
@@ -203,25 +200,25 @@ export default function TravelAI() {
 
         {/* Chat Area */}
         <Card className="bg-gray-900 border-gray-800 flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-4" ref={scrollRef}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3" ref={scrollRef}>
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                <Sparkles className="h-12 w-12 text-purple-400 mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Hello! 👋</h2>
+              <div className="flex flex-col items-center justify-center h-full text-center py-4">
+                <Sparkles className="h-10 w-10 text-purple-400 mb-3" />
+                <h2 className="text-base font-semibold mb-2">Hello! 👋</h2>
                 <p className="text-gray-400 text-sm max-w-sm">
                   I'm Travel AI, your personal travel assistant. Tell me about the city you want to visit, 
                   and I'll recommend the best places, cafes, and restaurants.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                      className={`max-w-[85%] rounded-2xl px-3 py-2 ${
                         message.role === "user"
                           ? "bg-purple-600 text-white"
                           : "bg-gray-800 text-gray-100"
@@ -233,7 +230,7 @@ export default function TravelAI() {
                 ))}
                 {chatMutation.isPending && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-800 rounded-2xl px-4 py-3">
+                    <div className="bg-gray-800 rounded-2xl px-3 py-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
                         <span className="text-sm text-gray-400">Thinking...</span>
@@ -246,7 +243,7 @@ export default function TravelAI() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 border-t border-gray-800 shrink-0">
+          <div className="p-3 border-t border-gray-800 shrink-0">
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
@@ -254,14 +251,14 @@ export default function TravelAI() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about a city or travel tip..."
-                className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 h-10"
                 disabled={chatMutation.isPending}
                 data-testid="input-chat-message"
               />
               <Button
                 onClick={handleSend}
                 disabled={!inputValue.trim() || chatMutation.isPending}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-purple-600 hover:bg-purple-700 h-10 w-10 p-0"
                 data-testid="button-send-message"
               >
                 {chatMutation.isPending ? (
