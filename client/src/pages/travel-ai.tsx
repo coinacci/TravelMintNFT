@@ -170,10 +170,10 @@ export default function TravelAI() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pb-32">
-      <div className="container mx-auto px-4 py-4">
+    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className="container mx-auto px-4 py-4 flex flex-col h-full" style={{ paddingBottom: '80px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-br from-purple-500 to-blue-500 p-2 rounded-lg">
               <Sparkles className="h-6 w-6 text-white" />
@@ -202,7 +202,7 @@ export default function TravelAI() {
         </div>
 
         {/* Chat Area */}
-        <Card className="bg-gray-900 border-gray-800 h-[calc(100vh-280px)] flex flex-col">
+        <Card className="bg-gray-900 border-gray-800 flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-8">
@@ -246,7 +246,7 @@ export default function TravelAI() {
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="p-4 border-t border-gray-800">
+          <div className="p-4 border-t border-gray-800 flex-shrink-0">
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
