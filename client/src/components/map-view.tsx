@@ -393,11 +393,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     // Initialize Leaflet map with strict single-world enforcement
+    // Default maxZoom is 13 for privacy (NFT locations hidden at street level)
+    // When check-in mode is active, maxZoom increases to 19 for street-level accuracy
     const map = L.map(mapRef.current, {
       maxBounds: [[-89, -179.9], [89, 179.9]], // Single world only - strict bounds
       maxBoundsViscosity: 1.0, // Strong bounds enforcement  
       minZoom: 1, // Prevent zooming out too far
-      maxZoom: 19, // Allow street-level zoom for check-in mode
+      maxZoom: 13, // Default: restricted for NFT owner privacy
       zoomControl: false // Disable default zoom control to reposition it
     }).setView([20, 0], 1);
     mapInstanceRef.current = map;
@@ -408,12 +410,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     }).addTo(map);
 
     // RELIABLE TILE SERVICE: OpenStreetMap with consistent availability
-    // Clean, reliable tiles with good zoom support up to level 19
+    // Tiles support up to zoom 19, but map maxZoom controls actual limit
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© OpenStreetMap contributors',
       noWrap: true, // PREVENT repetition
       bounds: [[-89, -179.9], [89, 179.9]], // Strict single world
-      maxZoom: 19 // Allow street-level zoom for check-in mode
+      maxZoom: 19 // Tiles available up to 19, map maxZoom controls actual limit
     }).addTo(map);
 
     console.log('🗺️ Reliable OpenStreetMap tiles - no missing data at zoom levels');
@@ -635,21 +637,38 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     };
   }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator, checkInMode]);
 
-  // Hide/show NFT markers when check-in mode changes
+  // Hide/show NFT markers and adjust zoom limits when check-in mode changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !clusterGroupRef.current) return;
+    if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
     
     if (checkInMode) {
+      // PRIVACY MODE OFF: Allow street-level zoom for accurate check-in
+      map.setMaxZoom(19);
+      
       // Hide NFT markers in check-in mode for cleaner view
-      map.removeLayer(clusterGroupRef.current);
+      if (clusterGroupRef.current) {
+        map.removeLayer(clusterGroupRef.current);
+      }
       // Also hide polyline if present
       if (polylineRef.current) {
         map.removeLayer(polylineRef.current);
       }
     } else {
+      // PRIVACY MODE ON: Restrict zoom to protect NFT owner locations
+      const currentZoom = map.getZoom();
+      const privacyMaxZoom = 13;
+      
+      // If currently zoomed in beyond privacy limit, zoom out first
+      if (currentZoom > privacyMaxZoom) {
+        map.setZoom(privacyMaxZoom);
+      }
+      
+      // Then set the max zoom limit
+      map.setMaxZoom(privacyMaxZoom);
+      
       // Show NFT markers when exiting check-in mode
-      if (!map.hasLayer(clusterGroupRef.current)) {
+      if (clusterGroupRef.current && !map.hasLayer(clusterGroupRef.current)) {
         map.addLayer(clusterGroupRef.current);
       }
       // Re-add polyline if exists
