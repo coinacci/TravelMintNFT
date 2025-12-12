@@ -100,8 +100,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const { address: walletAddress } = useAccount();
   
   // Check-in state
-  const [checkInMode, setCheckInMode] = useState(false); // Shows POI markers on map
   const [checkInDrawerOpen, setCheckInDrawerOpen] = useState(false);
+  const [checkInStep, setCheckInStep] = useState<'list' | 'confirm'>('list');
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -109,6 +109,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [pendingCheckInPOI, setPendingCheckInPOI] = useState<POI | null>(null);
   const [checkInComment, setCheckInComment] = useState("");
   const [placeDetailsPOI, setPlaceDetailsPOI] = useState<POI | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const checkInRadius = 500; // 500 meters
   
   // Blockchain transaction for check-in
@@ -304,36 +305,40 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     );
   }, []);
 
-  // Toggle check-in mode (shows POI markers on map)
-  const toggleCheckInMode = useCallback(() => {
-    if (!checkInMode) {
-      setCheckInMode(true);
-      getUserLocation();
-    } else {
-      setCheckInMode(false);
-      // Clear POI layer when exiting check-in mode
-      if (poiLayerRef.current) {
-        poiLayerRef.current.clearLayers();
-      }
-    }
-  }, [checkInMode, getUserLocation]);
+  // Open check-in drawer and get location
+  const openCheckInDrawer = useCallback(() => {
+    setCheckInDrawerOpen(true);
+    setCheckInStep('list');
+    getUserLocation();
+  }, [getUserLocation]);
 
   // Handle drawer close
   const handleDrawerClose = useCallback((open: boolean) => {
     if (!open && !isTxPending && !isTxConfirming) {
       setCheckInDrawerOpen(false);
+      setCheckInStep('list');
       setSelectedPOI(null);
       setPendingCheckInPOI(null);
       setCheckInComment("");
+      setSearchQuery("");
       resetTx();
     }
   }, [isTxPending, isTxConfirming, resetTx]);
 
-  // Select a POI for check-in (called when marker clicked)
+  // Filter nearby places by name (local search only)
+  const filteredPOIs = useMemo(() => {
+    if (!searchQuery.trim()) return nearbyPOIs;
+    const query = searchQuery.toLowerCase();
+    return nearbyPOIs.filter(poi => 
+      poi.name.toLowerCase().includes(query)
+    );
+  }, [searchQuery, nearbyPOIs]);
+
+  // Select a POI for check-in
   const selectPOIForCheckIn = useCallback((poi: POI) => {
     setSelectedPOI(poi);
     setPlaceDetailsPOI(poi); // Trigger fetching previous check-ins
-    setCheckInDrawerOpen(true);
+    setCheckInStep('confirm');
   }, []);
 
   // Category emoji mapping
@@ -747,7 +752,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     userCheckinsLayerRef.current = checkinsLayer;
   }, [userCheckins]);
 
-  // User location marker effect - show user location in check-in mode
+  // User location marker effect - show user location when drawer is open
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -762,8 +767,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       userCircleRef.current = null;
     }
 
-    // Only show user location in check-in mode with valid location
-    if (!checkInMode || !userLocation) return;
+    // Only show user location when drawer is open with valid location
+    if (!checkInDrawerOpen || !userLocation) return;
 
     // Create user location marker
     const userIcon = L.divIcon({
@@ -792,9 +797,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     // Pan map to user location
     map.setView([userLocation.lat, userLocation.lon], 17);
-  }, [checkInMode, userLocation, checkInRadius]);
+  }, [checkInDrawerOpen, userLocation, checkInRadius]);
 
-  // POI markers effect - show nearby POIs in check-in mode
+  // POI markers effect - show nearby POIs when drawer is open
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -805,8 +810,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       poiLayerRef.current = null;
     }
 
-    // Only show POI markers in check-in mode with nearby places
-    if (!checkInMode || nearbyPOIs.length === 0) return;
+    // Only show POI markers when drawer is open with nearby places
+    if (!checkInDrawerOpen || nearbyPOIs.length === 0) return;
 
     const poiLayer = L.layerGroup();
 
@@ -832,7 +837,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     poiLayer.addTo(map);
     poiLayerRef.current = poiLayer;
-  }, [checkInMode, nearbyPOIs, selectPOIForCheckIn]);
+  }, [checkInDrawerOpen, nearbyPOIs, selectPOIForCheckIn]);
 
   return (
     <div className="relative">
@@ -932,148 +937,233 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       {/* Check-in Button */}
       <div className="absolute top-16 md:top-32 right-4 z-10">
         <Button
-          onClick={toggleCheckInMode}
+          onClick={openCheckInDrawer}
           disabled={locationLoading}
-          className={`px-4 py-2 rounded-full shadow-lg flex items-center gap-2 border ${
-            checkInMode 
-              ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-600' 
-              : 'bg-white hover:bg-gray-100 text-gray-800 border-gray-200'
-          }`}
+          className="px-4 py-2 rounded-full shadow-lg flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-800 border border-gray-200"
           data-testid="button-checkin-toggle"
         >
           <Navigation className="w-4 h-4" />
-          <span>{checkInMode ? 'Exit Check-in' : 'Check-in'}</span>
+          <span>Check-in</span>
         </Button>
       </div>
 
-      {/* Check-in Mode Status */}
-      {checkInMode && !checkInDrawerOpen && (
-        <div className="absolute top-28 md:top-44 right-4 z-10 bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-sm max-w-[200px]">
-          {locationLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Getting location...</span>
-            </div>
-          ) : locationError ? (
-            <div>
-              <p className="text-xs">{locationError}</p>
-              <Button size="sm" variant="secondary" onClick={getUserLocation} className="mt-1 text-xs h-6">
-                Retry
-              </Button>
-            </div>
-          ) : poisLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Finding places...</span>
-            </div>
-          ) : (
-            <p>Tap a blue marker to check in</p>
-          )}
-        </div>
-      )}
-
-      {/* Check-in Drawer (Bottom Sheet) - Confirm step only */}
+      {/* Check-in Drawer (Bottom Sheet) */}
       <Drawer open={checkInDrawerOpen} onOpenChange={handleDrawerClose}>
         <DrawerContent className="max-h-[85vh]">
-          <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2">
-              <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
-              {selectedPOI?.name || 'Confirm Check-in'}
-            </DrawerTitle>
-          </DrawerHeader>
+          {checkInStep === 'list' ? (
+            <>
+              <DrawerHeader>
+                <DrawerTitle className="flex items-center gap-2">
+                  <Navigation className="w-5 h-5 text-blue-500" />
+                  Check-in
+                </DrawerTitle>
+                <DrawerDescription>
+                  Select a nearby place to check in and earn 10 points
+                </DrawerDescription>
+              </DrawerHeader>
 
-          <div className="px-4 pb-4">
-            {selectedPOI && (
-              <>
-                {/* Previous check-ins at this location */}
-                {placeCheckins && placeCheckins.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-2">Previous notes at this place</p>
-                    <ScrollArea className="h-[20vh]">
-                      <div className="space-y-2 pr-2">
-                        {placeCheckins.map((checkin: any, idx: number) => (
-                          <div key={idx} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
-                            <p className="text-sm text-white">{checkin.comment || 'No note'}</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {checkin.farcaster_username || checkin.wallet_address?.slice(0, 8)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
-
-                {/* Comment textarea */}
+              <div className="px-4 pb-4">
+                {/* Search Input - filters nearby places only */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Add a note (optional)
-                  </label>
-                  <textarea
-                    value={checkInComment}
-                    onChange={(e) => setCheckInComment(e.target.value)}
-                    placeholder="Share your experience at this place..."
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={3}
-                    maxLength={500}
-                    disabled={isTxPending || isTxConfirming}
-                    data-testid="input-checkin-comment"
-                  />
-                  <p className="text-xs text-gray-500 text-right mt-1">{checkInComment.length}/500</p>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Filter nearby places..."
+                      className="w-full px-4 py-2 pl-10 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      data-testid="input-search-place"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
                 </div>
 
-                {!walletAddress && (
-                  <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-yellow-200">
-                      Please connect your wallet to check in.
-                    </p>
+                {/* Location status */}
+                {locationLoading && (
+                  <div className="flex items-center justify-center gap-2 py-8 text-gray-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Getting your location...</span>
                   </div>
                 )}
-              </>
-            )}
-          </div>
 
-          <DrawerFooter className="flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCheckInDrawerOpen(false);
-                setSelectedPOI(null);
-                setCheckInComment("");
-                resetTx();
-              }}
-              disabled={isTxPending || isTxConfirming}
-              className="flex-1"
-              data-testid="button-cancel-checkin"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedPOI) initiateCheckIn(selectedPOI);
-              }}
-              disabled={!walletAddress || isTxPending || isTxConfirming}
-              className="flex-1 bg-blue-500 hover:bg-blue-600"
-              data-testid="button-checkin-confirm"
-            >
-              {isTxPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Confirm in wallet...
-                </>
-              ) : isTxConfirming ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Confirming...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Check-in ({CHECK_IN_FEE} ETH)
-                </>
-              )}
-            </Button>
-          </DrawerFooter>
+                {locationError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-red-700">{locationError}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={getUserLocation}
+                      className="mt-2"
+                      data-testid="button-retry-location"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                )}
+
+                {/* Nearby POI List (filtered by search) */}
+                {userLocation && !locationLoading && (
+                  <>
+                    {poisLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-8 text-gray-500">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Finding nearby places...</span>
+                      </div>
+                    ) : filteredPOIs.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                        <p className="text-gray-500">
+                          {searchQuery ? "No matching places" : "No places found within 500m"}
+                        </p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[40vh]">
+                        <div className="space-y-2 pr-4">
+                          <p className="text-xs text-gray-500 mb-3">
+                            {filteredPOIs.length} place{filteredPOIs.length !== 1 ? 's' : ''} {searchQuery ? 'matching' : 'within 500m'}
+                          </p>
+                          {filteredPOIs.map((poi: POI) => (
+                            <button
+                              key={poi.id}
+                              onClick={() => selectPOIForCheckIn(poi)}
+                              className="w-full text-left bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-blue-500 rounded-lg p-3 transition-colors"
+                              data-testid={`poi-item-${poi.id}`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className="text-2xl">{getCategoryEmoji(poi.category)}</span>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm truncate text-white">{poi.name}</h4>
+                                  {poi.distance && (
+                                    <p className="text-xs text-blue-400 mt-1">
+                                      {Math.round(poi.distance)}m away
+                                    </p>
+                                  )}
+                                </div>
+                                <Check className="w-4 h-4 text-gray-500" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <DrawerFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setCheckInDrawerOpen(false)}
+                  data-testid="button-close-checkin-drawer"
+                >
+                  Close
+                </Button>
+              </DrawerFooter>
+            </>
+          ) : (
+            <>
+              {/* Confirm Step */}
+              <DrawerHeader>
+                <DrawerTitle className="flex items-center gap-2">
+                  <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
+                  {selectedPOI?.name || 'Confirm Check-in'}
+                </DrawerTitle>
+              </DrawerHeader>
+
+              <div className="px-4 pb-4">
+                {selectedPOI && (
+                  <>
+                    {/* Previous check-ins at this location */}
+                    {placeCheckins && placeCheckins.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs text-gray-500 mb-2">Previous notes at this place</p>
+                        <ScrollArea className="h-[20vh]">
+                          <div className="space-y-2 pr-2">
+                            {placeCheckins.map((checkin: any, idx: number) => (
+                              <div key={idx} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <p className="text-sm text-white">{checkin.comment || 'No note'}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {checkin.farcaster_username || checkin.wallet_address?.slice(0, 8)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
+
+                    {/* Comment textarea */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Add a note (optional)
+                      </label>
+                      <textarea
+                        value={checkInComment}
+                        onChange={(e) => setCheckInComment(e.target.value)}
+                        placeholder="Share your experience at this place..."
+                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        rows={3}
+                        maxLength={500}
+                        disabled={isTxPending || isTxConfirming}
+                        data-testid="input-checkin-comment"
+                      />
+                      <p className="text-xs text-gray-500 text-right mt-1">{checkInComment.length}/500</p>
+                    </div>
+
+                    {!walletAddress && (
+                      <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3 mb-4">
+                        <p className="text-sm text-yellow-200">
+                          Please connect your wallet to check in.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <DrawerFooter className="flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCheckInStep('list');
+                    setSelectedPOI(null);
+                    setCheckInComment("");
+                    resetTx();
+                  }}
+                  disabled={isTxPending || isTxConfirming}
+                  className="flex-1"
+                  data-testid="button-back-to-list"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedPOI) initiateCheckIn(selectedPOI);
+                  }}
+                  disabled={!walletAddress || isTxPending || isTxConfirming}
+                  className="flex-1 bg-blue-500 hover:bg-blue-600"
+                  data-testid="button-checkin-confirm"
+                >
+                  {isTxPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Confirm in wallet...
+                    </>
+                  ) : isTxConfirming ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Confirming...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Check-in ({CHECK_IN_FEE} ETH)
+                    </>
+                  )}
+                </Button>
+              </DrawerFooter>
+            </>
+          )}
         </DrawerContent>
       </Drawer>
     </div>
