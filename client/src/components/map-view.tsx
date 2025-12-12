@@ -397,7 +397,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       maxBounds: [[-89, -179.9], [89, 179.9]], // Single world only - strict bounds
       maxBoundsViscosity: 1.0, // Strong bounds enforcement  
       minZoom: 1, // Prevent zooming out too far
-      maxZoom: 13, // Reduced to ensure tile availability
+      maxZoom: 19, // Allow street-level zoom for check-in mode
       zoomControl: false // Disable default zoom control to reposition it
     }).setView([20, 0], 1);
     mapInstanceRef.current = map;
@@ -413,7 +413,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       attribution: '© OpenStreetMap contributors',
       noWrap: true, // PREVENT repetition
       bounds: [[-89, -179.9], [89, 179.9]], // Strict single world
-      maxZoom: 13 // Match map maxZoom to prevent missing tiles
+      maxZoom: 19 // Allow street-level zoom for check-in mode
     }).addTo(map);
 
     console.log('🗺️ Reliable OpenStreetMap tiles - no missing data at zoom levels');
