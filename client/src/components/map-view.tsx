@@ -822,10 +822,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     const poiLayer = L.layerGroup();
 
     nearbyPOIs.forEach((poi) => {
-      const emoji = getCategoryEmoji(poi.category);
-      
       const poiIcon = L.divIcon({
-        html: `<div class="poi-marker" style="background: #3b82f6; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"><span style="font-size: 18px;">${emoji}</span></div>`,
+        html: `<div class="poi-marker" style="background: #3b82f6; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"><span style="font-size: 18px;">📌</span></div>`,
         className: 'poi-marker-icon',
         iconSize: [36, 36],
         iconAnchor: [18, 18],
