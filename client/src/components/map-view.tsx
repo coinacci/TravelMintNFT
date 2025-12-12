@@ -278,7 +278,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         setLocationLoading(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError("Location permission denied");
+            setLocationError("Location permission denied. Please enable location access in your browser/app settings.");
             break;
           case error.POSITION_UNAVAILABLE:
             setLocationError("Location unavailable");
