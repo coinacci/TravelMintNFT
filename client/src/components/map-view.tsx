@@ -7,10 +7,25 @@ import "leaflet.markercluster";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Filter, X, User, MapPin, Navigation, Loader2, Check } from "lucide-react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
-import { useAccount } from "wagmi";
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { encodeFunctionData, parseEther } from "viem";
 import { useToast } from "@/hooks/use-toast";
 import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+const QUEST_MANAGER_ADDRESS = "0xC280030c2d15EF42C207a35CcF7a63A4760d8967" as `0x${string}`;
+const CHECK_IN_QUEST_ID = 2;
+const CHECK_IN_FEE = "0.0001"; // ETH
+
+const QUEST_ABI = [
+  {
+    "inputs": [{ "internalType": "uint256", "name": "questId", "type": "uint256" }],
+    "name": "completeQuest",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+] as const;
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -81,7 +96,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
+  const [pendingCheckInPOI, setPendingCheckInPOI] = useState<POI | null>(null);
   const checkInRadius = 500; // 500 meters
+  
+  // Blockchain transaction for check-in
+  const { sendTransaction, data: txHash, isPending: isTxPending, reset: resetTx } = useSendTransaction();
+  const { isLoading: isTxConfirming, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ hash: txHash });
   
   // Reset "Only Yours" filter when wallet disconnects
   useEffect(() => {
@@ -106,7 +126,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     staleTime: 60 * 1000, // 1 minute
   });
 
-  // Check-in mutation
+  // Check-in mutation (stores location data in DB after blockchain tx confirms)
   const checkInMutation = useMutation({
     mutationFn: async (poi: POI) => {
       if (!walletAddress) throw new Error("Wallet not connected");
@@ -121,28 +141,54 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         placeSubcategory: poi.subcategory || null,
         latitude: poi.lat,
         longitude: poi.lon,
+        txHash: txHash || null, // Include tx hash for reference
       };
       
       const response = await apiRequest("POST", "/api/checkins", payload);
       return response;
     },
     onSuccess: () => {
-      toast({
-        title: "Check-in Successful! ✓",
-        description: `You checked in at ${selectedPOI?.name}. +10 points earned!`,
-      });
-      setCheckInDialogOpen(false);
-      setSelectedPOI(null);
       queryClient.invalidateQueries({ queryKey: ["/api/checkins"] });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Check-in Failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
   });
+  
+  // Handle blockchain transaction success - store check-in data and show success
+  useEffect(() => {
+    if (isTxSuccess && pendingCheckInPOI) {
+      // Store check-in data in database
+      checkInMutation.mutate(pendingCheckInPOI);
+      
+      toast({
+        title: "Check-in Successful! ✓",
+        description: `You checked in at ${pendingCheckInPOI.name}. +10 points earned on-chain!`,
+      });
+      
+      // Reset state
+      setCheckInDialogOpen(false);
+      setSelectedPOI(null);
+      setPendingCheckInPOI(null);
+      resetTx();
+    }
+  }, [isTxSuccess, pendingCheckInPOI]);
+  
+  // Function to initiate on-chain check-in
+  const initiateCheckIn = useCallback((poi: POI) => {
+    if (!walletAddress || !farcasterUser) return;
+    
+    setPendingCheckInPOI(poi);
+    
+    const data = encodeFunctionData({
+      abi: QUEST_ABI,
+      functionName: 'completeQuest',
+      args: [BigInt(CHECK_IN_QUEST_ID)]
+    });
+    
+    sendTransaction({
+      to: QUEST_MANAGER_ADDRESS,
+      value: parseEther(CHECK_IN_FEE),
+      data
+    });
+  }, [walletAddress, farcasterUser, sendTransaction]);
 
   // Get user location
   const getUserLocation = useCallback(() => {
@@ -821,7 +867,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       </div>
 
       {/* Check-in Confirmation Dialog */}
-      <Dialog open={checkInDialogOpen} onOpenChange={setCheckInDialogOpen}>
+      <Dialog open={checkInDialogOpen} onOpenChange={(open) => {
+        if (!open && !isTxPending && !isTxConfirming) {
+          setCheckInDialogOpen(false);
+          setPendingCheckInPOI(null);
+          resetTx();
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -829,7 +881,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               Confirm Check-in
             </DialogTitle>
             <DialogDescription>
-              Check in at this location to earn 10 points.
+              Check in at this location to earn 10 points (on-chain, {CHECK_IN_FEE} ETH gas).
             </DialogDescription>
           </DialogHeader>
           
@@ -852,32 +904,50 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                   </p>
                 </div>
               )}
+              
+              {!farcasterUser && walletAddress && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    Please sign in with Farcaster to earn points.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           
           <DialogFooter className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setCheckInDialogOpen(false)}
+              onClick={() => {
+                setCheckInDialogOpen(false);
+                setPendingCheckInPOI(null);
+                resetTx();
+              }}
+              disabled={isTxPending || isTxConfirming}
               data-testid="button-checkin-cancel"
             >
               Cancel
             </Button>
             <Button
-              onClick={() => selectedPOI && checkInMutation.mutate(selectedPOI)}
-              disabled={!walletAddress || checkInMutation.isPending}
+              onClick={() => selectedPOI && initiateCheckIn(selectedPOI)}
+              disabled={!walletAddress || !farcasterUser || isTxPending || isTxConfirming}
               className="bg-green-500 hover:bg-green-600"
               data-testid="button-checkin-confirm"
             >
-              {checkInMutation.isPending ? (
+              {isTxPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Checking in...
+                  Confirm in wallet...
+                </>
+              ) : isTxConfirming ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Confirming...
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  Check-in
+                  Check-in ({CHECK_IN_FEE} ETH)
                 </>
               )}
             </Button>

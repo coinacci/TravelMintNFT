@@ -33,11 +33,15 @@ export async function startQuestEventListener() {
         const questIdNum = Number(questId);
         
         // Early exit checks - OUTSIDE retry loop to avoid wasting retries
-        // Only handle questId 1 (Hello TravelMint daily quest)
-        if (questIdNum !== 1) {
-          console.log(`⚠️ Ignoring quest ID ${questIdNum} (only handling quest 1)`);
+        // Handle questId 1 (Hello TravelMint daily quest) and questId 2 (Map Check-in)
+        if (questIdNum !== 1 && questIdNum !== 2) {
+          console.log(`⚠️ Ignoring quest ID ${questIdNum} (only handling quests 1 and 2)`);
           return;
         }
+        
+        // Determine quest type based on questId
+        const questType = questIdNum === 1 ? 'base_transaction' : 'map_checkin';
+        const pointsEarned = questIdNum === 1 ? 100 : 1000; // 1.00 points for quest 1, 10.00 points for check-in
         
         // Get ALL linked Farcaster accounts for this wallet
         const linkedAccounts = await storage.getLinkedWallets(walletAddress);
@@ -63,19 +67,20 @@ export async function startQuestEventListener() {
         
         while (retryCount < maxRetries) {
           try {
-            // Check if already claimed on that specific day
-            const existingCompletion = await storage.getQuestCompletion(farcasterFid, 'base_transaction', eventDay);
-            
-            if (existingCompletion) {
-              console.log(`⚠️ Quest already claimed for FID ${farcasterFid} on day ${eventDay}`);
-              return;
+            // Check if already claimed on that specific day (map_checkin allows multiple per day, base_transaction is once per day)
+            if (questType === 'base_transaction') {
+              const existingCompletion = await storage.getQuestCompletion(farcasterFid, questType, eventDay);
+              
+              if (existingCompletion) {
+                console.log(`⚠️ Quest already claimed for FID ${farcasterFid} on day ${eventDay}`);
+                return;
+              }
             }
             
             // Record quest completion with blockchain event day
-            const pointsEarned = 100; // 1.00 points in fixed-point (stored as 100)
             await storage.addQuestCompletion({
               farcasterFid,
-              questType: 'base_transaction',
+              questType,
               completionDate: '', // Unused - addQuestCompletion derives YYYY-MM-DD from day
               pointsEarned,
               day: eventDay // Use blockchain day for deduplication
