@@ -128,6 +128,26 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     staleTime: 60 * 1000, // 1 minute
   });
 
+  // Fetch check-ins for a specific place
+  const { data: placeCheckins = [], isLoading: placeCheckinsLoading } = useQuery<{
+    wallet_address: string;
+    farcaster_username?: string;
+    comment?: string;
+    created_at: string;
+    points_earned: number;
+  }[]>({
+    queryKey: ["/api/checkins/place", placeDetailsPOI?.id],
+    queryFn: async () => {
+      if (!placeDetailsPOI) return [];
+      const response = await fetch(`/api/checkins/place/${encodeURIComponent(placeDetailsPOI.id)}`);
+      if (!response.ok) throw new Error("Failed to fetch place check-ins");
+      const data = await response.json();
+      return data.checkins || [];
+    },
+    enabled: !!placeDetailsPOI,
+    staleTime: 30 * 1000, // 30 seconds
+  });
+
   // Check-in mutation (stores location data in DB after blockchain tx confirms)
   const checkInMutation = useMutation({
     mutationFn: async ({ poi, comment }: { poi: POI; comment: string }) => {
@@ -148,10 +168,14 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       };
       
       const response = await apiRequest("POST", "/api/checkins", payload);
-      return response;
+      return { response, osmId: poi.id };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate all check-in related queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: ["/api/checkins"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/checkins/place", data.osmId] });
+      // Clear comment after successful submission
+      setCheckInComment("");
     },
   });
   
@@ -1063,6 +1087,93 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Place Details Dialog - Shows previous check-ins */}
+      <Dialog open={!!placeDetailsPOI} onOpenChange={(open) => {
+        if (!open) setPlaceDetailsPOI(null);
+      }}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-2xl">{placeDetailsPOI ? getCategoryEmoji(placeDetailsPOI.category) : '📍'}</span>
+              {placeDetailsPOI?.name || 'Place Details'}
+            </DialogTitle>
+            <DialogDescription>
+              {placeDetailsPOI?.category} • Check-in history
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto py-4">
+            {placeCheckinsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              </div>
+            ) : placeCheckins.length === 0 ? (
+              <div className="text-center py-8">
+                <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                <p className="text-gray-500 text-sm">No check-ins yet</p>
+                <p className="text-gray-400 text-xs mt-1">Be the first to check in at this place!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 mb-4">
+                  {placeCheckins.length} check-in{placeCheckins.length !== 1 ? 's' : ''} at this place
+                </p>
+                {placeCheckins.map((checkin, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-sm font-medium shrink-0">
+                        {checkin.farcaster_username ? checkin.farcaster_username[0].toUpperCase() : '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm truncate">
+                            {checkin.farcaster_username || `${checkin.wallet_address.slice(0, 6)}...${checkin.wallet_address.slice(-4)}`}
+                          </p>
+                          <span className="text-xs text-gray-400 shrink-0 ml-2">
+                            {new Date(checkin.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {checkin.comment && (
+                          <p className="text-sm text-gray-600 mt-1 break-words">{checkin.comment}</p>
+                        )}
+                        {!checkin.comment && (
+                          <p className="text-xs text-gray-400 mt-1 italic">No note added</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPlaceDetailsPOI(null)}
+              className="w-full"
+              data-testid="button-close-place-details"
+            >
+              Close
+            </Button>
+            {placeDetailsPOI && (
+              <Button
+                onClick={() => {
+                  setSelectedPOI(placeDetailsPOI);
+                  setPlaceDetailsPOI(null);
+                  setCheckInDialogOpen(true);
+                }}
+                className="w-full bg-green-500 hover:bg-green-600"
+                data-testid="button-checkin-from-details"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Check in here
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
