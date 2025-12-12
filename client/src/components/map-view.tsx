@@ -989,7 +989,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         </div>
       </div>
 
-      {/* Check-in Button - positioned below Filters on the right */}
+      {/* Check-in Button - TEMPORARILY HIDDEN */}
+      {/* TODO: Re-enable check-in system when ready */}
+      {false && (
       <div className="absolute top-16 md:top-32 right-4 z-10">
         <Button
           onClick={toggleCheckInMode}
@@ -1048,8 +1050,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </div>
         )}
       </div>
+      )}
 
-      {/* Check-in Confirmation Dialog */}
+      {/* Check-in Confirmation Dialog - TEMPORARILY HIDDEN */}
+      {false && (
       <Dialog open={checkInDialogOpen} onOpenChange={(open) => {
         if (!open && !isTxPending && !isTxConfirming) {
           setCheckInDialogOpen(false);
@@ -1176,8 +1180,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
 
-      {/* Place Details Dialog - Shows previous check-ins */}
+      {/* Place Details Dialog - TEMPORARILY HIDDEN */}
+      {false && (
       <Dialog open={!!placeDetailsPOI} onOpenChange={(open) => {
         if (!open) setPlaceDetailsPOI(null);
       }}>
@@ -1263,6 +1269,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }
