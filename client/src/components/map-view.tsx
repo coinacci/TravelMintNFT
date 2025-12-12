@@ -97,6 +97,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
   const [pendingCheckInPOI, setPendingCheckInPOI] = useState<POI | null>(null);
+  const [checkInComment, setCheckInComment] = useState("");
+  const [placeDetailsPOI, setPlaceDetailsPOI] = useState<POI | null>(null);
   const checkInRadius = 500; // 500 meters
   
   // Blockchain transaction for check-in
@@ -128,7 +130,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   // Check-in mutation (stores location data in DB after blockchain tx confirms)
   const checkInMutation = useMutation({
-    mutationFn: async (poi: POI) => {
+    mutationFn: async ({ poi, comment }: { poi: POI; comment: string }) => {
       if (!walletAddress) throw new Error("Wallet not connected");
       
       const payload = {
@@ -142,6 +144,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         latitude: poi.lat,
         longitude: poi.lon,
         txHash: txHash || null, // Include tx hash for reference
+        comment: comment.trim() || null, // Add user comment
       };
       
       const response = await apiRequest("POST", "/api/checkins", payload);
@@ -155,8 +158,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   // Handle blockchain transaction success - store check-in data and show success
   useEffect(() => {
     if (isTxSuccess && pendingCheckInPOI) {
-      // Store check-in data in database
-      checkInMutation.mutate(pendingCheckInPOI);
+      // Store check-in data in database with comment
+      checkInMutation.mutate({ poi: pendingCheckInPOI, comment: checkInComment });
       
       toast({
         title: "Check-in Successful! ✓",
@@ -941,6 +944,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         if (!open && !isTxPending && !isTxConfirming) {
           setCheckInDialogOpen(false);
           setPendingCheckInPOI(null);
+          setCheckInComment("");
           resetTx();
         }
       }}>
@@ -958,13 +962,47 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           {selectedPOI && (
             <div className="py-4">
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h3 className="font-semibold text-lg">{selectedPOI.name}</h3>
-                <p className="text-sm text-gray-600">{selectedPOI.category}</p>
-                {selectedPOI.distance && (
-                  <p className="text-sm text-green-600 mt-1">
-                    {Math.round(selectedPOI.distance)}m away
-                  </p>
-                )}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedPOI.name}</h3>
+                    <p className="text-sm text-gray-600">{selectedPOI.category}</p>
+                    {selectedPOI.distance && (
+                      <p className="text-sm text-green-600 mt-1">
+                        {Math.round(selectedPOI.distance)}m away
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                    onClick={() => {
+                      setPlaceDetailsPOI(selectedPOI);
+                      setCheckInDialogOpen(false);
+                    }}
+                    data-testid="button-view-checkins"
+                  >
+                    View Check-ins
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Comment textarea */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Add a note (optional)
+                </label>
+                <textarea
+                  value={checkInComment}
+                  onChange={(e) => setCheckInComment(e.target.value)}
+                  placeholder="Share your experience at this place..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  rows={3}
+                  maxLength={500}
+                  disabled={isTxPending || isTxConfirming}
+                  data-testid="input-checkin-comment"
+                />
+                <p className="text-xs text-gray-400 text-right mt-1">{checkInComment.length}/500</p>
               </div>
               
               {!walletAddress && (
@@ -991,6 +1029,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               onClick={() => {
                 setCheckInDialogOpen(false);
                 setPendingCheckInPOI(null);
+                setCheckInComment("");
                 resetTx();
               }}
               disabled={isTxPending || isTxConfirming}
