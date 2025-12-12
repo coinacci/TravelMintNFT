@@ -238,11 +238,27 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const toggleCheckInMode = useCallback(() => {
     if (!checkInMode) {
       setCheckInMode(true);
+      // Immediately hide NFT markers for cleaner view
+      if (mapInstanceRef.current && clusterGroupRef.current) {
+        mapInstanceRef.current.removeLayer(clusterGroupRef.current);
+        if (polylineRef.current) {
+          mapInstanceRef.current.removeLayer(polylineRef.current);
+        }
+      }
       getUserLocation();
     } else {
       setCheckInMode(false);
       setUserLocation(null);
       setLocationError(null);
+      // Restore NFT markers when exiting check-in mode
+      if (mapInstanceRef.current && clusterGroupRef.current) {
+        if (!mapInstanceRef.current.hasLayer(clusterGroupRef.current)) {
+          mapInstanceRef.current.addLayer(clusterGroupRef.current);
+        }
+        if (polylineRef.current && !mapInstanceRef.current.hasLayer(polylineRef.current)) {
+          mapInstanceRef.current.addLayer(polylineRef.current);
+        }
+      }
       // Clear cached POI data to ensure fresh fetch next time
       queryClient.removeQueries({ queryKey: ["/api/places/nearby"] });
     }
