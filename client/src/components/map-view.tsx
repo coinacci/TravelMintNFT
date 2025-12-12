@@ -197,6 +197,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       // Invalidate all check-in related queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: ["/api/checkins"] });
       queryClient.invalidateQueries({ queryKey: ["/api/checkins/place", data.osmId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/checkins/user", walletAddress] });
       // Clear comment after successful submission
       setCheckInComment("");
     },
