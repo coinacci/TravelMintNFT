@@ -10,9 +10,9 @@ const QUEST_MANAGER_ABI = [
 ];
 
 async function main() {
-  const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+  const privateKey = process.env.TREASURY_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error("DEPLOYER_PRIVATE_KEY not set");
+    throw new Error("TREASURY_PRIVATE_KEY not set");
   }
 
   const provider = new ethers.JsonRpcProvider("https://mainnet.base.org");
