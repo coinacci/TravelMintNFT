@@ -494,3 +494,51 @@ export const insertTravelAiQuerySchema = createInsertSchema(travelAiQueries).omi
 
 export type InsertTravelAiQuery = z.infer<typeof insertTravelAiQuerySchema>;
 export type TravelAiQuery = typeof travelAiQueries.$inferSelect;
+
+// Check-in System - Users check in at OpenStreetMap places
+export const checkins = pgTable("checkins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  farcasterFid: text("farcaster_fid"),
+  farcasterUsername: text("farcaster_username"),
+  osmId: text("osm_id").notNull(), // OpenStreetMap place ID (e.g., "node/123456")
+  placeName: text("place_name").notNull(),
+  placeCategory: text("place_category").notNull(),
+  placeSubcategory: text("place_subcategory"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  transactionHash: text("transaction_hash"), // Optional on-chain transaction
+  pointsEarned: integer("points_earned").default(10).notNull(), // Points for this check-in
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCheckinSchema = createInsertSchema(checkins).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCheckin = z.infer<typeof insertCheckinSchema>;
+export type Checkin = typeof checkins.$inferSelect;
+
+// Check-in API Validation Schemas
+export const checkinRequestSchema = z.object({
+  walletAddress: z.string().min(1, "Wallet address is required"),
+  farcasterFid: z.string().optional(),
+  farcasterUsername: z.string().optional(),
+  osmId: z.string().min(1, "OSM ID is required"),
+  placeName: z.string().min(1, "Place name is required"),
+  placeCategory: z.string().min(1, "Place category is required"),
+  placeSubcategory: z.string().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+  transactionHash: z.string().optional(),
+});
+
+export const nearbyPOIsQuerySchema = z.object({
+  lat: z.string().regex(/^-?\d+\.?\d*$/, "Latitude must be a number"),
+  lon: z.string().regex(/^-?\d+\.?\d*$/, "Longitude must be a number"),
+  radius: z.string().regex(/^\d+$/, "Radius must be a number").optional(),
+});
+
+export type CheckinRequest = z.infer<typeof checkinRequestSchema>;
+export type NearbyPOIsQuery = z.infer<typeof nearbyPOIsQuerySchema>;

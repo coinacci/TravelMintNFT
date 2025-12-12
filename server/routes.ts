@@ -5630,6 +5630,227 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // ===== CHECK-IN SYSTEM ENDPOINTS =====
+  
+  // GET /api/places/nearby - Get nearby POIs from OpenStreetMap via Overpass API
+  app.get("/api/places/nearby", async (req: Request, res: Response) => {
+    try {
+      const { lat, lon, radius } = req.query;
+      
+      if (!lat || !lon) {
+        return res.status(400).json({ error: 'Latitude and longitude are required' });
+      }
+      
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lon as string);
+      const radiusMeters = radius ? parseInt(radius as string) : 500;
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ error: 'Invalid coordinates' });
+      }
+      
+      const { getNearbyPOIs } = await import('./overpass-service');
+      const pois = await getNearbyPOIs(latitude, longitude, radiusMeters);
+      
+      res.json({ pois, count: pois.length });
+    } catch (error: any) {
+      console.error('Nearby places error:', error);
+      res.status(500).json({ error: error.message || 'Failed to fetch nearby places' });
+    }
+  });
+  
+  // GET /api/places/search - Search POIs by name in a bounding box
+  app.get("/api/places/search", async (req: Request, res: Response) => {
+    try {
+      const { query, south, west, north, east, limit } = req.query;
+      
+      if (!query || !south || !west || !north || !east) {
+        return res.status(400).json({ error: 'Query and bounding box (south, west, north, east) are required' });
+      }
+      
+      const { searchPOIs } = await import('./overpass-service');
+      const pois = await searchPOIs(
+        query as string,
+        parseFloat(south as string),
+        parseFloat(west as string),
+        parseFloat(north as string),
+        parseFloat(east as string),
+        limit ? parseInt(limit as string) : 50
+      );
+      
+      res.json({ pois, count: pois.length });
+    } catch (error: any) {
+      console.error('Search places error:', error);
+      res.status(500).json({ error: error.message || 'Failed to search places' });
+    }
+  });
+  
+  // POST /api/checkins - Create a new check-in
+  app.post("/api/checkins", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress, farcasterFid, farcasterUsername, osmId, placeName, placeCategory, placeSubcategory, latitude, longitude, transactionHash } = req.body;
+      
+      if (!walletAddress || !osmId || !placeName || !placeCategory || latitude === undefined || longitude === undefined) {
+        return res.status(400).json({ error: 'Missing required fields: walletAddress, osmId, placeName, placeCategory, latitude, longitude' });
+      }
+      
+      // Check for existing check-in at this place today
+      const today = new Date().toISOString().split('T')[0];
+      const existingCheckin = await db.execute(sql`
+        SELECT id FROM checkins 
+        WHERE wallet_address = ${walletAddress.toLowerCase()} 
+        AND osm_id = ${osmId}
+        AND DATE(created_at) = ${today}
+      `);
+      
+      if (existingCheckin.rows.length > 0) {
+        return res.status(400).json({ error: 'You have already checked in at this place today' });
+      }
+      
+      // Calculate points - 10 base points for check-in
+      const pointsEarned = 10;
+      
+      // Create check-in
+      const result = await db.execute(sql`
+        INSERT INTO checkins (wallet_address, farcaster_fid, farcaster_username, osm_id, place_name, place_category, place_subcategory, latitude, longitude, transaction_hash, points_earned)
+        VALUES (${walletAddress.toLowerCase()}, ${farcasterFid || null}, ${farcasterUsername || null}, ${osmId}, ${placeName}, ${placeCategory}, ${placeSubcategory || null}, ${latitude}, ${longitude}, ${transactionHash || null}, ${pointsEarned})
+        RETURNING *
+      `);
+      
+      // Update user points if they have a stats record
+      if (farcasterFid) {
+        await db.execute(sql`
+          UPDATE user_stats 
+          SET total_points = total_points + ${pointsEarned * 100},
+              weekly_points = weekly_points + ${pointsEarned * 100},
+              updated_at = NOW()
+          WHERE farcaster_fid = ${farcasterFid}
+        `);
+      }
+      
+      res.json({ 
+        success: true, 
+        checkin: result.rows[0],
+        pointsEarned,
+        message: `Check-in successful! You earned ${pointsEarned} points.`
+      });
+    } catch (error: any) {
+      console.error('Check-in error:', error);
+      res.status(500).json({ error: error.message || 'Failed to create check-in' });
+    }
+  });
+  
+  // GET /api/checkins/user/:walletAddress - Get user's check-in history
+  app.get("/api/checkins/user/:walletAddress", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress } = req.params;
+      const { limit } = req.query;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+      
+      const maxResults = limit ? parseInt(limit as string) : 50;
+      
+      const result = await db.execute(sql`
+        SELECT * FROM checkins 
+        WHERE wallet_address = ${walletAddress.toLowerCase()}
+        ORDER BY created_at DESC
+        LIMIT ${maxResults}
+      `);
+      
+      res.json({ 
+        checkins: result.rows,
+        count: result.rows.length
+      });
+    } catch (error: any) {
+      console.error('Get user checkins error:', error);
+      res.status(500).json({ error: 'Failed to get check-in history' });
+    }
+  });
+  
+  // GET /api/checkins/place/:osmId - Get check-ins at a specific place
+  app.get("/api/checkins/place/:osmId", async (req: Request, res: Response) => {
+    try {
+      const osmId = decodeURIComponent(req.params.osmId);
+      const { limit } = req.query;
+      
+      if (!osmId) {
+        return res.status(400).json({ error: 'OSM ID is required' });
+      }
+      
+      const maxResults = limit ? parseInt(limit as string) : 50;
+      
+      const result = await db.execute(sql`
+        SELECT * FROM checkins 
+        WHERE osm_id = ${osmId}
+        ORDER BY created_at DESC
+        LIMIT ${maxResults}
+      `);
+      
+      // Count unique visitors
+      const uniqueVisitors = await db.execute(sql`
+        SELECT COUNT(DISTINCT wallet_address) as count FROM checkins WHERE osm_id = ${osmId}
+      `);
+      
+      res.json({ 
+        checkins: result.rows,
+        totalCheckins: result.rows.length,
+        uniqueVisitors: Number(uniqueVisitors.rows[0]?.count || 0)
+      });
+    } catch (error: any) {
+      console.error('Get place checkins error:', error);
+      res.status(500).json({ error: 'Failed to get place check-ins' });
+    }
+  });
+  
+  // GET /api/checkins/stats/:walletAddress - Get user's check-in stats
+  app.get("/api/checkins/stats/:walletAddress", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress } = req.params;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+      
+      const normalized = walletAddress.toLowerCase();
+      
+      // Total check-ins
+      const totalResult = await db.execute(sql`
+        SELECT COUNT(*) as total FROM checkins WHERE wallet_address = ${normalized}
+      `);
+      
+      // Unique places visited
+      const uniquePlacesResult = await db.execute(sql`
+        SELECT COUNT(DISTINCT osm_id) as count FROM checkins WHERE wallet_address = ${normalized}
+      `);
+      
+      // Total points from check-ins
+      const pointsResult = await db.execute(sql`
+        SELECT COALESCE(SUM(points_earned), 0) as total_points FROM checkins WHERE wallet_address = ${normalized}
+      `);
+      
+      // Check-ins by category
+      const categoriesResult = await db.execute(sql`
+        SELECT place_category, COUNT(*) as count 
+        FROM checkins 
+        WHERE wallet_address = ${normalized}
+        GROUP BY place_category
+        ORDER BY count DESC
+      `);
+      
+      res.json({ 
+        totalCheckins: Number(totalResult.rows[0]?.total || 0),
+        uniquePlaces: Number(uniquePlacesResult.rows[0]?.count || 0),
+        totalPoints: Number(pointsResult.rows[0]?.total_points || 0),
+        categoryCounts: categoriesResult.rows
+      });
+    } catch (error: any) {
+      console.error('Get checkin stats error:', error);
+      res.status(500).json({ error: 'Failed to get check-in stats' });
+    }
+  });
+
   // ===== TRAVEL AI ENDPOINTS =====
   
   const FREE_QUERY_LIMIT = 3;

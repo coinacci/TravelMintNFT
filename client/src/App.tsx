@@ -21,6 +21,7 @@ import Contact from "@/pages/contact";
 import NFTDetail from "@/pages/nft-detail";
 import Badges from "@/pages/badges";
 import TravelAI from "@/pages/travel-ai";
+import Checkin from "@/pages/checkin";
 import Navigation from "@/components/navigation";
 
 // Browser-safe Farcaster SDK initialization
@@ -218,6 +219,7 @@ function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/badges" component={Badges} />
         <Route path="/travel-ai" component={TravelAI} />
+        <Route path="/checkin" component={Checkin} />
         <Route path="/faq">{() => <Faq />}</Route>
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
