@@ -163,9 +163,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         setUserLocation(loc);
         setLocationLoading(false);
         
-        // Pan map to user location
+        // Pan and zoom map to user location (zoom 17 for close-up street view)
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([loc.lat, loc.lon], 15);
+          mapInstanceRef.current.setView([loc.lat, loc.lon], 17);
         }
       },
       (error) => {
