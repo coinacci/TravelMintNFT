@@ -374,7 +374,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       'Plaj': '🏖️',
       'Dağ': '⛰️',
     };
-    return emojiMap[category] || '📍';
+    return emojiMap[category] || '📌';
   };
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
@@ -544,7 +544,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         
         return L.divIcon({
           html: `<div class="cluster-emoji-container">
-            <span style="font-size: ${fontSize}px; line-height: 1;">📍</span>
+            <span style="font-size: ${fontSize}px; line-height: 1;">📌</span>
             <span class="cluster-count">${count}</span>
           </div>`,
           className: 'emoji-marker cluster-marker',
@@ -570,7 +570,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
       // Create individual marker with emoji icon
       const customIcon = L.divIcon({
-        html: '<span style="font-size: 28px; line-height: 1;">📍</span>',
+        html: '<span style="font-size: 28px; line-height: 1;">📌</span>',
         className: `emoji-marker${nft.category?.toLowerCase() === 'brand' ? ' brand-marker' : ''}`,
         iconSize: [32, 32],
         iconAnchor: [16, 28],
@@ -778,7 +778,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     // Create user location marker
     const userIcon = L.divIcon({
-      html: '<div class="user-location-marker"><span style="font-size: 24px;">📍</span></div>',
+      html: '<div class="user-location-marker"><span style="font-size: 24px;">📌</span></div>',
       className: 'user-marker-icon',
       iconSize: [30, 30],
       iconAnchor: [15, 30],
@@ -990,7 +990,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         <DrawerContent className="max-h-[85vh]">
           <DrawerHeader>
             <DrawerTitle className="flex items-center gap-2">
-              <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
+              <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📌'}</span>
               {selectedPOI?.name || 'Confirm Check-in'}
             </DrawerTitle>
           </DrawerHeader>
