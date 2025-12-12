@@ -5,7 +5,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Filter, X, User, MapPin, Navigation, Loader2, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, X, User, MapPin, Navigation, Loader2, Check, Search } from "lucide-react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { encodeFunctionData, parseEther } from "viem";
@@ -109,6 +109,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [pendingCheckInPOI, setPendingCheckInPOI] = useState<POI | null>(null);
   const [checkInComment, setCheckInComment] = useState("");
   const [placeDetailsPOI, setPlaceDetailsPOI] = useState<POI | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<POI[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const checkInRadius = 500; // 500 meters
   
   // Blockchain transaction for check-in
@@ -320,9 +323,71 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       setSelectedPOI(null);
       setPendingCheckInPOI(null);
       setCheckInComment("");
+      setSearchQuery("");
+      setSearchResults([]);
       resetTx();
     }
   }, [isTxPending, isTxConfirming, resetTx]);
+
+  // Search places by name using Nominatim
+  const searchPlaces = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      // Use Nominatim for search, with viewbox if user location is available
+      let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1`;
+      
+      // If user has location, prioritize nearby results
+      if (userLocation) {
+        const delta = 0.1; // ~10km box
+        url += `&viewbox=${userLocation.lon - delta},${userLocation.lat + delta},${userLocation.lon + delta},${userLocation.lat - delta}&bounded=0`;
+      }
+      
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'TravelMint/1.0' }
+      });
+      
+      if (!response.ok) throw new Error("Search failed");
+      
+      const data = await response.json();
+      
+      const results: POI[] = data.map((item: any) => {
+        // Calculate distance if user location available
+        let distance: number | undefined;
+        if (userLocation) {
+          const R = 6371000; // Earth radius in meters
+          const dLat = (parseFloat(item.lat) - userLocation.lat) * Math.PI / 180;
+          const dLon = (parseFloat(item.lon) - userLocation.lon) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(parseFloat(item.lat) * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          distance = R * c;
+        }
+        
+        return {
+          id: item.osm_id?.toString() || item.place_id?.toString() || `search-${Date.now()}`,
+          name: item.display_name?.split(',')[0] || item.name || query,
+          category: item.type || item.class || 'Place',
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon),
+          address: item.display_name,
+          distance
+        };
+      });
+      
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [userLocation]);
 
   // Select a POI for check-in
   const selectPOIForCheckIn = useCallback((poi: POI) => {
@@ -912,6 +977,66 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               </DrawerHeader>
 
               <div className="px-4 pb-4">
+                {/* Search Input */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (e.target.value.length >= 2) {
+                          searchPlaces(e.target.value);
+                        } else {
+                          setSearchResults([]);
+                        }
+                      }}
+                      placeholder="Search for a place..."
+                      className="w-full px-4 py-2 pl-10 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      data-testid="input-search-place"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    {isSearching && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Search Results */}
+                {searchQuery.length >= 2 && searchResults.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">Search results</p>
+                    <ScrollArea className="h-[30vh]">
+                      <div className="space-y-2 pr-4">
+                        {searchResults.map((poi) => (
+                          <button
+                            key={poi.id}
+                            onClick={() => selectPOIForCheckIn(poi)}
+                            className="w-full text-left bg-blue-900 hover:bg-blue-800 border border-blue-700 hover:border-blue-500 rounded-lg p-3 transition-colors"
+                            data-testid={`search-result-${poi.id}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl">{getCategoryEmoji(poi.category)}</span>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm truncate text-white">{poi.name}</h4>
+                                {poi.distance && (
+                                  <p className="text-xs text-blue-400 mt-1">
+                                    {poi.distance > 1000 
+                                      ? `${(poi.distance / 1000).toFixed(1)}km away`
+                                      : `${Math.round(poi.distance)}m away`
+                                    }
+                                  </p>
+                                )}
+                              </div>
+                              <Check className="w-4 h-4 text-blue-400" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+
                 {/* Location status */}
                 {locationLoading && (
                   <div className="flex items-center justify-center gap-2 py-8 text-gray-500">
@@ -935,8 +1060,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                   </div>
                 )}
 
-                {/* POI List */}
-                {userLocation && !locationLoading && (
+                {/* Nearby POI List */}
+                {userLocation && !locationLoading && !searchQuery && (
                   <>
                     {poisLoading ? (
                       <div className="flex items-center justify-center gap-2 py-8 text-gray-500">
@@ -947,10 +1072,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                       <div className="text-center py-8">
                         <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                         <p className="text-gray-500">No places found within 500m</p>
-                        <p className="text-gray-400 text-sm mt-1">Try moving to a different location</p>
+                        <p className="text-gray-400 text-sm mt-1">Use the search above to find a place</p>
                       </div>
                     ) : (
-                      <ScrollArea className="h-[50vh]">
+                      <ScrollArea className="h-[40vh]">
                         <div className="space-y-2 pr-4">
                           <p className="text-xs text-gray-500 mb-3">
                             {nearbyPOIs.length} places within 500m
