@@ -760,8 +760,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         </div>
       </div>
 
-      {/* Check-in Button */}
-      <div className="absolute bottom-4 left-4 z-20">
+      {/* Check-in Button - positioned above bottom navigation */}
+      <div className="absolute bottom-20 left-4 z-30">
         <Button
           onClick={toggleCheckInMode}
           disabled={locationLoading}
