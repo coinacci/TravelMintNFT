@@ -80,6 +80,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const poiLayerRef = useRef<L.LayerGroup | null>(null);
   const userCircleRef = useRef<L.Circle | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const userCheckinsLayerRef = useRef<L.LayerGroup | null>(null);
   const queryClientHook = useQueryClient();
   const { toast } = useToast();
   const { user: farcasterUser } = useFarcasterAuth();
@@ -125,6 +126,28 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       return data.pois || [];
     },
     enabled: checkInMode && !!userLocation,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // Fetch user's check-ins to display on explore mode
+  const { data: userCheckins = [] } = useQuery<{
+    osm_id: string;
+    place_name: string;
+    place_category: string;
+    latitude: string;
+    longitude: string;
+    comment?: string;
+    created_at: string;
+  }[]>({
+    queryKey: ["/api/checkins/user", walletAddress],
+    queryFn: async () => {
+      if (!walletAddress) return [];
+      const response = await fetch(`/api/checkins/user/${walletAddress}?limit=100`);
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.checkins || [];
+    },
+    enabled: !!walletAddress,
     staleTime: 60 * 1000, // 1 minute
   });
 
@@ -705,6 +728,55 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     }
   }, [checkInMode]);
 
+  // User check-ins layer effect - show user's check-ins on explore mode (when not in check-in mode)
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    // Clear existing user checkins layer
+    if (userCheckinsLayerRef.current) {
+      map.removeLayer(userCheckinsLayerRef.current);
+      userCheckinsLayerRef.current = null;
+    }
+
+    // Only show user check-ins when NOT in check-in mode and user has check-ins
+    if (checkInMode || userCheckins.length === 0) return;
+
+    const checkinsLayer = L.layerGroup();
+
+    userCheckins.forEach((checkin) => {
+      const lat = parseFloat(checkin.latitude);
+      const lon = parseFloat(checkin.longitude);
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      const checkinIcon = L.divIcon({
+        html: `<div class="checkin-marker"><span style="font-size: 18px;">🔹</span></div>`,
+        className: 'checkin-marker-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 24],
+        popupAnchor: [0, -20],
+      });
+
+      const marker = L.marker([lat, lon], { icon: checkinIcon });
+      
+      const popupContent = `
+        <div class="text-center p-2 min-w-[160px]" style="font-family: Inter, system-ui, sans-serif;">
+          <div class="text-xl mb-1">🔹</div>
+          <h3 class="font-semibold text-sm mb-1" style="color: #000">${checkin.place_name}</h3>
+          <p class="text-xs text-gray-600 mb-1">${checkin.place_category}</p>
+          ${checkin.comment ? `<p class="text-xs text-gray-500 italic mt-1">"${checkin.comment}"</p>` : ''}
+          <p class="text-xs text-blue-600 mt-2">${new Date(checkin.created_at).toLocaleDateString()}</p>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      checkinsLayer.addLayer(marker);
+    });
+
+    checkinsLayer.addTo(map);
+    userCheckinsLayerRef.current = checkinsLayer;
+  }, [checkInMode, userCheckins]);
+
   // POI layer effect - show nearby places for check-in
   useEffect(() => {
     if (!mapInstanceRef.current) return;
@@ -742,11 +814,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     userMarker.addTo(map);
     userMarkerRef.current = userMarker;
 
-    // Create radius circle
+    // Create radius circle (blue for check-in mode)
     const circle = L.circle([userLocation.lat, userLocation.lon], {
       radius: checkInRadius,
-      color: '#22c55e',
-      fillColor: '#22c55e',
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
       fillOpacity: 0.1,
       weight: 2,
       dashArray: '5, 5',
@@ -759,9 +831,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     // Add POI markers
     nearbyPOIs.forEach((poi) => {
-      const emoji = getCategoryEmoji(poi.category);
       const poiIcon = L.divIcon({
-        html: `<div class="poi-marker"><span style="font-size: 20px;">${emoji}</span></div>`,
+        html: `<div class="poi-marker"><span style="font-size: 20px;">🔹</span></div>`,
         className: 'poi-marker-icon',
         iconSize: [28, 28],
         iconAnchor: [14, 28],
@@ -773,13 +844,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       const distanceText = poi.distance ? `${Math.round(poi.distance)}m` : '';
       const popupContent = `
         <div class="text-center p-2 min-w-[180px]" style="font-family: Inter, system-ui, sans-serif;">
-          <div class="text-2xl mb-1">${emoji}</div>
+          <div class="text-2xl mb-1">🔹</div>
           <h3 class="font-semibold text-sm mb-1" style="color: #000">${poi.name}</h3>
           <p class="text-xs text-gray-600 mb-1">${poi.category}${poi.subcategory ? ` • ${poi.subcategory}` : ''}</p>
-          ${distanceText ? `<p class="text-xs text-green-600 mb-2">${distanceText} away</p>` : ''}
+          ${distanceText ? `<p class="text-xs text-blue-600 mb-2">${distanceText} away</p>` : ''}
           <button 
             onclick="window.openCheckInDialog('${poi.id}')"
-            class="w-full bg-green-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-600 transition-colors"
+            class="w-full bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
           >
             Check-in (+10 pts)
           </button>
@@ -910,7 +981,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           disabled={locationLoading}
           className={`px-4 py-2 rounded-full shadow-lg flex items-center gap-2 ${
             checkInMode 
-              ? 'bg-green-500 hover:bg-green-600 text-white' 
+              ? 'bg-blue-500 hover:bg-blue-600 text-white' 
               : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-200'
           }`}
           data-testid="button-checkin-toggle"
@@ -975,7 +1046,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
+              <span className="text-2xl">🔹</span>
               Confirm Check-in
             </DialogTitle>
             <DialogDescription>
@@ -1067,7 +1138,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                 if (selectedPOI) initiateCheckIn(selectedPOI);
               }}
               disabled={!walletAddress || isTxPending || isTxConfirming}
-              className="bg-green-500 hover:bg-green-600"
+              className="bg-blue-500 hover:bg-blue-600"
               data-testid="button-checkin-confirm"
             >
               {isTxPending ? (
@@ -1098,7 +1169,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">{placeDetailsPOI ? getCategoryEmoji(placeDetailsPOI.category) : '📍'}</span>
+              <span className="text-2xl">🔹</span>
               {placeDetailsPOI?.name || 'Place Details'}
             </DialogTitle>
             <DialogDescription>
@@ -1167,7 +1238,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                   setPlaceDetailsPOI(null);
                   setCheckInDialogOpen(true);
                 }}
-                className="w-full bg-green-500 hover:bg-green-600"
+                className="w-full bg-blue-500 hover:bg-blue-600"
                 data-testid="button-checkin-from-details"
               >
                 <Check className="w-4 h-4 mr-2" />
