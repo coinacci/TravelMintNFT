@@ -15,7 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const QUEST_MANAGER_ADDRESS = "0xC280030c2d15EF42C207a35CcF7a63A4760d8967" as `0x${string}`;
 const CHECK_IN_QUEST_ID = 2;
-const CHECK_IN_FEE = "0.0001"; // ETH
+const CHECK_IN_FEE = "0.00005"; // ETH
 
 const QUEST_ABI = [
   {

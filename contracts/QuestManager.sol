@@ -17,8 +17,8 @@ contract QuestManager is Ownable, ReentrancyGuard {
     // Treasury address for quest fees
     address public treasury;
     
-    // Minimum fee per quest completion (0.000005 ETH)
-    uint256 public questFee = 0.000005 ether;
+    // Minimum fee per quest completion (0.00005 ETH)
+    uint256 public questFee = 0.00005 ether;
     
     // Quest completion tracking: user => questId => day => completed
     // Using day-based tracking to allow daily quests
