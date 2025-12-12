@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -110,8 +110,6 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [checkInComment, setCheckInComment] = useState("");
   const [placeDetailsPOI, setPlaceDetailsPOI] = useState<POI | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<POI[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const checkInRadius = 500; // 500 meters
   
   // Blockchain transaction for check-in
@@ -324,74 +322,23 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       setPendingCheckInPOI(null);
       setCheckInComment("");
       setSearchQuery("");
-      setSearchResults([]);
       resetTx();
     }
   }, [isTxPending, isTxConfirming, resetTx]);
 
-  // Search places by name using Nominatim
-  const searchPlaces = useCallback(async (query: string) => {
-    if (!query.trim() || query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    
-    setIsSearching(true);
-    try {
-      // Use Nominatim for search, with viewbox if user location is available
-      let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1`;
-      
-      // If user has location, prioritize nearby results
-      if (userLocation) {
-        const delta = 0.1; // ~10km box
-        url += `&viewbox=${userLocation.lon - delta},${userLocation.lat + delta},${userLocation.lon + delta},${userLocation.lat - delta}&bounded=0`;
-      }
-      
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'TravelMint/1.0' }
-      });
-      
-      if (!response.ok) throw new Error("Search failed");
-      
-      const data = await response.json();
-      
-      const results: POI[] = data.map((item: any) => {
-        // Calculate distance if user location available
-        let distance: number | undefined;
-        if (userLocation) {
-          const R = 6371000; // Earth radius in meters
-          const dLat = (parseFloat(item.lat) - userLocation.lat) * Math.PI / 180;
-          const dLon = (parseFloat(item.lon) - userLocation.lon) * Math.PI / 180;
-          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(parseFloat(item.lat) * Math.PI / 180) *
-                    Math.sin(dLon/2) * Math.sin(dLon/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          distance = R * c;
-        }
-        
-        return {
-          id: item.osm_id?.toString() || item.place_id?.toString() || `search-${Date.now()}`,
-          name: item.display_name?.split(',')[0] || item.name || query,
-          category: item.type || item.class || 'Place',
-          lat: parseFloat(item.lat),
-          lon: parseFloat(item.lon),
-          address: item.display_name,
-          distance
-        };
-      });
-      
-      setSearchResults(results);
-    } catch (error) {
-      console.error("Search error:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [userLocation]);
+  // Filter nearby places by name (local search only)
+  const filteredPOIs = useMemo(() => {
+    if (!searchQuery.trim()) return nearbyPOIs;
+    const query = searchQuery.toLowerCase();
+    return nearbyPOIs.filter(poi => 
+      poi.name.toLowerCase().includes(query)
+    );
+  }, [searchQuery, nearbyPOIs]);
 
   // Select a POI for check-in
   const selectPOIForCheckIn = useCallback((poi: POI) => {
     setSelectedPOI(poi);
+    setPlaceDetailsPOI(poi); // Trigger fetching previous check-ins
     setCheckInStep('confirm');
   }, []);
 
@@ -977,65 +924,20 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               </DrawerHeader>
 
               <div className="px-4 pb-4">
-                {/* Search Input */}
+                {/* Search Input - filters nearby places only */}
                 <div className="mb-4">
                   <div className="relative">
                     <input
                       type="text"
                       value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        if (e.target.value.length >= 2) {
-                          searchPlaces(e.target.value);
-                        } else {
-                          setSearchResults([]);
-                        }
-                      }}
-                      placeholder="Search for a place..."
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Filter nearby places..."
                       className="w-full px-4 py-2 pl-10 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       data-testid="input-search-place"
                     />
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    {isSearching && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
-                    )}
                   </div>
                 </div>
-
-                {/* Search Results */}
-                {searchQuery.length >= 2 && searchResults.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-2">Search results</p>
-                    <ScrollArea className="h-[30vh]">
-                      <div className="space-y-2 pr-4">
-                        {searchResults.map((poi) => (
-                          <button
-                            key={poi.id}
-                            onClick={() => selectPOIForCheckIn(poi)}
-                            className="w-full text-left bg-blue-900 hover:bg-blue-800 border border-blue-700 hover:border-blue-500 rounded-lg p-3 transition-colors"
-                            data-testid={`search-result-${poi.id}`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl">{getCategoryEmoji(poi.category)}</span>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm truncate text-white">{poi.name}</h4>
-                                {poi.distance && (
-                                  <p className="text-xs text-blue-400 mt-1">
-                                    {poi.distance > 1000 
-                                      ? `${(poi.distance / 1000).toFixed(1)}km away`
-                                      : `${Math.round(poi.distance)}m away`
-                                    }
-                                  </p>
-                                )}
-                              </div>
-                              <Check className="w-4 h-4 text-blue-400" />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
 
                 {/* Location status */}
                 {locationLoading && (
@@ -1060,27 +962,28 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                   </div>
                 )}
 
-                {/* Nearby POI List */}
-                {userLocation && !locationLoading && !searchQuery && (
+                {/* Nearby POI List (filtered by search) */}
+                {userLocation && !locationLoading && (
                   <>
                     {poisLoading ? (
                       <div className="flex items-center justify-center gap-2 py-8 text-gray-500">
                         <Loader2 className="w-5 h-5 animate-spin" />
                         <span>Finding nearby places...</span>
                       </div>
-                    ) : nearbyPOIs.length === 0 ? (
+                    ) : filteredPOIs.length === 0 ? (
                       <div className="text-center py-8">
                         <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                        <p className="text-gray-500">No places found within 500m</p>
-                        <p className="text-gray-400 text-sm mt-1">Use the search above to find a place</p>
+                        <p className="text-gray-500">
+                          {searchQuery ? "No matching places" : "No places found within 500m"}
+                        </p>
                       </div>
                     ) : (
                       <ScrollArea className="h-[40vh]">
                         <div className="space-y-2 pr-4">
                           <p className="text-xs text-gray-500 mb-3">
-                            {nearbyPOIs.length} places within 500m
+                            {filteredPOIs.length} place{filteredPOIs.length !== 1 ? 's' : ''} {searchQuery ? 'matching' : 'within 500m'}
                           </p>
-                          {nearbyPOIs.map((poi) => (
+                          {filteredPOIs.map((poi) => (
                             <button
                               key={poi.id}
                               onClick={() => selectPOIForCheckIn(poi)}
@@ -1124,47 +1027,53 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               <DrawerHeader>
                 <DrawerTitle className="flex items-center gap-2">
                   <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
-                  Confirm Check-in
+                  {selectedPOI?.name || 'Confirm Check-in'}
                 </DrawerTitle>
-                <DrawerDescription>
-                  Earn 10 points (on-chain, {CHECK_IN_FEE} ETH gas)
-                </DrawerDescription>
               </DrawerHeader>
 
               <div className="px-4 pb-4">
                 {selectedPOI && (
                   <>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <h3 className="font-semibold text-lg">{selectedPOI.name}</h3>
-                      <p className="text-sm text-gray-600">{selectedPOI.category}</p>
-                      {selectedPOI.distance && (
-                        <p className="text-sm text-blue-600 mt-1">
-                          {Math.round(selectedPOI.distance)}m away
-                        </p>
-                      )}
-                    </div>
+                    {/* Previous check-ins at this location */}
+                    {placeCheckins && placeCheckins.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs text-gray-500 mb-2">Previous notes at this place</p>
+                        <ScrollArea className="h-[20vh]">
+                          <div className="space-y-2 pr-2">
+                            {placeCheckins.map((checkin: any, idx: number) => (
+                              <div key={idx} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <p className="text-sm text-white">{checkin.comment || 'No note'}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {checkin.farcaster_username || checkin.wallet_address?.slice(0, 8)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
 
                     {/* Comment textarea */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
                         Add a note (optional)
                       </label>
                       <textarea
                         value={checkInComment}
                         onChange={(e) => setCheckInComment(e.target.value)}
                         placeholder="Share your experience at this place..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                         rows={3}
                         maxLength={500}
                         disabled={isTxPending || isTxConfirming}
                         data-testid="input-checkin-comment"
                       />
-                      <p className="text-xs text-gray-400 text-right mt-1">{checkInComment.length}/500</p>
+                      <p className="text-xs text-gray-500 text-right mt-1">{checkInComment.length}/500</p>
                     </div>
 
                     {!walletAddress && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                        <p className="text-sm text-yellow-800">
+                      <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3 mb-4">
+                        <p className="text-sm text-yellow-200">
                           Please connect your wallet to check in.
                         </p>
                       </div>
