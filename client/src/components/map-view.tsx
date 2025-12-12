@@ -109,7 +109,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   // Check-in mutation
   const checkInMutation = useMutation({
     mutationFn: async (poi: POI) => {
-      if (!walletAddress) throw new Error("Cüzdan bağlı değil");
+      if (!walletAddress) throw new Error("Wallet not connected");
       
       const payload = {
         walletAddress,
@@ -128,8 +128,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     },
     onSuccess: () => {
       toast({
-        title: "Check-in Başarılı! ✓",
-        description: `${selectedPOI?.name} konumunda check-in yaptın. +10 puan kazandın!`,
+        title: "Check-in Successful! ✓",
+        description: `You checked in at ${selectedPOI?.name}. +10 points earned!`,
       });
       setCheckInDialogOpen(false);
       setSelectedPOI(null);
@@ -137,8 +137,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     },
     onError: (error: any) => {
       toast({
-        title: "Check-in Başarısız",
-        description: error.message || "Lütfen tekrar dene",
+        title: "Check-in Failed",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     },
@@ -147,7 +147,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   // Get user location
   const getUserLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setLocationError("Tarayıcınız konum özelliğini desteklemiyor");
+      setLocationError("Your browser doesn't support location services");
       return;
     }
     
@@ -172,16 +172,16 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         setLocationLoading(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError("Konum izni reddedildi");
+            setLocationError("Location permission denied");
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError("Konum bilgisi alınamadı");
+            setLocationError("Location unavailable");
             break;
           case error.TIMEOUT:
-            setLocationError("Konum isteği zaman aşımına uğradı");
+            setLocationError("Location request timed out");
             break;
           default:
-            setLocationError("Konum alınamadı");
+            setLocationError("Unable to get location");
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -595,7 +595,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     });
 
     const userMarker = L.marker([userLocation.lat, userLocation.lon], { icon: userIcon });
-    userMarker.bindPopup('<div class="text-center p-2"><strong>Konumun</strong></div>');
+    userMarker.bindPopup('<div class="text-center p-2"><strong>Your Location</strong></div>');
     userMarker.addTo(map);
     userMarkerRef.current = userMarker;
 
@@ -633,12 +633,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           <div class="text-2xl mb-1">${emoji}</div>
           <h3 class="font-semibold text-sm mb-1" style="color: #000">${poi.name}</h3>
           <p class="text-xs text-gray-600 mb-1">${poi.category}${poi.subcategory ? ` • ${poi.subcategory}` : ''}</p>
-          ${distanceText ? `<p class="text-xs text-green-600 mb-2">${distanceText} uzaklıkta</p>` : ''}
+          ${distanceText ? `<p class="text-xs text-green-600 mb-2">${distanceText} away</p>` : ''}
           <button 
             onclick="window.openCheckInDialog('${poi.id}')"
             class="w-full bg-green-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-600 transition-colors"
           >
-            Check-in Yap (+10 puan)
+            Check-in (+10 pts)
           </button>
         </div>
       `;
@@ -775,17 +775,17 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           {locationLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Konum alınıyor...</span>
+              <span>Getting location...</span>
             </>
           ) : checkInMode ? (
             <>
               <X className="w-4 h-4" />
-              <span>Check-in Kapat</span>
+              <span>Close Check-in</span>
             </>
           ) : (
             <>
               <Navigation className="w-4 h-4" />
-              <span>Check-in Yap</span>
+              <span>Check-in</span>
             </>
           )}
         </Button>
@@ -800,7 +800,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         {/* POI count when in check-in mode */}
         {checkInMode && userLocation && !poisLoading && nearbyPOIs.length > 0 && (
           <div className="mt-2 bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full text-center">
-            {nearbyPOIs.length} mekan bulundu (500m içinde)
+            {nearbyPOIs.length} places found within 500m
           </div>
         )}
         
@@ -808,14 +808,14 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         {checkInMode && poisLoading && (
           <div className="mt-2 bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full text-center flex items-center justify-center gap-1">
             <Loader2 className="w-3 h-3 animate-spin" />
-            <span>Mekanlar yükleniyor...</span>
+            <span>Loading places...</span>
           </div>
         )}
         
         {/* No POIs found */}
         {checkInMode && userLocation && !poisLoading && nearbyPOIs.length === 0 && (
           <div className="mt-2 bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full text-center">
-            Yakında mekan bulunamadı
+            No places found nearby
           </div>
         )}
       </div>
@@ -826,10 +826,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
-              Check-in Onayla
+              Confirm Check-in
             </DialogTitle>
             <DialogDescription>
-              Bu konumda check-in yaparak 10 puan kazanacaksın.
+              Check in at this location to earn 10 points.
             </DialogDescription>
           </DialogHeader>
           
@@ -840,7 +840,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                 <p className="text-sm text-gray-600">{selectedPOI.category}</p>
                 {selectedPOI.distance && (
                   <p className="text-sm text-green-600 mt-1">
-                    {Math.round(selectedPOI.distance)}m uzaklıkta
+                    {Math.round(selectedPOI.distance)}m away
                   </p>
                 )}
               </div>
@@ -848,7 +848,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               {!walletAddress && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                   <p className="text-sm text-yellow-800">
-                    Check-in yapmak için cüzdanını bağlamalısın.
+                    Please connect your wallet to check in.
                   </p>
                 </div>
               )}
@@ -861,7 +861,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               onClick={() => setCheckInDialogOpen(false)}
               data-testid="button-checkin-cancel"
             >
-              İptal
+              Cancel
             </Button>
             <Button
               onClick={() => selectedPOI && checkInMutation.mutate(selectedPOI)}
@@ -872,12 +872,12 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               {checkInMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Check-in yapılıyor...
+                  Checking in...
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  Check-in Yap
+                  Check-in
                 </>
               )}
             </Button>
