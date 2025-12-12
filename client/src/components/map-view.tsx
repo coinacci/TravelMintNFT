@@ -844,17 +844,27 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       
       const distanceText = poi.distance ? `${Math.round(poi.distance)}m` : '';
       const popupContent = `
-        <div class="text-center p-2 min-w-[180px]" style="font-family: Inter, system-ui, sans-serif;">
+        <div class="text-center p-2 min-w-[200px]" style="font-family: Inter, system-ui, sans-serif;">
           <div class="text-2xl mb-1">🔹</div>
           <h3 class="font-semibold text-sm mb-1" style="color: #000">${poi.name}</h3>
           <p class="text-xs text-gray-600 mb-1">${poi.category}${poi.subcategory ? ` • ${poi.subcategory}` : ''}</p>
           ${distanceText ? `<p class="text-xs text-blue-600 mb-2">${distanceText} away</p>` : ''}
-          <button 
-            onclick="window.openCheckInDialog('${poi.id}')"
-            class="w-full bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
-          >
-            Check-in (+10 pts)
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button 
+              onclick="window.handlePOIAction('${poi.id}', 'checkin')"
+              class="flex-1 bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
+              style="cursor: pointer;"
+            >
+              Check-in
+            </button>
+            <button 
+              onclick="window.handlePOIAction('${poi.id}', 'details')"
+              class="flex-1 bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-200 transition-colors"
+              style="cursor: pointer;"
+            >
+              Details
+            </button>
+          </div>
         </div>
       `;
 
@@ -865,18 +875,22 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     poiLayer.addTo(map);
     poiLayerRef.current = poiLayer;
 
-    // Global function to open check-in dialog
-    (window as any).openCheckInDialog = (poiId: string) => {
+    // Stable global handlers for popup buttons
+    (window as any).handlePOIAction = (poiId: string, action: string) => {
       const poi = nearbyPOIs.find(p => p.id === poiId);
       if (poi) {
-        setSelectedPOI(poi);
-        setCheckInDialogOpen(true);
+        if (action === 'checkin') {
+          setSelectedPOI(poi);
+          setCheckInDialogOpen(true);
+        } else if (action === 'details') {
+          setPlaceDetailsPOI(poi);
+        }
         map.closePopup();
       }
     };
 
     return () => {
-      delete (window as any).openCheckInDialog;
+      delete (window as any).handlePOIAction;
     };
   }, [checkInMode, userLocation, nearbyPOIs, checkInRadius]);
 
