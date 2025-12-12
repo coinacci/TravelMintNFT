@@ -5854,6 +5854,39 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // GET /api/checkins/all - Get all check-ins for map display (grouped by location)
+  app.get("/api/checkins/all", async (req: Request, res: Response) => {
+    try {
+      const { limit } = req.query;
+      const parsed = limit ? parseInt(limit as string, 10) : 500;
+      const maxResults = Number.isNaN(parsed) || parsed <= 0 ? 500 : Math.min(parsed, 1000);
+      
+      // Get all check-ins grouped by location for map markers
+      const result = await db.execute(sql`
+        SELECT 
+          osm_id,
+          place_name,
+          place_category,
+          latitude,
+          longitude,
+          COUNT(*) as checkin_count,
+          MAX(created_at) as last_checkin
+        FROM checkins 
+        GROUP BY osm_id, place_name, place_category, latitude, longitude
+        ORDER BY last_checkin DESC
+        LIMIT ${maxResults}
+      `);
+      
+      res.json({ 
+        locations: result.rows,
+        count: result.rows.length
+      });
+    } catch (error: any) {
+      console.error('Get all checkins error:', error);
+      res.status(500).json({ error: 'Failed to get check-ins' });
+    }
+  });
+
   // ===== TRAVEL AI ENDPOINTS =====
   
   const FREE_QUERY_LIMIT = 3;

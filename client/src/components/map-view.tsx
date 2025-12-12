@@ -138,25 +138,23 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     staleTime: 60 * 1000, // 1 minute
   });
 
-  // Fetch user's check-ins to display on explore mode
-  const { data: userCheckins = [] } = useQuery<{
+  // Fetch ALL check-ins to display on explore mode (visible to everyone)
+  const { data: allCheckins = [] } = useQuery<{
     osm_id: string;
     place_name: string;
     place_category: string;
     latitude: string;
     longitude: string;
-    comment?: string;
-    created_at: string;
+    checkin_count: number;
+    last_checkin: string;
   }[]>({
-    queryKey: ["/api/checkins/user", walletAddress],
+    queryKey: ["/api/checkins/all"],
     queryFn: async () => {
-      if (!walletAddress) return [];
-      const response = await fetch(`/api/checkins/user/${walletAddress}?limit=100`);
+      const response = await fetch(`/api/checkins/all?limit=500`);
       if (!response.ok) return [];
       const data = await response.json();
-      return data.checkins || [];
+      return data.locations || [];
     },
-    enabled: !!walletAddress,
     staleTime: 60 * 1000, // 1 minute
   });
 
@@ -205,8 +203,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     onSuccess: (data) => {
       // Invalidate all check-in related queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: ["/api/checkins"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/checkins/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/checkins/place", data.osmId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/checkins/user", walletAddress] });
       // Clear comment after successful submission
       setCheckInComment("");
     },
@@ -709,33 +707,33 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     };
   }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator, checkInMode]);
 
-  // User check-ins layer effect - show user's check-ins on explore mode (when not in check-in mode)
+  // All check-ins layer effect - show all check-ins on explore mode (visible to everyone, when not in check-in mode)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
 
-    // Clear existing user checkins layer
+    // Clear existing checkins layer
     if (userCheckinsLayerRef.current) {
       map.removeLayer(userCheckinsLayerRef.current);
       userCheckinsLayerRef.current = null;
     }
 
-    // Only show user check-ins if user has check-ins
-    if (userCheckins.length === 0) return;
+    // Only show check-ins if we have data and not in check-in mode
+    if (allCheckins.length === 0 || checkInMode) return;
 
     const checkinsLayer = L.layerGroup();
 
-    userCheckins.forEach((checkin) => {
+    allCheckins.forEach((checkin) => {
       const lat = parseFloat(checkin.latitude);
       const lon = parseFloat(checkin.longitude);
       if (isNaN(lat) || isNaN(lon)) return;
 
       const checkinIcon = L.divIcon({
-        html: `<div class="checkin-marker"><span style="font-size: 18px;">🔹</span></div>`,
+        html: `<div class="checkin-marker" style="background: #3b82f6; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"><span style="font-size: 14px;">🔹</span></div>`,
         className: 'checkin-marker-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 24],
-        popupAnchor: [0, -20],
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14],
       });
 
       const marker = L.marker([lat, lon], { icon: checkinIcon });
@@ -745,8 +743,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           <div class="text-xl mb-1">🔹</div>
           <h3 class="font-semibold text-sm mb-1" style="color: #000">${checkin.place_name}</h3>
           <p class="text-xs text-gray-600 mb-1">${checkin.place_category}</p>
-          ${checkin.comment ? `<p class="text-xs text-gray-500 italic mt-1">"${checkin.comment}"</p>` : ''}
-          <p class="text-xs text-blue-600 mt-2">${new Date(checkin.created_at).toLocaleDateString()}</p>
+          <p class="text-xs text-blue-600 mt-2">${checkin.checkin_count} check-in${checkin.checkin_count > 1 ? 's' : ''}</p>
         </div>
       `;
 
@@ -756,7 +753,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
     checkinsLayer.addTo(map);
     userCheckinsLayerRef.current = checkinsLayer;
-  }, [userCheckins]);
+  }, [allCheckins, checkInMode]);
 
   // User location marker effect - show user location when in check-in mode
   useEffect(() => {
