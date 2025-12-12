@@ -173,8 +173,16 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   
   // Function to initiate on-chain check-in
   const initiateCheckIn = useCallback((poi: POI) => {
-    if (!walletAddress || !farcasterUser) return;
+    if (!walletAddress) {
+      toast({
+        title: "Wallet Required",
+        description: "Please connect your wallet to check in.",
+        variant: "destructive"
+      });
+      return;
+    }
     
+    console.log("Initiating check-in for POI:", poi.name);
     setPendingCheckInPOI(poi);
     
     const data = encodeFunctionData({
@@ -183,12 +191,13 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       args: [BigInt(CHECK_IN_QUEST_ID)]
     });
     
+    console.log("Sending transaction to QuestManager...");
     sendTransaction({
       to: QUEST_MANAGER_ADDRESS,
       value: parseEther(CHECK_IN_FEE),
       data
     });
-  }, [walletAddress, farcasterUser, sendTransaction]);
+  }, [walletAddress, sendTransaction, toast]);
 
   // Get user location
   const getUserLocation = useCallback(() => {
@@ -559,8 +568,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       clusterGroup.addLayer(marker);
     });
 
-    // Add cluster group to map
-    map.addLayer(clusterGroup);
+    // Add cluster group to map ONLY if not in check-in mode
+    if (!checkInMode) {
+      map.addLayer(clusterGroup);
+    }
 
     // Remove existing polyline if any
     if (polylineRef.current) {
@@ -568,8 +579,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       polylineRef.current = null;
     }
 
-    // Draw travel route polyline when creator filter is active
-    if (selectedCreator && filteredNfts.length > 1) {
+    // Draw travel route polyline when creator filter is active AND not in check-in mode
+    if (selectedCreator && filteredNfts.length > 1 && !checkInMode) {
       // Sort NFTs by creation date (oldest first) to show travel route
       const sortedNfts = [...filteredNfts].sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
@@ -622,7 +633,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     (window as any).clearCreatorFilter = () => {
       setSelectedCreator(null);
     };
-  }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator]);
+  }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator, checkInMode]);
 
   // Hide/show NFT markers when check-in mode changes
   useEffect(() => {
@@ -946,9 +957,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               )}
               
               {!farcasterUser && walletAddress && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-yellow-800">
-                    Please sign in with Farcaster to earn points.
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800">
+                    Sign in with Farcaster to earn bonus points!
                   </p>
                 </div>
               )}
@@ -969,8 +980,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
               Cancel
             </Button>
             <Button
-              onClick={() => selectedPOI && initiateCheckIn(selectedPOI)}
-              disabled={!walletAddress || !farcasterUser || isTxPending || isTxConfirming}
+              onClick={() => {
+                console.log("Check-in button clicked, selectedPOI:", selectedPOI);
+                if (selectedPOI) initiateCheckIn(selectedPOI);
+              }}
+              disabled={!walletAddress || isTxPending || isTxConfirming}
               className="bg-green-500 hover:bg-green-600"
               data-testid="button-checkin-confirm"
             >
