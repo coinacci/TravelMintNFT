@@ -209,9 +209,9 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         setUserLocation(loc);
         setLocationLoading(false);
         
-        // Pan and zoom map to user location (zoom 17 for close-up street view)
+        // Pan and zoom map to user location (zoom 19 for maximum street detail)
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([loc.lat, loc.lon], 17);
+          mapInstanceRef.current.setView([loc.lat, loc.lon], 19);
         }
       },
       (error) => {
@@ -607,6 +607,30 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       setSelectedCreator(null);
     };
   }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator]);
+
+  // Hide/show NFT markers when check-in mode changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !clusterGroupRef.current) return;
+    const map = mapInstanceRef.current;
+    
+    if (checkInMode) {
+      // Hide NFT markers in check-in mode for cleaner view
+      map.removeLayer(clusterGroupRef.current);
+      // Also hide polyline if present
+      if (polylineRef.current) {
+        map.removeLayer(polylineRef.current);
+      }
+    } else {
+      // Show NFT markers when exiting check-in mode
+      if (!map.hasLayer(clusterGroupRef.current)) {
+        map.addLayer(clusterGroupRef.current);
+      }
+      // Re-add polyline if exists
+      if (polylineRef.current && !map.hasLayer(polylineRef.current)) {
+        map.addLayer(polylineRef.current);
+      }
+    }
+  }, [checkInMode]);
 
   // POI layer effect - show nearby places for check-in
   useEffect(() => {
