@@ -509,6 +509,7 @@ export const checkins = pgTable("checkins", {
   longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
   transactionHash: text("transaction_hash"), // Optional on-chain transaction
   pointsEarned: integer("points_earned").default(10).notNull(), // Points for this check-in
+  comment: text("comment"), // User's note/review about this place
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -5688,7 +5688,7 @@ export async function registerRoutes(app: Express) {
   // POST /api/checkins - Create a new check-in
   app.post("/api/checkins", async (req: Request, res: Response) => {
     try {
-      const { walletAddress, farcasterFid, farcasterUsername, osmId, placeName, placeCategory, placeSubcategory, latitude, longitude, transactionHash } = req.body;
+      const { walletAddress, farcasterFid, farcasterUsername, osmId, placeName, placeCategory, placeSubcategory, latitude, longitude, transactionHash, comment } = req.body;
       
       if (!walletAddress || !osmId || !placeName || !placeCategory || latitude === undefined || longitude === undefined) {
         return res.status(400).json({ error: 'Missing required fields: walletAddress, osmId, placeName, placeCategory, latitude, longitude' });
@@ -5710,10 +5710,13 @@ export async function registerRoutes(app: Express) {
       // Calculate points - 10 base points for check-in
       const pointsEarned = 10;
       
+      // Sanitize comment (max 500 characters)
+      const sanitizedComment = comment ? String(comment).substring(0, 500).trim() : null;
+      
       // Create check-in
       const result = await db.execute(sql`
-        INSERT INTO checkins (wallet_address, farcaster_fid, farcaster_username, osm_id, place_name, place_category, place_subcategory, latitude, longitude, transaction_hash, points_earned)
-        VALUES (${walletAddress.toLowerCase()}, ${farcasterFid || null}, ${farcasterUsername || null}, ${osmId}, ${placeName}, ${placeCategory}, ${placeSubcategory || null}, ${latitude}, ${longitude}, ${transactionHash || null}, ${pointsEarned})
+        INSERT INTO checkins (wallet_address, farcaster_fid, farcaster_username, osm_id, place_name, place_category, place_subcategory, latitude, longitude, transaction_hash, points_earned, comment)
+        VALUES (${walletAddress.toLowerCase()}, ${farcasterFid || null}, ${farcasterUsername || null}, ${osmId}, ${placeName}, ${placeCategory}, ${placeSubcategory || null}, ${latitude}, ${longitude}, ${transactionHash || null}, ${pointsEarned}, ${sanitizedComment})
         RETURNING *
       `);
       
