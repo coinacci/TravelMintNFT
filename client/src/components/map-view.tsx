@@ -959,21 +959,20 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
                             <button
                               key={poi.id}
                               onClick={() => selectPOIForCheckIn(poi)}
-                              className="w-full text-left bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg p-3 transition-colors"
+                              className="w-full text-left bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-blue-500 rounded-lg p-3 transition-colors"
                               data-testid={`poi-item-${poi.id}`}
                             >
                               <div className="flex items-start gap-3">
                                 <span className="text-2xl">{getCategoryEmoji(poi.category)}</span>
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm truncate">{poi.name}</h4>
-                                  <p className="text-xs text-gray-500">{poi.category}</p>
+                                  <h4 className="font-medium text-sm truncate text-white">{poi.name}</h4>
                                   {poi.distance && (
-                                    <p className="text-xs text-blue-600 mt-1">
+                                    <p className="text-xs text-blue-400 mt-1">
                                       {Math.round(poi.distance)}m away
                                     </p>
                                   )}
                                 </div>
-                                <Check className="w-4 h-4 text-gray-300" />
+                                <Check className="w-4 h-4 text-gray-500" />
                               </div>
                             </button>
                           ))}
