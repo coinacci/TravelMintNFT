@@ -1,13 +1,36 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Filter, X, User } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { ChevronDown, ChevronUp, Filter, X, User, MapPin, Navigation, Loader2, Check } from "lucide-react";
 import { formatUserDisplayName } from "@/lib/userDisplay";
 import { useAccount } from "wagmi";
+import { useToast } from "@/hooks/use-toast";
+import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+interface POI {
+  id: string;
+  name: string;
+  category: string;
+  subcategory?: string;
+  lat: number;
+  lon: number;
+  address?: string;
+  distance?: number;
+}
 
 interface NFT {
   id: string;
@@ -39,12 +62,26 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
-  const queryClient = useQueryClient();
+  const poiLayerRef = useRef<L.LayerGroup | null>(null);
+  const userCircleRef = useRef<L.Circle | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
+  const queryClientHook = useQueryClient();
+  const { toast } = useToast();
+  const { user: farcasterUser } = useFarcasterAuth();
   const [showBrandOnly, setShowBrandOnly] = useState(false);
   const [showOnlyYours, setShowOnlyYours] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const { address: walletAddress } = useAccount();
+  
+  // Check-in state
+  const [checkInMode, setCheckInMode] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+  const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
+  const checkInRadius = 500; // 500 meters
   
   // Reset "Only Yours" filter when wallet disconnects
   useEffect(() => {
@@ -52,6 +89,151 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       setShowOnlyYours(false);
     }
   }, [walletAddress, showOnlyYours]);
+
+  // Fetch nearby POIs when in check-in mode and have location
+  const { data: nearbyPOIs = [], isLoading: poisLoading, refetch: refetchPOIs } = useQuery<POI[]>({
+    queryKey: ["/api/places/nearby", userLocation?.lat, userLocation?.lon, checkInRadius],
+    queryFn: async () => {
+      if (!userLocation) return [];
+      const response = await fetch(
+        `/api/places/nearby?lat=${userLocation.lat}&lon=${userLocation.lon}&radius=${checkInRadius}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch nearby places");
+      const data = await response.json();
+      return data.pois || [];
+    },
+    enabled: checkInMode && !!userLocation,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // Check-in mutation
+  const checkInMutation = useMutation({
+    mutationFn: async (poi: POI) => {
+      if (!walletAddress) throw new Error("Cüzdan bağlı değil");
+      
+      const payload = {
+        walletAddress,
+        farcasterFid: farcasterUser?.fid?.toString() || null,
+        farcasterUsername: farcasterUser?.username || null,
+        osmId: poi.id,
+        placeName: poi.name,
+        placeCategory: poi.category,
+        placeSubcategory: poi.subcategory || null,
+        latitude: poi.lat,
+        longitude: poi.lon,
+      };
+      
+      const response = await apiRequest("POST", "/api/checkins", payload);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Check-in Başarılı! ✓",
+        description: `${selectedPOI?.name} konumunda check-in yaptın. +10 puan kazandın!`,
+      });
+      setCheckInDialogOpen(false);
+      setSelectedPOI(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/checkins"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Check-in Başarısız",
+        description: error.message || "Lütfen tekrar dene",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Get user location
+  const getUserLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Tarayıcınız konum özelliğini desteklemiyor");
+      return;
+    }
+    
+    setLocationLoading(true);
+    setLocationError(null);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        };
+        setUserLocation(loc);
+        setLocationLoading(false);
+        
+        // Pan map to user location
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([loc.lat, loc.lon], 15);
+        }
+      },
+      (error) => {
+        setLocationLoading(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError("Konum izni reddedildi");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError("Konum bilgisi alınamadı");
+            break;
+          case error.TIMEOUT:
+            setLocationError("Konum isteği zaman aşımına uğradı");
+            break;
+          default:
+            setLocationError("Konum alınamadı");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, []);
+
+  // Toggle check-in mode
+  const toggleCheckInMode = useCallback(() => {
+    if (!checkInMode) {
+      setCheckInMode(true);
+      getUserLocation();
+    } else {
+      setCheckInMode(false);
+      setUserLocation(null);
+      setLocationError(null);
+      // Clear cached POI data to ensure fresh fetch next time
+      queryClient.removeQueries({ queryKey: ["/api/places/nearby"] });
+    }
+  }, [checkInMode, getUserLocation]);
+
+  // Category emoji mapping
+  const getCategoryEmoji = (category: string): string => {
+    const emojiMap: Record<string, string> = {
+      'Kafe': '☕',
+      'Restoran': '🍽️',
+      'Bar': '🍺',
+      'Müze': '🏛️',
+      'Park': '🌳',
+      'Alışveriş': '🛍️',
+      'Otel': '🏨',
+      'Hastane': '🏥',
+      'Eczane': '💊',
+      'Banka': '🏦',
+      'Market': '🛒',
+      'Benzinlik': '⛽',
+      'Cami': '🕌',
+      'Kilise': '⛪',
+      'Okul': '🏫',
+      'Üniversite': '🎓',
+      'Kütüphane': '📚',
+      'Spor': '⚽',
+      'Sinema': '🎬',
+      'Tiyatro': '🎭',
+      'Havalimanı': '✈️',
+      'Tren İstasyonu': '🚆',
+      'Otobüs Durağı': '🚌',
+      'Metro': '🚇',
+      'Plaj': '🏖️',
+      'Dağ': '⛰️',
+    };
+    return emojiMap[category] || '📍';
+  };
 
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
     queryKey: ["/api/nfts"],
@@ -380,6 +562,109 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     };
   }, [filteredNfts, nfts, onNFTSelect, setSelectedCreator, selectedCreator]);
 
+  // POI layer effect - show nearby places for check-in
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    // Clear existing POI layer
+    if (poiLayerRef.current) {
+      map.removeLayer(poiLayerRef.current);
+      poiLayerRef.current = null;
+    }
+
+    // Clear existing user marker and circle
+    if (userMarkerRef.current) {
+      map.removeLayer(userMarkerRef.current);
+      userMarkerRef.current = null;
+    }
+    if (userCircleRef.current) {
+      map.removeLayer(userCircleRef.current);
+      userCircleRef.current = null;
+    }
+
+    // Only show POIs when in check-in mode with valid location
+    if (!checkInMode || !userLocation) return;
+
+    // Create user location marker
+    const userIcon = L.divIcon({
+      html: '<div class="user-location-marker"><span style="font-size: 24px;">📍</span></div>',
+      className: 'user-marker-icon',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+    });
+
+    const userMarker = L.marker([userLocation.lat, userLocation.lon], { icon: userIcon });
+    userMarker.bindPopup('<div class="text-center p-2"><strong>Konumun</strong></div>');
+    userMarker.addTo(map);
+    userMarkerRef.current = userMarker;
+
+    // Create radius circle
+    const circle = L.circle([userLocation.lat, userLocation.lon], {
+      radius: checkInRadius,
+      color: '#22c55e',
+      fillColor: '#22c55e',
+      fillOpacity: 0.1,
+      weight: 2,
+      dashArray: '5, 5',
+    });
+    circle.addTo(map);
+    userCircleRef.current = circle;
+
+    // Create POI layer
+    const poiLayer = L.layerGroup();
+
+    // Add POI markers
+    nearbyPOIs.forEach((poi) => {
+      const emoji = getCategoryEmoji(poi.category);
+      const poiIcon = L.divIcon({
+        html: `<div class="poi-marker"><span style="font-size: 20px;">${emoji}</span></div>`,
+        className: 'poi-marker-icon',
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -24],
+      });
+
+      const marker = L.marker([poi.lat, poi.lon], { icon: poiIcon });
+      
+      const distanceText = poi.distance ? `${Math.round(poi.distance)}m` : '';
+      const popupContent = `
+        <div class="text-center p-2 min-w-[180px]" style="font-family: Inter, system-ui, sans-serif;">
+          <div class="text-2xl mb-1">${emoji}</div>
+          <h3 class="font-semibold text-sm mb-1" style="color: #000">${poi.name}</h3>
+          <p class="text-xs text-gray-600 mb-1">${poi.category}${poi.subcategory ? ` • ${poi.subcategory}` : ''}</p>
+          ${distanceText ? `<p class="text-xs text-green-600 mb-2">${distanceText} uzaklıkta</p>` : ''}
+          <button 
+            onclick="window.openCheckInDialog('${poi.id}')"
+            class="w-full bg-green-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-600 transition-colors"
+          >
+            Check-in Yap (+10 puan)
+          </button>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      poiLayer.addLayer(marker);
+    });
+
+    poiLayer.addTo(map);
+    poiLayerRef.current = poiLayer;
+
+    // Global function to open check-in dialog
+    (window as any).openCheckInDialog = (poiId: string) => {
+      const poi = nearbyPOIs.find(p => p.id === poiId);
+      if (poi) {
+        setSelectedPOI(poi);
+        setCheckInDialogOpen(true);
+        map.closePopup();
+      }
+    };
+
+    return () => {
+      delete (window as any).openCheckInDialog;
+    };
+  }, [checkInMode, userLocation, nearbyPOIs, checkInRadius]);
+
   return (
     <div className="relative">
       <div ref={mapRef} className="map-container" data-testid="map-container" />
@@ -475,6 +760,130 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         </div>
       </div>
 
+      {/* Check-in Button */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+        <Button
+          onClick={toggleCheckInMode}
+          disabled={locationLoading}
+          className={`px-4 py-2 rounded-full shadow-lg flex items-center gap-2 ${
+            checkInMode 
+              ? 'bg-green-500 hover:bg-green-600 text-white' 
+              : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-200'
+          }`}
+          data-testid="button-checkin-toggle"
+        >
+          {locationLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Konum alınıyor...</span>
+            </>
+          ) : checkInMode ? (
+            <>
+              <X className="w-4 h-4" />
+              <span>Check-in Kapat</span>
+            </>
+          ) : (
+            <>
+              <Navigation className="w-4 h-4" />
+              <span>Check-in Yap</span>
+            </>
+          )}
+        </Button>
+        
+        {/* Location error message */}
+        {locationError && (
+          <div className="mt-2 bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full text-center">
+            {locationError}
+          </div>
+        )}
+        
+        {/* POI count when in check-in mode */}
+        {checkInMode && userLocation && !poisLoading && nearbyPOIs.length > 0 && (
+          <div className="mt-2 bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full text-center">
+            {nearbyPOIs.length} mekan bulundu (500m içinde)
+          </div>
+        )}
+        
+        {/* Loading POIs */}
+        {checkInMode && poisLoading && (
+          <div className="mt-2 bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full text-center flex items-center justify-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Mekanlar yükleniyor...</span>
+          </div>
+        )}
+        
+        {/* No POIs found */}
+        {checkInMode && userLocation && !poisLoading && nearbyPOIs.length === 0 && (
+          <div className="mt-2 bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full text-center">
+            Yakında mekan bulunamadı
+          </div>
+        )}
+      </div>
+
+      {/* Check-in Confirmation Dialog */}
+      <Dialog open={checkInDialogOpen} onOpenChange={setCheckInDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-2xl">{selectedPOI ? getCategoryEmoji(selectedPOI.category) : '📍'}</span>
+              Check-in Onayla
+            </DialogTitle>
+            <DialogDescription>
+              Bu konumda check-in yaparak 10 puan kazanacaksın.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPOI && (
+            <div className="py-4">
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-lg">{selectedPOI.name}</h3>
+                <p className="text-sm text-gray-600">{selectedPOI.category}</p>
+                {selectedPOI.distance && (
+                  <p className="text-sm text-green-600 mt-1">
+                    {Math.round(selectedPOI.distance)}m uzaklıkta
+                  </p>
+                )}
+              </div>
+              
+              {!walletAddress && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    Check-in yapmak için cüzdanını bağlamalısın.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCheckInDialogOpen(false)}
+              data-testid="button-checkin-cancel"
+            >
+              İptal
+            </Button>
+            <Button
+              onClick={() => selectedPOI && checkInMutation.mutate(selectedPOI)}
+              disabled={!walletAddress || checkInMutation.isPending}
+              className="bg-green-500 hover:bg-green-600"
+              data-testid="button-checkin-confirm"
+            >
+              {checkInMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Check-in yapılıyor...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Check-in Yap
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
