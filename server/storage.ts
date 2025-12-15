@@ -589,7 +589,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select({
         nftId: transactions.nftId,
-        totalTips: sql<string>`SUM(CAST(${transactions.amount} AS DECIMAL))`.as('total_tips')
+        totalTips: sql<string>`SUM(CAST(${transactions.amount} AS DECIMAL) + CAST(${transactions.platformFee} AS DECIMAL))`.as('total_tips')
       })
       .from(transactions)
       .where(eq(transactions.transactionType, 'donation'))
