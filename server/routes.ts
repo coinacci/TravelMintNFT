@@ -5688,9 +5688,13 @@ export async function registerRoutes(app: Express) {
   // POST /api/checkins - Create a new check-in
   app.post("/api/checkins", async (req: Request, res: Response) => {
     try {
-      const { walletAddress, farcasterFid, farcasterUsername, osmId, placeName, placeCategory, placeSubcategory, latitude, longitude, transactionHash, comment } = req.body;
+      console.log('📍 Check-in request received:', JSON.stringify(req.body, null, 2));
+      const { walletAddress, farcasterFid, farcasterUsername, osmId, placeName, placeCategory, placeSubcategory, latitude, longitude, transactionHash, txHash, comment } = req.body;
+      // Accept both transactionHash and txHash for compatibility
+      const finalTxHash = transactionHash || txHash || null;
       
       if (!walletAddress || !osmId || !placeName || !placeCategory || latitude === undefined || longitude === undefined) {
+        console.log('❌ Check-in validation failed - missing fields');
         return res.status(400).json({ error: 'Missing required fields: walletAddress, osmId, placeName, placeCategory, latitude, longitude' });
       }
       
@@ -5716,7 +5720,7 @@ export async function registerRoutes(app: Express) {
       // Create check-in
       const result = await db.execute(sql`
         INSERT INTO checkins (wallet_address, farcaster_fid, farcaster_username, osm_id, place_name, place_category, place_subcategory, latitude, longitude, transaction_hash, points_earned, comment)
-        VALUES (${walletAddress.toLowerCase()}, ${farcasterFid || null}, ${farcasterUsername || null}, ${osmId}, ${placeName}, ${placeCategory}, ${placeSubcategory || null}, ${latitude}, ${longitude}, ${transactionHash || null}, ${pointsEarned}, ${sanitizedComment})
+        VALUES (${walletAddress.toLowerCase()}, ${farcasterFid || null}, ${farcasterUsername || null}, ${osmId}, ${placeName}, ${placeCategory}, ${placeSubcategory || null}, ${latitude}, ${longitude}, ${finalTxHash}, ${pointsEarned}, ${sanitizedComment})
         RETURNING *
       `);
       
@@ -5731,6 +5735,7 @@ export async function registerRoutes(app: Express) {
         `);
       }
       
+      console.log('✅ Check-in saved successfully:', result.rows[0]);
       res.json({ 
         success: true, 
         checkin: result.rows[0],
@@ -5738,7 +5743,7 @@ export async function registerRoutes(app: Express) {
         message: `Check-in successful! You earned ${pointsEarned} points.`
       });
     } catch (error: any) {
-      console.error('Check-in error:', error);
+      console.error('❌ Check-in error:', error);
       res.status(500).json({ error: error.message || 'Failed to create check-in' });
     }
   });

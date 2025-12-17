@@ -180,7 +180,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
   // Check-in mutation (stores location data in DB after blockchain tx confirms)
   const checkInMutation = useMutation({
-    mutationFn: async ({ poi, comment }: { poi: POI; comment: string }) => {
+    mutationFn: async ({ poi, comment, capturedTxHash }: { poi: POI; comment: string; capturedTxHash: string | undefined }) => {
+      console.log("📍 Starting check-in mutation for:", poi.name);
       if (!walletAddress) throw new Error("Wallet not connected");
       
       const payload = {
@@ -193,14 +194,17 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         placeSubcategory: poi.subcategory || null,
         latitude: poi.lat,
         longitude: poi.lon,
-        txHash: txHash || null, // Include tx hash for reference
+        txHash: capturedTxHash || null, // Use captured tx hash to avoid race condition
         comment: comment.trim() || null, // Add user comment
       };
       
+      console.log("📍 Sending check-in payload:", payload);
       const response = await apiRequest("POST", "/api/checkins", payload);
+      console.log("📍 Check-in response:", response);
       return { response, osmId: poi.id };
     },
     onSuccess: (data) => {
+      console.log("✅ Check-in mutation succeeded");
       // Invalidate all check-in related queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: ["/api/checkins"] });
       queryClient.invalidateQueries({ queryKey: ["/api/checkins/all"] });
@@ -208,17 +212,30 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
       // Clear comment after successful submission
       setCheckInComment("");
     },
+    onError: (error) => {
+      console.error("❌ Check-in mutation failed:", error);
+    },
   });
   
   // Handle blockchain transaction success - store check-in data and show success
   useEffect(() => {
     if (isTxSuccess && pendingCheckInPOI) {
-      // Store check-in data in database with comment
-      checkInMutation.mutate({ poi: pendingCheckInPOI, comment: checkInComment });
+      console.log("📍 Blockchain tx confirmed, saving check-in to DB...");
+      // Capture txHash before any state resets
+      const capturedTxHash = txHash;
+      const currentComment = checkInComment;
+      const currentPOI = pendingCheckInPOI;
+      
+      // Store check-in data in database with comment (pass captured values)
+      checkInMutation.mutate({ 
+        poi: currentPOI, 
+        comment: currentComment,
+        capturedTxHash
+      });
       
       toast({
         title: "Check-in Successful! ✓",
-        description: `You checked in at ${pendingCheckInPOI.name}. +10 points earned on-chain!`,
+        description: `You checked in at ${currentPOI.name}. +10 points earned on-chain!`,
       });
       
       // Reset state and close drawer
