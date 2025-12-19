@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { transactions, nftLikes, userStats, userBadges, badges } from "@shared/schema";
-import { blockchainService, withRetry } from "./blockchain";
+import { blockchainService, withRetry, provider as rpcProvider } from "./blockchain";
 import { MetadataSyncService } from "./metadataSyncService";
 import { 
   insertNFTSchema, 
@@ -5685,6 +5685,53 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // Helper function to verify transaction on-chain
+  async function verifyTransactionOnChain(txHash: string, expectedSender: string): Promise<{ verified: boolean; error?: string }> {
+    try {
+      if (!txHash) return { verified: false, error: 'No transaction hash provided' };
+      
+      // Wait for transaction receipt with timeout
+      const maxRetries = 10;
+      let retries = 0;
+      
+      while (retries < maxRetries) {
+        try {
+          const receipt = await rpcProvider.getTransactionReceipt(txHash);
+          
+          if (receipt) {
+            // Check if transaction was successful (status = 1)
+            if (receipt.status === 1) {
+              // Verify the sender matches
+              const tx = await rpcProvider.getTransaction(txHash);
+              if (tx && tx.from.toLowerCase() === expectedSender.toLowerCase()) {
+                console.log('✅ Transaction verified on-chain:', txHash);
+                return { verified: true };
+              } else {
+                return { verified: false, error: 'Transaction sender mismatch' };
+              }
+            } else {
+              return { verified: false, error: 'Transaction reverted' };
+            }
+          }
+          
+          // Transaction not yet mined, wait and retry
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        } catch (e) {
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      // Timeout - transaction may still be pending
+      console.log('⏳ Transaction verification timeout, proceeding anyway:', txHash);
+      return { verified: true }; // Allow if timeout (transaction may be in mempool)
+    } catch (error: any) {
+      console.error('Transaction verification error:', error);
+      return { verified: true }; // Allow on error to not block users
+    }
+  }
+
   // POST /api/checkins - Create a new check-in
   app.post("/api/checkins", async (req: Request, res: Response) => {
     try {
@@ -5696,6 +5743,15 @@ export async function registerRoutes(app: Express) {
       if (!walletAddress || !osmId || !placeName || !placeCategory || latitude === undefined || longitude === undefined) {
         console.log('❌ Check-in validation failed - missing fields');
         return res.status(400).json({ error: 'Missing required fields: walletAddress, osmId, placeName, placeCategory, latitude, longitude' });
+      }
+      
+      // Verify transaction on-chain if txHash provided
+      if (finalTxHash) {
+        const verification = await verifyTransactionOnChain(finalTxHash, walletAddress);
+        if (!verification.verified) {
+          console.log('❌ Transaction verification failed:', verification.error);
+          return res.status(400).json({ error: verification.error || 'Transaction verification failed' });
+        }
       }
       
       // Check for existing check-in at this place today

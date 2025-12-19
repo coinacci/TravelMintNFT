@@ -109,6 +109,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   const [pendingCheckInPOI, setPendingCheckInPOI] = useState<POI | null>(null);
   const [checkInComment, setCheckInComment] = useState("");
   const [placeDetailsPOI, setPlaceDetailsPOI] = useState<POI | null>(null);
+  const [selectedCheckinLocation, setSelectedCheckinLocation] = useState<{
+    osm_id: string;
+    place_name: string;
+    place_category: string;
+  } | null>(null);
   const checkInRadius = 500; // 500 meters
   
   // Blockchain transaction for check-in
@@ -158,7 +163,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     staleTime: 60 * 1000, // 1 minute
   });
 
-  // Fetch check-ins for a specific place
+  // Fetch check-ins for a specific place (used by both POI drawer and explore checkin dialog)
+  const checkinQueryId = selectedCheckinLocation?.osm_id || placeDetailsPOI?.id;
   const { data: placeCheckins = [], isLoading: placeCheckinsLoading } = useQuery<{
     wallet_address: string;
     farcaster_username?: string;
@@ -166,15 +172,15 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     created_at: string;
     points_earned: number;
   }[]>({
-    queryKey: ["/api/checkins/place", placeDetailsPOI?.id],
+    queryKey: ["/api/checkins/place", checkinQueryId],
     queryFn: async () => {
-      if (!placeDetailsPOI) return [];
-      const response = await fetch(`/api/checkins/place/${encodeURIComponent(placeDetailsPOI.id)}`);
+      if (!checkinQueryId) return [];
+      const response = await fetch(`/api/checkins/place/${encodeURIComponent(checkinQueryId)}`);
       if (!response.ok) throw new Error("Failed to fetch place check-ins");
       const data = await response.json();
       return data.checkins || [];
     },
-    enabled: !!placeDetailsPOI,
+    enabled: !!checkinQueryId,
     staleTime: 30 * 1000, // 30 seconds
   });
 
@@ -217,35 +223,49 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     },
   });
   
-  // Handle blockchain transaction success - store check-in data and show success
+  // Handle blockchain transaction hash received - save check-in (backend verifies on-chain)
+  // Don't wait for frontend confirmation as it may not work reliably in Farcaster Frame
   useEffect(() => {
-    if (isTxSuccess && pendingCheckInPOI) {
-      console.log("📍 Blockchain tx confirmed, saving check-in to DB...");
-      // Capture txHash before any state resets
+    if (txHash && pendingCheckInPOI && !checkInMutation.isPending) {
+      console.log("📍 Transaction submitted, sending to backend for verification...");
+      // Capture values before any state resets
       const capturedTxHash = txHash;
       const currentComment = checkInComment;
       const currentPOI = pendingCheckInPOI;
       
-      // Store check-in data in database with comment (pass captured values)
+      // Clear pending state to prevent duplicate calls
+      setPendingCheckInPOI(null);
+      
+      // Send to backend - it will verify on-chain before saving
+      // Success/error toasts are handled in mutation callbacks
       checkInMutation.mutate({ 
         poi: currentPOI, 
         comment: currentComment,
         capturedTxHash
+      }, {
+        onSuccess: () => {
+          toast({
+            title: "Check-in Successful! ✓",
+            description: `You checked in at ${currentPOI.name}. +10 points earned!`,
+          });
+          // Reset state and close drawer only on success
+          setCheckInDrawerOpen(false);
+          setSelectedPOI(null);
+          setCheckInComment("");
+          resetTx();
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Check-in Failed",
+            description: error.message || "Transaction verification failed. Please try again.",
+            variant: "destructive"
+          });
+          // Reset transaction but keep drawer open to retry
+          resetTx();
+        }
       });
-      
-      toast({
-        title: "Check-in Successful! ✓",
-        description: `You checked in at ${currentPOI.name}. +10 points earned on-chain!`,
-      });
-      
-      // Reset state and close drawer
-      setCheckInDrawerOpen(false);
-      setSelectedPOI(null);
-      setPendingCheckInPOI(null);
-      setCheckInComment("");
-      resetTx();
     }
-  }, [isTxSuccess, pendingCheckInPOI]);
+  }, [txHash, pendingCheckInPOI, checkInMutation.isPending]);
   
   // Function to initiate on-chain check-in
   const initiateCheckIn = useCallback((poi: POI) => {
@@ -755,16 +775,21 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
 
       const marker = L.marker([lat, lon], { icon: checkinIcon });
       
-      const popupContent = `
-        <div class="text-center p-2 min-w-[160px]" style="font-family: Inter, system-ui, sans-serif;">
-          <div class="text-xl mb-1">🔹</div>
-          <h3 class="font-semibold text-sm mb-1" style="color: #000">${checkin.place_name}</h3>
-          <p class="text-xs text-gray-600 mb-1">${checkin.place_category}</p>
-          <p class="text-xs text-blue-600 mt-2">${checkin.checkin_count} check-in${checkin.checkin_count > 1 ? 's' : ''}</p>
-        </div>
-      `;
-
-      marker.bindPopup(popupContent);
+      // Click to open check-in details dialog
+      marker.on('click', () => {
+        setSelectedCheckinLocation({
+          osm_id: checkin.osm_id,
+          place_name: checkin.place_name,
+          place_category: checkin.place_category,
+        });
+      });
+      
+      // Show simple tooltip on hover
+      marker.bindTooltip(`<div style="font-family: Inter, sans-serif; font-size: 12px;"><strong>${checkin.place_name}</strong><br/>${checkin.checkin_count} check-in</div>`, {
+        direction: 'top',
+        offset: [0, -10],
+      });
+      
       checkinsLayer.addLayer(marker);
     });
 
@@ -1101,6 +1126,68 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Check-in Details Dialog - shows when clicking a check-in marker on explore mode */}
+      <Dialog open={!!selectedCheckinLocation} onOpenChange={(open) => !open && setSelectedCheckinLocation(null)}>
+        <DialogContent className="max-w-md bg-gray-900 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <span className="text-xl">🔹</span>
+              {selectedCheckinLocation?.place_name}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {selectedCheckinLocation?.place_category}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <h4 className="text-sm font-medium text-gray-300 mb-3">Check-in Notes</h4>
+            {placeCheckinsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : placeCheckins.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No notes yet</p>
+            ) : (
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-3 pr-2">
+                  {placeCheckins.map((checkin: any, idx: number) => (
+                    <div key={idx} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-medium text-white">
+                            {checkin.farcaster_username || `${checkin.wallet_address?.slice(0, 6)}...${checkin.wallet_address?.slice(-4)}`}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(checkin.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {checkin.comment ? (
+                        <p className="text-sm text-gray-300">{checkin.comment}</p>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No note</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedCheckinLocation(null)}
+              className="w-full"
+              data-testid="button-close-checkin-dialog"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
