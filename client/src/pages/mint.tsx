@@ -909,7 +909,7 @@ export default function Mint() {
     }
   };
 
-  const categories = ["Landscape", "Architecture", "Street Photography", "Food", "Restaurant", "Cafe", "Brand"];
+  const categories = ["Viewpoint", "Waterfall", "Co-working", "Beach", "Shopping Mall", "Landscape", "Architecture", "Street Photography", "Food", "Restaurant", "Cafe", "Brand"];
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
