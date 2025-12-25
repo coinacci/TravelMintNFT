@@ -980,7 +980,8 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
         </div>
       </div>
 
-      {/* Check-in Toggle Button */}
+      {/* Check-in Toggle Button - Hidden (feature temporarily disabled) */}
+      {/* 
       <div className="absolute top-16 md:top-32 right-4 z-10">
         <Button
           onClick={toggleCheckInMode}
@@ -996,8 +997,10 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           <span>{checkInMode ? 'Exit Check-in' : 'Check-in'}</span>
         </Button>
       </div>
+      */}
 
-      {/* Check-in Mode Status */}
+      {/* Check-in Mode Status - Hidden (feature temporarily disabled) */}
+      {/* 
       {checkInMode && !checkInDrawerOpen && (
         <div className="absolute top-28 md:top-44 right-4 z-10 bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-sm max-w-[200px]">
           {locationLoading ? (
@@ -1024,6 +1027,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
           )}
         </div>
       )}
+      */}
 
       {/* Check-in Confirmation Drawer (opens when marker clicked) */}
       <Drawer open={checkInDrawerOpen} onOpenChange={handleDrawerClose}>
