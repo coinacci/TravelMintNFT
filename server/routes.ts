@@ -516,12 +516,24 @@ export async function registerRoutes(app: Express) {
   app.get("/api/nfts", async (req, res) => {
     try {
       const sortBy = req.query.sortBy as string | undefined;
+      const farcasterFid = req.query.farcasterFid as string | undefined;
       const cacheKey = sortBy ? `all-nfts-${sortBy}` : 'all-nfts';
       
       // Check cache first for instant response
       if (isCacheValid(cacheKey)) {
         console.log(`⚡ Returning cached NFTs (instant response, sortBy: ${sortBy || 'default'})`);
-        return res.json(nftCache[cacheKey].data);
+        let cachedNFTs = nftCache[cacheKey].data;
+        
+        // Add isLiked property if user's farcasterFid is provided
+        if (farcasterFid) {
+          const userLikedNFTs = await storage.getUserLikedNFTIds(farcasterFid);
+          cachedNFTs = cachedNFTs.map((nft: any) => ({
+            ...nft,
+            isLiked: userLikedNFTs.includes(nft.id)
+          }));
+        }
+        
+        return res.json(cachedNFTs);
       }
 
       console.log(`🔗 Cache miss - fetching NFTs from database (sortBy: ${sortBy || 'default'})...`);
@@ -566,6 +578,16 @@ export async function registerRoutes(app: Express) {
       // Cache the processed results for fast future requests
       setCacheEntry(cacheKey, nftsWithOwners);
       console.log(`✅ Returning ${nftsWithOwners.length} total NFTs (cached for fast access)`);
+      
+      // Add isLiked property if user's farcasterFid is provided
+      let finalNFTs = nftsWithOwners;
+      if (farcasterFid) {
+        const userLikedNFTs = await storage.getUserLikedNFTIds(farcasterFid);
+        finalNFTs = nftsWithOwners.map((nft: any) => ({
+          ...nft,
+          isLiked: userLikedNFTs.includes(nft.id)
+        }));
+      }
       
       // Immediate cache clear and aggressive blockchain sync (non-blocking)
       setImmediate(async () => {
@@ -723,7 +745,7 @@ export async function registerRoutes(app: Express) {
         }
       });
       
-      res.json(nftsWithOwners);
+      res.json(finalNFTs);
     } catch (error) {
       console.error("Error fetching NFTs:", error);
       res.status(500).json({ message: "Failed to fetch NFTs" });
@@ -734,10 +756,16 @@ export async function registerRoutes(app: Express) {
   app.get("/api/nfts/for-sale", async (req, res) => {
     try {
       const sortBy = req.query.sortBy as string | undefined;
+      const farcasterFid = req.query.farcasterFid as string | undefined;
+      
       const [allNfts, tipTotals] = await Promise.all([
         storage.getNFTsForSale(sortBy),
         storage.getNFTTipTotals()
       ]);
+      
+      // Get user's liked NFT IDs if farcasterFid is provided
+      const userLikedNFTs = farcasterFid ? await storage.getUserLikedNFTIds(farcasterFid) : [];
+      
       // Filter by allowed contract only
       const nfts = allNfts.filter(nft => 
         !nft.contractAddress || nft.contractAddress === ALLOWED_CONTRACT
@@ -764,7 +792,8 @@ export async function registerRoutes(app: Express) {
             ownerAddress: nft.ownerAddress, // Include raw owner address for purchases
             owner: createUserObject(nft.ownerAddress, nft.farcasterOwnerUsername, nft.farcasterOwnerFid),
             creator: createUserObject(nft.creatorAddress, nft.farcasterCreatorUsername, nft.farcasterCreatorFid),
-            totalTips: tipTotals.get(nft.id) || 0
+            totalTips: tipTotals.get(nft.id) || 0,
+            isLiked: userLikedNFTs.includes(nft.id)
           };
         })
       );

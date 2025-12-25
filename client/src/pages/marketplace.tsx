@@ -122,27 +122,37 @@ export default function Marketplace() {
     }
   };
 
-  // Dynamic API endpoint based on NFT status filter
-  const baseEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
+  // Dynamic API endpoint based on NFT status filter with sortBy and farcasterFid parameters
+  const buildApiEndpoint = () => {
+    const baseEndpoint = nftStatus === "all" ? "/api/nfts" : "/api/nfts/for-sale";
+    const params = new URLSearchParams();
+    if (sortBy === "popular" || sortBy === "tips") {
+      params.set("sortBy", sortBy);
+    }
+    if (farcasterFid) {
+      params.set("farcasterFid", farcasterFid);
+    }
+    const queryString = params.toString();
+    return queryString ? `${baseEndpoint}?${queryString}` : baseEndpoint;
+  };
   
-  // Add sortBy parameter for special sorting (popular = like count, tips = donation amount)
-  const apiEndpoint = sortBy === "popular" 
-    ? `${baseEndpoint}?sortBy=popular`
-    : sortBy === "tips"
-    ? `${baseEndpoint}?sortBy=tips`
-    : baseEndpoint;
+  const apiEndpoint = buildApiEndpoint();
   
   const { data: nfts = [], isLoading } = useQuery<NFT[]>({
-    queryKey: [apiEndpoint], // Use full apiEndpoint so sortBy changes trigger refetch
+    queryKey: [apiEndpoint], // Use full URL as queryKey so default fetcher works
     staleTime: sortBy === 'tips' ? 30 * 1000 : 2 * 1000, // 30s for tips (expensive), 2s for others
     gcTime: sortBy === 'tips' ? 60 * 1000 : 10 * 1000, // Longer cache for tips
     refetchInterval: sortBy === 'tips' ? 30 * 1000 : 5 * 1000, // Less aggressive refetch for tips
   });
 
   // Get detailed NFT data when one is selected
+  const nftDetailEndpoint = selectedNFT?.id 
+    ? (farcasterFid ? `/api/nfts/${selectedNFT.id}?farcasterFid=${farcasterFid}` : `/api/nfts/${selectedNFT.id}`)
+    : null;
+  
   const { data: nftDetails } = useQuery<NFT & { transactions: Transaction[] }>({
-    queryKey: ["/api/nfts", selectedNFT?.id],
-    enabled: !!selectedNFT?.id,
+    queryKey: [nftDetailEndpoint],
+    enabled: !!selectedNFT?.id && !!nftDetailEndpoint,
     staleTime: 10 * 1000, // 10 seconds for faster updates
     gcTime: 30 * 1000, // 30 seconds cache time
   });
@@ -283,8 +293,7 @@ export default function Marketplace() {
       return response as unknown as { liked: boolean; likeCount: number };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0]?.toString().startsWith('/api/nfts') || false });
     },
     onError: (error: any) => {
       toast({

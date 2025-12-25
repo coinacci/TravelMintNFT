@@ -25,6 +25,7 @@ export interface IStorage {
   // NFT Like operations
   toggleNFTLike(nftId: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<{ liked: boolean; likeCount: number }>;
   checkNFTLiked(nftId: string, identifier: { farcasterFid?: string; walletAddress?: string }): Promise<boolean>;
+  getUserLikedNFTIds(farcasterFid: string): Promise<string[]>;
 
   // Transaction operations
   getTransaction(id: string): Promise<Transaction | undefined>;
@@ -428,6 +429,19 @@ export class DatabaseStorage implements IStorage {
       .from(nftLikes)
       .where(whereCondition);
     return !!like;
+  }
+
+  async getUserLikedNFTIds(farcasterFid: string): Promise<string[]> {
+    if (!farcasterFid) {
+      return [];
+    }
+    
+    const likes = await db
+      .select({ nftId: nftLikes.nftId })
+      .from(nftLikes)
+      .where(eq(nftLikes.farcasterFid, farcasterFid));
+    
+    return likes.map(like => like.nftId);
   }
 
   // Transaction operations

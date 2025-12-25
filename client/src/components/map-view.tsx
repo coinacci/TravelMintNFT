@@ -412,8 +412,11 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     return emojiMap[category] || '📍';
   };
 
+  const farcasterFid = farcasterUser?.fid?.toString() || null;
+  const nftsApiEndpoint = farcasterFid ? `/api/nfts?farcasterFid=${farcasterFid}` : '/api/nfts';
+  
   const { data: nfts = [], isLoading: nftsLoading, isError, error, refetch } = useQuery<NFT[]>({
-    queryKey: ["/api/nfts"],
+    queryKey: [nftsApiEndpoint], // Use full URL as queryKey so default fetcher works
     staleTime: 1 * 1000, // Cache for 1 second only - faster updates for new mints
     gcTime: 30 * 1000, // Keep in cache for 30 seconds
     refetchOnMount: true, // Allow refetch on mount to show new NFTs
@@ -475,7 +478,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
   useEffect(() => {
     const handleStorageChange = () => {
       console.log('🔄 Storage change detected - refreshing NFT data');
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0]?.toString().startsWith('/api/nfts') || false });
     };
 
     // Listen for storage events (when NFTs are minted in other tabs)
@@ -484,7 +487,7 @@ export default function MapView({ onNFTSelect }: MapViewProps) {
     // Also expose a global refresh function for manual use
     (window as any).refreshMapNFTs = () => {
       console.log('🔄 Manual NFT refresh triggered');
-      queryClient.invalidateQueries({ queryKey: ["/api/nfts"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0]?.toString().startsWith('/api/nfts') || false });
       refetch();
     };
 
