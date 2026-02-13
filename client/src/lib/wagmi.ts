@@ -2,6 +2,11 @@ import { createConfig, http } from 'wagmi'
 import { base, mainnet, baseSepolia } from 'wagmi/chains'
 import { coinbaseWallet, walletConnect, injected } from 'wagmi/connectors'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
+import { Attribution } from 'ox/erc8021'
+
+const DATA_SUFFIX = Attribution.toDataSuffix({
+  codes: ['bc_x25appl2'],
+})
 
 // Get the correct app URL for wallet authorization
 const getAppUrl = () => {
@@ -56,5 +61,6 @@ export const config = createConfig({
   multiInjectedProviderDiscovery: false,
   syncConnectedChain: false,
   ssr: false,
+  dataSuffix: DATA_SUFFIX,
 })
 
