@@ -83,6 +83,7 @@
     "nft.storage": "^7.2.0",
     "node-fetch": "^3.3.2",
     "openai": "^6.10.0",
+    "ox": "^0.12.1",
     "p-limit": "^7.2.0",
     "p-retry": "^7.1.1",
     "passport": "^0.7.0",
