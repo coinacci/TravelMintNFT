@@ -452,7 +452,7 @@ export default function Badges() {
                     className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-lg border-2 ${
                       event.owned
                         ? "border-purple-500 shadow-purple-500/30"
-                        : "border-gray-700 opacity-40"
+                        : "border-gray-600"
                     }`}
                   >
                     {isEventBadgesLoading ? (
@@ -461,7 +461,7 @@ export default function Badges() {
                       <img
                         src={badgeImage}
                         alt={event.name}
-                        className={`w-full h-full object-cover ${event.owned ? "" : "grayscale"}`}
+                        className={`w-full h-full object-cover ${event.owned ? "" : "grayscale opacity-50"}`}
                       />
                     ) : (
                       <div className="w-full h-full bg-gray-700 flex items-center justify-center">
@@ -656,13 +656,13 @@ export default function Badges() {
                     className={`w-32 h-32 rounded-full overflow-hidden shadow-xl border-3 ${
                       selectedEventBadge.owned
                         ? "border-purple-500 shadow-purple-500/30"
-                        : "border-gray-700 opacity-40"
+                        : "border-gray-600"
                     }`}
                   >
                     <img
                       src={EVENT_BADGE_IMAGES[selectedEventBadge.id] || ethDenverBadge}
                       alt={selectedEventBadge.name}
-                      className={`w-full h-full object-cover ${selectedEventBadge.owned ? "" : "grayscale"}`}
+                      className={`w-full h-full object-cover ${selectedEventBadge.owned ? "" : "grayscale opacity-50"}`}
                     />
                   </div>
                   {selectedEventBadge.owned && (
