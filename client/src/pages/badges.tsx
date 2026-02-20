@@ -364,7 +364,7 @@ export default function Badges() {
   const ownedEventIds = new Set(
     (eventBadgesData?.events || []).filter(e => e.owned).map(e => e.id)
   );
-  const eventImageUrls = new Map(
+  const eventImageUrls: Record<string, string> = Object.fromEntries(
     (eventBadgesData?.events || []).filter(e => e.imageUrl).map(e => [e.id, e.imageUrl!])
   );
   const ownedEventCount = ownedEventIds.size;
@@ -464,7 +464,7 @@ export default function Badges() {
                     }`}
                   >
                     <img
-                      src={eventImageUrls.get(badge.id) || badge.image}
+                      src={eventImageUrls[badge.id] || badge.image}
                       alt={badge.name}
                       className={`w-full h-full object-cover ${isOwned ? "" : "grayscale opacity-50"}`}
                     />
@@ -684,7 +684,7 @@ export default function Badges() {
                       }`}
                     >
                       <img
-                        src={eventImageUrls.get(selectedEventBadge.id) || selectedEventBadge.image}
+                        src={eventImageUrls[selectedEventBadge.id] || selectedEventBadge.image}
                         alt={selectedEventBadge.name}
                         className={`w-full h-full object-cover ${isOwned ? "" : "grayscale opacity-50"}`}
                       />
