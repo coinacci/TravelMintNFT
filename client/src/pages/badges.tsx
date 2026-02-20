@@ -313,27 +313,32 @@ interface EarlyBirdData {
   imageUrl: string | null;
 }
 
-interface EventBadge {
+interface EventBadgeDef {
   id: string;
   name: string;
   description: string;
-  owned: boolean;
+  image: string;
 }
+
+const EVENT_BADGE_LIST: EventBadgeDef[] = [
+  {
+    id: "ethdenver_2026",
+    name: "ETHDenver 2026",
+    description: "Proof of Event - ETHDenver 2026",
+    image: ethDenverBadge,
+  },
+];
 
 interface EventBadgesData {
-  events: EventBadge[];
+  events: { id: string; name: string; description: string; owned: boolean }[];
 }
-
-const EVENT_BADGE_IMAGES: Record<string, string> = {
-  ethdenver_2026: ethDenverBadge,
-};
 
 export default function Badges() {
   const { user } = useFarcasterAuth();
   const { address } = useAccount();
   const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
   const [showEarlyBirdDialog, setShowEarlyBirdDialog] = useState(false);
-  const [selectedEventBadge, setSelectedEventBadge] = useState<EventBadge | null>(null);
+  const [selectedEventBadge, setSelectedEventBadge] = useState<EventBadgeDef | null>(null);
   
   const userIdentifier = user?.fid || address;
   
@@ -347,7 +352,7 @@ export default function Badges() {
     enabled: !!address,
   });
   
-  const { data: eventBadgesData, isLoading: isEventBadgesLoading } = useQuery<EventBadgesData>({
+  const { data: eventBadgesData } = useQuery<EventBadgesData>({
     queryKey: ["/api/badges/events", address],
     enabled: !!address,
   });
@@ -355,11 +360,10 @@ export default function Badges() {
   const hasEarlyBird = earlyBirdData?.hasEarlyBird || false;
   const earlyBirdImage = earlyBirdData?.imageUrl || null;
   
-  const DEFAULT_EVENT_BADGES: EventBadge[] = [
-    { id: "ethdenver_2026", name: "ETHDenver 2026", description: "Proof of Event - ETHDenver 2026", owned: false },
-  ];
-  const eventBadges = eventBadgesData?.events || DEFAULT_EVENT_BADGES;
-  const ownedEventCount = eventBadges.filter(e => e.owned).length;
+  const ownedEventIds = new Set(
+    (eventBadgesData?.events || []).filter(e => e.owned).map(e => e.id)
+  );
+  const ownedEventCount = ownedEventIds.size;
   
   const earnedBadgeCodes = new Set(userBadgeData?.earnedBadges || []);
   
@@ -440,37 +444,29 @@ export default function Badges() {
           <h2 className="text-lg font-semibold mb-4 text-primary">Event Badges</h2>
           
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {eventBadges.map((event) => {
-              const badgeImage = EVENT_BADGE_IMAGES[event.id];
+            {EVENT_BADGE_LIST.map((badge) => {
+              const isOwned = ownedEventIds.has(badge.id);
               return (
                 <div
-                  key={event.id}
+                  key={badge.id}
                   className="flex flex-col items-center cursor-pointer transition-transform hover:scale-105"
-                  onClick={() => setSelectedEventBadge(event)}
+                  onClick={() => setSelectedEventBadge(badge)}
                 >
                   <div
                     className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-lg border-2 ${
-                      event.owned
+                      isOwned
                         ? "border-purple-500 shadow-purple-500/30"
                         : "border-gray-600"
                     }`}
                   >
-                    {isEventBadgesLoading ? (
-                      <Skeleton className="w-full h-full rounded-full" />
-                    ) : badgeImage ? (
-                      <img
-                        src={badgeImage}
-                        alt={event.name}
-                        className={`w-full h-full object-cover ${event.owned ? "" : "grayscale opacity-50"}`}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                        <Trophy className={`w-8 h-8 ${event.owned ? "text-purple-400" : "text-gray-400"}`} />
-                      </div>
-                    )}
+                    <img
+                      src={badge.image}
+                      alt={badge.name}
+                      className={`w-full h-full object-cover ${isOwned ? "" : "grayscale opacity-50"}`}
+                    />
                   </div>
-                  <span className={`mt-2 text-xs text-center font-medium ${event.owned ? "text-white" : "text-gray-500"}`}>
-                    {event.name}
+                  <span className={`mt-2 text-xs text-center font-medium ${isOwned ? "text-white" : "text-gray-500"}`}>
+                    {badge.name}
                   </span>
                 </div>
               );
@@ -517,7 +513,7 @@ export default function Badges() {
         
         <div className="text-center text-gray-500 text-sm mt-8">
           <p>
-            {earnedBadgeCodes.size + (hasEarlyBird ? 1 : 0) + ownedEventCount} / {BADGE_DEFINITIONS.length + 1 + eventBadges.length} badges earned
+            {earnedBadgeCodes.size + (hasEarlyBird ? 1 : 0) + ownedEventCount} / {BADGE_DEFINITIONS.length + 1 + EVENT_BADGE_LIST.length} badges earned
           </p>
         </div>
       </div>
@@ -637,58 +633,61 @@ export default function Badges() {
       
       <Dialog open={!!selectedEventBadge} onOpenChange={(open) => !open && setSelectedEventBadge(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-sm">
-          {selectedEventBadge && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedEventBadge.owned ? (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <Lock className="w-5 h-5 text-gray-500" />
-                  )}
-                  {selectedEventBadge.name}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="flex flex-col items-center gap-4 py-4">
-                <div className="relative">
-                  <div
-                    className={`w-32 h-32 rounded-full overflow-hidden shadow-xl border-3 ${
-                      selectedEventBadge.owned
-                        ? "border-purple-500 shadow-purple-500/30"
-                        : "border-gray-600"
-                    }`}
-                  >
-                    <img
-                      src={EVENT_BADGE_IMAGES[selectedEventBadge.id] || ethDenverBadge}
-                      alt={selectedEventBadge.name}
-                      className={`w-full h-full object-cover ${selectedEventBadge.owned ? "" : "grayscale opacity-50"}`}
-                    />
+          {selectedEventBadge && (() => {
+            const isOwned = ownedEventIds.has(selectedEventBadge.id);
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {isOwned ? (
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Lock className="w-5 h-5 text-gray-500" />
+                    )}
+                    {selectedEventBadge.name}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <div className="relative">
+                    <div
+                      className={`w-32 h-32 rounded-full overflow-hidden shadow-xl border-3 ${
+                        isOwned
+                          ? "border-purple-500 shadow-purple-500/30"
+                          : "border-gray-600"
+                      }`}
+                    >
+                      <img
+                        src={selectedEventBadge.image}
+                        alt={selectedEventBadge.name}
+                        className={`w-full h-full object-cover ${isOwned ? "" : "grayscale opacity-50"}`}
+                      />
+                    </div>
+                    {isOwned && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                        Earned!
+                      </div>
+                    )}
                   </div>
-                  {selectedEventBadge.owned && (
-                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                      Earned!
+                  
+                  <div className="text-center">
+                    <p className="text-gray-300 mb-2">{selectedEventBadge.description}</p>
+                    <p className="text-xs text-gray-500">
+                      Category: Event Badges
+                    </p>
+                  </div>
+                  
+                  {!isOwned && (
+                    <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">
+                      <p className="text-sm text-gray-400">
+                        Mint an NFT at this event to earn this badge!
+                      </p>
                     </div>
                   )}
                 </div>
-                
-                <div className="text-center">
-                  <p className="text-gray-300 mb-2">{selectedEventBadge.description}</p>
-                  <p className="text-xs text-gray-500">
-                    Category: Event Badges
-                  </p>
-                </div>
-                
-                {!selectedEventBadge.owned && (
-                  <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">
-                    <p className="text-sm text-gray-400">
-                      Mint an NFT at this event to earn this badge!
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
