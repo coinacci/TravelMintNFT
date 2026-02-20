@@ -3154,6 +3154,16 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  const EVENT_NFT_CONTRACTS: Record<string, string> = {
+    ethdenver_2026: "0xc30C6a80Ba0403a2C0005f6e6986c0f0fa6A2BE5",
+  };
+
+  const ERC721_EVENT_ABI = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+    "function tokenURI(uint256 tokenId) view returns (string)"
+  ];
+
   app.get("/api/badges/events/:walletAddress", async (req, res) => {
     try {
       const { walletAddress } = req.params;
@@ -3162,31 +3172,57 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ events: [] });
       }
       
-      const allNfts = await storage.getNfts();
-      const userNfts = allNfts.filter(
-        (nft: any) => nft.owner_address?.toLowerCase() === walletAddress.toLowerCase() ||
-                      nft.creator_address?.toLowerCase() === walletAddress.toLowerCase()
-      );
-      
+      const provider = new ethers.JsonRpcProvider("https://base-rpc.publicnode.com");
+
       const EVENT_BADGES = [
         {
           id: "ethdenver_2026",
           name: "ETHDenver 2026",
           description: "Proof of Event - ETHDenver 2026",
-          matchFn: (nft: any) => {
-            const loc = (nft.location || "").toLowerCase();
-            const title = (nft.title || "").toLowerCase();
-            const cat = (nft.category || "").toLowerCase();
-            return (loc.includes("denver") && cat === "co-working") || title.includes("ethdenver");
-          },
         },
       ];
       
-      const events = EVENT_BADGES.map((badge) => ({
-        id: badge.id,
-        name: badge.name,
-        description: badge.description,
-        owned: userNfts.some(badge.matchFn),
+      const events = await Promise.all(EVENT_BADGES.map(async (badge) => {
+        const contractAddress = EVENT_NFT_CONTRACTS[badge.id];
+        if (!contractAddress) {
+          return { id: badge.id, name: badge.name, description: badge.description, owned: false, imageUrl: null };
+        }
+
+        try {
+          const contract = new ethers.Contract(contractAddress, ERC721_EVENT_ABI, provider);
+          const balance = await contract.balanceOf(walletAddress);
+          const owned = balance > 0n;
+          
+          let imageUrl = null;
+          if (owned) {
+            try {
+              const tokenId = await contract.tokenOfOwnerByIndex(walletAddress, 0);
+              const tokenURI = await contract.tokenURI(tokenId);
+              
+              let metadataUrl = tokenURI;
+              if (tokenURI.startsWith('ipfs://')) {
+                metadataUrl = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+              }
+              
+              const metadataResponse = await fetch(metadataUrl);
+              const metadata = await metadataResponse.json();
+              
+              if (metadata.image) {
+                imageUrl = metadata.image;
+                if (imageUrl.startsWith('ipfs://')) {
+                  imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                }
+              }
+            } catch (metaError) {
+              console.error(`Error fetching ${badge.name} metadata:`, metaError);
+            }
+          }
+
+          return { id: badge.id, name: badge.name, description: badge.description, owned, imageUrl };
+        } catch (err) {
+          console.error(`Error checking ${badge.name} NFT:`, err);
+          return { id: badge.id, name: badge.name, description: badge.description, owned: false, imageUrl: null };
+        }
       }));
       
       res.json({ events });

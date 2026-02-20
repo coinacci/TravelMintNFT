@@ -331,7 +331,7 @@ const EVENT_BADGE_LIST: EventBadgeDef[] = [
 ];
 
 interface EventBadgesData {
-  events: { id: string; name: string; description: string; owned: boolean }[];
+  events: { id: string; name: string; description: string; owned: boolean; imageUrl: string | null }[];
 }
 
 export default function Badges() {
@@ -363,6 +363,9 @@ export default function Badges() {
   
   const ownedEventIds = new Set(
     (eventBadgesData?.events || []).filter(e => e.owned).map(e => e.id)
+  );
+  const eventImageUrls = new Map(
+    (eventBadgesData?.events || []).filter(e => e.imageUrl).map(e => [e.id, e.imageUrl!])
   );
   const ownedEventCount = ownedEventIds.size;
   
@@ -461,7 +464,7 @@ export default function Badges() {
                     }`}
                   >
                     <img
-                      src={badge.image}
+                      src={eventImageUrls.get(badge.id) || badge.image}
                       alt={badge.name}
                       className={`w-full h-full object-cover ${isOwned ? "" : "grayscale opacity-50"}`}
                     />
@@ -681,7 +684,7 @@ export default function Badges() {
                       }`}
                     >
                       <img
-                        src={selectedEventBadge.image}
+                        src={eventImageUrls.get(selectedEventBadge.id) || selectedEventBadge.image}
                         alt={selectedEventBadge.name}
                         className={`w-full h-full object-cover ${isOwned ? "" : "grayscale opacity-50"}`}
                       />
