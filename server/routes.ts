@@ -3154,6 +3154,48 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/badges/events/:walletAddress", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      
+      if (!walletAddress || !walletAddress.startsWith('0x')) {
+        return res.status(400).json({ events: [] });
+      }
+      
+      const allNfts = await storage.getNfts();
+      const userNfts = allNfts.filter(
+        (nft: any) => nft.owner_address?.toLowerCase() === walletAddress.toLowerCase() ||
+                      nft.creator_address?.toLowerCase() === walletAddress.toLowerCase()
+      );
+      
+      const EVENT_BADGES = [
+        {
+          id: "ethdenver_2026",
+          name: "ETHDenver 2026",
+          description: "Proof of Event - ETHDenver 2026",
+          matchFn: (nft: any) => {
+            const loc = (nft.location || "").toLowerCase();
+            const title = (nft.title || "").toLowerCase();
+            const cat = (nft.category || "").toLowerCase();
+            return (loc.includes("denver") && cat === "co-working") || title.includes("ethdenver");
+          },
+        },
+      ];
+      
+      const events = EVENT_BADGES.map((badge) => ({
+        id: badge.id,
+        name: badge.name,
+        description: badge.description,
+        owned: userNfts.some(badge.matchFn),
+      }));
+      
+      res.json({ events });
+    } catch (error) {
+      console.error('Error checking event badges:', error);
+      res.json({ events: [] });
+    }
+  });
+
   // Admin endpoint for retroactive badge awarding - SECRET PROTECTED
   app.post("/api/admin/backfill-badges", async (req, res) => {
     try {
