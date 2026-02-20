@@ -4,6 +4,7 @@ import { useFarcasterAuth } from "@/hooks/use-farcaster-auth";
 import { useAccount } from "wagmi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import ComposeCastButton from "@/components/ComposeCastButton";
 import {
   Dialog,
   DialogContent,
@@ -567,6 +568,17 @@ export default function Badges() {
               </p>
             </div>
             
+            {hasEarlyBird && (
+              <ComposeCastButton
+                type="badge"
+                badgeName="EarlyBird"
+                badgeCategory="Special Badges"
+                variant="outline"
+                size="sm"
+                className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+              />
+            )}
+            
             {!hasEarlyBird && (
               <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">
                 <p className="text-sm text-gray-400">
@@ -617,6 +629,17 @@ export default function Badges() {
                     Category: {CATEGORY_LABELS[selectedBadge.category]}
                   </p>
                 </div>
+                
+                {isSelectedEarned && (
+                  <ComposeCastButton
+                    type="badge"
+                    badgeName={selectedBadge.name}
+                    badgeCategory={CATEGORY_LABELS[selectedBadge.category]}
+                    variant="outline"
+                    size="sm"
+                    className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                  />
+                )}
                 
                 {!isSelectedEarned && (
                   <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">
@@ -676,6 +699,17 @@ export default function Badges() {
                       Category: Event Badges
                     </p>
                   </div>
+                  
+                  {isOwned && (
+                    <ComposeCastButton
+                      type="badge"
+                      badgeName={selectedEventBadge.name}
+                      badgeCategory="Event Badges"
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                    />
+                  )}
                   
                   {!isOwned && (
                     <div className="bg-gray-800 rounded-lg px-4 py-2 text-center">

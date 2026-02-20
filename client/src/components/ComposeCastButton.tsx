@@ -4,7 +4,7 @@ import sdk from "@farcaster/frame-sdk";
 import { useToast } from "@/hooks/use-toast";
 
 interface ComposeCastButtonProps {
-  type: 'quest' | 'mint' | 'leaderboard' | 'nft' | 'general';
+  type: 'quest' | 'mint' | 'leaderboard' | 'nft' | 'badge' | 'general';
   questName?: string;
   questPoints?: number;
   nftName?: string;
@@ -13,6 +13,8 @@ interface ComposeCastButtonProps {
   nftTokenId?: string;
   leaderboardPosition?: number;
   totalPoints?: number;
+  badgeName?: string;
+  badgeCategory?: string;
   customText?: string;
   embeds?: string[];
   variant?: "default" | "outline" | "secondary" | "ghost" | "link";
@@ -31,6 +33,8 @@ export default function ComposeCastButton({
   nftTokenId,
   leaderboardPosition,
   totalPoints,
+  badgeName,
+  badgeCategory,
   customText,
   embeds = [],
   variant = "default",
@@ -56,6 +60,9 @@ export default function ComposeCastButton({
       case 'leaderboard':
         return `🏆 Ranked ${leaderboardPosition}th on TravelMint leaderboard with ${totalPoints} points! Collecting travel memories on Base blockchain 🎖️`;
       
+      case 'badge':
+        return `🏅 Just earned the "${badgeName}" badge on TravelMint! ${badgeCategory === 'Event Badges' ? '🎪' : '🏆'} Collecting travel achievements on Base ✨`;
+      
       case 'general':
       default:
         return `🗺️ Exploring TravelMint - the travel photo NFT marketplace on Base! Turn your travel memories into NFTs ✨`;
@@ -72,6 +79,8 @@ export default function ComposeCastButton({
         return <Share2 className="h-4 w-4" />;
       case 'leaderboard':
         return <Trophy className="h-4 w-4" />;
+      case 'badge':
+        return <Trophy className="h-4 w-4" />;
       default:
         return <Share2 className="h-4 w-4" />;
     }
@@ -87,6 +96,8 @@ export default function ComposeCastButton({
         return 'Share NFT';
       case 'leaderboard':
         return 'Share Position';
+      case 'badge':
+        return 'Share Badge';
       default:
         return 'Share';
     }
@@ -97,10 +108,11 @@ export default function ComposeCastButton({
       const castText = generateCastText();
       let castEmbeds: string[] = [];
       
-      // For NFT type, only send frame URL (ana uygulama linki)
       if (type === 'nft') {
         const frameUrl = 'https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint';
         castEmbeds = [frameUrl];
+      } else if (type === 'badge') {
+        castEmbeds = ['https://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint'];
       } else if (embeds.length > 0) {
         castEmbeds = embeds;
       } else {
