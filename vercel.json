@@ -1,15 +1,15 @@
 {
   "version": 2,
-  "buildCommand": "vite build && npx esbuild api/index.ts --platform=node --packages=external --bundle --format=esm --outfile=api/_index.js --alias:@shared=./shared",
+  "buildCommand": "vite build",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/_index.js"
+      "destination": "/api/index.js"
     },
     {
       "source": "/.well-known/(.*)",
-      "destination": "/api/_index.js"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
@@ -19,5 +19,10 @@
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
+  },
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
   }
 }
