@@ -1,0 +1,959 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelMint - Location-Based Photo NFTs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                },
+                fontFamily: {
+                    sans: ["Inter", "system-ui", "sans-serif"],
+                }
+            },
+        }
+    };
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --background: hsl(210 20% 98%);
+            --foreground: hsl(222 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222 84% 4.9%);
+            --primary: hsl(199 89% 48%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222 84% 4.9%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215 16% 46%);
+            --accent: hsl(33 100% 50%);
+            --accent-foreground: hsl(222 84% 4.9%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(199 89% 48%);
+            --radius: 0.75rem;
+        }
+        
+        .dark {
+            --background: hsl(222 84% 4.9%);
+            --foreground: hsl(210 40% 98%);
+            --card: hsl(222 84% 4.9%);
+            --card-foreground: hsl(210 40% 98%);
+            --popover: hsl(222 84% 4.9%);
+            --popover-foreground: hsl(210 40% 98%);
+            --primary: hsl(199 89% 48%);
+            --primary-foreground: hsl(222 84% 4.9%);
+            --secondary: hsl(217 32% 17%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(217 32% 17%);
+            --muted-foreground: hsl(215 20% 65%);
+            --accent: hsl(33 100% 50%);
+            --accent-foreground: hsl(222 84% 4.9%);
+            --destructive: hsl(0 62% 30%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(217 32% 17%);
+            --input: hsl(217 32% 17%);
+            --ring: hsl(199 89% 48%);
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .travel-gradient {
+            background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+        }
+
+        .map-container {
+            height: calc(100vh - 4rem);
+            position: relative;
+        }
+
+        .floating-panel {
+            backdrop-filter: blur(8px);
+            background: hsla(0, 0%, 100%, 0.95);
+            border: 1px solid hsl(var(--border));
+        }
+
+        .nft-card {
+            transition: all 0.3s ease;
+            border: 1px solid hsl(var(--border));
+        }
+
+        .nft-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px hsla(222, 84%, 4.9%, 0.15);
+        }
+
+        .marker-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .upload-dropzone {
+            border: 2px dashed hsl(var(--border));
+            transition: all 0.3s ease;
+        }
+
+        .upload-dropzone:hover {
+            border-color: hsl(var(--primary));
+            background-color: hsl(var(--muted));
+        }
+
+        .price-tag {
+            background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(24 100% 50%) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground">
+    <!-- @COMPONENT: Header [navigation and user controls] -->
+    <header class="bg-card border-b border-border sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="text-2xl font-bold travel-gradient bg-clip-text text-transparent">
+                        <i class="fas fa-map-marked-alt mr-2"></i>
+                        TravelMint
+                    </div>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-6">
+                    <button class="text-foreground hover:text-primary transition-colors" data-view="map">
+                        <i class="fas fa-globe mr-2"></i>Explore
+                    </button>
+                    <button class="text-foreground hover:text-primary transition-colors" data-view="marketplace">
+                        <i class="fas fa-store mr-2"></i>Marketplace
+                    </button>
+                    <button class="text-foreground hover:text-primary transition-colors" data-view="mint">
+                        <i class="fas fa-camera mr-2"></i>Mint NFT
+                    </button>
+                </nav>
+
+                <div class="flex items-center space-x-3">
+                    <div class="hidden md:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
+                        <i class="fas fa-wallet text-primary"></i>
+                        <span class="text-sm font-medium" data-bind="user.balance">1,250 USDC</span>
+                    </div>
+                    <!-- User avatar representing current user profile -->
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=100&h=100" 
+                         alt="User profile" 
+                         class="w-10 h-10 rounded-full border-2 border-primary cursor-pointer" 
+                         data-mock="true" />
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <main class="relative">
+        <!-- @COMPONENT: MapView [interactive world map with NFT locations] -->
+        <div id="mapView" class="view active">
+            <div class="map-container">
+                <div id="map" class="w-full h-full"></div>
+                
+                <!-- Floating Search Panel -->
+                <div class="absolute top-4 left-4 right-4 md:left-auto md:w-80 floating-panel rounded-lg p-4 z-10">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <i class="fas fa-search text-muted-foreground"></i>
+                        <input type="text" 
+                               placeholder="Search locations or NFTs..." 
+                               class="flex-1 bg-transparent border-none outline-none text-sm" 
+                               data-implementation="Search functionality for locations and NFTs" />
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs hover:bg-primary/90 transition-colors">
+                            Popular
+                        </button>
+                        <button class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs hover:bg-secondary/80 transition-colors">
+                            Recent
+                        </button>
+                        <button class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs hover:bg-secondary/80 transition-colors">
+                            Trending
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Floating Stats Panel -->
+                <div class="absolute bottom-4 left-4 floating-panel rounded-lg p-4 z-10">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-primary" data-bind="stats.totalNFTs">2,847</div>
+                            <div class="text-xs text-muted-foreground">NFTs Minted</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-accent" data-bind="stats.totalVolume">12.5K</div>
+                            <div class="text-xs text-muted-foreground">USDC Volume</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Button -->
+                <button class="absolute bottom-4 right-4 bg-primary text-primary-foreground p-4 rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 z-10"
+                        data-event="click:openMintModal">
+                    <i class="fas fa-camera text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: MapView -->
+
+        <!-- @COMPONENT: MarketplaceView [NFT trading interface] -->
+        <div id="marketplaceView" class="view hidden min-h-screen bg-background">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Filters Sidebar -->
+                    <div class="lg:w-1/4">
+                        <div class="bg-card rounded-lg p-6 border border-border">
+                            <h3 class="text-lg font-semibold mb-4">Filters</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-sm font-medium text-muted-foreground">Price Range</label>
+                                    <div class="flex items-center space-x-2 mt-2">
+                                        <input type="number" placeholder="Min" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+                                        <span class="text-muted-foreground">-</span>
+                                        <input type="number" placeholder="Max" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="text-sm font-medium text-muted-foreground">Location</label>
+                                    <select class="w-full px-3 py-2 border border-border rounded-md text-sm mt-2">
+                                        <option>All Locations</option>
+                                        <option>Europe</option>
+                                        <option>Asia</option>
+                                        <option>Americas</option>
+                                        <option>Africa</option>
+                                        <option>Oceania</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="text-sm font-medium text-muted-foreground">Category</label>
+                                    <div class="mt-2 space-y-2">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="mr-2" />
+                                            <span class="text-sm">Landscapes</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="mr-2" />
+                                            <span class="text-sm">Architecture</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="mr-2" />
+                                            <span class="text-sm">Street Photography</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="mr-2" />
+                                            <span class="text-sm">Cultural</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NFT Grid -->
+                    <div class="lg:w-3/4">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-2xl font-bold">Browse NFTs</h2>
+                            <select class="px-4 py-2 border border-border rounded-md">
+                                <option>Price: Low to High</option>
+                                <option>Price: High to Low</option>
+                                <option>Recently Listed</option>
+                                <option>Most Popular</option>
+                            </select>
+                        </div>
+
+                        <!-- @MAP: nftListings.map(nft => ( -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Sample NFT Card 1 -->
+                            <div class="nft-card bg-card rounded-lg overflow-hidden">
+                                <!-- Beautiful mountain landscape in the Swiss Alps -->
+                                <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                                     alt="Swiss Alps Mountain View" 
+                                     class="w-full h-48 object-cover" 
+                                     data-mock="true" />
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-sm" data-bind="nft.title">Alpine Paradise</h3>
+                                        <div class="price-tag text-white px-2 py-1 rounded text-xs font-medium">
+                                            <span data-bind="nft.price">25 USDC</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center text-xs text-muted-foreground mb-3">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>
+                                        <span data-bind="nft.location">Zermatt, Switzerland</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Profile image of NFT creator -->
+                                            <img src="https://pixabay.com/get/g0b64c77f4280e3654b66d7f3633c40d01a091b3912585234aad738de6d8e346dc61b26bfdfe0e2572cce7263c80c89e60e9ba474185fc6c27ffa6f5fcd8b33ef_1280.jpg" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-xs text-muted-foreground" data-bind="nft.creator">@alpineexplorer</span>
+                                        </div>
+                                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                                data-event="click:purchaseNFT">
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sample NFT Card 2 -->
+                            <div class="nft-card bg-card rounded-lg overflow-hidden">
+                                <!-- Traditional Japanese temple with cherry blossoms -->
+                                <img src="https://images.unsplash.com/photo-1528164344705-47542687000d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                                     alt="Japanese Temple with Cherry Blossoms" 
+                                     class="w-full h-48 object-cover" 
+                                     data-mock="true" />
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-sm" data-bind="nft.title">Sakura Temple</h3>
+                                        <div class="price-tag text-white px-2 py-1 rounded text-xs font-medium">
+                                            <span data-bind="nft.price">18 USDC</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center text-xs text-muted-foreground mb-3">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>
+                                        <span data-bind="nft.location">Kyoto, Japan</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Profile image of NFT creator -->
+                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-xs text-muted-foreground" data-bind="nft.creator">@japanwanderer</span>
+                                        </div>
+                                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                                data-event="click:purchaseNFT">
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sample NFT Card 3 -->
+                            <div class="nft-card bg-card rounded-lg overflow-hidden">
+                                <!-- Stunning aurora borealis over a frozen landscape -->
+                                <img src="https://images.unsplash.com/photo-1531366936337-7c912a4589a7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                                     alt="Northern Lights Aurora Borealis" 
+                                     class="w-full h-48 object-cover" 
+                                     data-mock="true" />
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-sm" data-bind="nft.title">Aurora Dreams</h3>
+                                        <div class="price-tag text-white px-2 py-1 rounded text-xs font-medium">
+                                            <span data-bind="nft.price">42 USDC</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center text-xs text-muted-foreground mb-3">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>
+                                        <span data-bind="nft.location">Tromsø, Norway</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Profile image of NFT creator -->
+                                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-xs text-muted-foreground" data-bind="nft.creator">@arcticphotog</span>
+                                        </div>
+                                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                                data-event="click:purchaseNFT">
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sample NFT Card 4 -->
+                            <div class="nft-card bg-card rounded-lg overflow-hidden">
+                                <!-- Colorful houses in a Mediterranean coastal town -->
+                                <img src="https://images.unsplash.com/photo-1499856871958-5b9627545d1a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                                     alt="Colorful Mediterranean Coastal Village" 
+                                     class="w-full h-48 object-cover" 
+                                     data-mock="true" />
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-sm" data-bind="nft.title">Coastal Colors</h3>
+                                        <div class="price-tag text-white px-2 py-1 rounded text-xs font-medium">
+                                            <span data-bind="nft.price">15 USDC</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center text-xs text-muted-foreground mb-3">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>
+                                        <span data-bind="nft.location">Cinque Terre, Italy</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Profile image of NFT creator -->
+                                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-xs text-muted-foreground" data-bind="nft.creator">@coastalcaptures</span>
+                                        </div>
+                                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                                data-event="click:purchaseNFT">
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sample NFT Card 5 -->
+                            <div class="nft-card bg-card rounded-lg overflow-hidden">
+                                <!-- Majestic African safari landscape with elephants -->
+                                <img src="https://images.unsplash.com/photo-1547036967-23d11aacaee0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                                     alt="African Safari Elephant Landscape" 
+                                     class="w-full h-48 object-cover" 
+                                     data-mock="true" />
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-sm" data-bind="nft.title">Safari Giants</h3>
+                                        <div class="price-tag text-white px-2 py-1 rounded text-xs font-medium">
+                                            <span data-bind="nft.price">32 USDC</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center text-xs text-muted-foreground mb-3">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>
+                                        <span data-bind="nft.location">Masai Mara, Kenya</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Profile image of NFT creator -->
+                                            <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-xs text-muted-foreground" data-bind="nft.creator">@wildlifewonder</span>
+                                        </div>
+                                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                                data-event="click:purchaseNFT">
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sample NFT Card 6 -->
+                            <div class="nft-card bg-card rounded-lg overflow-hidden">
+                                <!-- Ancient Mayan ruins in a jungle setting -->
+                                <img src="https://images.unsplash.com/photo-1518638150340-f706e86654de?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                                     alt="Ancient Mayan Pyramid in Jungle" 
+                                     class="w-full h-48 object-cover" 
+                                     data-mock="true" />
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-sm" data-bind="nft.title">Ancient Mysteries</h3>
+                                        <div class="price-tag text-white px-2 py-1 rounded text-xs font-medium">
+                                            <span data-bind="nft.price">28 USDC</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center text-xs text-muted-foreground mb-3">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>
+                                        <span data-bind="nft.location">Chichen Itza, Mexico</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Profile image of NFT creator -->
+                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-xs text-muted-foreground" data-bind="nft.creator">@historytrails</span>
+                                        </div>
+                                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                                data-event="click:purchaseNFT">
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+
+                        <!-- Load More Button -->
+                        <div class="text-center mt-8">
+                            <button class="bg-secondary text-secondary-foreground px-6 py-3 rounded-lg hover:bg-secondary/80 transition-colors">
+                                Load More NFTs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: MarketplaceView -->
+
+        <!-- @COMPONENT: MintView [photo upload and NFT creation] -->
+        <div id="mintView" class="view hidden min-h-screen bg-background">
+            <div class="container mx-auto px-4 py-8 max-w-4xl">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold mb-4">Mint Your Travel NFT</h1>
+                    <p class="text-muted-foreground">Transform your travel memories into unique location-based NFTs</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Upload Section -->
+                    <div class="bg-card rounded-lg p-6 border border-border">
+                        <h3 class="text-lg font-semibold mb-4">Upload Photo</h3>
+                        
+                        <div class="upload-dropzone rounded-lg p-8 text-center mb-4" data-implementation="Photo upload with location extraction">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-muted-foreground mb-4"></i>
+                            <p class="text-muted-foreground mb-2">Drop your photo here or click to browse</p>
+                            <p class="text-xs text-muted-foreground">Supports JPEG, PNG. Max size: 10MB</p>
+                            <input type="file" class="hidden" accept="image/*" data-implementation="File upload handler" />
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Title</label>
+                                <input type="text" 
+                                       placeholder="Give your NFT a memorable title..." 
+                                       class="w-full px-3 py-2 border border-border rounded-md" 
+                                       data-bind="nft.title" />
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Description</label>
+                                <textarea placeholder="Tell the story behind this moment..." 
+                                          rows="3" 
+                                          class="w-full px-3 py-2 border border-border rounded-md" 
+                                          data-bind="nft.description"></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Category</label>
+                                <select class="w-full px-3 py-2 border border-border rounded-md" data-bind="nft.category">
+                                    <option>Landscape</option>
+                                    <option>Architecture</option>
+                                    <option>Street Photography</option>
+                                    <option>Cultural</option>
+                                    <option>Wildlife</option>
+                                    <option>Adventure</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview & Location Section -->
+                    <div class="bg-card rounded-lg p-6 border border-border">
+                        <h3 class="text-lg font-semibold mb-4">Preview & Location</h3>
+                        
+                        <!-- Photo Preview -->
+                        <div class="bg-muted rounded-lg aspect-square mb-4 flex items-center justify-center" data-implementation="Photo preview area">
+                            <div class="text-center text-muted-foreground">
+                                <i class="fas fa-image text-4xl mb-2"></i>
+                                <p>Photo preview will appear here</p>
+                            </div>
+                        </div>
+
+                        <!-- Location Info -->
+                        <div class="space-y-4">
+                            <div class="bg-muted p-4 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium">Detected Location</span>
+                                    <button class="text-primary text-xs hover:underline" data-event="click:editLocation">Edit</button>
+                                </div>
+                                <div class="flex items-center space-x-2 text-sm">
+                                    <i class="fas fa-map-marker-alt text-primary"></i>
+                                    <span data-bind="location.address">Location will be auto-detected from photo</span>
+                                </div>
+                                <div class="text-xs text-muted-foreground mt-1" data-bind="location.coordinates">
+                                    Coordinates: ---, ---
+                                </div>
+                            </div>
+
+                            <!-- Pricing -->
+                            <div class="bg-primary/10 p-4 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-medium">Mint Price</span>
+                                    <span class="text-xl font-bold text-primary">1 USDC</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground mt-1">
+                                    Fixed minting price for all travel NFTs
+                                </p>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="space-y-3">
+                                <button class="w-full bg-primary text-primary-foreground py-3 rounded-md font-medium hover:bg-primary/90 transition-colors"
+                                        data-event="click:mintNFT"
+                                        data-implementation="Should validate form and process minting">
+                                    <i class="fas fa-hammer mr-2"></i>
+                                    Mint NFT for 1 USDC
+                                </button>
+                                
+                                <button class="w-full bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:bg-secondary/80 transition-colors"
+                                        data-event="click:previewNFT">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    Preview on Map
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Options -->
+                <div class="mt-8 bg-card rounded-lg p-6 border border-border">
+                    <h3 class="text-lg font-semibold mb-4">Advanced Options</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" />
+                                <span class="text-sm">Enable immediate listing for sale</span>
+                            </label>
+                            <div class="ml-6 mt-2 space-y-2">
+                                <input type="number" 
+                                       placeholder="Sale price in USDC" 
+                                       class="w-full px-3 py-2 border border-border rounded-md text-sm" 
+                                       disabled />
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" />
+                                <span class="text-sm">Add to featured locations</span>
+                            </label>
+                            <p class="text-xs text-muted-foreground mt-1 ml-6">
+                                Additional 0.5 USDC fee for premium placement
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: MintView -->
+
+    </main>
+
+    <!-- @COMPONENT: NFTDetailModal [detailed view of individual NFT] -->
+    <div id="nftDetailModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold" data-bind="selectedNFT.title">NFT Title</h2>
+                    <button class="text-muted-foreground hover:text-foreground" data-event="click:closeModal">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <!-- Large view of the selected NFT image -->
+                        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&h=400" 
+                             alt="NFT Detail Image" 
+                             class="w-full rounded-lg" 
+                             data-bind="selectedNFT.imageUrl" 
+                             data-mock="true" />
+                        
+                        <div class="mt-4 bg-muted p-4 rounded-lg">
+                            <h4 class="font-medium mb-2">Location Details</h4>
+                            <div class="flex items-center space-x-2 text-sm mb-1">
+                                <i class="fas fa-map-marker-alt text-primary"></i>
+                                <span data-bind="selectedNFT.location">Location Name</span>
+                            </div>
+                            <div class="text-xs text-muted-foreground" data-bind="selectedNFT.coordinates">
+                                Coordinates: 46.9479° N, 7.4474° E
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="space-y-6">
+                            <!-- Pricing and Purchase -->
+                            <div class="bg-accent/10 p-4 rounded-lg">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-lg font-medium">Current Price</span>
+                                    <span class="text-2xl font-bold text-accent" data-bind="selectedNFT.price">25 USDC</span>
+                                </div>
+                                <button class="w-full bg-primary text-primary-foreground py-3 rounded-md font-medium hover:bg-primary/90 transition-colors"
+                                        data-event="click:purchaseNFT">
+                                    Purchase NFT
+                                </button>
+                                <p class="text-xs text-muted-foreground mt-2 text-center">
+                                    Includes 5% platform fee
+                                </p>
+                            </div>
+
+                            <!-- Owner and Creator Info -->
+                            <div>
+                                <h4 class="font-medium mb-3">Ownership</h4>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-muted-foreground">Creator</span>
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Creator profile image -->
+                                            <img src="https://pixabay.com/get/ga8446fad92026863777a93bb936f6f0d24c8349504ff332f03ccc24d78c8e86293601c5456e2c584bd4b547eaf19e457c110efaec2003140a00b5ff98066f37d_1280.jpg" 
+                                                 alt="Creator profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-sm" data-bind="selectedNFT.creator">@alpineexplorer</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-muted-foreground">Current Owner</span>
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Owner profile image -->
+                                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                                 alt="Owner profile" 
+                                                 class="w-6 h-6 rounded-full" 
+                                                 data-mock="true" />
+                                            <span class="text-sm" data-bind="selectedNFT.owner">@travelnft_collector</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div>
+                                <h4 class="font-medium mb-2">Description</h4>
+                                <p class="text-sm text-muted-foreground" data-bind="selectedNFT.description">
+                                    A breathtaking view captured during early morning light in the Swiss Alps. 
+                                    This moment represents the perfect harmony between nature's grandeur and 
+                                    the serenity of mountain landscapes.
+                                </p>
+                            </div>
+
+                            <!-- Trading History -->
+                            <div>
+                                <h4 class="font-medium mb-3">Trading History</h4>
+                                <div class="space-y-2 max-h-32 overflow-y-auto">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-muted-foreground">Minted</span>
+                                        <span>1 USDC</span>
+                                        <span class="text-muted-foreground">2 days ago</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-muted-foreground">Sale</span>
+                                        <span>15 USDC</span>
+                                        <span class="text-muted-foreground">1 day ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: NFTDetailModal -->
+
+    <!-- @COMPONENT: MobileNavigation [bottom navigation for mobile] -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
+        <div class="grid grid-cols-3 h-16">
+            <button class="flex flex-col items-center justify-center space-y-1 text-primary" data-view="map">
+                <i class="fas fa-globe text-lg"></i>
+                <span class="text-xs">Explore</span>
+            </button>
+            <button class="flex flex-col items-center justify-center space-y-1 text-muted-foreground" data-view="marketplace">
+                <i class="fas fa-store text-lg"></i>
+                <span class="text-xs">Market</span>
+            </button>
+            <button class="flex flex-col items-center justify-center space-y-1 text-muted-foreground" data-view="mint">
+                <i class="fas fa-camera text-lg"></i>
+                <span class="text-xs">Mint</span>
+            </button>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: MobileNavigation -->
+
+    <!-- Load external libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        (function() {
+            // @STATE: currentView:string = 'map'
+            // @STATE: selectedNFT:object = null
+            let currentView = 'map';
+            let map = null;
+
+            // Initialize the application
+            function initApp() {
+                initMap();
+                initNavigation();
+                initMockData();
+            }
+
+            // @FUNCTIONALITY: Initialize interactive map with sample NFT markers
+            function initMap() {
+                map = L.map('map').setView([20, 0], 2);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Add sample NFT markers
+                const sampleLocations = [
+                    { lat: 46.9479, lng: 7.4474, title: 'Alpine Paradise', price: '25 USDC', image: 'swiss-alps' },
+                    { lat: 35.0116, lng: 135.7681, title: 'Sakura Temple', price: '18 USDC', image: 'kyoto-temple' },
+                    { lat: 69.6492, lng: 18.9553, title: 'Aurora Dreams', price: '42 USDC', image: 'northern-lights' },
+                    { lat: 44.1273, lng: 9.7234, title: 'Coastal Colors', price: '15 USDC', image: 'cinque-terre' },
+                    { lat: -1.2921, lng: 36.8219, title: 'Safari Giants', price: '32 USDC', image: 'masai-mara' },
+                    { lat: 20.6843, lng: -88.5678, title: 'Ancient Mysteries', price: '28 USDC', image: 'chichen-itza' }
+                ];
+
+                sampleLocations.forEach(location => {
+                    const marker = L.marker([location.lat, location.lng])
+                        .addTo(map)
+                        .bindPopup(`
+                            <div class="text-center p-2">
+                                <h3 class="font-semibold">${location.title}</h3>
+                                <p class="text-accent font-medium">${location.price}</p>
+                                <button class="bg-primary text-white px-3 py-1 rounded text-xs mt-2" onclick="showNFTDetail('${location.title}')">
+                                    View Details
+                                </button>
+                            </div>
+                        `);
+                });
+            }
+
+            // Navigation between views
+            function initNavigation() {
+                document.querySelectorAll('[data-view]').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const view = e.currentTarget.getAttribute('data-view');
+                        switchView(view);
+                    });
+                });
+            }
+
+            function switchView(view) {
+                // Hide all views
+                document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+                
+                // Show selected view
+                document.getElementById(view + 'View').classList.remove('hidden');
+                
+                // Update navigation states
+                document.querySelectorAll('[data-view]').forEach(btn => {
+                    btn.classList.remove('text-primary');
+                    btn.classList.add('text-muted-foreground');
+                });
+                
+                document.querySelectorAll(`[data-view="${view}"]`).forEach(btn => {
+                    btn.classList.add('text-primary');
+                    btn.classList.remove('text-muted-foreground');
+                });
+
+                currentView = view;
+
+                // Resize map when switching back to map view
+                if (view === 'map' && map) {
+                    setTimeout(() => map.invalidateSize(), 100);
+                }
+            }
+
+            // Mock NFT detail functionality
+            window.showNFTDetail = function(title) {
+                // TODO: Implement detailed NFT view with real data
+                document.getElementById('nftDetailModal').classList.remove('hidden');
+                document.getElementById('nftDetailModal').classList.add('flex');
+            };
+
+            // Modal controls
+            document.addEventListener('click', (e) => {
+                if (e.target.matches('[data-event*="closeModal"]')) {
+                    document.getElementById('nftDetailModal').classList.add('hidden');
+                    document.getElementById('nftDetailModal').classList.remove('flex');
+                }
+
+                if (e.target.matches('[data-event*="openMintModal"]')) {
+                    switchView('mint');
+                }
+
+                if (e.target.matches('[data-event*="purchaseNFT"]')) {
+                    // TODO: Implement purchase flow with USDC payment
+                    alert('Purchase functionality would integrate with wallet and smart contracts');
+                }
+
+                if (e.target.matches('[data-event*="mintNFT"]')) {
+                    // TODO: Implement minting process with location verification
+                    alert('Minting functionality would process photo upload and create NFT');
+                }
+            });
+
+            // Initialize mock data and interactions
+            function initMockData() {
+                // TODO: Load user's wallet balance, NFT collection, and market data
+                console.log('Mock data initialized');
+            }
+
+            // Handle file upload preview
+            document.addEventListener('change', (e) => {
+                if (e.target.type === 'file') {
+                    // TODO: Implement photo upload with location extraction
+                    console.log('File upload handling would extract EXIF location data');
+                }
+            });
+
+            // Initialize when DOM is loaded
+            document.addEventListener('DOMContentLoaded', initApp);
+        })();
+    </script>
+</body>
+</html>
