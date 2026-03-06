@@ -1,15 +1,15 @@
 {
   "version": 2,
-  "buildCommand": "vite build && esbuild api/index.ts server/createApp.ts server/routes.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/api",
+  "buildCommand": "vite build && esbuild api/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/api/index.js --alias:@shared=./shared",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.js"
     },
     {
       "source": "/.well-known/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
@@ -21,7 +21,7 @@
     "VERCEL": "1"
   },
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 30
     }
   }
