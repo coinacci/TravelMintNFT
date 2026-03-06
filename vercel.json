@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "vite build",
+  "buildCommand": "vite build && esbuild api/index.ts server/createApp.ts server/routes.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/api",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
