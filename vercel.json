@@ -19,10 +19,5 @@
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
-  },
-  "functions": {
-    "api/_index.js": {
-      "maxDuration": 30
-    }
   }
 }
