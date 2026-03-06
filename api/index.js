@@ -8,578 +8,6 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// shared/schema.ts
-var schema_exports = {};
-__export(schema_exports, {
-  badges: () => badges,
-  checkinRequestSchema: () => checkinRequestSchema,
-  checkins: () => checkins,
-  getCurrentWeekStart: () => getCurrentWeekStart,
-  getQuestDay: () => getQuestDay,
-  getWeekEnd: () => getWeekEnd,
-  getWeekNumber: () => getWeekNumber,
-  getYesterdayQuestDay: () => getYesterdayQuestDay,
-  guideCities: () => guideCities,
-  guideCitySearchSchema: () => guideCitySearchSchema,
-  guideSpotCategorySchema: () => guideSpotCategorySchema,
-  guideSpotQuerySchema: () => guideSpotQuerySchema,
-  guideSpots: () => guideSpots,
-  holderStatusParamsSchema: () => holderStatusParamsSchema,
-  insertBadgeSchema: () => insertBadgeSchema,
-  insertCheckinSchema: () => insertCheckinSchema,
-  insertGuideCitySchema: () => insertGuideCitySchema,
-  insertGuideSpotSchema: () => insertGuideSpotSchema,
-  insertNFTLikeSchema: () => insertNFTLikeSchema,
-  insertNFTSchema: () => insertNFTSchema,
-  insertNotificationHistorySchema: () => insertNotificationHistorySchema,
-  insertPendingMintSchema: () => insertPendingMintSchema,
-  insertQuestCompletionSchema: () => insertQuestCompletionSchema,
-  insertSyncStateSchema: () => insertSyncStateSchema,
-  insertTransactionSchema: () => insertTransactionSchema,
-  insertTravelAiQuerySchema: () => insertTravelAiQuerySchema,
-  insertUserBadgeSchema: () => insertUserBadgeSchema,
-  insertUserSchema: () => insertUserSchema,
-  insertUserStatsSchema: () => insertUserStatsSchema,
-  insertUserWalletSchema: () => insertUserWalletSchema,
-  insertWeeklyChampionSchema: () => insertWeeklyChampionSchema,
-  leaderboardQuerySchema: () => leaderboardQuerySchema,
-  nearbyPOIsQuerySchema: () => nearbyPOIsQuerySchema,
-  nftLikes: () => nftLikes,
-  nfts: () => nfts,
-  notificationHistory: () => notificationHistory,
-  pendingMints: () => pendingMints,
-  questClaimSchema: () => questClaimSchema,
-  questCompletions: () => questCompletions,
-  questCompletionsParamsSchema: () => questCompletionsParamsSchema,
-  syncState: () => syncState,
-  transactions: () => transactions,
-  travelAiQueries: () => travelAiQueries,
-  userBadges: () => userBadges,
-  userStats: () => userStats,
-  userStatsParamsSchema: () => userStatsParamsSchema,
-  userWallets: () => userWallets,
-  users: () => users,
-  weeklyChampions: () => weeklyChampions
-});
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, decimal, timestamp, json, uniqueIndex } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-function getQuestDay(date = /* @__PURE__ */ new Date()) {
-  const questDate = new Date(date);
-  return questDate.toISOString().split("T")[0];
-}
-function getYesterdayQuestDay(date = /* @__PURE__ */ new Date()) {
-  const yesterdayDate = new Date(date.getTime() - 24 * 60 * 60 * 1e3);
-  return getQuestDay(yesterdayDate);
-}
-function getCurrentWeekStart(date = /* @__PURE__ */ new Date()) {
-  const current = new Date(date.toISOString());
-  const dayOfWeek = current.getUTCDay();
-  let tuesdayOffset;
-  if (dayOfWeek === 0) {
-    tuesdayOffset = -5;
-  } else if (dayOfWeek === 1) {
-    tuesdayOffset = -6;
-  } else if (dayOfWeek === 2) {
-    tuesdayOffset = 0;
-  } else {
-    tuesdayOffset = 2 - dayOfWeek;
-  }
-  current.setUTCDate(current.getUTCDate() + tuesdayOffset);
-  return current.toISOString().split("T")[0];
-}
-function getWeekEnd(weekStart) {
-  const startDate = new Date(weekStart);
-  startDate.setDate(startDate.getDate() + 6);
-  return startDate.toISOString().split("T")[0];
-}
-function getWeekNumber(date = /* @__PURE__ */ new Date()) {
-  const appStartDate = /* @__PURE__ */ new Date("2025-09-17T00:00:00.000Z");
-  const currentDate = new Date(date.toISOString());
-  if (currentDate < appStartDate) {
-    return 0;
-  }
-  const diffTime = currentDate.getTime() - appStartDate.getTime();
-  const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1e3));
-  return Math.floor(diffDays / 7) + 1;
-}
-var users, nfts, transactions, nftLikes, insertUserSchema, insertNFTSchema, insertTransactionSchema, insertNFTLikeSchema, userStats, questCompletions, userWallets, notificationHistory, insertUserStatsSchema, insertQuestCompletionSchema, insertUserWalletSchema, insertNotificationHistorySchema, questClaimSchema, userStatsParamsSchema, questCompletionsParamsSchema, holderStatusParamsSchema, leaderboardQuerySchema, weeklyChampions, insertWeeklyChampionSchema, syncState, insertSyncStateSchema, pendingMints, insertPendingMintSchema, badges, userBadges, insertBadgeSchema, insertUserBadgeSchema, guideCities, guideSpots, insertGuideCitySchema, insertGuideSpotSchema, guideCitySearchSchema, guideSpotCategorySchema, guideSpotQuerySchema, travelAiQueries, insertTravelAiQuerySchema, checkins, insertCheckinSchema, checkinRequestSchema, nearbyPOIsQuerySchema;
-var init_schema = __esm({
-  "shared/schema.ts"() {
-    "use strict";
-    users = pgTable("users", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      username: text("username").notNull().unique(),
-      walletAddress: text("wallet_address"),
-      balance: decimal("balance", { precision: 18, scale: 6 }).default("0").notNull(),
-      avatar: text("avatar"),
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    });
-    nfts = pgTable("nfts", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      title: text("title").notNull(),
-      description: text("description"),
-      imageUrl: text("image_url").notNull(),
-      objectStorageUrl: text("object_storage_url"),
-      // Object storage backup URL
-      location: text("location").notNull(),
-      latitude: decimal("latitude", { precision: 10, scale: 8 }),
-      longitude: decimal("longitude", { precision: 11, scale: 8 }),
-      category: text("category").notNull(),
-      price: decimal("price", { precision: 18, scale: 6 }).notNull(),
-      isForSale: integer("is_for_sale").default(0).notNull(),
-      // 0 = false, 1 = true
-      creatorAddress: text("creator_address").notNull(),
-      ownerAddress: text("owner_address").notNull(),
-      farcasterCreatorUsername: text("farcaster_creator_username"),
-      // Optional Farcaster username
-      farcasterOwnerUsername: text("farcaster_owner_username"),
-      // Optional Farcaster username
-      farcasterCreatorFid: text("farcaster_creator_fid"),
-      // Optional Farcaster user ID
-      farcasterOwnerFid: text("farcaster_owner_fid"),
-      // Optional Farcaster user ID
-      mintPrice: decimal("mint_price", { precision: 18, scale: 6 }).default("1").notNull(),
-      royaltyPercentage: decimal("royalty_percentage", { precision: 5, scale: 2 }).default("5").notNull(),
-      tokenId: text("token_id").unique(),
-      // NFT contract token ID - unique for blockchain NFTs
-      contractAddress: text("contract_address"),
-      // NFT contract address
-      transactionHash: text("transaction_hash"),
-      // Mint transaction hash
-      metadata: json("metadata"),
-      likeCount: integer("like_count").default(0).notNull(),
-      // Total number of likes
-      createdAt: timestamp("created_at").defaultNow().notNull(),
-      updatedAt: timestamp("updated_at").defaultNow().notNull()
-    });
-    transactions = pgTable("transactions", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      nftId: varchar("nft_id").notNull().references(() => nfts.id),
-      fromAddress: text("from_address"),
-      toAddress: text("to_address").notNull(),
-      transactionType: text("transaction_type").notNull(),
-      // 'mint', 'sale', 'transfer'
-      amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
-      platformFee: decimal("platform_fee", { precision: 18, scale: 6 }).default("0").notNull(),
-      blockchainTxHash: text("blockchain_tx_hash").unique(),
-      // On-chain transaction hash - unique to prevent duplicates
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    });
-    nftLikes = pgTable("nft_likes", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      nftId: varchar("nft_id").notNull().references(() => nfts.id),
-      farcasterFid: text("farcaster_fid"),
-      // Optional - for Farcaster users
-      walletAddress: text("wallet_address"),
-      // Optional - for wallet-only users
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    }, (table) => ({
-      nftFidUnique: uniqueIndex("nft_likes_nft_fid_unique").on(table.nftId, table.farcasterFid),
-      nftWalletUnique: uniqueIndex("nft_likes_nft_wallet_unique").on(table.nftId, table.walletAddress)
-    }));
-    insertUserSchema = createInsertSchema(users).omit({
-      id: true,
-      createdAt: true
-    });
-    insertNFTSchema = createInsertSchema(nfts).omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true
-    });
-    insertTransactionSchema = createInsertSchema(transactions).omit({
-      id: true,
-      createdAt: true
-    });
-    insertNFTLikeSchema = createInsertSchema(nftLikes).omit({
-      id: true,
-      createdAt: true
-    });
-    userStats = pgTable("user_stats", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      farcasterFid: text("farcaster_fid").notNull().unique(),
-      farcasterUsername: text("farcaster_username").notNull(),
-      farcasterPfpUrl: text("farcaster_pfp_url"),
-      // Farcaster profile picture URL
-      walletAddress: text("wallet_address"),
-      // Nullable - only required for holder bonus
-      totalPoints: integer("total_points").default(0).notNull(),
-      // Stored as fixed-point (points * 100)
-      weeklyPoints: integer("weekly_points").default(0).notNull(),
-      // Weekly points - resets every Monday
-      currentStreak: integer("current_streak").default(0).notNull(),
-      lastCheckIn: timestamp("last_check_in"),
-      lastStreakClaim: timestamp("last_streak_claim"),
-      weeklyResetDate: text("weekly_reset_date"),
-      // YYYY-MM-DD format - tracks last weekly reset
-      // Notification system fields
-      notificationToken: text("notification_token"),
-      // Farcaster notification token
-      notificationsEnabled: boolean("notifications_enabled").default(false).notNull(),
-      // User opt-in status
-      lastNotificationSent: timestamp("last_notification_sent"),
-      // Track when last notification was sent
-      hasAddedMiniApp: boolean("has_added_mini_app").default(false).notNull(),
-      // One-time quest: User added app to Farcaster
-      // Referral system fields
-      referralCode: text("referral_code").unique(),
-      // Unique referral code for inviting friends
-      referredByFid: text("referred_by_fid"),
-      // FID of the user who referred this user
-      referralCount: integer("referral_count").default(0).notNull(),
-      // Number of users referred by this user
-      unclaimedReferrals: integer("unclaimed_referrals").default(0).notNull(),
-      // Number of referrals not yet claimed for points
-      createdAt: timestamp("created_at").defaultNow().notNull(),
-      updatedAt: timestamp("updated_at").defaultNow().notNull()
-    });
-    questCompletions = pgTable("quest_completions", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
-      questType: text("quest_type").notNull(),
-      // 'daily_checkin', 'holder_bonus', 'base_transaction', 'social_post'
-      pointsEarned: integer("points_earned").notNull(),
-      // Stored as fixed-point (points * 100)
-      completionDate: text("completion_date").notNull(),
-      // YYYY-MM-DD format for daily uniqueness
-      castUrl: text("cast_url"),
-      // Farcaster cast URL for social_post quests
-      completedAt: timestamp("completed_at").defaultNow().notNull()
-    }, (table) => {
-      return {
-        // Unique constraint: one quest per type per day per user
-        uniqueQuestPerDay: sql`UNIQUE (farcaster_fid, quest_type, completion_date)`
-      };
-    });
-    userWallets = pgTable("user_wallets", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
-      walletAddress: text("wallet_address").notNull(),
-      platform: text("platform").notNull(),
-      // 'farcaster', 'base_app', 'manual'
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    }, (table) => {
-      return {
-        // Unique constraint: one wallet per user per platform
-        uniqueWalletPerUserPlatform: sql`UNIQUE (farcaster_fid, wallet_address, platform)`
-      };
-    });
-    notificationHistory = pgTable("notification_history", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      title: text("title").notNull(),
-      message: text("message").notNull(),
-      targetUrl: text("target_url"),
-      // Optional URL to navigate to
-      recipientCount: integer("recipient_count").notNull(),
-      // How many users received it
-      successCount: integer("success_count").notNull(),
-      // How many succeeded
-      failureCount: integer("failure_count").notNull(),
-      // How many failed
-      sentBy: text("sent_by").notNull(),
-      // Admin who sent it
-      sentAt: timestamp("sent_at").defaultNow().notNull()
-    });
-    insertUserStatsSchema = createInsertSchema(userStats).omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true
-    });
-    insertQuestCompletionSchema = createInsertSchema(questCompletions).omit({
-      id: true,
-      completedAt: true
-    });
-    insertUserWalletSchema = createInsertSchema(userWallets).omit({
-      id: true,
-      createdAt: true
-    });
-    insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({
-      id: true,
-      sentAt: true
-    });
-    questClaimSchema = z.object({
-      farcasterFid: z.string().min(1, "Farcaster FID is required"),
-      questType: z.enum(["daily_checkin", "holder_bonus", "base_transaction", "social_post"], {
-        errorMap: () => ({ message: "Invalid quest type" })
-      }),
-      walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address").optional(),
-      castUrl: z.string().url("Invalid cast URL").optional(),
-      // Farcaster cast URL for social_post quests
-      farcasterUsername: z.string().min(1, "Farcaster username is required"),
-      farcasterPfpUrl: z.string().url("Invalid profile picture URL").optional(),
-      // Server-side verification data - should be included by middleware
-      farcasterVerified: z.boolean().default(false).optional()
-    });
-    userStatsParamsSchema = z.object({
-      fid: z.string().min(1, "Farcaster FID is required")
-    });
-    questCompletionsParamsSchema = z.object({
-      fid: z.string().min(1, "Farcaster FID is required"),
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
-    });
-    holderStatusParamsSchema = z.object({
-      address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address")
-    });
-    leaderboardQuerySchema = z.object({
-      limit: z.string().regex(/^\d+$/, "Limit must be a number").optional()
-    });
-    weeklyChampions = pgTable("weekly_champions", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
-      farcasterUsername: text("farcaster_username").notNull(),
-      weekStartDate: text("week_start_date").notNull(),
-      // YYYY-MM-DD format - Tuesday of the week
-      weekEndDate: text("week_end_date").notNull(),
-      // YYYY-MM-DD format - Monday of the week
-      weeklyPoints: integer("weekly_points").notNull(),
-      // Final points for that week
-      weekNumber: integer("week_number").notNull(),
-      // Week number of the year
-      year: integer("year").notNull(),
-      // Year of the championship
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    }, (table) => {
-      return {
-        // Unique constraint: one champion per week
-        uniqueChampionPerWeek: sql`UNIQUE (week_start_date, year)`
-      };
-    });
-    insertWeeklyChampionSchema = createInsertSchema(weeklyChampions).omit({
-      id: true,
-      createdAt: true
-    });
-    syncState = pgTable("sync_state", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      contractAddress: text("contract_address").notNull().unique(),
-      // NFT contract address
-      lastProcessedBlock: integer("last_processed_block").notNull().default(0),
-      // Last successfully processed block
-      lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
-      // When sync last ran
-      createdAt: timestamp("created_at").defaultNow().notNull(),
-      updatedAt: timestamp("updated_at").defaultNow().notNull()
-    });
-    insertSyncStateSchema = createInsertSchema(syncState).omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true
-    });
-    pendingMints = pgTable("pending_mints", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      tokenId: text("token_id").notNull(),
-      // NFT token ID
-      contractAddress: text("contract_address").notNull(),
-      // NFT contract address
-      ownerAddress: text("owner_address").notNull(),
-      // Token owner
-      transactionHash: text("transaction_hash"),
-      // Mint transaction hash
-      retryCount: integer("retry_count").default(0).notNull(),
-      // Number of retry attempts
-      lastError: text("last_error"),
-      // Last error message
-      lastAttemptAt: timestamp("last_attempt_at"),
-      // When last retry was attempted
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    }, (table) => {
-      return {
-        // Unique constraint: one pending mint per token
-        uniqueTokenId: sql`UNIQUE (contract_address, token_id)`
-      };
-    });
-    insertPendingMintSchema = createInsertSchema(pendingMints).omit({
-      id: true,
-      createdAt: true
-    });
-    badges = pgTable("badges", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      code: text("code").notNull().unique(),
-      // Unique badge code (e.g., 'first_mint', 'explorer')
-      name: text("name").notNull(),
-      // Display name
-      description: text("description").notNull(),
-      // How to earn this badge
-      category: text("category").notNull(),
-      // 'mint', 'location', 'social', 'quest'
-      imageUrl: text("image_url").notNull(),
-      // Badge image URL
-      requirement: integer("requirement").notNull(),
-      // Numeric requirement (e.g., 5 mints, 3 countries)
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    });
-    userBadges = pgTable("user_badges", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      farcasterFid: text("farcaster_fid").notNull(),
-      walletAddress: text("wallet_address"),
-      // For wallet-only users
-      badgeId: varchar("badge_id").notNull().references(() => badges.id),
-      earnedAt: timestamp("earned_at").defaultNow().notNull()
-    }, (table) => ({
-      uniqueUserBadge: uniqueIndex("user_badges_unique").on(table.farcasterFid, table.badgeId),
-      uniqueWalletBadge: uniqueIndex("user_badges_wallet_unique").on(table.walletAddress, table.badgeId)
-    }));
-    insertBadgeSchema = createInsertSchema(badges).omit({
-      id: true,
-      createdAt: true
-    });
-    insertUserBadgeSchema = createInsertSchema(userBadges).omit({
-      id: true,
-      earnedAt: true
-    });
-    guideCities = pgTable("guide_cities", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      placeId: text("place_id").notNull().unique(),
-      // Google Places place_id
-      name: text("name").notNull(),
-      // City name
-      country: text("country").notNull(),
-      // Country name
-      countryCode: text("country_code"),
-      // ISO country code (e.g., 'TR', 'US')
-      heroImageUrl: text("hero_image_url"),
-      // City hero image
-      latitude: decimal("latitude", { precision: 10, scale: 8 }),
-      longitude: decimal("longitude", { precision: 11, scale: 8 }),
-      searchCount: integer("search_count").default(0).notNull(),
-      // Popularity tracking
-      lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    });
-    guideSpots = pgTable("guide_spots", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      cityId: varchar("city_id").notNull().references(() => guideCities.id),
-      placeId: text("place_id").notNull().unique(),
-      // Google Places place_id
-      name: text("name").notNull(),
-      category: text("category").notNull(),
-      // 'landmark', 'cafe', 'restaurant', 'hidden_gem'
-      description: text("description"),
-      // Place description/summary
-      address: text("address"),
-      // Formatted address
-      rating: decimal("rating", { precision: 3, scale: 2 }),
-      // 0.00 - 5.00
-      userRatingsTotal: integer("user_ratings_total"),
-      // Number of reviews
-      priceLevel: integer("price_level"),
-      // 0-4 price range
-      photoUrl: text("photo_url"),
-      // Main photo URL
-      latitude: decimal("latitude", { precision: 10, scale: 8 }),
-      longitude: decimal("longitude", { precision: 11, scale: 8 }),
-      openNow: boolean("open_now"),
-      // Current open status
-      website: text("website"),
-      // Official website
-      phoneNumber: text("phone_number"),
-      googleMapsUrl: text("google_maps_url"),
-      // Link to Google Maps
-      lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    });
-    insertGuideCitySchema = createInsertSchema(guideCities).omit({
-      id: true,
-      createdAt: true,
-      lastSyncAt: true
-    });
-    insertGuideSpotSchema = createInsertSchema(guideSpots).omit({
-      id: true,
-      createdAt: true,
-      lastSyncAt: true
-    });
-    guideCitySearchSchema = z.object({
-      query: z.string().min(2, "Search query must be at least 2 characters")
-    });
-    guideSpotCategorySchema = z.enum(["landmark", "cafe", "restaurant", "hidden_gem"]);
-    guideSpotQuerySchema = z.object({
-      category: guideSpotCategorySchema.optional(),
-      limit: z.string().regex(/^\d+$/, "Limit must be a number").optional()
-    });
-    travelAiQueries = pgTable("travel_ai_queries", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      walletAddress: text("wallet_address").notNull(),
-      queryCount: integer("query_count").default(0).notNull(),
-      lastQueryDate: text("last_query_date"),
-      // YYYY-MM-DD format for daily reset tracking
-      createdAt: timestamp("created_at").defaultNow().notNull(),
-      updatedAt: timestamp("updated_at").defaultNow().notNull()
-    }, (table) => ({
-      walletUnique: uniqueIndex("travel_ai_wallet_unique").on(table.walletAddress)
-    }));
-    insertTravelAiQuerySchema = createInsertSchema(travelAiQueries).omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true
-    });
-    checkins = pgTable("checkins", {
-      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      walletAddress: text("wallet_address").notNull(),
-      farcasterFid: text("farcaster_fid"),
-      farcasterUsername: text("farcaster_username"),
-      osmId: text("osm_id").notNull(),
-      // OpenStreetMap place ID (e.g., "node/123456")
-      placeName: text("place_name").notNull(),
-      placeCategory: text("place_category").notNull(),
-      placeSubcategory: text("place_subcategory"),
-      latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
-      longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
-      transactionHash: text("transaction_hash"),
-      // Optional on-chain transaction
-      pointsEarned: integer("points_earned").default(10).notNull(),
-      // Points for this check-in
-      comment: text("comment"),
-      // User's note/review about this place
-      createdAt: timestamp("created_at").defaultNow().notNull()
-    });
-    insertCheckinSchema = createInsertSchema(checkins).omit({
-      id: true,
-      createdAt: true
-    });
-    checkinRequestSchema = z.object({
-      walletAddress: z.string().min(1, "Wallet address is required"),
-      farcasterFid: z.string().optional(),
-      farcasterUsername: z.string().optional(),
-      osmId: z.string().min(1, "OSM ID is required"),
-      placeName: z.string().min(1, "Place name is required"),
-      placeCategory: z.string().min(1, "Place category is required"),
-      placeSubcategory: z.string().optional(),
-      latitude: z.number(),
-      longitude: z.number(),
-      transactionHash: z.string().optional()
-    });
-    nearbyPOIsQuerySchema = z.object({
-      lat: z.string().regex(/^-?\d+\.?\d*$/, "Latitude must be a number"),
-      lon: z.string().regex(/^-?\d+\.?\d*$/, "Longitude must be a number"),
-      radius: z.string().regex(/^\d+$/, "Radius must be a number").optional()
-    });
-  }
-});
-
-// server/db.ts
-import pg from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-var Pool, pool, db;
-var init_db = __esm({
-  "server/db.ts"() {
-    "use strict";
-    init_schema();
-    ({ Pool } = pg);
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL must be set. Did you forget to provision a database?"
-      );
-    }
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-    db = drizzle({ client: pool, schema: schema_exports });
-  }
-});
-
 // server/neynar-api.ts
 var neynar_api_exports = {};
 __export(neynar_api_exports, {
@@ -666,3791 +94,6 @@ var init_neynar_api = __esm({
     "use strict";
     NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
     NEYNAR_BASE_URL = "https://api.neynar.com/v2/farcaster";
-  }
-});
-
-// server/storage.ts
-import { eq, and, sql as sql2 } from "drizzle-orm";
-var DatabaseStorage, storage;
-var init_storage = __esm({
-  "server/storage.ts"() {
-    "use strict";
-    init_schema();
-    init_db();
-    DatabaseStorage = class {
-      // User operations
-      async getUser(id) {
-        const [user] = await db.select().from(users).where(eq(users.id, id));
-        return user || void 0;
-      }
-      async getUserByUsername(username) {
-        const [user] = await db.select().from(users).where(eq(users.username, username));
-        return user || void 0;
-      }
-      async getUserByWalletAddress(walletAddress) {
-        const [user] = await db.select().from(users).where(sql2`LOWER(${users.walletAddress}) = LOWER(${walletAddress})`);
-        return user || void 0;
-      }
-      async createUser(insertUser) {
-        const [user] = await db.insert(users).values(insertUser).returning();
-        return user;
-      }
-      async updateUserBalance(id, balance) {
-        const [user] = await db.update(users).set({ balance }).where(eq(users.id, id)).returning();
-        return user || void 0;
-      }
-      // NFT operations
-      async getNFT(id) {
-        const [nft] = await db.select().from(nfts).where(eq(nfts.id, id));
-        return nft || void 0;
-      }
-      async getAllNFTs(sortBy) {
-        if (sortBy === "likeCount" || sortBy === "popular") {
-          return await db.select().from(nfts).orderBy(sql2`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
-        } else if (sortBy === "tips") {
-          const result = await db.select({
-            nft: nfts,
-            totalTips: sql2`COALESCE(SUM(CAST(${transactions.amount} AS DECIMAL)), 0)`.as("total_tips")
-          }).from(nfts).leftJoin(transactions, and(
-            eq(nfts.id, transactions.nftId),
-            eq(transactions.transactionType, "donation")
-          )).groupBy(nfts.id).orderBy(sql2`total_tips DESC, ${nfts.createdAt} DESC`);
-          return result.map((r) => r.nft);
-        } else {
-          return await db.select().from(nfts).orderBy(sql2`${nfts.createdAt} DESC`);
-        }
-      }
-      async getNFTsByLocation(lat, lng, radius) {
-        return await db.select().from(nfts).where(sql2`
-        sqrt(power(cast(${nfts.latitude} as decimal) - ${lat}, 2) + 
-             power(cast(${nfts.longitude} as decimal) - ${lng}, 2)) <= ${radius}
-      `);
-      }
-      async getNFTsByOwner(ownerAddress) {
-        return await db.select().from(nfts).where(sql2`LOWER(${nfts.ownerAddress}) = LOWER(${ownerAddress})`).orderBy(sql2`${nfts.createdAt} DESC`);
-      }
-      async getNFTsForSale(sortBy) {
-        if (sortBy === "likeCount" || sortBy === "popular") {
-          return await db.select().from(nfts).where(eq(nfts.isForSale, 1)).orderBy(sql2`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
-        } else if (sortBy === "tips") {
-          const result = await db.select({
-            nft: nfts,
-            totalTips: sql2`COALESCE(SUM(CAST(${transactions.amount} AS DECIMAL)), 0)`.as("total_tips")
-          }).from(nfts).leftJoin(transactions, and(
-            eq(nfts.id, transactions.nftId),
-            eq(transactions.transactionType, "donation")
-          )).where(eq(nfts.isForSale, 1)).groupBy(nfts.id).orderBy(sql2`total_tips DESC, ${nfts.createdAt} DESC`);
-          return result.map((r) => r.nft);
-        } else {
-          return await db.select().from(nfts).where(eq(nfts.isForSale, 1)).orderBy(sql2`${nfts.createdAt} DESC`);
-        }
-      }
-      async createNFT(insertNFT) {
-        const [nft] = await db.insert(nfts).values(insertNFT).returning();
-        return nft;
-      }
-      async upsertNFTByTokenId(insertNFT) {
-        const protectedTokenIds = ["106", "89", "48", "44", "41"];
-        const isProtected = insertNFT.tokenId && protectedTokenIds.includes(insertNFT.tokenId);
-        const ownerInfo = await this.getFarcasterInfoFromWallet(insertNFT.ownerAddress);
-        let creatorInfo = null;
-        if (insertNFT.creatorAddress) {
-          const isDifferentCreator = insertNFT.creatorAddress.toLowerCase() !== insertNFT.ownerAddress.toLowerCase();
-          if (isDifferentCreator) {
-            creatorInfo = await this.getFarcasterInfoFromWallet(insertNFT.creatorAddress);
-          }
-        }
-        const insertValues = {
-          ...insertNFT,
-          // Set creator info only if different from owner, otherwise leave null for backend to handle
-          farcasterCreatorUsername: creatorInfo?.username || null,
-          farcasterCreatorFid: creatorInfo?.fid || null,
-          // Always set owner info
-          farcasterOwnerUsername: ownerInfo?.username || null,
-          farcasterOwnerFid: ownerInfo?.fid || null
-        };
-        const baseUpdateSet = {
-          title: insertNFT.title,
-          description: insertNFT.description,
-          imageUrl: insertNFT.imageUrl,
-          category: insertNFT.category,
-          price: insertNFT.price,
-          ownerAddress: insertNFT.ownerAddress,
-          creatorAddress: insertNFT.creatorAddress,
-          // Only update owner Farcaster info on sync, preserve creator info
-          farcasterOwnerUsername: ownerInfo?.username || null,
-          farcasterOwnerFid: ownerInfo?.fid || null,
-          metadata: insertNFT.metadata,
-          updatedAt: /* @__PURE__ */ new Date()
-        };
-        const updateSet = isProtected ? baseUpdateSet : {
-          ...baseUpdateSet,
-          location: insertNFT.location,
-          latitude: insertNFT.latitude,
-          longitude: insertNFT.longitude
-        };
-        const [nft] = await db.insert(nfts).values(insertValues).onConflictDoUpdate({
-          target: nfts.tokenId,
-          set: updateSet
-        }).returning();
-        return nft;
-      }
-      async updateNFT(id, updates) {
-        const [nft] = await db.update(nfts).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq(nfts.id, id)).returning();
-        return nft || void 0;
-      }
-      async updateNFTCoordinates(tokenId, latitude, longitude) {
-        const [nft] = await db.update(nfts).set({
-          latitude: latitude.toFixed(8),
-          longitude: longitude.toFixed(8),
-          updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq(nfts.tokenId, tokenId)).returning();
-        return nft || void 0;
-      }
-      // 🔄 Update NFT owner and auto-delist if transferred (for blockchain sync)
-      async updateNFTOwnerAndDelist(tokenId, newOwnerAddress) {
-        const [nft] = await db.update(nfts).set({
-          ownerAddress: newOwnerAddress,
-          isForSale: 0,
-          // Auto-delist on transfer
-          updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq(nfts.tokenId, tokenId)).returning();
-        return nft || void 0;
-      }
-      async getNFTByTokenId(tokenId) {
-        const [nft] = await db.select().from(nfts).where(eq(nfts.tokenId, tokenId));
-        return nft || void 0;
-      }
-      async toggleNFTLike(nftId, identifier) {
-        const { farcasterFid, walletAddress } = identifier;
-        if (!farcasterFid && !walletAddress) {
-          throw new Error("Either farcasterFid or walletAddress is required");
-        }
-        return await db.transaction(async (tx) => {
-          const whereCondition = farcasterFid ? and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)) : and(eq(nftLikes.nftId, nftId), eq(nftLikes.walletAddress, walletAddress.toLowerCase()));
-          const existingLike = await tx.select().from(nftLikes).where(whereCondition);
-          if (existingLike.length > 0) {
-            await tx.delete(nftLikes).where(whereCondition);
-            const [updatedNFT] = await tx.update(nfts).set({ likeCount: sql2`GREATEST(0, ${nfts.likeCount} - 1)` }).where(eq(nfts.id, nftId)).returning();
-            return { liked: false, likeCount: updatedNFT?.likeCount || 0 };
-          } else {
-            await tx.insert(nftLikes).values({
-              nftId,
-              farcasterFid: farcasterFid || null,
-              walletAddress: walletAddress?.toLowerCase() || null
-            });
-            const [updatedNFT] = await tx.update(nfts).set({ likeCount: sql2`${nfts.likeCount} + 1` }).where(eq(nfts.id, nftId)).returning();
-            return { liked: true, likeCount: updatedNFT?.likeCount || 1 };
-          }
-        });
-      }
-      async checkNFTLiked(nftId, identifier) {
-        const { farcasterFid, walletAddress } = identifier;
-        if (!farcasterFid && !walletAddress) {
-          return false;
-        }
-        const whereCondition = farcasterFid ? and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)) : and(eq(nftLikes.nftId, nftId), eq(nftLikes.walletAddress, walletAddress.toLowerCase()));
-        const [like] = await db.select().from(nftLikes).where(whereCondition);
-        return !!like;
-      }
-      async getUserLikedNFTIds(farcasterFid) {
-        if (!farcasterFid) {
-          return [];
-        }
-        const likes = await db.select({ nftId: nftLikes.nftId }).from(nftLikes).where(eq(nftLikes.farcasterFid, farcasterFid));
-        return likes.map((like) => like.nftId);
-      }
-      // Transaction operations
-      async getTransaction(id) {
-        const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
-        return transaction || void 0;
-      }
-      async getTransactionsByNFT(nftId) {
-        return await db.select().from(transactions).where(eq(transactions.nftId, nftId)).orderBy(sql2`${transactions.createdAt} DESC`);
-      }
-      async getTransactionsByUser(userAddress) {
-        return await db.select().from(transactions).where(sql2`${transactions.fromAddress} = ${userAddress} OR ${transactions.toAddress} = ${userAddress}`).orderBy(sql2`${transactions.createdAt} DESC`);
-      }
-      async getRecentTransactions(limit = 20) {
-        return await db.select({
-          id: transactions.id,
-          nftId: transactions.nftId,
-          fromAddress: transactions.fromAddress,
-          toAddress: transactions.toAddress,
-          transactionType: transactions.transactionType,
-          amount: transactions.amount,
-          platformFee: transactions.platformFee,
-          blockchainTxHash: transactions.blockchainTxHash,
-          createdAt: transactions.createdAt,
-          // Include NFT details
-          nft: {
-            id: nfts.id,
-            title: nfts.title,
-            imageUrl: nfts.imageUrl,
-            location: nfts.location,
-            price: nfts.price
-          }
-        }).from(transactions).leftJoin(nfts, eq(transactions.nftId, nfts.id)).where(sql2`${transactions.transactionType} IN ('purchase', 'sale')`).orderBy(sql2`${transactions.createdAt} DESC`).limit(limit);
-      }
-      async createTransaction(insertTransaction) {
-        const [transaction] = await db.insert(transactions).values(insertTransaction).returning();
-        return transaction;
-      }
-      async getTransactionByHash(blockchainTxHash) {
-        const [tx] = await db.select().from(transactions).where(eq(transactions.blockchainTxHash, blockchainTxHash));
-        return tx || void 0;
-      }
-      // Donation operations
-      async getDonationStats() {
-        const [basicStats] = await db.select({
-          totalDonations: sql2`COUNT(*)::int`,
-          totalAmount: sql2`COALESCE(SUM(${transactions.amount}::numeric), 0)::text`,
-          uniqueDonors: sql2`COUNT(DISTINCT ${transactions.fromAddress})::int`,
-          uniqueRecipients: sql2`COUNT(DISTINCT ${transactions.toAddress})::int`
-        }).from(transactions).where(eq(transactions.transactionType, "donation"));
-        const topRecipients = await db.select({
-          address: transactions.toAddress,
-          totalReceived: sql2`SUM(${transactions.amount}::numeric)::text`,
-          donationCount: sql2`COUNT(*)::int`
-        }).from(transactions).where(eq(transactions.transactionType, "donation")).groupBy(transactions.toAddress).orderBy(sql2`SUM(${transactions.amount}::numeric) DESC`).limit(10);
-        const topNFTs = await db.select({
-          nftId: transactions.nftId,
-          title: nfts.title,
-          totalReceived: sql2`SUM(${transactions.amount}::numeric)::text`,
-          donationCount: sql2`COUNT(*)::int`
-        }).from(transactions).leftJoin(nfts, eq(transactions.nftId, nfts.id)).where(eq(transactions.transactionType, "donation")).groupBy(transactions.nftId, nfts.title).orderBy(sql2`SUM(${transactions.amount}::numeric) DESC`).limit(10);
-        return {
-          totalDonations: basicStats?.totalDonations || 0,
-          totalAmount: basicStats?.totalAmount || "0",
-          uniqueDonors: basicStats?.uniqueDonors || 0,
-          uniqueRecipients: basicStats?.uniqueRecipients || 0,
-          topRecipients: topRecipients.map((r) => ({
-            address: r.address || "",
-            totalReceived: r.totalReceived || "0",
-            donationCount: r.donationCount || 0
-          })),
-          topNFTs: topNFTs.map((n) => ({
-            nftId: n.nftId || "",
-            title: n.title || "Unknown",
-            totalReceived: n.totalReceived || "0",
-            donationCount: n.donationCount || 0
-          }))
-        };
-      }
-      async getDonationsByNFT(nftId) {
-        return await db.select().from(transactions).where(and(
-          eq(transactions.nftId, nftId),
-          eq(transactions.transactionType, "donation")
-        )).orderBy(sql2`${transactions.createdAt} DESC`);
-      }
-      async getDonationsReceivedByWallet(walletAddress) {
-        return await db.select().from(transactions).where(and(
-          eq(transactions.toAddress, walletAddress),
-          eq(transactions.transactionType, "donation")
-        )).orderBy(sql2`${transactions.createdAt} DESC`);
-      }
-      async getNFTTipTotals() {
-        const result = await db.select({
-          nftId: transactions.nftId,
-          totalTips: sql2`SUM(CAST(${transactions.amount} AS DECIMAL) + CAST(${transactions.platformFee} AS DECIMAL))`.as("total_tips")
-        }).from(transactions).where(eq(transactions.transactionType, "donation")).groupBy(transactions.nftId);
-        const tipMap = /* @__PURE__ */ new Map();
-        for (const row of result) {
-          tipMap.set(row.nftId, parseFloat(row.totalTips || "0"));
-        }
-        return tipMap;
-      }
-      // Quest system operations
-      async getUserStats(farcasterFid) {
-        const [stats] = await db.select().from(userStats).where(eq(userStats.farcasterFid, farcasterFid));
-        return stats || void 0;
-      }
-      // Generate unique referral code
-      async generateReferralCode(username) {
-        const maxAttempts = 10;
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          const prefix = username.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, "");
-          const finalPrefix = prefix.length >= 3 ? prefix : prefix.padEnd(3, "X");
-          const randomDigits = Math.floor(100 + Math.random() * 900);
-          const code = `${finalPrefix}${randomDigits}`;
-          const existing = await db.select().from(userStats).where(eq(userStats.referralCode, code));
-          if (existing.length === 0) {
-            return code;
-          }
-        }
-        const timestamp2 = Date.now().toString().slice(-6);
-        return `REF${timestamp2}`;
-      }
-      async createOrUpdateUserStats(insertStats) {
-        const existing = await this.getUserStats(insertStats.farcasterFid);
-        if (existing) {
-          const referralCode = existing.referralCode || await this.generateReferralCode(insertStats.farcasterUsername);
-          const [updated] = await db.update(userStats).set({
-            ...insertStats,
-            referralCode,
-            // Ensure referralCode is set
-            updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq(userStats.farcasterFid, insertStats.farcasterFid)).returning();
-          return updated;
-        } else {
-          const referralCode = insertStats.referralCode || await this.generateReferralCode(insertStats.farcasterUsername);
-          const [created] = await db.insert(userStats).values({
-            ...insertStats,
-            referralCode,
-            referralCount: 0
-          }).returning();
-          return created;
-        }
-      }
-      async updateUserStats(farcasterFid, updates) {
-        const [updated] = await db.update(userStats).set({
-          ...updates,
-          updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq(userStats.farcasterFid, farcasterFid)).returning();
-        return updated || void 0;
-      }
-      async getQuestCompletions(farcasterFid, date) {
-        if (date) {
-          return await db.select().from(questCompletions).where(
-            and(
-              eq(questCompletions.farcasterFid, farcasterFid),
-              eq(questCompletions.completionDate, date)
-            )
-          );
-        } else {
-          return await db.select().from(questCompletions).where(eq(questCompletions.farcasterFid, farcasterFid));
-        }
-      }
-      async createQuestCompletion(insertCompletion) {
-        const normalizedDate = insertCompletion.completionDate.split("T")[0];
-        const [completion] = await db.insert(questCompletions).values({
-          ...insertCompletion,
-          completionDate: normalizedDate
-        }).returning();
-        return completion;
-      }
-      async getQuestCompletion(farcasterFid, questType, day) {
-        const date = new Date(day * 24 * 60 * 60 * 1e3);
-        const completionDate = date.toISOString().split("T")[0];
-        const [completion] = await db.select().from(questCompletions).where(
-          and(
-            eq(questCompletions.farcasterFid, farcasterFid),
-            eq(questCompletions.questType, questType),
-            eq(questCompletions.completionDate, completionDate)
-          )
-        ).limit(1);
-        return completion || void 0;
-      }
-      async addQuestCompletion(data) {
-        const date = new Date(data.day * 24 * 60 * 60 * 1e3);
-        const normalizedDate = date.toISOString().split("T")[0];
-        return await this.createQuestCompletion({
-          farcasterFid: data.farcasterFid,
-          questType: data.questType,
-          completionDate: normalizedDate,
-          // Use normalized date from blockchain day
-          pointsEarned: data.pointsEarned
-        });
-      }
-      async getLeaderboard(limit = 50) {
-        return await db.select().from(userStats).orderBy(sql2`${userStats.totalPoints} DESC`).limit(limit);
-      }
-      async getWeeklyLeaderboard(limit = 50) {
-        console.log("\u{1F4CA} Fetching weekly leaderboard with actual weeklyPoints (not totalPoints)");
-        return await db.select().from(userStats).where(sql2`${userStats.farcasterUsername} IS NOT NULL AND ${userStats.farcasterUsername} != ''`).orderBy(sql2`${userStats.weeklyPoints} DESC`).limit(limit);
-      }
-      async checkHolderStatus(walletAddress) {
-        if (!walletAddress) {
-          return { isHolder: false, nftCount: 0 };
-        }
-        const userNFTs = await db.select().from(nfts).where(sql2`LOWER(${nfts.ownerAddress}) = LOWER(${walletAddress})`);
-        return {
-          isHolder: userNFTs.length > 0,
-          nftCount: userNFTs.length
-        };
-      }
-      // Multi-wallet operations
-      async addUserWallet(farcasterFid, walletAddress, platform) {
-        const lowerAddress = walletAddress.toLowerCase();
-        const [updated] = await db.update(userWallets).set({ platform }).where(sql2`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${lowerAddress}`).returning();
-        if (updated) {
-          console.log(`\u{1F504} Updated existing wallet platform: ${lowerAddress} \u2192 ${platform}`);
-          return updated;
-        }
-        const [userWallet] = await db.insert(userWallets).values({
-          farcasterFid,
-          walletAddress: lowerAddress,
-          platform
-        }).onConflictDoNothing().returning();
-        if (!userWallet) {
-          const [existing] = await db.select().from(userWallets).where(sql2`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${lowerAddress}`);
-          console.log(`\u2139\uFE0F Returning existing wallet: ${lowerAddress} (${existing?.platform})`);
-          return existing;
-        }
-        console.log(`\u2705 Created new wallet link: ${lowerAddress} \u2192 ${platform}`);
-        return userWallet;
-      }
-      async getUserWallets(farcasterFid) {
-        return await db.select().from(userWallets).where(eq(userWallets.farcasterFid, farcasterFid));
-      }
-      async getLinkedWallets(walletAddress) {
-        return await db.select().from(userWallets).where(eq(userWallets.walletAddress, walletAddress.toLowerCase()));
-      }
-      // Get Farcaster FID and username from wallet address
-      async getFarcasterInfoFromWallet(walletAddress) {
-        try {
-          const [wallet] = await db.select().from(userWallets).where(eq(userWallets.walletAddress, walletAddress.toLowerCase())).limit(1);
-          if (wallet) {
-            const stats = await this.getUserStats(wallet.farcasterFid);
-            if (stats) {
-              return {
-                fid: wallet.farcasterFid,
-                username: stats.farcasterUsername
-              };
-            }
-          }
-          const { getNeynarUserByAddress: getNeynarUserByAddress2 } = await Promise.resolve().then(() => (init_neynar_api(), neynar_api_exports));
-          const neynarResult = await getNeynarUserByAddress2(walletAddress);
-          if (neynarResult) {
-            console.log(`\u2705 Found Farcaster user via Neynar: ${neynarResult.username} (${neynarResult.fid})`);
-            return neynarResult;
-          }
-          return null;
-        } catch (error) {
-          console.error(`\u274C Error fetching Farcaster info for wallet ${walletAddress}:`, error);
-          return null;
-        }
-      }
-      // Fetch verified addresses from Farcaster Hub API
-      async getFarcasterVerifiedAddresses(farcasterFid) {
-        try {
-          console.log(`\u{1F50D} Fetching verified addresses for Farcaster FID ${farcasterFid}`);
-          const hubEndpoints = [
-            "https://hub.farcaster.xyz",
-            "https://hub.pinata.cloud"
-          ];
-          for (const hubUrl of hubEndpoints) {
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 5e3);
-              const response = await fetch(
-                `${hubUrl}/v1/verificationsByFid?fid=${farcasterFid}`,
-                { signal: controller.signal }
-              );
-              clearTimeout(timeoutId);
-              if (!response.ok) {
-                console.log(`\u26A0\uFE0F Hub ${hubUrl} error: ${response.status} ${response.statusText}`);
-                continue;
-              }
-              const data = await response.json();
-              const addresses = [];
-              if (data.messages && Array.isArray(data.messages)) {
-                data.messages.forEach((message) => {
-                  if (message.data?.verificationAddEthAddressBody?.address) {
-                    const address = message.data.verificationAddEthAddressBody.address;
-                    if (address.startsWith("0x")) {
-                      addresses.push(address.toLowerCase());
-                    }
-                  }
-                });
-              }
-              const uniqueAddresses = Array.from(new Set(addresses));
-              console.log(`\u2705 Found ${uniqueAddresses.length} verified addresses for FID ${farcasterFid} via ${hubUrl}:`, uniqueAddresses);
-              return uniqueAddresses;
-            } catch (hubError) {
-              console.log(`\u26A0\uFE0F Hub ${hubUrl} failed:`, hubError);
-              continue;
-            }
-          }
-          console.log(`\u26A0\uFE0F All Hub endpoints failed for FID ${farcasterFid}`);
-          return [];
-        } catch (error) {
-          console.error(`\u274C Error fetching verified addresses for FID ${farcasterFid}:`, error);
-          return [];
-        }
-      }
-      async getAllNFTsForUser(farcasterFid) {
-        const [linkedWallets, verifiedAddresses] = await Promise.all([
-          this.getUserWallets(farcasterFid),
-          this.getFarcasterVerifiedAddresses(farcasterFid)
-        ]);
-        const uniqueWallets = /* @__PURE__ */ new Map();
-        linkedWallets.forEach((wallet) => {
-          const address = wallet.walletAddress.toLowerCase();
-          uniqueWallets.set(address, {
-            address,
-            platform: wallet.platform
-          });
-        });
-        verifiedAddresses.forEach((address) => {
-          const lowerAddress = address.toLowerCase();
-          if (!uniqueWallets.has(lowerAddress)) {
-            uniqueWallets.set(lowerAddress, {
-              address: lowerAddress,
-              platform: "farcaster"
-            });
-          }
-        });
-        console.log(`\u{1F50D} Fetching NFTs for Farcaster FID ${farcasterFid}: ${linkedWallets.length} linked + ${verifiedAddresses.length} verified \u2192 ${uniqueWallets.size} unique addresses`);
-        if (uniqueWallets.size === 0) {
-          return [];
-        }
-        const allNFTs = [];
-        for (const [walletAddress, walletInfo] of Array.from(uniqueWallets.entries())) {
-          const nfts2 = await this.getNFTsByOwner(walletInfo.address);
-          const nftsWithSource = nfts2.map((nft) => ({
-            ...nft,
-            sourceWallet: walletInfo.address,
-            sourcePlatform: walletInfo.platform
-          }));
-          allNFTs.push(...nftsWithSource);
-          if (nfts2.length > 0) {
-            console.log(`  \u2705 Wallet ${walletInfo.address} (${walletInfo.platform}): ${nfts2.length} NFTs`);
-          }
-        }
-        return allNFTs;
-      }
-      async checkCombinedHolderStatus(farcasterFid) {
-        const [linkedWallets, verifiedAddresses] = await Promise.all([
-          this.getUserWallets(farcasterFid),
-          this.getFarcasterVerifiedAddresses(farcasterFid)
-        ]);
-        const uniqueWallets = /* @__PURE__ */ new Map();
-        linkedWallets.forEach((wallet) => {
-          const address = wallet.walletAddress.toLowerCase();
-          uniqueWallets.set(address, {
-            address,
-            platform: wallet.platform
-          });
-        });
-        verifiedAddresses.forEach((address) => {
-          const lowerAddress = address.toLowerCase();
-          if (!uniqueWallets.has(lowerAddress)) {
-            uniqueWallets.set(lowerAddress, {
-              address: lowerAddress,
-              platform: "farcaster_verified"
-            });
-          }
-        });
-        const uniqueWalletAddresses = Array.from(uniqueWallets.keys());
-        console.log(`\u{1F50D} Checking holder status for Farcaster FID ${farcasterFid}: ${linkedWallets.length} linked + ${verifiedAddresses.length} verified \u2192 ${uniqueWalletAddresses.length} unique addresses`);
-        let totalNFTCount = 0;
-        for (const walletAddress of uniqueWalletAddresses) {
-          const holderStatus = await this.checkHolderStatus(walletAddress);
-          totalNFTCount += holderStatus.nftCount;
-          if (holderStatus.nftCount > 0) {
-            console.log(`  \u2705 Wallet ${walletAddress}: ${holderStatus.nftCount} NFTs`);
-          }
-        }
-        return {
-          isHolder: totalNFTCount > 0,
-          nftCount: totalNFTCount
-        };
-      }
-      // Atomic quest claiming operation
-      async claimQuestAtomic(data) {
-        return await db.transaction(async (tx) => {
-          const existingCompletions = await tx.select().from(questCompletions).where(
-            and(
-              eq(questCompletions.farcasterFid, data.farcasterFid),
-              eq(questCompletions.questType, data.questType),
-              eq(questCompletions.completionDate, data.completionDate)
-            )
-          );
-          if (existingCompletions.length > 0) {
-            throw new Error(`Quest ${data.questType} already completed today`);
-          }
-          const existingUserStats = await tx.select().from(userStats).where(eq(userStats.farcasterFid, data.farcasterFid));
-          if (existingUserStats.length === 0) {
-            const currentWeekStart = getCurrentWeekStart();
-            const [newUserStats] = await tx.insert(userStats).values({
-              farcasterFid: data.farcasterFid,
-              farcasterUsername: data.farcasterUsername,
-              farcasterPfpUrl: data.farcasterPfpUrl || null,
-              walletAddress: data.walletAddress || null,
-              totalPoints: Math.round(data.pointsEarned * 100),
-              // Convert to fixed-point
-              weeklyPoints: Math.round(data.pointsEarned * 100),
-              // Same as totalPoints for new users
-              currentStreak: data.questType === "daily_checkin" ? 1 : 0,
-              lastCheckIn: data.questType === "daily_checkin" ? /* @__PURE__ */ new Date() : null,
-              lastStreakClaim: null,
-              weeklyResetDate: currentWeekStart
-              // Track current week
-            }).returning();
-            const [questCompletion] = await tx.insert(questCompletions).values({
-              farcasterFid: data.farcasterFid,
-              questType: data.questType,
-              pointsEarned: Math.round(data.pointsEarned * 100),
-              // Convert to fixed-point
-              completionDate: data.completionDate,
-              castUrl: data.castUrl
-              // Include cast URL for social_post quests
-            }).returning();
-            return { userStats: newUserStats, questCompletion };
-          } else {
-            const currentStats = existingUserStats[0];
-            const currentWeekStart = getCurrentWeekStart();
-            const needsWeeklyReset = !currentStats.weeklyResetDate || currentStats.weeklyResetDate !== currentWeekStart;
-            const updates = {
-              totalPoints: currentStats.totalPoints + Math.round(data.pointsEarned * 100),
-              // Add fixed-point values
-              weeklyPoints: needsWeeklyReset ? Math.round(data.pointsEarned * 100) : (currentStats.weeklyPoints || 0) + Math.round(data.pointsEarned * 100),
-              weeklyResetDate: currentWeekStart,
-              // Update to current week
-              farcasterPfpUrl: data.farcasterPfpUrl || currentStats.farcasterPfpUrl,
-              // Update profile picture if provided
-              updatedAt: /* @__PURE__ */ new Date(),
-              ...data.userStatsUpdates
-            };
-            const [updatedStats] = await tx.update(userStats).set(updates).where(eq(userStats.farcasterFid, data.farcasterFid)).returning();
-            const [questCompletion] = await tx.insert(questCompletions).values({
-              farcasterFid: data.farcasterFid,
-              questType: data.questType,
-              pointsEarned: Math.round(data.pointsEarned * 100),
-              // Convert to fixed-point
-              completionDate: data.completionDate,
-              castUrl: data.castUrl
-              // Include cast URL for social_post quests
-            }).returning();
-            return { userStats: updatedStats, questCompletion };
-          }
-        });
-      }
-      // One-time quest: Add Mini App to Farcaster
-      async completeAddMiniAppQuest(data) {
-        const referralCode = await this.generateReferralCode(data.farcasterUsername);
-        return await db.transaction(async (tx) => {
-          const existingUserStats = await tx.select().from(userStats).where(eq(userStats.farcasterFid, data.farcasterFid));
-          if (existingUserStats.length === 0) {
-            const currentWeekStart = getCurrentWeekStart();
-            const [newUserStats] = await tx.insert(userStats).values({
-              farcasterFid: data.farcasterFid,
-              farcasterUsername: data.farcasterUsername,
-              farcasterPfpUrl: data.farcasterPfpUrl || null,
-              totalPoints: data.pointsEarned,
-              weeklyPoints: data.pointsEarned,
-              hasAddedMiniApp: true,
-              weeklyResetDate: currentWeekStart,
-              referralCode,
-              referralCount: 0
-            }).returning();
-            return { totalPoints: newUserStats.totalPoints };
-          } else {
-            const currentStats = existingUserStats[0];
-            const currentWeekStart = getCurrentWeekStart();
-            const needsWeeklyReset = !currentStats.weeklyResetDate || currentStats.weeklyResetDate !== currentWeekStart;
-            const [updatedStats] = await tx.update(userStats).set({
-              totalPoints: currentStats.totalPoints + data.pointsEarned,
-              weeklyPoints: needsWeeklyReset ? data.pointsEarned : (currentStats.weeklyPoints || 0) + data.pointsEarned,
-              weeklyResetDate: currentWeekStart,
-              hasAddedMiniApp: true,
-              farcasterPfpUrl: data.farcasterPfpUrl || currentStats.farcasterPfpUrl,
-              updatedAt: /* @__PURE__ */ new Date()
-            }).where(eq(userStats.farcasterFid, data.farcasterFid)).returning();
-            return { totalPoints: updatedStats.totalPoints };
-          }
-        });
-      }
-      // Weekly reset and champion tracking
-      async performWeeklyReset() {
-        await db.transaction(async (tx) => {
-          const currentWeekStart = getCurrentWeekStart();
-          const weekEnd = getWeekEnd(currentWeekStart);
-          const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
-          const weekNumber = getWeekNumber();
-          const [sampleUser] = await tx.select().from(userStats).where(sql2`${userStats.weeklyResetDate} IS NOT NULL`).limit(1);
-          if (sampleUser && sampleUser.weeklyResetDate === currentWeekStart) {
-            console.log(`\u2139\uFE0F Weekly reset not needed - still in week starting ${currentWeekStart}`);
-            return;
-          }
-          console.log(`\u{1F504} Performing weekly reset for week starting ${currentWeekStart}`);
-          const [currentChampion] = await tx.select().from(userStats).where(sql2`${userStats.weeklyPoints} > 0 AND ${userStats.farcasterUsername} != 'coinacci' AND ${userStats.farcasterUsername} IS NOT NULL AND ${userStats.farcasterUsername} != ''`).orderBy(sql2`${userStats.weeklyPoints} DESC`).limit(1);
-          if (currentChampion && currentChampion.weeklyPoints > 0) {
-            await tx.insert(weeklyChampions).values({
-              farcasterFid: currentChampion.farcasterFid,
-              farcasterUsername: currentChampion.farcasterUsername,
-              weekStartDate: currentChampion.weeklyResetDate || currentWeekStart,
-              weekEndDate: weekEnd,
-              weeklyPoints: currentChampion.weeklyPoints,
-              weekNumber,
-              year: currentYear
-            }).onConflictDoNothing();
-          }
-          await tx.update(userStats).set({
-            weeklyPoints: 0,
-            weeklyResetDate: currentWeekStart,
-            updatedAt: /* @__PURE__ */ new Date()
-          });
-          console.log(`\u2705 Weekly reset completed for week starting ${currentWeekStart}`);
-        });
-      }
-      async getWeeklyChampions(limit = 10) {
-        return await db.select().from(weeklyChampions).where(sql2`${weeklyChampions.farcasterUsername} != 'coinacci'`).orderBy(sql2`${weeklyChampions.year} DESC, ${weeklyChampions.weekNumber} DESC`).limit(limit);
-      }
-      async getCurrentWeekChampion() {
-        const currentWeekStart = getCurrentWeekStart();
-        const [champion] = await db.select().from(weeklyChampions).where(eq(weeklyChampions.weekStartDate, currentWeekStart)).limit(1);
-        return champion || null;
-      }
-      async backfillWeeklyPointsFromTotal() {
-        return await db.transaction(async (tx) => {
-          const currentWeekStart = getCurrentWeekStart();
-          const usersNeedingBackfill = await tx.select().from(userStats).where(sql2`${userStats.weeklyPoints} = 0 AND ${userStats.totalPoints} > 0`);
-          console.log(`\u{1F50D} Found ${usersNeedingBackfill.length} users needing weekly points backfill`);
-          if (usersNeedingBackfill.length === 0) {
-            console.log("\u{1F4CB} No users needed weekly points backfill (all already migrated)");
-            return {
-              updated: 0,
-              message: "No users needed backfill - all users already have weekly points initialized"
-            };
-          }
-          const result = await tx.update(userStats).set({
-            weeklyPoints: sql2`${userStats.totalPoints}`,
-            // Copy totalPoints to weeklyPoints
-            weeklyResetDate: currentWeekStart,
-            // Mark as migrated to current week
-            updatedAt: /* @__PURE__ */ new Date()
-          }).where(sql2`${userStats.weeklyPoints} = 0 AND ${userStats.totalPoints} > 0`);
-          const updatedCount = result.rowCount || 0;
-          console.log(`\u2705 Backfilled weekly points for ${updatedCount} users`);
-          return {
-            updated: updatedCount,
-            message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
-          };
-        });
-      }
-      // NEW: Sync ALL weekly points with total points (for same week)
-      async syncWeeklyWithAllTime() {
-        return await db.transaction(async (tx) => {
-          const currentWeekStart = getCurrentWeekStart();
-          console.log(`\u{1F504} Syncing ALL weekly points with total points for week starting ${currentWeekStart}`);
-          const result = await tx.update(userStats).set({
-            weeklyPoints: sql2`${userStats.totalPoints}`,
-            // Copy totalPoints to weeklyPoints
-            weeklyResetDate: currentWeekStart,
-            // Mark as current week
-            updatedAt: /* @__PURE__ */ new Date()
-          }).where(sql2`${userStats.totalPoints} > 0`);
-          const updatedCount = result.rowCount || 0;
-          console.log(`\u2705 Synced weekly points with all-time for ${updatedCount} users`);
-          return {
-            updated: updatedCount,
-            message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
-          };
-        });
-      }
-      // Backfill referral codes for existing users
-      async backfillReferralCodes() {
-        console.log("\u{1F50D} Starting referral code backfill...");
-        const usersNeedingCodes = await db.select().from(userStats).where(sql2`${userStats.referralCode} IS NULL`);
-        console.log(`\u{1F4CA} Found ${usersNeedingCodes.length} users without referral codes`);
-        if (usersNeedingCodes.length === 0) {
-          return {
-            updated: 0,
-            message: "No users need referral codes - all users already have codes"
-          };
-        }
-        let updatedCount = 0;
-        for (const user of usersNeedingCodes) {
-          try {
-            const referralCode = await this.generateReferralCode(user.farcasterUsername);
-            await db.update(userStats).set({
-              referralCode,
-              updatedAt: /* @__PURE__ */ new Date()
-            }).where(eq(userStats.farcasterFid, user.farcasterFid));
-            updatedCount++;
-            if (updatedCount % 50 === 0) {
-              console.log(`\u23F3 Progress: ${updatedCount}/${usersNeedingCodes.length} users updated`);
-            }
-          } catch (error) {
-            console.error(`\u274C Failed to generate referral code for ${user.farcasterUsername}:`, error);
-          }
-        }
-        console.log(`\u2705 Backfilled referral codes for ${updatedCount} users`);
-        return {
-          updated: updatedCount,
-          message: `Successfully generated referral codes for ${updatedCount} users`
-        };
-      }
-      // Notification operations
-      async updateUserNotificationToken(farcasterFid, token) {
-        const [user] = await db.update(userStats).set({
-          notificationToken: token,
-          notificationsEnabled: true,
-          // Auto-enable when token is set
-          updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq(userStats.farcasterFid, farcasterFid)).returning();
-        console.log(`\u{1F4F1} Updated notification token for user ${farcasterFid}`);
-        return user || void 0;
-      }
-      async enableUserNotifications(farcasterFid, enabled) {
-        const [user] = await db.update(userStats).set({
-          notificationsEnabled: enabled,
-          updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq(userStats.farcasterFid, farcasterFid)).returning();
-        console.log(`\u{1F514} ${enabled ? "Enabled" : "Disabled"} notifications for user ${farcasterFid}`);
-        return user || void 0;
-      }
-      async getUsersWithNotifications() {
-        return await db.select().from(userStats).where(sql2`${userStats.notificationsEnabled} = true AND ${userStats.notificationToken} IS NOT NULL`);
-      }
-      async createNotificationHistory(notification) {
-        const [history] = await db.insert(notificationHistory).values(notification).returning();
-        console.log(`\u{1F4CB} Created notification history: ${notification.title} to ${notification.recipientCount} users`);
-        return history;
-      }
-      async getNotificationHistory(limit = 20) {
-        return await db.select().from(notificationHistory).orderBy(sql2`${notificationHistory.sentAt} DESC`).limit(limit);
-      }
-      async updateLastNotificationSent(farcasterFids) {
-        if (farcasterFids.length === 0) return 0;
-        const result = await db.update(userStats).set({ lastNotificationSent: /* @__PURE__ */ new Date() }).where(sql2`${userStats.farcasterFid} = ANY(${farcasterFids})`);
-        return result.rowCount || 0;
-      }
-      // Blockchain sync operations
-      async getSyncState(contractAddress) {
-        const [state] = await db.select().from(syncState).where(eq(syncState.contractAddress, contractAddress.toLowerCase()));
-        return state || void 0;
-      }
-      async updateSyncState(contractAddress, lastProcessedBlock) {
-        const existing = await this.getSyncState(contractAddress);
-        if (existing) {
-          const [updated] = await db.update(syncState).set({
-            lastProcessedBlock,
-            lastSyncAt: /* @__PURE__ */ new Date(),
-            updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq(syncState.contractAddress, contractAddress.toLowerCase())).returning();
-          return updated;
-        } else {
-          const [created] = await db.insert(syncState).values({
-            contractAddress: contractAddress.toLowerCase(),
-            lastProcessedBlock,
-            lastSyncAt: /* @__PURE__ */ new Date()
-          }).returning();
-          return created;
-        }
-      }
-      // Referral operations
-      async validateAndApplyReferral(data) {
-        const newReferralCode = await this.generateReferralCode(data.newUserUsername);
-        return await db.transaction(async (tx) => {
-          const [referrer] = await tx.select().from(userStats).where(eq(userStats.referralCode, data.referralCode));
-          if (!referrer) {
-            return {
-              success: false,
-              message: "Invalid referral code"
-            };
-          }
-          if (referrer.farcasterFid === data.newUserFid) {
-            return {
-              success: false,
-              message: "Cannot use your own referral code"
-            };
-          }
-          const [newUser] = await tx.select().from(userStats).where(eq(userStats.farcasterFid, data.newUserFid));
-          if (newUser?.referredByFid) {
-            return {
-              success: false,
-              message: "Referral code already used"
-            };
-          }
-          const currentWeekStart = getCurrentWeekStart();
-          if (!newUser) {
-            await tx.insert(userStats).values({
-              farcasterFid: data.newUserFid,
-              farcasterUsername: data.newUserUsername,
-              farcasterPfpUrl: data.newUserPfpUrl || null,
-              totalPoints: 0,
-              weeklyPoints: 0,
-              referredByFid: referrer.farcasterFid,
-              referralCode: newReferralCode,
-              referralCount: 0,
-              weeklyResetDate: currentWeekStart
-            });
-          } else {
-            await tx.update(userStats).set({
-              referredByFid: referrer.farcasterFid,
-              updatedAt: /* @__PURE__ */ new Date()
-            }).where(eq(userStats.farcasterFid, data.newUserFid));
-          }
-          await tx.update(userStats).set({
-            referralCount: (referrer.referralCount || 0) + 1,
-            unclaimedReferrals: (referrer.unclaimedReferrals || 0) + 1,
-            updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq(userStats.farcasterFid, referrer.farcasterFid));
-          console.log(`\u{1F381} Referral successful: ${data.newUserUsername} referred by ${referrer.farcasterUsername} (unclaimed +1)`);
-          return {
-            success: true,
-            message: `Successfully applied referral code! ${referrer.farcasterUsername} can now claim the reward in Quests.`,
-            referrerPoints: referrer.totalPoints
-          };
-        });
-      }
-      // Pending mints operations
-      async createPendingMint(insertPendingMint) {
-        try {
-          const [pendingMint] = await db.insert(pendingMints).values(insertPendingMint).returning();
-          return pendingMint;
-        } catch (error) {
-          if (error.code === "23505") {
-            console.log(`\u26A0\uFE0F Pending mint already exists for token ${insertPendingMint.tokenId}`);
-            const [existing] = await db.select().from(pendingMints).where(
-              and(
-                eq(pendingMints.contractAddress, insertPendingMint.contractAddress),
-                eq(pendingMints.tokenId, insertPendingMint.tokenId)
-              )
-            );
-            return existing;
-          }
-          throw error;
-        }
-      }
-      async getPendingMints(limit = 100) {
-        return await db.select().from(pendingMints).orderBy(pendingMints.createdAt).limit(limit);
-      }
-      async updatePendingMintRetry(id, error) {
-        const [updated] = await db.update(pendingMints).set({
-          retryCount: sql2`${pendingMints.retryCount} + 1`,
-          lastError: error,
-          lastAttemptAt: /* @__PURE__ */ new Date()
-        }).where(eq(pendingMints.id, id)).returning();
-        return updated || void 0;
-      }
-      async deletePendingMint(id) {
-        await db.delete(pendingMints).where(eq(pendingMints.id, id));
-      }
-      // Badge operations
-      async getAllBadges() {
-        return await db.select().from(badges).orderBy(badges.category, badges.requirement);
-      }
-      async getUserBadges(identifier) {
-        const { farcasterFid, walletAddress } = identifier;
-        let userBadgeRecords = [];
-        if (farcasterFid) {
-          userBadgeRecords = await db.select().from(userBadges).where(eq(userBadges.farcasterFid, farcasterFid));
-        } else if (walletAddress) {
-          userBadgeRecords = await db.select().from(userBadges).where(sql2`LOWER(${userBadges.walletAddress}) = LOWER(${walletAddress})`);
-        }
-        const badgeIds = userBadgeRecords.map((ub) => ub.badgeId);
-        if (badgeIds.length === 0) return [];
-        const earnedBadges = await db.select().from(badges).where(sql2`${badges.id} IN (${sql2.join(badgeIds.map((id) => sql2`${id}`), sql2`, `)})`);
-        return earnedBadges.map((b) => b.code);
-      }
-      async awardBadge(badgeCode, identifier) {
-        const { farcasterFid, walletAddress } = identifier;
-        const [badge] = await db.select().from(badges).where(eq(badges.code, badgeCode));
-        if (!badge) return void 0;
-        try {
-          const [userBadge] = await db.insert(userBadges).values({
-            farcasterFid: farcasterFid || "",
-            walletAddress: walletAddress || null,
-            badgeId: badge.id
-          }).returning();
-          return userBadge;
-        } catch (error) {
-          if (error.code === "23505") {
-            return void 0;
-          }
-          throw error;
-        }
-      }
-    };
-    storage = new DatabaseStorage();
-  }
-});
-
-// server/blockchain.ts
-import { ethers } from "ethers";
-async function withRetry(fn, maxRetries = 3) {
-  let lastError;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (error && typeof error === "object" && "info" in error) {
-        const info = error.info;
-        if (info?.error?.code === -32016 || info?.error?.message?.includes("rate limit")) {
-          console.log(`\u26A0\uFE0F Rate limit hit (attempt ${i + 1}/${maxRetries}), waiting...`);
-          await new Promise((resolve) => setTimeout(resolve, 1e3 + i * 500));
-          continue;
-        }
-      }
-      if (i < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1e3));
-      }
-    }
-  }
-  throw lastError;
-}
-function initializeProvider(rpcUrl) {
-  console.log(`\u{1F50C} Initializing RPC provider: ${rpcUrl}`);
-  const provider2 = new ethers.JsonRpcProvider(rpcUrl);
-  return {
-    provider: provider2,
-    nftContract: new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider2),
-    marketplaceContract: new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider2),
-    usdcContract: new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider2),
-    questManagerContract: new ethers.Contract(QUEST_MANAGER_ADDRESS, QUEST_MANAGER_ABI, provider2)
-  };
-}
-function rotateRpcProvider() {
-  const nextIndex = (currentRpcIndex + 1) % BASE_RPC_URLS.length;
-  currentRpcIndex = nextIndex;
-  const nextUrl = BASE_RPC_URLS[currentRpcIndex];
-  console.log(`\u{1F504} Rotating to RPC provider [${currentRpcIndex}]: ${nextUrl}`);
-  const { provider: provider2, nftContract: nftContract2, marketplaceContract: marketplaceContract2, usdcContract: usdcContract2, questManagerContract } = initializeProvider(nextUrl);
-  currentProvider = provider2;
-  currentNftContract = nftContract2;
-  currentMarketplaceContract = marketplaceContract2;
-  currentUsdcContract = usdcContract2;
-  currentQuestManagerContract = questManagerContract;
-  return true;
-}
-function normalizeUri(uri) {
-  if (!uri) return [];
-  if (uri.startsWith("ipfs://")) {
-    const cid = uri.replace("ipfs://", "");
-    return [
-      `https://ipfs.io/ipfs/${cid}`,
-      // Most reliable public gateway
-      `https://cloudflare-ipfs.com/ipfs/${cid}`,
-      // Cloudflare CDN - very fast
-      `https://dweb.link/ipfs/${cid}`,
-      // Protocol Labs gateway
-      `https://4everland.io/ipfs/${cid}`,
-      // Alternative reliable gateway
-      `https://gateway.pinata.cloud/ipfs/${cid}`
-      // Pinata (may be rate limited)
-    ];
-  }
-  if (uri.includes("/ipfs/")) {
-    const hash = uri.split("/ipfs/")[1];
-    if (hash) {
-      const cleanHash = hash.split("?")[0];
-      return [
-        uri,
-        // Keep original first (may be fastest if not rate limited)
-        `https://ipfs.io/ipfs/${cleanHash}`,
-        // Most reliable
-        `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,
-        // Fast CDN
-        `https://dweb.link/ipfs/${cleanHash}`,
-        // Protocol Labs
-        `https://4everland.io/ipfs/${cleanHash}`
-        // Alternative
-      ];
-    }
-  }
-  if (uri.startsWith("ar://")) {
-    const id = uri.replace("ar://", "");
-    return [`https://arweave.net/${id}`];
-  }
-  if (uri.startsWith("data:application/json;base64,")) {
-    try {
-      const base64 = uri.split(",")[1];
-      const jsonString = Buffer.from(base64, "base64").toString();
-      return [`data:${jsonString}`];
-    } catch (e) {
-      console.error("Failed to decode base64 JSON:", e);
-      return [];
-    }
-  }
-  if (uri.startsWith("http")) {
-    return [uri];
-  }
-  return [];
-}
-function extractCoordinates(metadata) {
-  if (!metadata || !metadata.attributes) {
-    return { latitude: null, longitude: null };
-  }
-  let latitude = null;
-  let longitude = null;
-  const coordTraits = ["latitude", "lat", "longitude", "lng", "lon", "coordinates", "coord", "gps", "geo"];
-  for (const attr of metadata.attributes) {
-    if (!attr.trait_type || !attr.value) continue;
-    const traitLower = attr.trait_type.toLowerCase();
-    const value = String(attr.value).trim();
-    if (traitLower.includes("latitude")) {
-      latitude = parseCoordinate(value);
-    } else if (traitLower === "lat") {
-      latitude = parseCoordinate(value);
-    }
-    if (traitLower.includes("longitude")) {
-      longitude = parseCoordinate(value);
-    } else if (traitLower === "lng" || traitLower === "lon") {
-      longitude = parseCoordinate(value);
-    }
-    if (traitLower.includes("coordinates") || traitLower.includes("coord") || traitLower.includes("gps")) {
-      const coords = parseCoordinatePair(value);
-      if (coords) {
-        latitude = coords.latitude;
-        longitude = coords.longitude;
-      }
-    }
-  }
-  return { latitude, longitude };
-}
-function parseCoordinate(value) {
-  if (!value) return null;
-  const cleaned = value.replace(/[^\d\.\-,]/g, "");
-  const num = parseFloat(cleaned);
-  if (!isNaN(num) && num !== 0) {
-    return num.toString();
-  }
-  return null;
-}
-function parseCoordinatePair(value) {
-  if (!value) return null;
-  const parts = value.split(",").map((p) => p.trim());
-  if (parts.length === 2) {
-    const lat = parseCoordinate(parts[0]);
-    const lng = parseCoordinate(parts[1]);
-    if (lat && lng) {
-      return { latitude: lat, longitude: lng };
-    }
-  }
-  return null;
-}
-async function fetchWithGateways(uris) {
-  let lastError = null;
-  for (let i = 0; i < uris.length; i++) {
-    const uri = uris[i];
-    try {
-      if (uri.startsWith("data:")) {
-        return JSON.parse(uri.replace("data:", ""));
-      }
-      console.log(`\u{1F517} Trying gateway ${i + 1}/${uris.length}: ${uri}`);
-      const controller = new AbortController();
-      const timeout = i === 0 ? 8e3 : i === 1 ? 12e3 : 15e3;
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      const response = await fetch(uri, {
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "TravelMint/1.0",
-          "Accept": "application/json, text/plain, */*"
-        }
-      });
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType?.includes("application/json")) {
-          console.log(`\u2705 Gateway ${i + 1} success: JSON response`);
-          return await response.json();
-        } else {
-          console.log(`\u2705 Gateway ${i + 1} success: Text response`);
-          const text2 = await response.text();
-          if (text2.trim().startsWith("{") || text2.trim().startsWith("[")) {
-            try {
-              return JSON.parse(text2);
-            } catch {
-              return text2;
-            }
-          }
-          return text2;
-        }
-      } else {
-        console.log(`\u26A0\uFE0F Gateway ${i + 1} HTTP error: ${response.status} ${response.statusText}`);
-        if (response.status === 429) {
-          console.log(`\u26A0\uFE0F Gateway ${i + 1} rate limited, trying next...`);
-        }
-        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      console.log(`\u26A0\uFE0F Gateway ${i + 1} failed: ${errorMsg}`);
-      lastError = error instanceof Error ? error : new Error(errorMsg);
-      if (errorMsg.includes("aborted") || errorMsg.includes("timeout")) {
-        continue;
-      }
-    }
-  }
-  throw lastError || new Error(`All ${uris.length} gateways failed`);
-}
-var BASE_RPC_URLS, currentRpcIndex, MORALIS_API_URL, MORALIS_API_KEY, BASESCAN_API_URL, BASESCAN_API_KEY, NFT_CONTRACT_ADDRESS, USDC_CONTRACT_ADDRESS, MARKETPLACE_CONTRACT_ADDRESS, QUEST_MANAGER_ADDRESS, PLATFORM_WALLET, TRAVEL_NFT_ABI, MARKETPLACE_ABI, ERC20_ABI, QUEST_MANAGER_ABI, currentProvider, currentNftContract, currentMarketplaceContract, currentUsdcContract, currentQuestManagerContract, initial, provider, nftContract, marketplaceContract, usdcContract, BlockchainService, blockchainService;
-var init_blockchain = __esm({
-  "server/blockchain.ts"() {
-    "use strict";
-    BASE_RPC_URLS = [
-      "https://base-rpc.publicnode.com",
-      // Most reliable free option (542M+ requests)
-      "https://rpc.ankr.com/base",
-      // 30 req/sec free tier  
-      "https://base.llamarpc.com",
-      "https://base.gateway.tenderly.co",
-      "https://mainnet.base.org"
-      // Official as last resort
-    ];
-    currentRpcIndex = 0;
-    MORALIS_API_URL = "https://deep-index.moralis.io/api/v2";
-    MORALIS_API_KEY = process.env.MORALIS_API_KEY || "";
-    BASESCAN_API_URL = "https://api.basescan.org/api";
-    BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
-    NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
-    USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-    MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c";
-    QUEST_MANAGER_ADDRESS = "0x30eDb4493fA7c0F035adc75bA6381E2efFFeCa6c";
-    PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084";
-    TRAVEL_NFT_ABI = [
-      "function ownerOf(uint256 tokenId) view returns (address)",
-      "function tokenURI(uint256 tokenId) view returns (string)",
-      "function balanceOf(address owner) view returns (uint256)",
-      "function name() view returns (string)",
-      "function symbol() view returns (string)",
-      "function getApproved(uint256 tokenId) view returns (address)",
-      "function isApprovedForAll(address owner, address operator) view returns (bool)",
-      "function transferFrom(address from, address to, uint256 tokenId)",
-      "function safeTransferFrom(address from, address to, uint256 tokenId)",
-      "function approve(address to, uint256 tokenId)",
-      "function setApprovalForAll(address operator, bool approved)",
-      "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
-    ];
-    MARKETPLACE_ABI = [
-      "function listNFT(uint256 tokenId, uint256 price)",
-      "function cancelListing(uint256 tokenId)",
-      "function updatePrice(uint256 tokenId, uint256 newPrice)",
-      "function purchaseNFT(uint256 tokenId)",
-      "function getListing(uint256 tokenId) view returns (tuple(address seller, uint256 price, bool active))",
-      "function isListed(uint256 tokenId) view returns (bool)",
-      "function getSellerVolume(address seller) view returns (uint256)",
-      "function totalVolume() view returns (uint256)",
-      "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price, uint256 timestamp)",
-      "event NFTUnlisted(uint256 indexed tokenId, address indexed seller, uint256 timestamp)",
-      "event PriceUpdated(uint256 indexed tokenId, address indexed seller, uint256 oldPrice, uint256 newPrice, uint256 timestamp)",
-      "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee, uint256 timestamp)"
-    ];
-    ERC20_ABI = [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function transfer(address to, uint256 amount) returns (bool)",
-      "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-      "function approve(address spender, uint256 amount) returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function decimals() view returns (uint8)"
-    ];
-    QUEST_MANAGER_ABI = [
-      "event QuestCompleted(address indexed user, uint256 indexed questId, uint256 fee, uint256 timestamp, uint256 day)"
-    ];
-    initial = initializeProvider(BASE_RPC_URLS[0]);
-    currentProvider = initial.provider;
-    currentNftContract = initial.nftContract;
-    currentMarketplaceContract = initial.marketplaceContract;
-    currentUsdcContract = initial.usdcContract;
-    currentQuestManagerContract = initial.questManagerContract;
-    provider = currentProvider;
-    nftContract = currentNftContract;
-    marketplaceContract = currentMarketplaceContract;
-    usdcContract = currentUsdcContract;
-    BlockchainService = class {
-      // Get specific NFT using Moralis API - much faster and more reliable
-      async getMoralisNFT(tokenId) {
-        try {
-          if (!MORALIS_API_KEY) {
-            console.log("\u26A0\uFE0F No Moralis API key - falling back to RPC");
-            return null;
-          }
-          console.log(`\u{1F680} Fetching Token ${tokenId} using Moralis API...`);
-          const moralisUrl = `${MORALIS_API_URL}/nft/${NFT_CONTRACT_ADDRESS}/${tokenId}?chain=base&format=decimal`;
-          const response = await fetch(moralisUrl, {
-            headers: {
-              "X-API-Key": MORALIS_API_KEY,
-              "Content-Type": "application/json"
-            }
-          });
-          if (!response.ok) {
-            console.log(`\u274C Moralis API error for Token ${tokenId}:`, response.status);
-            return null;
-          }
-          const nftData = await response.json();
-          if (!nftData.owner_of) {
-            console.log(`\u274C Token ${tokenId} has no owner (doesn't exist)`);
-            return null;
-          }
-          console.log(`\u2705 SUCCESS! Token ${tokenId} owner: ${nftData.owner_of}, tokenURI: ${nftData.token_uri}`);
-          let metadata = null;
-          if (nftData.token_uri) {
-            try {
-              metadata = await fetchWithGateways([nftData.token_uri]);
-              console.log(`\u2705 Parsed metadata for token ${tokenId}:`, metadata);
-            } catch (error) {
-              console.log(`\u274C Error fetching metadata for token ${tokenId}:`, error);
-            }
-          }
-          return {
-            tokenId,
-            owner: nftData.owner_of.toLowerCase(),
-            tokenURI: nftData.token_uri || "",
-            metadata
-          };
-        } catch (error) {
-          console.log(`\u274C Moralis API error for Token ${tokenId}:`, error);
-          return null;
-        }
-      }
-      // Get all NFTs from the contract using Moralis API for Transfer events
-      async getAllNFTs() {
-        try {
-          console.log("\u{1F517} Fetching NFTs using parallel scanning (RPC + Moralis)...");
-          const scanPromises = [];
-          scanPromises.push(this.tryKnownTokenIds());
-          if (MORALIS_API_KEY) {
-            console.log("\u{1F680} Starting parallel Moralis API call for Token 47...");
-            scanPromises.push(this.getMoralisNFT("47"));
-          } else {
-            scanPromises.push(Promise.resolve(null));
-          }
-          const [rpcResults, moralisToken47] = await Promise.allSettled(scanPromises);
-          const results = rpcResults.status === "fulfilled" ? rpcResults.value : [];
-          if (moralisToken47.status === "fulfilled" && moralisToken47.value) {
-            console.log("\u{1F389} SUCCESS! Token 47 found via Moralis API!");
-            const exists = results.some((nft) => nft.tokenId === "47");
-            if (!exists) {
-              console.log("\u2705 Adding Token 47 to results list");
-              results.push(moralisToken47.value);
-            }
-          }
-          console.log(`\u{1F4CA} Total NFTs found: ${results.length}`);
-          return results;
-        } catch (error) {
-          console.error("Error in getAllNFTs:", error);
-          return await this.tryKnownTokenIds();
-        }
-      }
-      // Fallback method to try known token IDs
-      async tryKnownTokenIds() {
-        console.log("\u{1F504} Trying known token IDs as fallback...");
-        const nfts2 = [];
-        let consecutiveFailures = 0;
-        for (let tokenId = 1; tokenId <= 1e3; tokenId++) {
-          try {
-            const owner = await withRetry(() => nftContract.ownerOf(tokenId));
-            const tokenURI = await nftContract.tokenURI(tokenId);
-            consecutiveFailures = 0;
-            let metadata = null;
-            const uris = normalizeUri(tokenURI);
-            if (uris.length > 0) {
-              try {
-                console.log(`\u{1F4E5} Fetching metadata from tokenURI: ${tokenURI}`);
-                metadata = await Promise.race([
-                  fetchWithGateways(uris),
-                  new Promise(
-                    (_, reject) => setTimeout(() => reject(new Error("Metadata fetch timeout")), 3e3)
-                  )
-                ]);
-                console.log(`\u2705 Parsed metadata for token ${tokenId}:`, metadata);
-              } catch (fetchError) {
-                console.log(`\u274C Error fetching metadata for token ${tokenId}:`, fetchError);
-              }
-            } else {
-              console.log(`\u26A0\uFE0F Unsupported tokenURI format for token ${tokenId}: ${tokenURI}`);
-            }
-            nfts2.push({
-              tokenId: tokenId.toString(),
-              owner: owner.toLowerCase(),
-              tokenURI,
-              metadata
-            });
-            console.log(`\u2705 Found NFT #${tokenId} owned by ${owner}`);
-          } catch (error) {
-            console.log(`\u274C Error checking token ${tokenId}:`, error.reason || error.message || error);
-            if (error.reason === "ERC721: invalid token ID" || error.code === "CALL_EXCEPTION" && !error.message?.includes("missing revert data") || error.message?.includes("invalid token ID")) {
-              consecutiveFailures++;
-              console.log(`\u26A0\uFE0F Token ${tokenId} doesn't exist (${consecutiveFailures} consecutive failures)`);
-            } else {
-              console.log(`\u{1F504} Rate limit/network error for token ${tokenId}, continuing without counting failure...`);
-            }
-            if (consecutiveFailures >= 15) {
-              console.log(`\u{1F6D1} Stopping search after ${consecutiveFailures} consecutive "token not found" failures at token ${tokenId}`);
-              break;
-            }
-          }
-        }
-        console.log(`Found ${nfts2.length} NFTs using fallback method`);
-        return nfts2;
-      }
-      // Get NFTs owned by a specific address
-      async getNFTsByOwner(ownerAddress) {
-        try {
-          ownerAddress = ownerAddress.toLowerCase();
-          console.log(`\u{1F517} Fetching NFTs for owner: ${ownerAddress}`);
-          const allNFTs = await this.getAllNFTs();
-          const ownerNFTs = allNFTs.filter((nft) => nft.owner === ownerAddress);
-          console.log(`\u2705 Owner ${ownerAddress} has ${ownerNFTs.length} NFTs`);
-          return ownerNFTs;
-        } catch (error) {
-          console.error(`Error fetching NFTs for owner ${ownerAddress}:`, error);
-          return [];
-        }
-      }
-      // Get a specific NFT by token ID
-      async getNFTByTokenId(tokenId) {
-        try {
-          const owner = await nftContract.ownerOf(tokenId);
-          const tokenURI = await nftContract.tokenURI(tokenId);
-          let metadata = null;
-          if (tokenURI && tokenURI.startsWith("http")) {
-            try {
-              const response = await fetch(tokenURI);
-              if (response.ok) {
-                metadata = await response.json();
-              }
-            } catch (e) {
-              console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
-            }
-          }
-          return {
-            tokenId,
-            owner: owner.toLowerCase(),
-            tokenURI,
-            metadata
-          };
-        } catch (error) {
-          console.error(`Error fetching NFT ${tokenId}:`, error);
-          return null;
-        }
-      }
-      // Fixed locations for specific NFTs - these will never be changed by metadata updates
-      getLocationOverride(tokenId, nftTitle) {
-        const locationOverrides = {
-          // Baghdad NFT -> Iraq Baghdad
-          "106": { location: "Baghdad", latitude: "33.3152", longitude: "44.3661" },
-          // Vietnam Forest NFT -> Vietnam  
-          "89": { location: "Ho Chi Minh City", latitude: "10.8231", longitude: "106.6297" },
-          // Dubai Nights NFT -> Dubai
-          "48": { location: "Dubai", latitude: "25.2048", longitude: "55.2708" },
-          // Egypt Night NFT -> Cairo
-          "44": { location: "Cairo", latitude: "30.0444", longitude: "31.2357" },
-          // Georgia Moments NFT -> Tbilisi
-          "41": { location: "Tbilisi", latitude: "41.7151", longitude: "44.8271" }
-        };
-        return locationOverrides[tokenId] || null;
-      }
-      // Convert blockchain NFT to database format
-      async blockchainNFTToDBFormat(blockchainNFT) {
-        const metadata = blockchainNFT.metadata;
-        const override = this.getLocationOverride(blockchainNFT.tokenId, metadata?.name || "");
-        let location;
-        let latitude;
-        let longitude;
-        if (override) {
-          location = override.location;
-          latitude = override.latitude;
-          longitude = override.longitude;
-          console.log(`\u{1F512} Using fixed location for NFT #${blockchainNFT.tokenId}: ${location} at ${latitude}, ${longitude}`);
-        } else {
-          location = this.extractLocationFromMetadata(metadata);
-          const coords = extractCoordinates(metadata);
-          latitude = coords.latitude || void 0;
-          longitude = coords.longitude || void 0;
-        }
-        let imageUrl = await this.extractImageUrl(metadata, blockchainNFT.tokenURI);
-        if (blockchainNFT.tokenId === "1") {
-          imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
-        } else if (blockchainNFT.tokenId === "2") {
-          imageUrl = "/attached_assets/IMG_4086_1756446465520.jpeg";
-        } else if (blockchainNFT.tokenId === "37") {
-          imageUrl = "/attached_assets/IMG_4202_1756888569757.jpeg";
-        } else if (blockchainNFT.tokenId === "38") {
-          imageUrl = "/attached_assets/IMG_4202_1756890858921.jpeg";
-        }
-        return {
-          // Remove hard-coded id - let UUID default apply to prevent duplicate key errors
-          title: metadata?.name || `Travel NFT #${blockchainNFT.tokenId}`,
-          description: metadata?.description || "A beautiful travel memory captured on the blockchain.",
-          imageUrl,
-          location,
-          latitude: latitude || void 0,
-          longitude: longitude || void 0,
-          category: this.extractCategoryFromMetadata(metadata) || "travel",
-          price: "1.0",
-          // Fixed mint price
-          isForSale: 0,
-          creatorAddress: blockchainNFT.owner,
-          // Assume current owner is creator for now
-          ownerAddress: blockchainNFT.owner,
-          contractAddress: NFT_CONTRACT_ADDRESS,
-          mintPrice: "1.0",
-          royaltyPercentage: "5.0",
-          tokenId: blockchainNFT.tokenId,
-          transactionHash: null,
-          // Would need additional lookup to get mint transaction
-          metadata: JSON.stringify(metadata || {})
-        };
-      }
-      // URL validation helper to ensure image URLs point to actual images, not metadata
-      async validateAndFixImageUrl(url) {
-        try {
-          console.log(`\u{1F50D} Validating image URL: ${url.substring(0, 50)}...`);
-          const response = await fetch(url, { method: "HEAD" });
-          const contentType = response.headers.get("content-type");
-          if (contentType?.includes("application/json")) {
-            console.log("\u{1F4C4} Detected metadata URL, extracting actual image...");
-            const metadataResponse = await fetch(url);
-            const metadata = await metadataResponse.json();
-            if (metadata.image) {
-              console.log(`\u2705 Extracted image URL: ${metadata.image.substring(0, 50)}...`);
-              return metadata.image;
-            }
-          }
-          if (contentType?.startsWith("image/")) {
-            console.log("\u2705 Valid image URL confirmed");
-            return url;
-          }
-          console.log(`\u26A0\uFE0F URL not an image (${contentType}), keeping original`);
-          return url;
-        } catch (error) {
-          console.log("\u26A0\uFE0F Failed to validate URL, keeping original:", error);
-          return url;
-        }
-      }
-      // Extract proper image URL from metadata or tokenURI
-      async extractImageUrl(metadata, tokenURI) {
-        if (metadata?.image) {
-          return await this.validateAndFixImageUrl(metadata.image);
-        }
-        if (!tokenURI) {
-          return "";
-        }
-        try {
-          if (tokenURI.startsWith("http") && (tokenURI.includes("ipfs") || tokenURI.includes("metadata") || tokenURI.includes("json") || tokenURI.startsWith("https://gateway.pinata.cloud/ipfs/bafkrei"))) {
-            console.log(`\u{1F50D} Checking if ${tokenURI} contains metadata with image URL...`);
-            const response = await fetch(tokenURI);
-            if (response.ok) {
-              const contentType = response.headers.get("content-type");
-              if (contentType && contentType.includes("application/json")) {
-                const fetchedMetadata = await response.json();
-                if (fetchedMetadata?.image) {
-                  console.log(`\u2705 Found real image URL in metadata: ${fetchedMetadata.image}`);
-                  return fetchedMetadata.image;
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.log(`\u26A0\uFE0F Failed to fetch potential metadata URL ${tokenURI}:`, error);
-        }
-        return tokenURI;
-      }
-      extractLocationFromMetadata(metadata) {
-        if (!metadata || !metadata.attributes) return "Unknown Location";
-        const locationAttr = metadata.attributes.find(
-          (attr) => attr.trait_type?.toLowerCase().includes("location") || attr.trait_type?.toLowerCase().includes("city")
-        );
-        return locationAttr?.value || "Unknown Location";
-      }
-      extractLatitudeFromMetadata(metadata) {
-        if (!metadata || !metadata.attributes) return null;
-        const latAttr = metadata.attributes.find(
-          (attr) => attr.trait_type?.toLowerCase().includes("latitude") || attr.trait_type?.toLowerCase().includes("lat")
-        );
-        if (latAttr?.value) {
-          return latAttr.value;
-        }
-        const locationAttr = metadata.attributes.find(
-          (attr) => attr.trait_type?.toLowerCase().includes("location")
-        );
-        if (locationAttr?.value?.toLowerCase() === "tuzla") {
-          return "40.8256";
-        } else if (locationAttr?.value?.toLowerCase() === "kadikoy" || locationAttr?.value?.toLowerCase() === "kad\u0131k\xF6y") {
-          return "40.9833";
-        }
-        return null;
-      }
-      extractLongitudeFromMetadata(metadata) {
-        if (!metadata || !metadata.attributes) return null;
-        const lngAttr = metadata.attributes.find(
-          (attr) => attr.trait_type?.toLowerCase().includes("longitude") || attr.trait_type?.toLowerCase().includes("lng") || attr.trait_type?.toLowerCase().includes("lon")
-        );
-        if (lngAttr?.value) {
-          return lngAttr.value;
-        }
-        const locationAttr = metadata.attributes.find(
-          (attr) => attr.trait_type?.toLowerCase().includes("location")
-        );
-        if (locationAttr?.value?.toLowerCase() === "tuzla") {
-          return "29.2997";
-        } else if (locationAttr?.value?.toLowerCase() === "kadikoy" || locationAttr?.value?.toLowerCase() === "kad\u0131k\xF6y") {
-          return "29.0167";
-        }
-        return null;
-      }
-      extractCategoryFromMetadata(metadata) {
-        if (!metadata || !metadata.attributes) return null;
-        const categoryAttr = metadata.attributes.find(
-          (attr) => attr.trait_type?.toLowerCase().includes("category") || attr.trait_type?.toLowerCase().includes("type")
-        );
-        return categoryAttr?.value || null;
-      }
-      // Check USDC balance for an address
-      async getUSDCBalance(address) {
-        return withRetry(async () => {
-          const balance = await usdcContract.balanceOf(address);
-          return ethers.formatUnits(balance, 6);
-        }).catch((error) => {
-          console.error(`Error fetching USDC balance for ${address}:`, error);
-          return "0";
-        });
-      }
-      // Check USDC allowance for NFT purchases
-      async getUSDCAllowance(owner, spender) {
-        return withRetry(async () => {
-          const allowance = await usdcContract.allowance(owner, spender);
-          return ethers.formatUnits(allowance, 6);
-        }).catch((error) => {
-          console.error(`Error fetching USDC allowance:`, error);
-          return "0";
-        });
-      }
-      // 🔐 SECURE: Generate marketplace purchase transaction (NO PRICE MANIPULATION!)
-      // This uses the new secure marketplace contract instead of the vulnerable NFT contract
-      async generatePurchaseTransaction(tokenId, buyerAddress) {
-        try {
-          if (!tokenId || !buyerAddress) {
-            throw new Error("Missing required parameters for purchase");
-          }
-          const listing = await marketplaceContract.getListing(tokenId);
-          if (!listing.active) {
-            throw new Error("NFT is not listed for sale");
-          }
-          const currentOwner = await nftContract.ownerOf(tokenId);
-          if (currentOwner.toLowerCase() !== listing.seller.toLowerCase()) {
-            throw new Error("NFT owner doesn't match marketplace listing");
-          }
-          const price = ethers.formatUnits(listing.price, 6);
-          const requiredAmount = parseFloat(price);
-          const buyerBalance = await this.getUSDCBalance(buyerAddress);
-          if (parseFloat(buyerBalance) < requiredAmount) {
-            throw new Error(`Insufficient USDC balance. Required: ${requiredAmount} USDC, Available: ${buyerBalance} USDC`);
-          }
-          const allowance = await this.getUSDCAllowance(buyerAddress, MARKETPLACE_CONTRACT_ADDRESS);
-          if (parseFloat(allowance) < requiredAmount) {
-            console.log(`\u26A0\uFE0F Insufficient USDC allowance. Required: ${requiredAmount} USDC, Allowed: ${allowance} USDC`);
-          }
-          const platformFee = listing.price * BigInt(5) / BigInt(100);
-          const sellerAmount = listing.price - platformFee;
-          console.log(`\u{1F4B0} Secure purchase: ${price} USDC total (Seller: ${(Number(sellerAmount) / 1e6).toFixed(6)}, Platform: ${(Number(platformFee) / 1e6).toFixed(6)})`);
-          return {
-            success: true,
-            // 🔐 SECURE: Use marketplace contract with NO price parameter!
-            transaction: {
-              type: "PURCHASE_NFT_MARKETPLACE",
-              to: MARKETPLACE_CONTRACT_ADDRESS,
-              data: marketplaceContract.interface.encodeFunctionData("purchaseNFT", [
-                tokenId
-                // Only tokenId - price comes from secure listing!
-              ]),
-              description: `Secure purchase of NFT #${tokenId} for ${price} USDC via marketplace`
-            },
-            // Transaction details for confirmation
-            tokenId,
-            buyerAddress,
-            seller: listing.seller,
-            priceUSDC: price,
-            sellerAmount: (Number(sellerAmount) / 1e6).toFixed(6),
-            platformFee: (Number(platformFee) / 1e6).toFixed(6),
-            // USDC approval transaction (if needed)
-            approvalData: {
-              to: USDC_CONTRACT_ADDRESS,
-              data: usdcContract.interface.encodeFunctionData("approve", [
-                MARKETPLACE_CONTRACT_ADDRESS,
-                // Approve marketplace, not NFT contract!
-                listing.price
-              ]),
-              description: `Approve ${price} USDC spending for secure marketplace purchase`
-            }
-          };
-        } catch (error) {
-          console.error("Error generating secure purchase transaction:", error);
-          return {
-            success: false,
-            error: error.message || "Failed to generate secure purchase transaction"
-          };
-        }
-      }
-      // Verify NFT purchase transaction
-      async verifyPurchaseTransaction(transactionHash, expectedTokenId, expectedBuyer) {
-        try {
-          console.log(`\u{1F50D} Verifying purchase transaction: ${transactionHash}`);
-          const receipt = await withRetry(() => provider.getTransactionReceipt(transactionHash));
-          if (!receipt) {
-            return { success: false, error: "Transaction not found or still pending" };
-          }
-          if (receipt.status !== 1) {
-            return { success: false, error: "Transaction failed on blockchain" };
-          }
-          if (receipt.to?.toLowerCase() !== MARKETPLACE_CONTRACT_ADDRESS.toLowerCase()) {
-            return { success: false, error: "Transaction was not sent to the marketplace contract" };
-          }
-          const transaction = await withRetry(() => provider.getTransaction(transactionHash));
-          if (!transaction || !transaction.data) {
-            return { success: false, error: "Could not retrieve transaction data" };
-          }
-          try {
-            const decodedData = marketplaceContract.interface.parseTransaction({ data: transaction.data });
-            if (decodedData?.name !== "purchaseNFT") {
-              return { success: false, error: `Transaction called ${decodedData?.name || "unknown"} function, not purchaseNFT` };
-            }
-            const transactionTokenId = decodedData.args[0].toString();
-            if (transactionTokenId !== expectedTokenId) {
-              return { success: false, error: `Token ID mismatch: expected ${expectedTokenId}, got ${transactionTokenId}` };
-            }
-            if (transaction.from?.toLowerCase() !== expectedBuyer.toLowerCase()) {
-              return { success: false, error: `Buyer mismatch: expected ${expectedBuyer}, got ${transaction.from}` };
-            }
-            console.log(`\u2705 Purchase transaction verified: NFT #${transactionTokenId} purchased by ${transaction.from}`);
-            return {
-              success: true,
-              details: {
-                tokenId: transactionTokenId,
-                buyer: transaction.from,
-                price: decodedData.args[1].toString(),
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-              }
-            };
-          } catch (parseError) {
-            return { success: false, error: "Could not parse transaction data - may not be a valid NFT purchase" };
-          }
-        } catch (error) {
-          console.error("Error verifying purchase transaction:", error);
-          return { success: false, error: error.message || "Failed to verify transaction" };
-        }
-      }
-      // Check if wallet made any transaction on Base network today
-      async hasBaseTransactionToday(walletAddress) {
-        try {
-          if (!BASESCAN_API_KEY) {
-            console.log("\u26A0\uFE0F No Basescan API key - cannot verify Base transactions");
-            return false;
-          }
-          console.log(`\u{1F50D} Checking Base transactions for wallet: ${walletAddress}`);
-          const today = /* @__PURE__ */ new Date();
-          const todayStartUnix = Math.floor(new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1e3);
-          const nowUnix = Math.floor(Date.now() / 1e3);
-          const url = `${BASESCAN_API_URL}?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${BASESCAN_API_KEY}`;
-          console.log(`\u{1F4E1} Fetching transactions from Basescan...`);
-          const response = await fetch(url);
-          if (!response.ok) {
-            console.log(`\u274C Basescan API error:`, response.status);
-            return false;
-          }
-          const data = await response.json();
-          if (data.status !== "1") {
-            console.log(`\u274C Basescan API returned error:`, data.message);
-            return false;
-          }
-          const todayTransactions = data.result.filter((tx) => {
-            const txTimestamp = parseInt(tx.timeStamp);
-            return txTimestamp >= todayStartUnix && txTimestamp <= nowUnix;
-          });
-          const hasTransaction = todayTransactions.length > 0;
-          if (hasTransaction) {
-            console.log(`\u2705 Found ${todayTransactions.length} Base transaction(s) today for ${walletAddress}`);
-            console.log(`\u{1F4CB} Latest tx hash: ${todayTransactions[0].hash}`);
-          } else {
-            console.log(`\u274C No Base transactions found today for ${walletAddress}`);
-          }
-          return hasTransaction;
-        } catch (error) {
-          console.error(`\u274C Error checking Base transactions for ${walletAddress}:`, error);
-          return false;
-        }
-      }
-      // 🆕 Get current on-chain owner of an NFT  
-      async getNFTOwner(tokenId) {
-        try {
-          console.log(`\u{1F50D} Getting on-chain owner for NFT #${tokenId}`);
-          const owner = await withRetry(() => nftContract.ownerOf(tokenId));
-          console.log(`\u2705 NFT #${tokenId} owner: ${owner}`);
-          return owner;
-        } catch (error) {
-          console.error(`\u274C Failed to get owner for NFT #${tokenId}:`, error);
-          return null;
-        }
-      }
-      // 🏪 MARKETPLACE FUNCTIONS - Secure trading without modifying NFT contract
-      // Generate transaction to list NFT on marketplace
-      async generateListingTransaction(tokenId, seller, priceUSDC) {
-        try {
-          if (!tokenId || !seller || !priceUSDC) {
-            throw new Error("Missing required parameters for listing");
-          }
-          const currentOwner = await nftContract.ownerOf(tokenId);
-          if (currentOwner.toLowerCase() !== seller.toLowerCase()) {
-            throw new Error("Only NFT owner can create listing");
-          }
-          const isApproved = await nftContract.isApprovedForAll(seller, MARKETPLACE_CONTRACT_ADDRESS);
-          const specificApproval = await nftContract.getApproved(tokenId);
-          if (!isApproved && specificApproval.toLowerCase() !== MARKETPLACE_CONTRACT_ADDRESS.toLowerCase()) {
-            console.log("\u26A0\uFE0F Marketplace not approved to transfer NFT - user needs to approve first");
-          }
-          const priceWei = ethers.parseUnits(priceUSDC, 6);
-          return {
-            success: true,
-            transaction: {
-              type: "LIST_NFT",
-              to: MARKETPLACE_CONTRACT_ADDRESS,
-              data: marketplaceContract.interface.encodeFunctionData("listNFT", [
-                tokenId,
-                priceWei
-              ]),
-              description: `List NFT #${tokenId} for ${priceUSDC} USDC`
-            },
-            // NFT approval transaction (if needed)
-            approvalData: {
-              to: NFT_CONTRACT_ADDRESS,
-              data: nftContract.interface.encodeFunctionData("approve", [
-                MARKETPLACE_CONTRACT_ADDRESS,
-                tokenId
-              ]),
-              description: `Approve marketplace to transfer NFT #${tokenId}`
-            },
-            tokenId,
-            seller,
-            priceUSDC
-          };
-        } catch (error) {
-          console.error("Error generating listing transaction:", error);
-          return {
-            success: false,
-            error: error.message || "Failed to generate listing transaction"
-          };
-        }
-      }
-      // Generate transaction to cancel NFT listing
-      async generateCancelListingTransaction(tokenId, seller) {
-        try {
-          const listing = await marketplaceContract.getListing(tokenId);
-          if (!listing.active) {
-            throw new Error("NFT is not listed for sale");
-          }
-          if (listing.seller.toLowerCase() !== seller.toLowerCase()) {
-            throw new Error("Only listing creator can cancel listing");
-          }
-          return {
-            success: true,
-            transaction: {
-              type: "CANCEL_LISTING",
-              to: MARKETPLACE_CONTRACT_ADDRESS,
-              data: marketplaceContract.interface.encodeFunctionData("cancelListing", [
-                tokenId
-              ]),
-              description: `Cancel listing for NFT #${tokenId}`
-            },
-            tokenId,
-            seller
-          };
-        } catch (error) {
-          console.error("Error generating cancel listing transaction:", error);
-          return {
-            success: false,
-            error: error.message || "Failed to generate cancel listing transaction"
-          };
-        }
-      }
-      // Generate transaction to update NFT price
-      async generateUpdatePriceTransaction(tokenId, seller, newPriceUSDC) {
-        try {
-          const listing = await marketplaceContract.getListing(tokenId);
-          if (!listing.active) {
-            throw new Error("NFT is not listed for sale");
-          }
-          if (listing.seller.toLowerCase() !== seller.toLowerCase()) {
-            throw new Error("Only listing creator can update price");
-          }
-          const newPriceWei = ethers.parseUnits(newPriceUSDC, 6);
-          return {
-            success: true,
-            transaction: {
-              type: "UPDATE_PRICE",
-              to: MARKETPLACE_CONTRACT_ADDRESS,
-              data: marketplaceContract.interface.encodeFunctionData("updatePrice", [
-                tokenId,
-                newPriceWei
-              ]),
-              description: `Update NFT #${tokenId} price to ${newPriceUSDC} USDC`
-            },
-            tokenId,
-            seller,
-            newPriceUSDC
-          };
-        } catch (error) {
-          console.error("Error generating update price transaction:", error);
-          return {
-            success: false,
-            error: error.message || "Failed to generate update price transaction"
-          };
-        }
-      }
-      // Get marketplace listing for a specific NFT
-      async getMarketplaceListing(tokenId) {
-        try {
-          const listing = await marketplaceContract.getListing(tokenId);
-          if (!listing.active) {
-            return null;
-          }
-          return {
-            tokenId,
-            seller: listing.seller,
-            price: ethers.formatUnits(listing.price, 6),
-            // Convert to USDC
-            priceWei: listing.price.toString(),
-            listedAt: (/* @__PURE__ */ new Date()).toISOString(),
-            // Use current time since contract doesn't store listedAt
-            active: listing.active
-          };
-        } catch (error) {
-          console.error(`Error getting marketplace listing for NFT #${tokenId}:`, error);
-          return null;
-        }
-      }
-      // Check if NFT is listed on marketplace
-      async isNFTListed(tokenId) {
-        try {
-          console.log(`\u{1F50D} Checking if NFT #${tokenId} is listed on marketplace...`);
-          const isListed = await marketplaceContract.isListed(tokenId);
-          console.log(`\u2705 NFT #${tokenId} listing status: ${isListed}`);
-          return isListed;
-        } catch (error) {
-          console.error(`\u274C Error checking if NFT #${tokenId} is listed:`, error);
-          console.error(`\u274C Error details:`, {
-            message: error.message,
-            code: error.code,
-            data: error.data,
-            stack: error.stack?.split("\n")[0]
-            // First line of stack
-          });
-          console.warn(`\u26A0\uFE0F Allowing purchase to proceed despite blockchain check failure for NFT #${tokenId}`);
-          return true;
-        }
-      }
-      // Get marketplace statistics
-      async getMarketplaceStats() {
-        try {
-          const totalVolume = await marketplaceContract.totalVolume();
-          return {
-            totalVolumeWei: totalVolume.toString(),
-            totalVolumeUSDC: ethers.formatUnits(totalVolume, 6)
-          };
-        } catch (error) {
-          console.error("Error getting marketplace stats:", error);
-          return {
-            totalVolumeWei: "0",
-            totalVolumeUSDC: "0"
-          };
-        }
-      }
-      // 🔄 Get recent NFT purchase events from blockchain by reading Transfer events
-      async getRecentPurchaseEvents(fromBlock) {
-        try {
-          if (fromBlock === void 0) {
-            const currentBlock = await provider.getBlockNumber();
-            fromBlock = Math.max(0, currentBlock - 5e4);
-          }
-          console.log(`\u{1F4E1} Fetching NFT Transfer events from block ${fromBlock}...`);
-          const transferFilter = nftContract.filters.Transfer();
-          const transferEvents = await nftContract.queryFilter(transferFilter, fromBlock, "latest");
-          console.log(`\u2705 Found ${transferEvents.length} transfer events, filtering for purchases...`);
-          const purchases = [];
-          for (const event of transferEvents) {
-            if (!("args" in event)) continue;
-            const txHash = event.transactionHash;
-            const from = event.args?.[0]?.toLowerCase();
-            const to = event.args?.[1]?.toLowerCase();
-            const tokenId = event.args?.[2]?.toString();
-            if (from === "0x0000000000000000000000000000000000000000") {
-              continue;
-            }
-            try {
-              const receipt = await provider.getTransactionReceipt(txHash);
-              if (!receipt) continue;
-              const usdcTransfers = receipt.logs.filter(
-                (log) => log.address.toLowerCase() === USDC_CONTRACT_ADDRESS.toLowerCase() && log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-                // Transfer event signature
-              );
-              if (usdcTransfers.length >= 2) {
-                let totalPrice = "0";
-                let platformFee = "0";
-                for (const usdcLog of usdcTransfers) {
-                  const amount = ethers.formatUnits(usdcLog.data, 6);
-                  const usdcTo = "0x" + usdcLog.topics[2].slice(26).toLowerCase();
-                  if (usdcTo === PLATFORM_WALLET.toLowerCase()) {
-                    platformFee = amount;
-                  } else {
-                    totalPrice = amount;
-                  }
-                }
-                purchases.push({
-                  tokenId,
-                  buyer: to,
-                  seller: from,
-                  price: totalPrice,
-                  platformFee,
-                  timestamp: receipt.blockNumber,
-                  // Use block number as approximation
-                  blockNumber: receipt.blockNumber,
-                  transactionHash: txHash
-                });
-                console.log(`\u2705 Found purchase: NFT #${tokenId} (${to} bought from ${from}) for ${totalPrice} USDC`);
-              }
-            } catch (error) {
-              console.error(`\u274C Error processing transfer ${txHash}:`, error);
-            }
-          }
-          console.log(`\u{1F389} Found ${purchases.length} purchase transactions on blockchain`);
-          return purchases;
-        } catch (error) {
-          console.error(`\u274C Error fetching purchase events:`, error);
-          return [];
-        }
-      }
-      // 🔄 Get ALL NFT transfer events (purchases + regular transfers) for auto-delist
-      async getAllTransferEvents(fromBlock) {
-        try {
-          if (fromBlock === void 0) {
-            const currentBlock = await provider.getBlockNumber();
-            fromBlock = Math.max(0, currentBlock - 1e4);
-          }
-          console.log(`\u{1F4E1} Fetching ALL NFT Transfer events from block ${fromBlock}...`);
-          const transferFilter = nftContract.filters.Transfer();
-          const transferEvents = await nftContract.queryFilter(transferFilter, fromBlock, "latest");
-          console.log(`\u2705 Found ${transferEvents.length} transfer events, processing...`);
-          const allTransfers = [];
-          for (const event of transferEvents) {
-            if (!("args" in event)) continue;
-            const txHash = event.transactionHash;
-            const from = event.args?.[0]?.toLowerCase();
-            const to = event.args?.[1]?.toLowerCase();
-            const tokenId = event.args?.[2]?.toString();
-            try {
-              const receipt = await provider.getTransactionReceipt(txHash);
-              if (!receipt) continue;
-              const usdcTransfers = receipt.logs.filter(
-                (log) => log.address.toLowerCase() === USDC_CONTRACT_ADDRESS.toLowerCase() && log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-                // Transfer event signature
-              );
-              let transferType = "transfer";
-              let totalPrice = "0";
-              let platformFee = "0";
-              if (usdcTransfers.length >= 2) {
-                transferType = "sale";
-                for (const usdcLog of usdcTransfers) {
-                  const amount = ethers.formatUnits(usdcLog.data, 6);
-                  const usdcTo = "0x" + usdcLog.topics[2].slice(26).toLowerCase();
-                  if (usdcTo === PLATFORM_WALLET.toLowerCase()) {
-                    platformFee = amount;
-                  } else {
-                    totalPrice = amount;
-                  }
-                }
-              }
-              allTransfers.push({
-                tokenId,
-                from,
-                to,
-                transferType,
-                // 'sale' or 'transfer'
-                price: totalPrice,
-                platformFee,
-                blockNumber: receipt.blockNumber,
-                transactionHash: txHash
-              });
-              if (transferType === "sale") {
-                console.log(`\u{1F4B0} Sale: NFT #${tokenId} (${to} bought from ${from}) for ${totalPrice} USDC`);
-              } else {
-                console.log(`\u{1F4E6} Transfer: NFT #${tokenId} (${from} \u2192 ${to})`);
-              }
-            } catch (error) {
-              console.error(`\u274C Error processing transfer ${txHash}:`, error);
-            }
-          }
-          console.log(`\u{1F389} Found ${allTransfers.length} total transfers on blockchain`);
-          return allTransfers;
-        } catch (error) {
-          console.error(`\u274C Error fetching transfer events:`, error);
-          return [];
-        }
-      }
-      // 🚀 Incremental NFT sync with block chunking and checkpoint persistence
-      async syncNFTsIncremental(storage2, chunkSize = 1e3) {
-        let retryCount = 0;
-        const maxRetries = BASE_RPC_URLS.length;
-        try {
-          console.log(`\u{1F504} Starting incremental blockchain sync...`);
-          const currentBlock = await currentProvider.getBlockNumber();
-          console.log(`\u{1F4CA} Current block: ${currentBlock}`);
-          const syncState2 = await storage2.getSyncState(NFT_CONTRACT_ADDRESS);
-          const startBlock = syncState2 ? syncState2.lastProcessedBlock + 1 : Math.max(38137640, currentBlock - 1e4);
-          console.log(`\u{1F4CD} Last synced block: ${syncState2?.lastProcessedBlock || "none"}`);
-          console.log(`\u{1F4CD} Starting from block: ${startBlock}`);
-          console.log(`\u{1F4CD} Blocks to process: ${currentBlock - startBlock + 1}`);
-          if (startBlock > currentBlock) {
-            console.log(`\u2705 Already up to date!`);
-            return { newNFTs: [], lastBlock: currentBlock };
-          }
-          const newNFTs = [];
-          let processedBlock = startBlock;
-          while (processedBlock <= currentBlock) {
-            const toBlock = Math.min(processedBlock + chunkSize - 1, currentBlock);
-            console.log(`\u{1F50D} Scanning blocks ${processedBlock} to ${toBlock} (chunk size: ${toBlock - processedBlock + 1})`);
-            try {
-              const filter = currentNftContract.filters.Transfer();
-              const events = await currentNftContract.queryFilter(filter, processedBlock, toBlock);
-              console.log(`\u{1F4E5} Found ${events.length} Transfer events in this chunk`);
-              const processedTokens = /* @__PURE__ */ new Set();
-              for (const event of events) {
-                if (!("args" in event)) continue;
-                const tokenId = event.args?.tokenId?.toString();
-                if (!tokenId || processedTokens.has(tokenId)) continue;
-                processedTokens.add(tokenId);
-                try {
-                  const owner = await currentNftContract.ownerOf(tokenId);
-                  const tokenURI = await currentNftContract.tokenURI(tokenId);
-                  console.log(`\u2705 Token ${tokenId}: owner=${owner}`);
-                  newNFTs.push({
-                    tokenId,
-                    owner: owner.toLowerCase(),
-                    tokenURI,
-                    metadata: null
-                    // Will be fetched async
-                  });
-                } catch (error) {
-                  console.error(`\u274C Error processing token ${tokenId}:`, error);
-                }
-              }
-              await storage2.updateSyncState(NFT_CONTRACT_ADDRESS, toBlock);
-              console.log(`\u2705 Checkpoint saved: block ${toBlock}`);
-              processedBlock = toBlock + 1;
-              retryCount = 0;
-              if (processedBlock <= currentBlock) {
-                await new Promise((resolve) => setTimeout(resolve, 100));
-              }
-            } catch (error) {
-              console.error(`\u274C Error processing chunk ${processedBlock}-${toBlock}:`, error.message);
-              const isRpcError = error.message?.includes("timeout") || error.message?.includes("invalid block range") || error.message?.includes("could not detect network") || error.code === "TIMEOUT" || error.code === "NETWORK_ERROR" || error.error?.code === -32e3;
-              if (isRpcError && retryCount < maxRetries) {
-                console.log(`\u26A0\uFE0F RPC error detected, attempting provider rotation...`);
-                const rotated = rotateRpcProvider();
-                if (rotated) {
-                  retryCount++;
-                  console.log(`\u{1F504} Retrying with new provider (attempt ${retryCount}/${maxRetries})...`);
-                  continue;
-                }
-              }
-              if (isRpcError) {
-                console.log(`\u26A0\uFE0F RPC error persists, reducing chunk size...`);
-                chunkSize = Math.max(100, Math.floor(chunkSize / 2));
-                console.log(`\u{1F504} Retrying with chunk size: ${chunkSize}`);
-                retryCount = 0;
-                continue;
-              }
-              console.log(`\u26A0\uFE0F Skipping problematic chunk, moving to next...`);
-              processedBlock = toBlock + 1;
-              retryCount = 0;
-            }
-          }
-          console.log(`\u{1F389} Sync complete! Found ${newNFTs.length} new NFTs`);
-          console.log(`\u{1F4CD} Synced up to block: ${currentBlock}`);
-          return { newNFTs, lastBlock: currentBlock };
-        } catch (error) {
-          console.error(`\u274C Incremental sync failed:`, error);
-          throw error;
-        }
-      }
-      // 🔄 Fetch metadata asynchronously for NFTs without blocking sync
-      async fetchMetadataAsync(blockchainNFT) {
-        if (!blockchainNFT.tokenURI) {
-          return blockchainNFT;
-        }
-        try {
-          const uris = normalizeUri(blockchainNFT.tokenURI);
-          if (uris.length === 0) {
-            console.log(`\u26A0\uFE0F No valid URIs for token ${blockchainNFT.tokenId}`);
-            return blockchainNFT;
-          }
-          console.log(`\u{1F4E5} Fetching metadata for token ${blockchainNFT.tokenId}...`);
-          const metadata = await fetchWithGateways(uris);
-          return {
-            ...blockchainNFT,
-            metadata
-          };
-        } catch (error) {
-          console.error(`\u274C Failed to fetch metadata for token ${blockchainNFT.tokenId}:`, error);
-          return blockchainNFT;
-        }
-      }
-      // 🔍 Get all minted token IDs directly from blockchain (no API dependency)
-      async getAllMintedTokenIds() {
-        console.log(`\u{1F50D} Scanning blockchain for all minted tokens...`);
-        try {
-          const tokenIds = /* @__PURE__ */ new Set();
-          const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-          const FALLBACK_START_BLOCK = 379e5;
-          const START_BLOCK = FALLBACK_START_BLOCK;
-          const currentBlock = await currentProvider.getBlockNumber();
-          console.log(`\u{1F4CA} Smart scan from block ${START_BLOCK} to ${currentBlock} (scanning recent ~${Math.floor((currentBlock - START_BLOCK) / 1e3)}K blocks)`);
-          const CHUNK_SIZE = 5e4;
-          let processedBlock = START_BLOCK;
-          while (processedBlock <= currentBlock) {
-            const toBlock = Math.min(processedBlock + CHUNK_SIZE - 1, currentBlock);
-            try {
-              console.log(`\u{1F50E} Scanning blocks ${processedBlock} to ${toBlock}...`);
-              const filter = currentNftContract.filters.Transfer(ZERO_ADDRESS, null, null);
-              const events = await currentNftContract.queryFilter(filter, processedBlock, toBlock);
-              for (const event of events) {
-                if ("args" in event) {
-                  const tokenId = event.args?.tokenId?.toString();
-                  if (tokenId) {
-                    tokenIds.add(tokenId);
-                  }
-                }
-              }
-              console.log(`\u{1F4E6} Found ${events.length} mints in this chunk (total: ${tokenIds.size})`);
-              processedBlock = toBlock + 1;
-              await new Promise((resolve) => setTimeout(resolve, 100));
-            } catch (error) {
-              console.error(`\u274C Error scanning blocks ${processedBlock}-${toBlock}:`, error.message);
-              if (error.message?.includes("timeout") || error.message?.includes("limit")) {
-                console.log(`\u26A0\uFE0F RPC issue detected, rotating provider...`);
-                rotateRpcProvider();
-                continue;
-              }
-              processedBlock = toBlock + 1;
-            }
-          }
-          console.log(`\u2705 Blockchain scan complete! Found ${tokenIds.size} total minted tokens`);
-          return tokenIds;
-        } catch (error) {
-          console.error(`\u274C Error scanning blockchain for mints:`, error);
-          throw error;
-        }
-      }
-      // 🌐 Sync NFTs using blockchain RPC (no API dependency)
-      async syncNFTsFromBasescan(storage2) {
-        console.log(`\u{1F310} Starting blockchain sync for NFT discovery...`);
-        try {
-          const blockchainTokenIds = await this.getAllMintedTokenIds();
-          console.log(`\u{1F4CA} Blockchain reports ${blockchainTokenIds.size} total tokens minted`);
-          const existingNFTs = await storage2.getAllNFTs();
-          const existingTokenIds = new Set(existingNFTs.map((nft) => nft.tokenId.toString()));
-          console.log(`\u{1F4BE} Database has ${existingTokenIds.size} tokens`);
-          const missingTokens = [];
-          for (const tokenId of Array.from(blockchainTokenIds)) {
-            if (!existingTokenIds.has(tokenId)) {
-              missingTokens.push(tokenId);
-            }
-          }
-          if (missingTokens.length === 0) {
-            console.log(`\u2705 Database is up to date - no missing tokens!`);
-            return { newNFTs: [], missingTokens: [] };
-          }
-          console.log(`\u{1F50D} Found ${missingTokens.length} missing tokens: ${missingTokens.join(", ")}`);
-          const newNFTs = [];
-          for (const tokenId of missingTokens) {
-            try {
-              console.log(`\u{1F4E5} Fetching details for token ${tokenId}...`);
-              const owner = await currentNftContract.ownerOf(tokenId);
-              const tokenURI = await currentNftContract.tokenURI(tokenId);
-              console.log(`\u2705 Token ${tokenId}: owner=${owner}`);
-              newNFTs.push({
-                tokenId,
-                owner: owner.toLowerCase(),
-                tokenURI,
-                metadata: null
-                // Will be fetched async
-              });
-              await new Promise((resolve) => setTimeout(resolve, 200));
-            } catch (error) {
-              console.error(`\u274C Error fetching token ${tokenId}:`, error);
-            }
-          }
-          console.log(`\u{1F389} Basescan sync complete! Found ${newNFTs.length} new NFTs`);
-          return { newNFTs, missingTokens };
-        } catch (error) {
-          console.error(`\u274C Basescan sync failed:`, error);
-          throw error;
-        }
-      }
-    };
-    blockchainService = new BlockchainService();
-  }
-});
-
-// server/metadataSyncService.ts
-import { ethers as ethers2 } from "ethers";
-var CONTRACT_ADDRESS, RPC_PROVIDERS, ABI, MetadataSyncService;
-var init_metadataSyncService = __esm({
-  "server/metadataSyncService.ts"() {
-    "use strict";
-    CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
-    RPC_PROVIDERS = [
-      "https://mainnet.base.org",
-      "https://base.llamarpc.com",
-      "https://base.drpc.org"
-    ];
-    ABI = [
-      "function tokenURI(uint256 tokenId) view returns (string)"
-    ];
-    MetadataSyncService = class {
-      storage;
-      currentProviderIndex = 0;
-      constructor(storage2) {
-        this.storage = storage2;
-      }
-      async getProvider() {
-        const rpcUrl = RPC_PROVIDERS[this.currentProviderIndex];
-        this.currentProviderIndex = (this.currentProviderIndex + 1) % RPC_PROVIDERS.length;
-        return new ethers2.JsonRpcProvider(rpcUrl);
-      }
-      async fetchTokenMetadata(tokenId) {
-        for (const rpcUrl of RPC_PROVIDERS) {
-          try {
-            const provider2 = new ethers2.JsonRpcProvider(rpcUrl);
-            const contract = new ethers2.Contract(CONTRACT_ADDRESS, ABI, provider2);
-            const uri = await contract.tokenURI(tokenId);
-            if (uri.startsWith("data:application/json;base64,")) {
-              const base64Data = uri.replace("data:application/json;base64,", "");
-              const decoded = Buffer.from(base64Data, "base64").toString("utf-8");
-              const metadata = JSON.parse(decoded);
-              return metadata;
-            }
-            return null;
-          } catch (error) {
-            console.log(`\u26A0\uFE0F RPC ${rpcUrl} failed for token ${tokenId}: ${error.message}`);
-            continue;
-          }
-        }
-        console.log(`\u274C All RPC providers failed for token ${tokenId}`);
-        return null;
-      }
-      extractLocationData(metadata) {
-        let location = "Unknown Location";
-        let latitude = null;
-        let longitude = null;
-        if (metadata.location) {
-          location = metadata.location.city || "Unknown Location";
-          latitude = metadata.location.latitude || null;
-          longitude = metadata.location.longitude || null;
-        } else if (metadata.attributes) {
-          const locationAttr = metadata.attributes.find((a) => a.trait_type === "Location");
-          const latAttr = metadata.attributes.find((a) => a.trait_type === "Latitude");
-          const lngAttr = metadata.attributes.find((a) => a.trait_type === "Longitude");
-          if (locationAttr) location = locationAttr.value;
-          if (latAttr) latitude = latAttr.value;
-          if (lngAttr) longitude = lngAttr.value;
-        }
-        return { location, latitude, longitude };
-      }
-      async findTokensNeedingMetadataSync() {
-        const allNFTs = await this.storage.getAllNFTs();
-        const needsSync = [];
-        for (const nft of allNFTs) {
-          const needsUpdate = !nft.latitude || !nft.longitude || nft.location === "Unknown Location" || nft.imageUrl && nft.imageUrl.startsWith("data:application/json;base64,");
-          if (needsUpdate && nft.tokenId) {
-            needsSync.push(nft.tokenId);
-          }
-        }
-        return needsSync;
-      }
-      async syncTokenMetadata(tokenId) {
-        try {
-          console.log(`\u{1F504} Syncing metadata for token ${tokenId}...`);
-          const metadata = await this.fetchTokenMetadata(tokenId);
-          if (!metadata) {
-            console.log(`\u274C Failed to fetch metadata for token ${tokenId}`);
-            return false;
-          }
-          const { location, latitude, longitude } = this.extractLocationData(metadata);
-          const imageUrl = metadata.image;
-          const allNFTs = await this.storage.getAllNFTs();
-          const nft = allNFTs.find((n) => n.tokenId === tokenId);
-          if (!nft) {
-            console.log(`\u274C Token ${tokenId} not found in database`);
-            return false;
-          }
-          await this.storage.updateNFT(nft.id, {
-            title: metadata.name,
-            imageUrl,
-            location,
-            latitude,
-            longitude
-          });
-          console.log(`\u2705 Synced token ${tokenId}: ${metadata.name} @ ${location}`);
-          return true;
-        } catch (error) {
-          console.log(`\u274C Error syncing token ${tokenId}:`, error.message);
-          return false;
-        }
-      }
-      async processPendingMints() {
-        try {
-          console.log("\u{1F50D} Checking for pending mints...");
-          const pendingMints2 = await this.storage.getPendingMints(50);
-          if (pendingMints2.length === 0) {
-            return;
-          }
-          console.log(`\u{1F4CB} Found ${pendingMints2.length} pending mints to retry`);
-          let successCount = 0;
-          let failCount = 0;
-          for (const pending of pendingMints2) {
-            try {
-              console.log(`\u{1F504} Retrying token #${pending.tokenId} (attempt ${(pending.retryCount || 0) + 1})...`);
-              const metadata = await this.fetchTokenMetadata(pending.tokenId);
-              if (!metadata) {
-                throw new Error("Failed to fetch metadata from all RPC providers");
-              }
-              const { location, latitude, longitude } = this.extractLocationData(metadata);
-              const newNFT = {
-                title: metadata.name || `TravelNFT #${pending.tokenId}`,
-                description: metadata.description || "",
-                imageUrl: metadata.image || "",
-                objectStorageUrl: null,
-                location,
-                latitude,
-                longitude,
-                category: "travel",
-                price: "0",
-                isForSale: 0,
-                creatorAddress: pending.ownerAddress,
-                ownerAddress: pending.ownerAddress,
-                farcasterCreatorUsername: null,
-                farcasterOwnerUsername: null,
-                farcasterCreatorFid: null,
-                farcasterOwnerFid: null,
-                mintPrice: "1",
-                royaltyPercentage: "5",
-                tokenId: pending.tokenId,
-                contractAddress: pending.contractAddress,
-                transactionHash: pending.transactionHash,
-                metadata
-              };
-              await this.storage.createNFT(newNFT);
-              await this.storage.deletePendingMint(pending.id);
-              console.log(`\u2705 Successfully processed pending token #${pending.tokenId}: ${metadata.name}`);
-              successCount++;
-            } catch (error) {
-              const errorMessage = error.message || String(error);
-              console.log(`\u274C Failed to process pending token #${pending.tokenId}: ${errorMessage}`);
-              await this.storage.updatePendingMintRetry(pending.id, errorMessage);
-              failCount++;
-            }
-            await new Promise((resolve) => setTimeout(resolve, 1e3));
-          }
-          console.log(`\u2705 Pending mints processed: ${successCount} succeeded, ${failCount} failed`);
-        } catch (error) {
-          console.log("\u274C Pending mints processing error:", error.message);
-        }
-      }
-      async runMetadataSync() {
-        try {
-          console.log("\u{1F50D} Checking for tokens needing metadata sync...");
-          await this.processPendingMints();
-          const tokensToSync = await this.findTokensNeedingMetadataSync();
-          if (tokensToSync.length === 0) {
-            console.log("\u2705 All tokens have valid metadata");
-            return;
-          }
-          console.log(`\u{1F4CB} Found ${tokensToSync.length} tokens needing metadata sync: ${tokensToSync.join(", ")}`);
-          let successCount = 0;
-          let failCount = 0;
-          for (const tokenId of tokensToSync) {
-            const success = await this.syncTokenMetadata(tokenId);
-            if (success) {
-              successCount++;
-            } else {
-              failCount++;
-            }
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
-          console.log(`\u2705 Metadata sync complete: ${successCount} succeeded, ${failCount} failed`);
-        } catch (error) {
-          console.log("\u274C Metadata sync error:", error.message);
-        }
-      }
-    };
-  }
-});
-
-// server/places-service.ts
-import { eq as eq2, sql as sql3, ilike, desc } from "drizzle-orm";
-function getPhotoUrl(photoName, maxWidth = 400) {
-  if (!GOOGLE_PLACES_API_KEY || !photoName) return "";
-  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth}&key=${GOOGLE_PLACES_API_KEY}`;
-}
-function extractCountryFromComponents(components) {
-  if (!components) return { country: "Unknown", countryCode: "" };
-  const countryComponent = components.find((c) => c.types.includes("country"));
-  return {
-    country: countryComponent?.longText || "Unknown",
-    countryCode: countryComponent?.shortText || ""
-  };
-}
-function mapCategoryToPlaceTypes(category) {
-  switch (category) {
-    case "landmark":
-      return ["tourist_attraction", "point_of_interest", "museum", "park", "church", "mosque", "hindu_temple", "synagogue"];
-    case "cafe":
-      return ["cafe", "bakery", "coffee"];
-    case "restaurant":
-      return ["restaurant", "meal_takeaway", "meal_delivery"];
-    case "hidden_gem":
-      return ["art_gallery", "book_store", "library", "spa", "bar", "night_club"];
-    default:
-      return ["point_of_interest"];
-  }
-}
-var GOOGLE_PLACES_API_KEY, CACHE_DURATION_MS, PlacesService, placesService;
-var init_places_service = __esm({
-  "server/places-service.ts"() {
-    "use strict";
-    init_db();
-    init_schema();
-    GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
-    CACHE_DURATION_MS = 24 * 60 * 60 * 1e3;
-    PlacesService = class {
-      async searchCities(query) {
-        console.log(`\u{1F50D} Searching cities for: "${query}"`);
-        if (!GOOGLE_PLACES_API_KEY) {
-          console.error("\u274C GOOGLE_PLACES_API_KEY not configured");
-          return [];
-        }
-        const existingCities = await db.select().from(guideCities).where(ilike(guideCities.name, `%${query}%`)).limit(10);
-        if (existingCities.length > 0) {
-          console.log(`\u2705 Found ${existingCities.length} cached cities for "${query}"`);
-          return existingCities;
-        }
-        console.log(`\u{1F310} No cached cities, calling Google Places API for "${query}"`);
-        try {
-          const requestBody = {
-            textQuery: query,
-            maxResultCount: 5
-          };
-          console.log(`\u{1F310} Sending request to Places API (New):`, JSON.stringify(requestBody));
-          const response = await fetch(
-            "https://places.googleapis.com/v1/places:searchText",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-                "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.photos,places.addressComponents"
-              },
-              body: JSON.stringify(requestBody)
-            }
-          );
-          const data = await response.json();
-          console.log(`\u{1F4CA} Google Places API (New) response status: ${response.status}`);
-          console.log(`\u{1F4CA} Google Places API (New) response:`, JSON.stringify(data).substring(0, 500));
-          if (!data.places || data.places.length === 0) {
-            console.log("\u{1F4ED} No places found for query");
-            return [];
-          }
-          const cities = [];
-          for (const place of data.places) {
-            const existingCity = await db.select().from(guideCities).where(eq2(guideCities.placeId, place.id)).limit(1);
-            if (existingCity.length > 0) {
-              cities.push(existingCity[0]);
-              continue;
-            }
-            const { country, countryCode } = extractCountryFromComponents(place.addressComponents);
-            const heroPhoto = place.photos?.[0]?.name;
-            const cityData = {
-              placeId: place.id,
-              name: place.displayName?.text || query,
-              country,
-              countryCode,
-              heroImageUrl: heroPhoto ? getPhotoUrl(heroPhoto, 800) : null,
-              latitude: place.location?.latitude?.toString() || null,
-              longitude: place.location?.longitude?.toString() || null,
-              searchCount: 1
-            };
-            const [insertedCity] = await db.insert(guideCities).values(cityData).returning();
-            cities.push(insertedCity);
-            console.log(`\u2705 Added city: ${cityData.name}, ${country}`);
-          }
-          return cities;
-        } catch (error) {
-          console.error("\u274C Error searching cities:", error);
-          return [];
-        }
-      }
-      async getPopularCities(limit = 10) {
-        return db.select().from(guideCities).orderBy(desc(guideCities.searchCount)).limit(limit);
-      }
-      async getCityById(cityId) {
-        const [city] = await db.select().from(guideCities).where(eq2(guideCities.id, cityId)).limit(1);
-        if (city) {
-          await db.update(guideCities).set({ searchCount: sql3`${guideCities.searchCount} + 1` }).where(eq2(guideCities.id, cityId));
-        }
-        return city || null;
-      }
-      async getSpotsByCity(cityId, category, limit = 20, isHolder = true) {
-        if (!GOOGLE_PLACES_API_KEY) {
-          console.error("GOOGLE_PLACES_API_KEY not configured");
-          return [];
-        }
-        const city = await this.getCityById(cityId);
-        if (!city) return [];
-        const existingSpots = await db.select().from(guideSpots).where(eq2(guideSpots.cityId, cityId));
-        const now = /* @__PURE__ */ new Date();
-        const cacheValid = existingSpots.length > 0 && existingSpots.every((spot) => {
-          const lastSync = new Date(spot.lastSyncAt);
-          return now.getTime() - lastSync.getTime() < CACHE_DURATION_MS;
-        });
-        if (cacheValid) {
-          let spots2 = existingSpots;
-          if (category) {
-            spots2 = spots2.filter((s) => s.category === category);
-          }
-          if (!isHolder) {
-            const previewSpots = [];
-            const categories = ["landmark", "cafe", "restaurant", "hidden_gem"];
-            for (const cat of categories) {
-              const catSpot = spots2.find((s) => s.category === cat);
-              if (catSpot) previewSpots.push(catSpot);
-            }
-            return previewSpots;
-          }
-          return spots2.slice(0, limit);
-        }
-        await this.syncCitySpots(cityId, city);
-        const freshSpots = await db.select().from(guideSpots).where(eq2(guideSpots.cityId, cityId));
-        let spots = freshSpots;
-        if (category) {
-          spots = spots.filter((s) => s.category === category);
-        }
-        if (!isHolder) {
-          const previewSpots = [];
-          const categories = ["landmark", "cafe", "restaurant", "hidden_gem"];
-          for (const cat of categories) {
-            const catSpot = spots.find((s) => s.category === cat);
-            if (catSpot) previewSpots.push(catSpot);
-          }
-          return previewSpots;
-        }
-        return spots.slice(0, limit);
-      }
-      async syncCitySpots(cityId, city) {
-        const categories = ["landmark", "cafe", "restaurant", "hidden_gem"];
-        for (const category of categories) {
-          const types = mapCategoryToPlaceTypes(category);
-          try {
-            const response = await fetch(
-              "https://places.googleapis.com/v1/places:searchText",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-                  "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.photos,places.regularOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.googleMapsUri,places.editorialSummary"
-                },
-                body: JSON.stringify({
-                  textQuery: `${types[0].replace("_", " ")} in ${city.name}`,
-                  locationBias: {
-                    circle: {
-                      center: {
-                        latitude: parseFloat(city.latitude || "0"),
-                        longitude: parseFloat(city.longitude || "0")
-                      },
-                      radius: 5e3
-                    }
-                  },
-                  maxResultCount: 5
-                })
-              }
-            );
-            const data = await response.json();
-            if (!data.places || data.places.length === 0) {
-              console.log(`\u{1F4ED} No ${category} spots found for ${city.name}`);
-              continue;
-            }
-            console.log(`\u{1F4CD} Found ${data.places.length} ${category} spots for ${city.name}`);
-            for (const place of data.places) {
-              const existing = await db.select().from(guideSpots).where(eq2(guideSpots.placeId, place.id)).limit(1);
-              if (existing.length > 0) {
-                await db.update(guideSpots).set({
-                  rating: place.rating?.toString() || null,
-                  userRatingsTotal: place.userRatingCount || null,
-                  openNow: place.regularOpeningHours?.openNow || null,
-                  lastSyncAt: /* @__PURE__ */ new Date()
-                }).where(eq2(guideSpots.placeId, place.id));
-                continue;
-              }
-              const photoName = place.photos?.[0]?.name;
-              const priceLevelNum = place.priceLevel ? parseInt(place.priceLevel.replace("PRICE_LEVEL_", "")) - 1 : null;
-              const spotData = {
-                cityId,
-                placeId: place.id,
-                name: place.displayName?.text || "Unknown",
-                category,
-                description: place.editorialSummary?.text || null,
-                address: place.formattedAddress || null,
-                rating: place.rating?.toString() || null,
-                userRatingsTotal: place.userRatingCount || null,
-                priceLevel: priceLevelNum,
-                photoUrl: photoName ? getPhotoUrl(photoName) : null,
-                latitude: place.location?.latitude?.toString() || null,
-                longitude: place.location?.longitude?.toString() || null,
-                openNow: place.regularOpeningHours?.openNow || null,
-                website: place.websiteUri || null,
-                phoneNumber: place.nationalPhoneNumber || null,
-                googleMapsUrl: place.googleMapsUri || null
-              };
-              await db.insert(guideSpots).values(spotData).onConflictDoNothing();
-            }
-          } catch (error) {
-            console.error(`\u274C Error syncing ${category} spots:`, error);
-          }
-        }
-      }
-    };
-    placesService = new PlacesService();
-  }
-});
-
-// server/ipfs.ts
-import { NFTStorage, File } from "nft.storage";
-var NFTStorageService, nftStorageService;
-var init_ipfs = __esm({
-  "server/ipfs.ts"() {
-    "use strict";
-    NFTStorageService = class {
-      client;
-      constructor() {
-        if (!process.env.NFT_STORAGE_API_KEY) {
-          throw new Error("NFT_STORAGE_API_KEY environment variable is required");
-        }
-        this.client = new NFTStorage({
-          token: process.env.NFT_STORAGE_API_KEY
-        });
-        console.log("\u{1F517} NFT.Storage client initialized");
-      }
-      // Upload file buffer to IPFS via NFT.Storage
-      async uploadFile(fileBuffer, fileName, mimeType) {
-        try {
-          const file = new File([fileBuffer], fileName, { type: mimeType });
-          const cid = await this.client.storeBlob(file);
-          console.log("\u2705 File uploaded to IPFS via NFT.Storage:", cid);
-          return {
-            IpfsHash: cid,
-            PinSize: fileBuffer.length,
-            Timestamp: (/* @__PURE__ */ new Date()).toISOString()
-          };
-        } catch (error) {
-          console.error("\u274C Error uploading file to IPFS:", error);
-          throw error;
-        }
-      }
-      // Upload JSON metadata to IPFS via NFT.Storage
-      async uploadJSON(data, name) {
-        try {
-          const jsonString = JSON.stringify(data);
-          const blob = new Blob([jsonString], { type: "application/json" });
-          const cid = await this.client.storeBlob(blob);
-          console.log("\u2705 Metadata uploaded to IPFS via NFT.Storage:", cid);
-          return {
-            IpfsHash: cid,
-            PinSize: jsonString.length,
-            Timestamp: (/* @__PURE__ */ new Date()).toISOString()
-          };
-        } catch (error) {
-          console.error("\u274C Error uploading JSON to IPFS:", error);
-          throw error;
-        }
-      }
-      // Get optimized URL for IPFS content
-      async getOptimizedUrl(ipfsHash) {
-        try {
-          const url = `https://ipfs.io/ipfs/${ipfsHash}`;
-          console.log("\u{1F310} Using IPFS.io gateway URL:", url);
-          return url;
-        } catch (error) {
-          console.error("\u274C Error getting optimized URL, using fallback:", error);
-          return `https://nftstorage.link/ipfs/${ipfsHash}`;
-        }
-      }
-      // Test NFT.Storage connection
-      async testConnection() {
-        try {
-          const testBlob = new Blob(["test"], { type: "text/plain" });
-          const cid = await this.client.storeBlob(testBlob);
-          console.log("\u{1F517} NFT.Storage connection test successful:", cid);
-          return true;
-        } catch (error) {
-          console.error("\u274C NFT.Storage connection test failed:", error);
-          return false;
-        }
-      }
-    };
-    nftStorageService = new NFTStorageService();
-  }
-});
-
-// shared/ipfs.ts
-function createIPFSUrl(hash) {
-  const gateway = process.env.PINATA_GATEWAY;
-  if (gateway && typeof window === "undefined") {
-    return `https://${gateway}/ipfs/${hash}`;
-  }
-  return `https://ipfs.io/ipfs/${hash}`;
-}
-var init_ipfs2 = __esm({
-  "shared/ipfs.ts"() {
-    "use strict";
-  }
-});
-
-// server/routes/ipfs.ts
-import { Router } from "express";
-import multer from "multer";
-var router, upload, ipfs_default;
-var init_ipfs3 = __esm({
-  "server/routes/ipfs.ts"() {
-    "use strict";
-    init_ipfs();
-    init_ipfs2();
-    router = Router();
-    upload = multer({
-      storage: multer.memoryStorage(),
-      limits: {
-        fileSize: 10 * 1024 * 1024
-        // 10MB limit
-      },
-      fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith("image/")) {
-          cb(null, true);
-        } else {
-          cb(new Error("Only image files are allowed"));
-        }
-      }
-    });
-    router.post("/upload-image", upload.single("file"), async (req, res) => {
-      try {
-        if (!req.file) {
-          return res.status(400).json({ error: "No file provided" });
-        }
-        console.log("\u{1F4E4} Uploading image to IPFS via NFT.Storage:", req.file.originalname);
-        const result = await nftStorageService.uploadFile(
-          req.file.buffer,
-          req.file.originalname,
-          req.file.mimetype
-        );
-        console.log("\u2705 Image uploaded successfully:", result.IpfsHash);
-        res.json({
-          IpfsHash: result.IpfsHash,
-          PinSize: result.PinSize,
-          Timestamp: result.Timestamp,
-          ipfsUrl: createIPFSUrl(result.IpfsHash)
-        });
-      } catch (error) {
-        console.error("\u274C Error uploading image:", error);
-        res.status(500).json({
-          error: "Failed to upload image to IPFS",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
-    });
-    router.post("/upload-metadata", async (req, res) => {
-      try {
-        const { metadata, name } = req.body;
-        if (!metadata) {
-          return res.status(400).json({ error: "No metadata provided" });
-        }
-        console.log("\u{1F4E4} Uploading metadata to IPFS via NFT.Storage:", name);
-        const result = await nftStorageService.uploadJSON(metadata, name);
-        console.log("\u2705 Metadata uploaded successfully:", result.IpfsHash);
-        res.json({
-          IpfsHash: result.IpfsHash,
-          PinSize: result.PinSize,
-          Timestamp: result.Timestamp,
-          ipfsUrl: createIPFSUrl(result.IpfsHash)
-        });
-      } catch (error) {
-        console.error("\u274C Error uploading metadata:", error);
-        res.status(500).json({
-          error: "Failed to upload metadata to IPFS",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
-    });
-    router.get("/test", async (req, res) => {
-      try {
-        console.log("\u{1F517} Testing NFT.Storage connection...");
-        const isConnected = await nftStorageService.testConnection();
-        if (isConnected) {
-          console.log("\u2705 NFT.Storage connection successful");
-          res.json({
-            status: "connected",
-            message: "NFT.Storage IPFS service is working correctly"
-          });
-        } else {
-          console.log("\u274C NFT.Storage connection failed");
-          res.status(500).json({
-            status: "error",
-            message: "Failed to connect to NFT.Storage IPFS service"
-          });
-        }
-      } catch (error) {
-        console.error("\u274C Error testing NFT.Storage connection:", error);
-        res.status(500).json({
-          status: "error",
-          message: "Error testing IPFS connection",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
-    });
-    router.get("/info/:hash", async (req, res) => {
-      try {
-        const { hash } = req.params;
-        console.log("\u{1F4CB} Getting IPFS file info for hash:", hash);
-        const fileInfo = { hash, message: "File info retrieval not yet implemented" };
-        if (fileInfo) {
-          res.json(fileInfo);
-        } else {
-          res.status(404).json({ error: "File not found" });
-        }
-      } catch (error) {
-        console.error("\u274C Error getting file info:", error);
-        res.status(500).json({
-          error: "Failed to get file info",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
-    });
-    ipfs_default = router;
-  }
-});
-
-// server/objectAcl.ts
-function isPermissionAllowed(requested, granted) {
-  if (requested === "read" /* READ */) {
-    return ["read" /* READ */, "write" /* WRITE */].includes(granted);
-  }
-  return granted === "write" /* WRITE */;
-}
-function createObjectAccessGroup(group) {
-  switch (group.type) {
-    // Implement the case for each type of access group to instantiate.
-    //
-    // For example:
-    // case "USER_LIST":
-    //   return new UserListAccessGroup(group.id);
-    // case "EMAIL_DOMAIN":
-    //   return new EmailDomainAccessGroup(group.id);
-    // case "GROUP_MEMBER":
-    //   return new GroupMemberAccessGroup(group.id);
-    // case "SUBSCRIBER":
-    //   return new SubscriberAccessGroup(group.id);
-    default:
-      throw new Error(`Unknown access group type: ${group.type}`);
-  }
-}
-async function setObjectAclPolicy(objectFile, aclPolicy) {
-  const [exists] = await objectFile.exists();
-  if (!exists) {
-    throw new Error(`Object not found: ${objectFile.name}`);
-  }
-  await objectFile.setMetadata({
-    metadata: {
-      [ACL_POLICY_METADATA_KEY]: JSON.stringify(aclPolicy)
-    }
-  });
-}
-async function getObjectAclPolicy(objectFile) {
-  const [metadata] = await objectFile.getMetadata();
-  const aclPolicy = metadata?.metadata?.[ACL_POLICY_METADATA_KEY];
-  if (!aclPolicy) {
-    return null;
-  }
-  return JSON.parse(aclPolicy);
-}
-async function canAccessObject({
-  userId,
-  objectFile,
-  requestedPermission
-}) {
-  const aclPolicy = await getObjectAclPolicy(objectFile);
-  if (!aclPolicy) {
-    return false;
-  }
-  if (aclPolicy.visibility === "public" && requestedPermission === "read" /* READ */) {
-    return true;
-  }
-  if (!userId) {
-    return false;
-  }
-  if (aclPolicy.owner === userId) {
-    return true;
-  }
-  for (const rule of aclPolicy.aclRules || []) {
-    const accessGroup = createObjectAccessGroup(rule.group);
-    if (await accessGroup.hasMember(userId) && isPermissionAllowed(requestedPermission, rule.permission)) {
-      return true;
-    }
-  }
-  return false;
-}
-var ACL_POLICY_METADATA_KEY;
-var init_objectAcl = __esm({
-  "server/objectAcl.ts"() {
-    "use strict";
-    ACL_POLICY_METADATA_KEY = "custom:aclPolicy";
-  }
-});
-
-// server/objectStorage.ts
-import { Storage } from "@google-cloud/storage";
-import { randomUUID } from "crypto";
-function parseObjectPath(path) {
-  if (!path.startsWith("/")) {
-    path = `/${path}`;
-  }
-  const pathParts = path.split("/");
-  if (pathParts.length < 3) {
-    throw new Error("Invalid path: must contain at least a bucket name");
-  }
-  const bucketName = pathParts[1];
-  const objectName = pathParts.slice(2).join("/");
-  return {
-    bucketName,
-    objectName
-  };
-}
-async function signObjectURL({
-  bucketName,
-  objectName,
-  method,
-  ttlSec
-}) {
-  const request = {
-    bucket_name: bucketName,
-    object_name: objectName,
-    method,
-    expires_at: new Date(Date.now() + ttlSec * 1e3).toISOString()
-  };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(request)
-    }
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to sign object URL, errorcode: ${response.status}, make sure you're running on Replit`
-    );
-  }
-  const { signed_url: signedURL } = await response.json();
-  return signedURL;
-}
-var REPLIT_SIDECAR_ENDPOINT, objectStorageClient, ObjectNotFoundError, ObjectStorageService;
-var init_objectStorage = __esm({
-  "server/objectStorage.ts"() {
-    "use strict";
-    init_objectAcl();
-    REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
-    objectStorageClient = new Storage({
-      credentials: {
-        audience: "replit",
-        subject_token_type: "access_token",
-        token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-        type: "external_account",
-        credential_source: {
-          url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-          format: {
-            type: "json",
-            subject_token_field_name: "access_token"
-          }
-        },
-        universe_domain: "googleapis.com"
-      },
-      projectId: ""
-    });
-    ObjectNotFoundError = class _ObjectNotFoundError extends Error {
-      constructor() {
-        super("Object not found");
-        this.name = "ObjectNotFoundError";
-        Object.setPrototypeOf(this, _ObjectNotFoundError.prototype);
-      }
-    };
-    ObjectStorageService = class {
-      constructor() {
-      }
-      // Gets the public object search paths.
-      getPublicObjectSearchPaths() {
-        const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
-        const paths = Array.from(
-          new Set(
-            pathsStr.split(",").map((path) => path.trim()).filter((path) => path.length > 0)
-          )
-        );
-        if (paths.length === 0) {
-          throw new Error(
-            "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
-          );
-        }
-        return paths;
-      }
-      // Gets the private object directory.
-      getPrivateObjectDir() {
-        const dir = process.env.PRIVATE_OBJECT_DIR || "";
-        if (!dir) {
-          throw new Error(
-            "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
-          );
-        }
-        return dir;
-      }
-      // Search for a public object from the search paths.
-      async searchPublicObject(filePath) {
-        for (const searchPath of this.getPublicObjectSearchPaths()) {
-          const fullPath = `${searchPath}/${filePath}`;
-          const { bucketName, objectName } = parseObjectPath(fullPath);
-          const bucket = objectStorageClient.bucket(bucketName);
-          const file = bucket.file(objectName);
-          const [exists] = await file.exists();
-          if (exists) {
-            return file;
-          }
-        }
-        return null;
-      }
-      // Downloads an object to the response.
-      async downloadObject(file, res, cacheTtlSec = 3600) {
-        try {
-          const [metadata] = await file.getMetadata();
-          const aclPolicy = await getObjectAclPolicy(file);
-          const isPublic = aclPolicy?.visibility === "public";
-          res.set({
-            "Content-Type": metadata.contentType || "application/octet-stream",
-            "Content-Length": metadata.size,
-            "Cache-Control": `${isPublic ? "public" : "private"}, max-age=${cacheTtlSec}`
-          });
-          const stream = file.createReadStream();
-          stream.on("error", (err) => {
-            console.error("Stream error:", err);
-            if (!res.headersSent) {
-              res.status(500).json({ error: "Error streaming file" });
-            }
-          });
-          stream.pipe(res);
-        } catch (error) {
-          console.error("Error downloading file:", error);
-          if (!res.headersSent) {
-            res.status(500).json({ error: "Error downloading file" });
-          }
-        }
-      }
-      // Gets the upload URL for an object entity.
-      async getObjectEntityUploadURL() {
-        const privateObjectDir = this.getPrivateObjectDir();
-        if (!privateObjectDir) {
-          throw new Error(
-            "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
-          );
-        }
-        const objectId = randomUUID();
-        const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-        const { bucketName, objectName } = parseObjectPath(fullPath);
-        return signObjectURL({
-          bucketName,
-          objectName,
-          method: "PUT",
-          ttlSec: 900
-        });
-      }
-      // Gets the object entity file from the object path.
-      async getObjectEntityFile(objectPath) {
-        if (!objectPath.startsWith("/objects/")) {
-          throw new ObjectNotFoundError();
-        }
-        const parts = objectPath.slice(1).split("/");
-        if (parts.length < 2) {
-          throw new ObjectNotFoundError();
-        }
-        const entityId = parts.slice(1).join("/");
-        let entityDir = this.getPrivateObjectDir();
-        if (!entityDir.endsWith("/")) {
-          entityDir = `${entityDir}/`;
-        }
-        const objectEntityPath = `${entityDir}${entityId}`;
-        const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-        const bucket = objectStorageClient.bucket(bucketName);
-        const objectFile = bucket.file(objectName);
-        const [exists] = await objectFile.exists();
-        if (!exists) {
-          throw new ObjectNotFoundError();
-        }
-        return objectFile;
-      }
-      normalizeObjectEntityPath(rawPath) {
-        if (!rawPath.startsWith("https://storage.googleapis.com/")) {
-          return rawPath;
-        }
-        const url = new URL(rawPath);
-        const rawObjectPath = url.pathname;
-        let objectEntityDir = this.getPrivateObjectDir();
-        if (!objectEntityDir.endsWith("/")) {
-          objectEntityDir = `${objectEntityDir}/`;
-        }
-        if (!rawObjectPath.startsWith(objectEntityDir)) {
-          return rawObjectPath;
-        }
-        const entityId = rawObjectPath.slice(objectEntityDir.length);
-        return `/objects/${entityId}`;
-      }
-      // Tries to set the ACL policy for the object entity and return the normalized path.
-      async trySetObjectEntityAclPolicy(rawPath, aclPolicy) {
-        const normalizedPath = this.normalizeObjectEntityPath(rawPath);
-        if (!normalizedPath.startsWith("/")) {
-          return normalizedPath;
-        }
-        const objectFile = await this.getObjectEntityFile(normalizedPath);
-        await setObjectAclPolicy(objectFile, aclPolicy);
-        return normalizedPath;
-      }
-      // Checks if the user can access the object entity.
-      async canAccessObjectEntity({
-        userId,
-        objectFile,
-        requestedPermission
-      }) {
-        return canAccessObject({
-          userId,
-          objectFile,
-          requestedPermission: requestedPermission ?? "read" /* READ */
-        });
-      }
-      // Uploads a file buffer to object storage and returns the URL
-      async uploadFileBuffer(buffer, fileName, mimeType) {
-        const privateObjectDir = this.getPrivateObjectDir();
-        if (!privateObjectDir) {
-          throw new Error(
-            "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
-          );
-        }
-        const objectId = randomUUID();
-        const extension = fileName.split(".").pop() || "bin";
-        const objectName = `uploads/${objectId}.${extension}`;
-        const fullPath = `${privateObjectDir}/${objectName}`;
-        const { bucketName, objectName: finalObjectName } = parseObjectPath(fullPath);
-        const bucket = objectStorageClient.bucket(bucketName);
-        const file = bucket.file(finalObjectName);
-        await file.save(buffer, {
-          metadata: {
-            contentType: mimeType
-          }
-        });
-        return `/objects/${objectName}`;
-      }
-    };
-  }
-});
-
-// server/farcaster-validation.ts
-var FarcasterCastValidator, farcasterCastValidator;
-var init_farcaster_validation = __esm({
-  "server/farcaster-validation.ts"() {
-    "use strict";
-    init_schema();
-    FarcasterCastValidator = class {
-      /**
-       * Validate a Farcaster cast URL for social post quest
-       */
-      async validateCast(castUrl) {
-        try {
-          if (!castUrl.includes("warpcast.com") && !castUrl.includes("farcaster.xyz")) {
-            return { isValid: false, reason: "Invalid cast URL format" };
-          }
-          const castData = await this.fetchCastData(castUrl);
-          if (!castData) {
-            return { isValid: false, reason: "Could not fetch cast data" };
-          }
-          const contentValidation = this.validateContent(castData.text);
-          if (!contentValidation.isValid) {
-            return contentValidation;
-          }
-          const timestampValidation = this.validateTimestamp(castData.timestamp);
-          if (!timestampValidation.isValid) {
-            return timestampValidation;
-          }
-          return {
-            isValid: true,
-            reason: "Cast validation passed",
-            castData
-          };
-        } catch (error) {
-          console.error("\u{1F6A8} Cast validation error:", error);
-          return { isValid: false, reason: "Cast validation failed" };
-        }
-      }
-      /**
-       * Fetch cast data from Neynar API
-       */
-      async fetchCastData(castUrl) {
-        try {
-          const apiKey = process.env.NEYNAR_API_KEY;
-          if (!apiKey) {
-            console.error("\u274C NEYNAR_API_KEY not found");
-            return null;
-          }
-          console.log(`\u{1F50D} Fetching cast data from Neynar API for URL: ${castUrl}`);
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1e4);
-          const encodedUrl = encodeURIComponent(castUrl);
-          const response = await fetch(
-            `https://api.neynar.com/v2/farcaster/cast?identifier=${encodedUrl}&type=url`,
-            {
-              signal: controller.signal,
-              headers: {
-                "accept": "application/json",
-                "x-api-key": apiKey
-              }
-            }
-          );
-          clearTimeout(timeoutId);
-          if (!response.ok) {
-            console.log(`\u26A0\uFE0F Neynar API error: ${response.status} ${response.statusText}`);
-            const errorText = await response.text();
-            console.log("Error response:", errorText);
-            return null;
-          }
-          const data = await response.json();
-          console.log("\u{1F50D} Neynar API response:", JSON.stringify(data, null, 2));
-          if (data && data.cast) {
-            const cast = data.cast;
-            if (!cast.timestamp) {
-              console.log("\u26A0\uFE0F Cast missing timestamp - cannot validate posting date");
-              return null;
-            }
-            let timestamp2;
-            if (typeof cast.timestamp === "string") {
-              timestamp2 = cast.timestamp;
-            } else if (typeof cast.timestamp === "number") {
-              const tsMillis = cast.timestamp > 1e12 ? cast.timestamp : cast.timestamp * 1e3;
-              timestamp2 = new Date(tsMillis).toISOString();
-            } else {
-              console.log("\u26A0\uFE0F Invalid timestamp format:", cast.timestamp);
-              return null;
-            }
-            return {
-              text: cast.text || "",
-              timestamp: timestamp2,
-              author: {
-                fid: cast.author?.fid || 0,
-                username: cast.author?.username || "unknown"
-              }
-            };
-          }
-          console.log("\u26A0\uFE0F Unexpected cast data format from Neynar API");
-          return null;
-        } catch (error) {
-          console.error("\u274C Neynar API request failed:", error);
-          return null;
-        }
-      }
-      /**
-       * Validate cast content for TravelMint requirements
-       */
-      validateContent(text2) {
-        const lowerText = text2.toLowerCase();
-        const travelMintKeywords = ["travelmint", "travel mint"];
-        const hasTravelMint = travelMintKeywords.some(
-          (keyword) => lowerText.includes(keyword.toLowerCase())
-        );
-        if (!hasTravelMint) {
-          return {
-            isValid: false,
-            reason: "Cast must mention 'TravelMint'"
-          };
-        }
-        return { isValid: true, reason: "Content validation passed" };
-      }
-      /**
-       * Validate that cast was posted today
-       */
-      validateTimestamp(timestamp2) {
-        try {
-          const castDate = new Date(timestamp2);
-          const today = getQuestDay();
-          const castDay = getQuestDay(castDate);
-          if (castDay !== today) {
-            return {
-              isValid: false,
-              reason: "Cast must be from today"
-            };
-          }
-          return { isValid: true, reason: "Timestamp validation passed" };
-        } catch (error) {
-          return {
-            isValid: false,
-            reason: "Invalid timestamp format"
-          };
-        }
-      }
-    };
-    farcasterCastValidator = new FarcasterCastValidator();
-  }
-});
-
-// server/notificationService.ts
-import { z as z2 } from "zod";
-function getNotificationService() {
-  if (!notificationService && process.env.NEYNAR_API_KEY) {
-    notificationService = new NotificationService(process.env.NEYNAR_API_KEY);
-    console.log("\u{1F4F1} Notification service initialized");
-  }
-  return notificationService;
-}
-function isNotificationServiceAvailable() {
-  return !!process.env.NEYNAR_API_KEY;
-}
-var sendNotificationRequestSchema, sendNotificationResponseSchema, NotificationService, notificationService;
-var init_notificationService = __esm({
-  "server/notificationService.ts"() {
-    "use strict";
-    sendNotificationRequestSchema = z2.object({
-      target_fids: z2.array(z2.number()),
-      notification: z2.object({
-        title: z2.string(),
-        body: z2.string(),
-        target_url: z2.string(),
-        uuid: z2.string()
-      })
-    });
-    sendNotificationResponseSchema = z2.object({
-      notification_deliveries: z2.array(z2.object({
-        object: z2.string(),
-        fid: z2.number(),
-        status: z2.string()
-      }))
-    });
-    NotificationService = class {
-      constructor(apiKey) {
-        this.apiKey = apiKey;
-      }
-      neynarApiUrl = "https://api.neynar.com/v2/farcaster/frame/notifications";
-      /**
-       * Send notification to multiple Farcaster users by FID
-       */
-      async sendNotification(params) {
-        try {
-          const notificationRequest = {
-            target_fids: params.fids,
-            notification: {
-              title: params.title,
-              body: params.message,
-              target_url: params.targetUrl || "https://travelmint.replit.app",
-              uuid: crypto.randomUUID()
-            }
-          };
-          console.log(`\u{1F4F1} Sending notification to ${params.fids.length} users:`, {
-            title: params.title,
-            message: params.message,
-            fids: params.fids
-          });
-          console.log(`\u{1F504} Also testing with empty FID array for broader reach...`);
-          const response = await fetch(this.neynarApiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": this.apiKey
-            },
-            body: JSON.stringify(notificationRequest)
-          });
-          const responseJson = await response.json();
-          console.log(`\u{1F50D} Neynar API Response (Status: ${response.status}):`, JSON.stringify(responseJson, null, 2));
-          if (response.status === 200) {
-            const parsedResponse = sendNotificationResponseSchema.safeParse(responseJson);
-            if (!parsedResponse.success) {
-              console.error("\u274C Invalid notification response format - Expected:", sendNotificationResponseSchema);
-              console.error("\u274C Actual response:", responseJson);
-              console.error("\u274C Parsing errors:", parsedResponse.error);
-              if (responseJson && responseJson.notification_deliveries) {
-                console.log("\u{1F504} Attempting to work with actual response format...");
-                const deliveries2 = responseJson.notification_deliveries;
-                const successCount2 = Array.isArray(deliveries2) ? deliveries2.filter((d) => d.status === "success").length : 0;
-                const failureCount2 = Array.isArray(deliveries2) ? deliveries2.filter((d) => d.status !== "success").length : 0;
-                console.log(`\u2705 Notification sent (raw format) - Success: ${successCount2}, Failed: ${failureCount2}`);
-                return {
-                  success: successCount2 > 0,
-                  successCount: successCount2,
-                  failureCount: failureCount2,
-                  rateLimitedCount: 0,
-                  errors: failureCount2 > 0 ? [`${failureCount2} deliveries failed`] : void 0
-                };
-              }
-              return {
-                success: false,
-                successCount: 0,
-                failureCount: params.fids.length,
-                rateLimitedCount: 0,
-                errors: ["Invalid response format from notification service"]
-              };
-            }
-            const deliveries = parsedResponse.data.notification_deliveries;
-            const successCount = deliveries.filter((d) => d.status === "success").length;
-            const failureCount = deliveries.filter((d) => d.status !== "success").length;
-            console.log(`\u2705 Notification sent - Success: ${successCount}, Failed: ${failureCount}`);
-            return {
-              success: successCount > 0,
-              successCount,
-              failureCount,
-              rateLimitedCount: 0,
-              // Rate limiting info not provided in new API
-              errors: failureCount > 0 ? [`${failureCount} deliveries failed`] : void 0
-            };
-          } else {
-            console.error(`\u274C Notification API error (${response.status}):`, responseJson);
-            return {
-              success: false,
-              successCount: 0,
-              failureCount: params.fids.length,
-              rateLimitedCount: 0,
-              errors: [responseJson.message || `API error: ${response.status}`]
-            };
-          }
-        } catch (error) {
-          console.error("\u274C Notification service error:", error);
-          return {
-            success: false,
-            successCount: 0,
-            failureCount: params.fids.length,
-            rateLimitedCount: 0,
-            errors: [error.message || "Unknown notification error"]
-          };
-        }
-      }
-      /**
-       * Test notification service connectivity
-       */
-      async testConnection() {
-        try {
-          const testUrl = "https://api.neynar.com/v2/farcaster/user/bulk?fids=1&viewer_fid=1";
-          const testResponse = await fetch(testUrl, {
-            method: "GET",
-            headers: {
-              "accept": "application/json",
-              "x-api-key": this.apiKey
-            }
-          });
-          console.log(`\u{1F511} Notification service connection test: ${testResponse.status}`);
-          if (testResponse.status === 200) {
-            console.log("\u2705 Neynar API connection successful");
-            return true;
-          } else {
-            const errorText = await testResponse.text();
-            console.error(`\u274C Neynar API connection failed (${testResponse.status}):`, errorText);
-            return false;
-          }
-        } catch (error) {
-          console.error("\u{1F511} Notification service connection test failed:", error);
-          return false;
-        }
-      }
-    };
-    notificationService = null;
-  }
-});
-
-// server/image-sync.ts
-function extractIpfsCid(url) {
-  if (!url) return null;
-  if (url.startsWith("ipfs://")) {
-    let path = url.slice(7);
-    if (path.startsWith("ipfs/")) {
-      path = path.slice(5);
-    }
-    const cid = path.split("?")[0].split("/")[0];
-    return cid.length > 10 ? cid : null;
-  }
-  const subdomainMatch = url.match(/https?:\/\/([a-zA-Z0-9]+)\.ipfs\./);
-  if (subdomainMatch) {
-    return subdomainMatch[1];
-  }
-  const ipfsMatch = url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
-  if (ipfsMatch) {
-    return ipfsMatch[1];
-  }
-  return null;
-}
-function getFileExtension(contentType) {
-  const mimeToExt = {
-    "image/jpeg": "jpg",
-    "image/jpg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-    "image/svg+xml": "svg",
-    "image/avif": "avif"
-  };
-  return mimeToExt[contentType] || "jpg";
-}
-async function downloadImageWithTimeout(url, timeout) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "TravelMint-NFT-Sync/1.0"
-      }
-    });
-    if (!response.ok) {
-      return null;
-    }
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    const contentLength = response.headers.get("content-length");
-    if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
-      console.log(`\u26A0\uFE0F Image too large: ${parseInt(contentLength) / 1024 / 1024}MB`);
-      return null;
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    if (buffer.length > MAX_FILE_SIZE) {
-      console.log(`\u26A0\uFE0F Downloaded image too large: ${buffer.length / 1024 / 1024}MB`);
-      return null;
-    }
-    return { buffer, contentType };
-  } catch (error) {
-    if (error.name === "AbortError") {
-      return null;
-    }
-    return null;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-async function downloadFromIpfs(cid) {
-  for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
-    const gateway = IPFS_GATEWAYS[i];
-    const url = `${gateway}${cid}`;
-    console.log(`\u{1F517} Trying gateway ${i + 1}/${IPFS_GATEWAYS.length}: ${gateway}`);
-    const result = await downloadImageWithTimeout(url, DOWNLOAD_TIMEOUT);
-    if (result) {
-      console.log(`\u2705 Successfully downloaded from ${gateway}`);
-      return result;
-    }
-  }
-  return null;
-}
-async function syncNftImage(nft, force = false) {
-  try {
-    if (nft.objectStorageUrl && !force) {
-      console.log(`\u23ED\uFE0F NFT ${nft.tokenId || nft.id} already cached, skipping`);
-      return true;
-    }
-    const imageUrl = nft.imageUrl;
-    if (!imageUrl) {
-      console.log(`\u26A0\uFE0F NFT ${nft.id} has no imageUrl`);
-      return false;
-    }
-    const cid = extractIpfsCid(imageUrl);
-    let imageData = null;
-    if (cid) {
-      console.log(`\u{1F4E5} Downloading IPFS image for NFT ${nft.tokenId || nft.id}: ${cid}`);
-      imageData = await downloadFromIpfs(cid);
-    } else if (imageUrl.startsWith("http")) {
-      console.log(`\u{1F4E5} Downloading HTTP image for NFT ${nft.tokenId || nft.id}: ${imageUrl}`);
-      imageData = await downloadImageWithTimeout(imageUrl, DOWNLOAD_TIMEOUT);
-    }
-    if (!imageData) {
-      console.log(`\u274C Failed to download image for NFT ${nft.tokenId || nft.id}`);
-      return false;
-    }
-    const extension = getFileExtension(imageData.contentType);
-    const fileName = `nft-${nft.tokenId || nft.id}.${extension}`;
-    console.log(`\u{1F4E4} Uploading to Object Storage: ${fileName} (${(imageData.buffer.length / 1024).toFixed(1)}KB)`);
-    const objectStorageUrl = await objectStorageService.uploadFileBuffer(
-      imageData.buffer,
-      fileName,
-      imageData.contentType
-    );
-    await storage.updateNFT(nft.id, { objectStorageUrl });
-    console.log(`\u2705 NFT ${nft.tokenId || nft.id} synced: ${objectStorageUrl}`);
-    return true;
-  } catch (error) {
-    console.error(`\u274C Error syncing NFT ${nft.id}:`, error.message);
-    return false;
-  }
-}
-async function syncAllImages() {
-  console.log("\u{1F504} Starting NFT image sync...");
-  const allNfts = await storage.getAllNFTs();
-  const tipTotals = await storage.getNFTTipTotals();
-  const nftsToSync = allNfts.filter((nft) => {
-    if (nft.objectStorageUrl) {
-      return false;
-    }
-    if (!nft.imageUrl) {
-      return false;
-    }
-    return true;
-  });
-  nftsToSync.sort((a, b) => {
-    const tipsA = tipTotals.get(a.id) || 0;
-    const tipsB = tipTotals.get(b.id) || 0;
-    return tipsB - tipsA;
-  });
-  const tippedCount = nftsToSync.filter((nft) => (tipTotals.get(nft.id) || 0) > 0).length;
-  console.log(`\u{1F4CA} Found ${nftsToSync.length} NFTs to sync (${tippedCount} with tips prioritized, ${allNfts.length} total)`);
-  let synced = 0;
-  let failed = 0;
-  let skipped = allNfts.length - nftsToSync.length;
-  for (let i = 0; i < nftsToSync.length; i++) {
-    const nft = nftsToSync[i];
-    console.log(`
-[${i + 1}/${nftsToSync.length}] Processing NFT: ${nft.title || nft.tokenId || nft.id}`);
-    const success = await syncNftImage(nft);
-    if (success) {
-      synced++;
-    } else {
-      failed++;
-    }
-    if (i < nftsToSync.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_DOWNLOADS));
-    }
-  }
-  console.log(`
-\u2705 Sync complete: ${synced} synced, ${failed} failed, ${skipped} already cached`);
-  return { synced, failed, skipped };
-}
-async function syncSingleImage(nftId) {
-  const nft = await storage.getNFT(nftId);
-  if (!nft) {
-    console.log(`\u274C NFT not found: ${nftId}`);
-    return false;
-  }
-  return syncNftImage(nft);
-}
-async function getSyncStatus() {
-  const allNfts = await storage.getAllNFTs();
-  const cached = allNfts.filter((nft) => nft.objectStorageUrl).length;
-  const pending = allNfts.length - cached;
-  const percentage = allNfts.length > 0 ? Math.round(cached / allNfts.length * 100) : 0;
-  return { total: allNfts.length, cached, pending, percentage };
-}
-var objectStorageService, IPFS_GATEWAYS, MAX_FILE_SIZE, DOWNLOAD_TIMEOUT, DELAY_BETWEEN_DOWNLOADS;
-var init_image_sync = __esm({
-  "server/image-sync.ts"() {
-    "use strict";
-    init_storage();
-    init_objectStorage();
-    objectStorageService = new ObjectStorageService();
-    IPFS_GATEWAYS = [
-      "https://ipfs.io/ipfs/",
-      "https://cloudflare-ipfs.com/ipfs/",
-      "https://dweb.link/ipfs/",
-      "https://4everland.io/ipfs/",
-      "https://gateway.pinata.cloud/ipfs/"
-    ];
-    MAX_FILE_SIZE = 10 * 1024 * 1024;
-    DOWNLOAD_TIMEOUT = 3e4;
-    DELAY_BETWEEN_DOWNLOADS = 500;
   }
 });
 
@@ -4804,20 +447,4310 @@ var init_wikipedia_service = __esm({
   }
 });
 
+// server/createApp.ts
+import express from "express";
+
 // server/routes.ts
-var routes_exports = {};
-__export(routes_exports, {
-  registerRoutes: () => registerRoutes
-});
 import { createServer } from "http";
+
+// shared/schema.ts
+var schema_exports = {};
+__export(schema_exports, {
+  badges: () => badges,
+  checkinRequestSchema: () => checkinRequestSchema,
+  checkins: () => checkins,
+  getCurrentWeekStart: () => getCurrentWeekStart,
+  getQuestDay: () => getQuestDay,
+  getWeekEnd: () => getWeekEnd,
+  getWeekNumber: () => getWeekNumber,
+  getYesterdayQuestDay: () => getYesterdayQuestDay,
+  guideCities: () => guideCities,
+  guideCitySearchSchema: () => guideCitySearchSchema,
+  guideSpotCategorySchema: () => guideSpotCategorySchema,
+  guideSpotQuerySchema: () => guideSpotQuerySchema,
+  guideSpots: () => guideSpots,
+  holderStatusParamsSchema: () => holderStatusParamsSchema,
+  insertBadgeSchema: () => insertBadgeSchema,
+  insertCheckinSchema: () => insertCheckinSchema,
+  insertGuideCitySchema: () => insertGuideCitySchema,
+  insertGuideSpotSchema: () => insertGuideSpotSchema,
+  insertNFTLikeSchema: () => insertNFTLikeSchema,
+  insertNFTSchema: () => insertNFTSchema,
+  insertNotificationHistorySchema: () => insertNotificationHistorySchema,
+  insertPendingMintSchema: () => insertPendingMintSchema,
+  insertQuestCompletionSchema: () => insertQuestCompletionSchema,
+  insertSyncStateSchema: () => insertSyncStateSchema,
+  insertTransactionSchema: () => insertTransactionSchema,
+  insertTravelAiQuerySchema: () => insertTravelAiQuerySchema,
+  insertUserBadgeSchema: () => insertUserBadgeSchema,
+  insertUserSchema: () => insertUserSchema,
+  insertUserStatsSchema: () => insertUserStatsSchema,
+  insertUserWalletSchema: () => insertUserWalletSchema,
+  insertWeeklyChampionSchema: () => insertWeeklyChampionSchema,
+  leaderboardQuerySchema: () => leaderboardQuerySchema,
+  nearbyPOIsQuerySchema: () => nearbyPOIsQuerySchema,
+  nftLikes: () => nftLikes,
+  nfts: () => nfts,
+  notificationHistory: () => notificationHistory,
+  pendingMints: () => pendingMints,
+  questClaimSchema: () => questClaimSchema,
+  questCompletions: () => questCompletions,
+  questCompletionsParamsSchema: () => questCompletionsParamsSchema,
+  syncState: () => syncState,
+  transactions: () => transactions,
+  travelAiQueries: () => travelAiQueries,
+  userBadges: () => userBadges,
+  userStats: () => userStats,
+  userStatsParamsSchema: () => userStatsParamsSchema,
+  userWallets: () => userWallets,
+  users: () => users,
+  weeklyChampions: () => weeklyChampions
+});
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, integer, boolean, decimal, timestamp, json, uniqueIndex } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+var users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  walletAddress: text("wallet_address"),
+  balance: decimal("balance", { precision: 18, scale: 6 }).default("0").notNull(),
+  avatar: text("avatar"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var nfts = pgTable("nfts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url").notNull(),
+  objectStorageUrl: text("object_storage_url"),
+  // Object storage backup URL
+  location: text("location").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  category: text("category").notNull(),
+  price: decimal("price", { precision: 18, scale: 6 }).notNull(),
+  isForSale: integer("is_for_sale").default(0).notNull(),
+  // 0 = false, 1 = true
+  creatorAddress: text("creator_address").notNull(),
+  ownerAddress: text("owner_address").notNull(),
+  farcasterCreatorUsername: text("farcaster_creator_username"),
+  // Optional Farcaster username
+  farcasterOwnerUsername: text("farcaster_owner_username"),
+  // Optional Farcaster username
+  farcasterCreatorFid: text("farcaster_creator_fid"),
+  // Optional Farcaster user ID
+  farcasterOwnerFid: text("farcaster_owner_fid"),
+  // Optional Farcaster user ID
+  mintPrice: decimal("mint_price", { precision: 18, scale: 6 }).default("1").notNull(),
+  royaltyPercentage: decimal("royalty_percentage", { precision: 5, scale: 2 }).default("5").notNull(),
+  tokenId: text("token_id").unique(),
+  // NFT contract token ID - unique for blockchain NFTs
+  contractAddress: text("contract_address"),
+  // NFT contract address
+  transactionHash: text("transaction_hash"),
+  // Mint transaction hash
+  metadata: json("metadata"),
+  likeCount: integer("like_count").default(0).notNull(),
+  // Total number of likes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+var transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nftId: varchar("nft_id").notNull().references(() => nfts.id),
+  fromAddress: text("from_address"),
+  toAddress: text("to_address").notNull(),
+  transactionType: text("transaction_type").notNull(),
+  // 'mint', 'sale', 'transfer'
+  amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 18, scale: 6 }).default("0").notNull(),
+  blockchainTxHash: text("blockchain_tx_hash").unique(),
+  // On-chain transaction hash - unique to prevent duplicates
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var nftLikes = pgTable("nft_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nftId: varchar("nft_id").notNull().references(() => nfts.id),
+  farcasterFid: text("farcaster_fid"),
+  // Optional - for Farcaster users
+  walletAddress: text("wallet_address"),
+  // Optional - for wallet-only users
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  nftFidUnique: uniqueIndex("nft_likes_nft_fid_unique").on(table.nftId, table.farcasterFid),
+  nftWalletUnique: uniqueIndex("nft_likes_nft_wallet_unique").on(table.nftId, table.walletAddress)
+}));
+var insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true
+});
+var insertNFTSchema = createInsertSchema(nfts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true
+});
+var insertNFTLikeSchema = createInsertSchema(nftLikes).omit({
+  id: true,
+  createdAt: true
+});
+var userStats = pgTable("user_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().unique(),
+  farcasterUsername: text("farcaster_username").notNull(),
+  farcasterPfpUrl: text("farcaster_pfp_url"),
+  // Farcaster profile picture URL
+  walletAddress: text("wallet_address"),
+  // Nullable - only required for holder bonus
+  totalPoints: integer("total_points").default(0).notNull(),
+  // Stored as fixed-point (points * 100)
+  weeklyPoints: integer("weekly_points").default(0).notNull(),
+  // Weekly points - resets every Monday
+  currentStreak: integer("current_streak").default(0).notNull(),
+  lastCheckIn: timestamp("last_check_in"),
+  lastStreakClaim: timestamp("last_streak_claim"),
+  weeklyResetDate: text("weekly_reset_date"),
+  // YYYY-MM-DD format - tracks last weekly reset
+  // Notification system fields
+  notificationToken: text("notification_token"),
+  // Farcaster notification token
+  notificationsEnabled: boolean("notifications_enabled").default(false).notNull(),
+  // User opt-in status
+  lastNotificationSent: timestamp("last_notification_sent"),
+  // Track when last notification was sent
+  hasAddedMiniApp: boolean("has_added_mini_app").default(false).notNull(),
+  // One-time quest: User added app to Farcaster
+  // Referral system fields
+  referralCode: text("referral_code").unique(),
+  // Unique referral code for inviting friends
+  referredByFid: text("referred_by_fid"),
+  // FID of the user who referred this user
+  referralCount: integer("referral_count").default(0).notNull(),
+  // Number of users referred by this user
+  unclaimedReferrals: integer("unclaimed_referrals").default(0).notNull(),
+  // Number of referrals not yet claimed for points
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+var questCompletions = pgTable("quest_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  questType: text("quest_type").notNull(),
+  // 'daily_checkin', 'holder_bonus', 'base_transaction', 'social_post'
+  pointsEarned: integer("points_earned").notNull(),
+  // Stored as fixed-point (points * 100)
+  completionDate: text("completion_date").notNull(),
+  // YYYY-MM-DD format for daily uniqueness
+  castUrl: text("cast_url"),
+  // Farcaster cast URL for social_post quests
+  completedAt: timestamp("completed_at").defaultNow().notNull()
+}, (table) => {
+  return {
+    // Unique constraint: one quest per type per day per user
+    uniqueQuestPerDay: sql`UNIQUE (farcaster_fid, quest_type, completion_date)`
+  };
+});
+var userWallets = pgTable("user_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  walletAddress: text("wallet_address").notNull(),
+  platform: text("platform").notNull(),
+  // 'farcaster', 'base_app', 'manual'
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => {
+  return {
+    // Unique constraint: one wallet per user per platform
+    uniqueWalletPerUserPlatform: sql`UNIQUE (farcaster_fid, wallet_address, platform)`
+  };
+});
+var notificationHistory = pgTable("notification_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  targetUrl: text("target_url"),
+  // Optional URL to navigate to
+  recipientCount: integer("recipient_count").notNull(),
+  // How many users received it
+  successCount: integer("success_count").notNull(),
+  // How many succeeded
+  failureCount: integer("failure_count").notNull(),
+  // How many failed
+  sentBy: text("sent_by").notNull(),
+  // Admin who sent it
+  sentAt: timestamp("sent_at").defaultNow().notNull()
+});
+var insertUserStatsSchema = createInsertSchema(userStats).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var insertQuestCompletionSchema = createInsertSchema(questCompletions).omit({
+  id: true,
+  completedAt: true
+});
+var insertUserWalletSchema = createInsertSchema(userWallets).omit({
+  id: true,
+  createdAt: true
+});
+var insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({
+  id: true,
+  sentAt: true
+});
+var questClaimSchema = z.object({
+  farcasterFid: z.string().min(1, "Farcaster FID is required"),
+  questType: z.enum(["daily_checkin", "holder_bonus", "base_transaction", "social_post"], {
+    errorMap: () => ({ message: "Invalid quest type" })
+  }),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address").optional(),
+  castUrl: z.string().url("Invalid cast URL").optional(),
+  // Farcaster cast URL for social_post quests
+  farcasterUsername: z.string().min(1, "Farcaster username is required"),
+  farcasterPfpUrl: z.string().url("Invalid profile picture URL").optional(),
+  // Server-side verification data - should be included by middleware
+  farcasterVerified: z.boolean().default(false).optional()
+});
+var userStatsParamsSchema = z.object({
+  fid: z.string().min(1, "Farcaster FID is required")
+});
+var questCompletionsParamsSchema = z.object({
+  fid: z.string().min(1, "Farcaster FID is required"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
+});
+var holderStatusParamsSchema = z.object({
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address")
+});
+var leaderboardQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/, "Limit must be a number").optional()
+});
+function getQuestDay(date = /* @__PURE__ */ new Date()) {
+  const questDate = new Date(date);
+  return questDate.toISOString().split("T")[0];
+}
+function getYesterdayQuestDay(date = /* @__PURE__ */ new Date()) {
+  const yesterdayDate = new Date(date.getTime() - 24 * 60 * 60 * 1e3);
+  return getQuestDay(yesterdayDate);
+}
+var weeklyChampions = pgTable("weekly_champions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull().references(() => userStats.farcasterFid),
+  farcasterUsername: text("farcaster_username").notNull(),
+  weekStartDate: text("week_start_date").notNull(),
+  // YYYY-MM-DD format - Tuesday of the week
+  weekEndDate: text("week_end_date").notNull(),
+  // YYYY-MM-DD format - Monday of the week
+  weeklyPoints: integer("weekly_points").notNull(),
+  // Final points for that week
+  weekNumber: integer("week_number").notNull(),
+  // Week number of the year
+  year: integer("year").notNull(),
+  // Year of the championship
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => {
+  return {
+    // Unique constraint: one champion per week
+    uniqueChampionPerWeek: sql`UNIQUE (week_start_date, year)`
+  };
+});
+var insertWeeklyChampionSchema = createInsertSchema(weeklyChampions).omit({
+  id: true,
+  createdAt: true
+});
+function getCurrentWeekStart(date = /* @__PURE__ */ new Date()) {
+  const current = new Date(date.toISOString());
+  const dayOfWeek = current.getUTCDay();
+  let tuesdayOffset;
+  if (dayOfWeek === 0) {
+    tuesdayOffset = -5;
+  } else if (dayOfWeek === 1) {
+    tuesdayOffset = -6;
+  } else if (dayOfWeek === 2) {
+    tuesdayOffset = 0;
+  } else {
+    tuesdayOffset = 2 - dayOfWeek;
+  }
+  current.setUTCDate(current.getUTCDate() + tuesdayOffset);
+  return current.toISOString().split("T")[0];
+}
+function getWeekEnd(weekStart) {
+  const startDate = new Date(weekStart);
+  startDate.setDate(startDate.getDate() + 6);
+  return startDate.toISOString().split("T")[0];
+}
+function getWeekNumber(date = /* @__PURE__ */ new Date()) {
+  const appStartDate = /* @__PURE__ */ new Date("2025-09-17T00:00:00.000Z");
+  const currentDate = new Date(date.toISOString());
+  if (currentDate < appStartDate) {
+    return 0;
+  }
+  const diffTime = currentDate.getTime() - appStartDate.getTime();
+  const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1e3));
+  return Math.floor(diffDays / 7) + 1;
+}
+var syncState = pgTable("sync_state", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractAddress: text("contract_address").notNull().unique(),
+  // NFT contract address
+  lastProcessedBlock: integer("last_processed_block").notNull().default(0),
+  // Last successfully processed block
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  // When sync last ran
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+var insertSyncStateSchema = createInsertSchema(syncState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var pendingMints = pgTable("pending_mints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tokenId: text("token_id").notNull(),
+  // NFT token ID
+  contractAddress: text("contract_address").notNull(),
+  // NFT contract address
+  ownerAddress: text("owner_address").notNull(),
+  // Token owner
+  transactionHash: text("transaction_hash"),
+  // Mint transaction hash
+  retryCount: integer("retry_count").default(0).notNull(),
+  // Number of retry attempts
+  lastError: text("last_error"),
+  // Last error message
+  lastAttemptAt: timestamp("last_attempt_at"),
+  // When last retry was attempted
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => {
+  return {
+    // Unique constraint: one pending mint per token
+    uniqueTokenId: sql`UNIQUE (contract_address, token_id)`
+  };
+});
+var insertPendingMintSchema = createInsertSchema(pendingMints).omit({
+  id: true,
+  createdAt: true
+});
+var badges = pgTable("badges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  // Unique badge code (e.g., 'first_mint', 'explorer')
+  name: text("name").notNull(),
+  // Display name
+  description: text("description").notNull(),
+  // How to earn this badge
+  category: text("category").notNull(),
+  // 'mint', 'location', 'social', 'quest'
+  imageUrl: text("image_url").notNull(),
+  // Badge image URL
+  requirement: integer("requirement").notNull(),
+  // Numeric requirement (e.g., 5 mints, 3 countries)
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var userBadges = pgTable("user_badges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  farcasterFid: text("farcaster_fid").notNull(),
+  walletAddress: text("wallet_address"),
+  // For wallet-only users
+  badgeId: varchar("badge_id").notNull().references(() => badges.id),
+  earnedAt: timestamp("earned_at").defaultNow().notNull()
+}, (table) => ({
+  uniqueUserBadge: uniqueIndex("user_badges_unique").on(table.farcasterFid, table.badgeId),
+  uniqueWalletBadge: uniqueIndex("user_badges_wallet_unique").on(table.walletAddress, table.badgeId)
+}));
+var insertBadgeSchema = createInsertSchema(badges).omit({
+  id: true,
+  createdAt: true
+});
+var insertUserBadgeSchema = createInsertSchema(userBadges).omit({
+  id: true,
+  earnedAt: true
+});
+var guideCities = pgTable("guide_cities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  placeId: text("place_id").notNull().unique(),
+  // Google Places place_id
+  name: text("name").notNull(),
+  // City name
+  country: text("country").notNull(),
+  // Country name
+  countryCode: text("country_code"),
+  // ISO country code (e.g., 'TR', 'US')
+  heroImageUrl: text("hero_image_url"),
+  // City hero image
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  searchCount: integer("search_count").default(0).notNull(),
+  // Popularity tracking
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var guideSpots = pgTable("guide_spots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cityId: varchar("city_id").notNull().references(() => guideCities.id),
+  placeId: text("place_id").notNull().unique(),
+  // Google Places place_id
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  // 'landmark', 'cafe', 'restaurant', 'hidden_gem'
+  description: text("description"),
+  // Place description/summary
+  address: text("address"),
+  // Formatted address
+  rating: decimal("rating", { precision: 3, scale: 2 }),
+  // 0.00 - 5.00
+  userRatingsTotal: integer("user_ratings_total"),
+  // Number of reviews
+  priceLevel: integer("price_level"),
+  // 0-4 price range
+  photoUrl: text("photo_url"),
+  // Main photo URL
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  openNow: boolean("open_now"),
+  // Current open status
+  website: text("website"),
+  // Official website
+  phoneNumber: text("phone_number"),
+  googleMapsUrl: text("google_maps_url"),
+  // Link to Google Maps
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var insertGuideCitySchema = createInsertSchema(guideCities).omit({
+  id: true,
+  createdAt: true,
+  lastSyncAt: true
+});
+var insertGuideSpotSchema = createInsertSchema(guideSpots).omit({
+  id: true,
+  createdAt: true,
+  lastSyncAt: true
+});
+var guideCitySearchSchema = z.object({
+  query: z.string().min(2, "Search query must be at least 2 characters")
+});
+var guideSpotCategorySchema = z.enum(["landmark", "cafe", "restaurant", "hidden_gem"]);
+var guideSpotQuerySchema = z.object({
+  category: guideSpotCategorySchema.optional(),
+  limit: z.string().regex(/^\d+$/, "Limit must be a number").optional()
+});
+var travelAiQueries = pgTable("travel_ai_queries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  queryCount: integer("query_count").default(0).notNull(),
+  lastQueryDate: text("last_query_date"),
+  // YYYY-MM-DD format for daily reset tracking
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  walletUnique: uniqueIndex("travel_ai_wallet_unique").on(table.walletAddress)
+}));
+var insertTravelAiQuerySchema = createInsertSchema(travelAiQueries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var checkins = pgTable("checkins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  farcasterFid: text("farcaster_fid"),
+  farcasterUsername: text("farcaster_username"),
+  osmId: text("osm_id").notNull(),
+  // OpenStreetMap place ID (e.g., "node/123456")
+  placeName: text("place_name").notNull(),
+  placeCategory: text("place_category").notNull(),
+  placeSubcategory: text("place_subcategory"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  transactionHash: text("transaction_hash"),
+  // Optional on-chain transaction
+  pointsEarned: integer("points_earned").default(10).notNull(),
+  // Points for this check-in
+  comment: text("comment"),
+  // User's note/review about this place
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var insertCheckinSchema = createInsertSchema(checkins).omit({
+  id: true,
+  createdAt: true
+});
+var checkinRequestSchema = z.object({
+  walletAddress: z.string().min(1, "Wallet address is required"),
+  farcasterFid: z.string().optional(),
+  farcasterUsername: z.string().optional(),
+  osmId: z.string().min(1, "OSM ID is required"),
+  placeName: z.string().min(1, "Place name is required"),
+  placeCategory: z.string().min(1, "Place category is required"),
+  placeSubcategory: z.string().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+  transactionHash: z.string().optional()
+});
+var nearbyPOIsQuerySchema = z.object({
+  lat: z.string().regex(/^-?\d+\.?\d*$/, "Latitude must be a number"),
+  lon: z.string().regex(/^-?\d+\.?\d*$/, "Longitude must be a number"),
+  radius: z.string().regex(/^\d+$/, "Radius must be a number").optional()
+});
+
+// server/db.ts
+import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+var { Pool } = pg;
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?"
+  );
+}
+var pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+var db = drizzle({ client: pool, schema: schema_exports });
+
+// server/storage.ts
+import { eq, and, sql as sql2 } from "drizzle-orm";
+var DatabaseStorage = class {
+  // User operations
+  async getUser(id) {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || void 0;
+  }
+  async getUserByUsername(username) {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || void 0;
+  }
+  async getUserByWalletAddress(walletAddress) {
+    const [user] = await db.select().from(users).where(sql2`LOWER(${users.walletAddress}) = LOWER(${walletAddress})`);
+    return user || void 0;
+  }
+  async createUser(insertUser) {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+  async updateUserBalance(id, balance) {
+    const [user] = await db.update(users).set({ balance }).where(eq(users.id, id)).returning();
+    return user || void 0;
+  }
+  // NFT operations
+  async getNFT(id) {
+    const [nft] = await db.select().from(nfts).where(eq(nfts.id, id));
+    return nft || void 0;
+  }
+  async getAllNFTs(sortBy) {
+    if (sortBy === "likeCount" || sortBy === "popular") {
+      return await db.select().from(nfts).orderBy(sql2`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
+    } else if (sortBy === "tips") {
+      const result = await db.select({
+        nft: nfts,
+        totalTips: sql2`COALESCE(SUM(CAST(${transactions.amount} AS DECIMAL)), 0)`.as("total_tips")
+      }).from(nfts).leftJoin(transactions, and(
+        eq(nfts.id, transactions.nftId),
+        eq(transactions.transactionType, "donation")
+      )).groupBy(nfts.id).orderBy(sql2`total_tips DESC, ${nfts.createdAt} DESC`);
+      return result.map((r) => r.nft);
+    } else {
+      return await db.select().from(nfts).orderBy(sql2`${nfts.createdAt} DESC`);
+    }
+  }
+  async getNFTsByLocation(lat, lng, radius) {
+    return await db.select().from(nfts).where(sql2`
+        sqrt(power(cast(${nfts.latitude} as decimal) - ${lat}, 2) + 
+             power(cast(${nfts.longitude} as decimal) - ${lng}, 2)) <= ${radius}
+      `);
+  }
+  async getNFTsByOwner(ownerAddress) {
+    return await db.select().from(nfts).where(sql2`LOWER(${nfts.ownerAddress}) = LOWER(${ownerAddress})`).orderBy(sql2`${nfts.createdAt} DESC`);
+  }
+  async getNFTsForSale(sortBy) {
+    if (sortBy === "likeCount" || sortBy === "popular") {
+      return await db.select().from(nfts).where(eq(nfts.isForSale, 1)).orderBy(sql2`${nfts.likeCount} DESC NULLS LAST, ${nfts.createdAt} DESC`);
+    } else if (sortBy === "tips") {
+      const result = await db.select({
+        nft: nfts,
+        totalTips: sql2`COALESCE(SUM(CAST(${transactions.amount} AS DECIMAL)), 0)`.as("total_tips")
+      }).from(nfts).leftJoin(transactions, and(
+        eq(nfts.id, transactions.nftId),
+        eq(transactions.transactionType, "donation")
+      )).where(eq(nfts.isForSale, 1)).groupBy(nfts.id).orderBy(sql2`total_tips DESC, ${nfts.createdAt} DESC`);
+      return result.map((r) => r.nft);
+    } else {
+      return await db.select().from(nfts).where(eq(nfts.isForSale, 1)).orderBy(sql2`${nfts.createdAt} DESC`);
+    }
+  }
+  async createNFT(insertNFT) {
+    const [nft] = await db.insert(nfts).values(insertNFT).returning();
+    return nft;
+  }
+  async upsertNFTByTokenId(insertNFT) {
+    const protectedTokenIds = ["106", "89", "48", "44", "41"];
+    const isProtected = insertNFT.tokenId && protectedTokenIds.includes(insertNFT.tokenId);
+    const ownerInfo = await this.getFarcasterInfoFromWallet(insertNFT.ownerAddress);
+    let creatorInfo = null;
+    if (insertNFT.creatorAddress) {
+      const isDifferentCreator = insertNFT.creatorAddress.toLowerCase() !== insertNFT.ownerAddress.toLowerCase();
+      if (isDifferentCreator) {
+        creatorInfo = await this.getFarcasterInfoFromWallet(insertNFT.creatorAddress);
+      }
+    }
+    const insertValues = {
+      ...insertNFT,
+      // Set creator info only if different from owner, otherwise leave null for backend to handle
+      farcasterCreatorUsername: creatorInfo?.username || null,
+      farcasterCreatorFid: creatorInfo?.fid || null,
+      // Always set owner info
+      farcasterOwnerUsername: ownerInfo?.username || null,
+      farcasterOwnerFid: ownerInfo?.fid || null
+    };
+    const baseUpdateSet = {
+      title: insertNFT.title,
+      description: insertNFT.description,
+      imageUrl: insertNFT.imageUrl,
+      category: insertNFT.category,
+      price: insertNFT.price,
+      ownerAddress: insertNFT.ownerAddress,
+      creatorAddress: insertNFT.creatorAddress,
+      // Only update owner Farcaster info on sync, preserve creator info
+      farcasterOwnerUsername: ownerInfo?.username || null,
+      farcasterOwnerFid: ownerInfo?.fid || null,
+      metadata: insertNFT.metadata,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    const updateSet = isProtected ? baseUpdateSet : {
+      ...baseUpdateSet,
+      location: insertNFT.location,
+      latitude: insertNFT.latitude,
+      longitude: insertNFT.longitude
+    };
+    const [nft] = await db.insert(nfts).values(insertValues).onConflictDoUpdate({
+      target: nfts.tokenId,
+      set: updateSet
+    }).returning();
+    return nft;
+  }
+  async updateNFT(id, updates) {
+    const [nft] = await db.update(nfts).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq(nfts.id, id)).returning();
+    return nft || void 0;
+  }
+  async updateNFTCoordinates(tokenId, latitude, longitude) {
+    const [nft] = await db.update(nfts).set({
+      latitude: latitude.toFixed(8),
+      longitude: longitude.toFixed(8),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(nfts.tokenId, tokenId)).returning();
+    return nft || void 0;
+  }
+  // 🔄 Update NFT owner and auto-delist if transferred (for blockchain sync)
+  async updateNFTOwnerAndDelist(tokenId, newOwnerAddress) {
+    const [nft] = await db.update(nfts).set({
+      ownerAddress: newOwnerAddress,
+      isForSale: 0,
+      // Auto-delist on transfer
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(nfts.tokenId, tokenId)).returning();
+    return nft || void 0;
+  }
+  async getNFTByTokenId(tokenId) {
+    const [nft] = await db.select().from(nfts).where(eq(nfts.tokenId, tokenId));
+    return nft || void 0;
+  }
+  async toggleNFTLike(nftId, identifier) {
+    const { farcasterFid, walletAddress } = identifier;
+    if (!farcasterFid && !walletAddress) {
+      throw new Error("Either farcasterFid or walletAddress is required");
+    }
+    return await db.transaction(async (tx) => {
+      const whereCondition = farcasterFid ? and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)) : and(eq(nftLikes.nftId, nftId), eq(nftLikes.walletAddress, walletAddress.toLowerCase()));
+      const existingLike = await tx.select().from(nftLikes).where(whereCondition);
+      if (existingLike.length > 0) {
+        await tx.delete(nftLikes).where(whereCondition);
+        const [updatedNFT] = await tx.update(nfts).set({ likeCount: sql2`GREATEST(0, ${nfts.likeCount} - 1)` }).where(eq(nfts.id, nftId)).returning();
+        return { liked: false, likeCount: updatedNFT?.likeCount || 0 };
+      } else {
+        await tx.insert(nftLikes).values({
+          nftId,
+          farcasterFid: farcasterFid || null,
+          walletAddress: walletAddress?.toLowerCase() || null
+        });
+        const [updatedNFT] = await tx.update(nfts).set({ likeCount: sql2`${nfts.likeCount} + 1` }).where(eq(nfts.id, nftId)).returning();
+        return { liked: true, likeCount: updatedNFT?.likeCount || 1 };
+      }
+    });
+  }
+  async checkNFTLiked(nftId, identifier) {
+    const { farcasterFid, walletAddress } = identifier;
+    if (!farcasterFid && !walletAddress) {
+      return false;
+    }
+    const whereCondition = farcasterFid ? and(eq(nftLikes.nftId, nftId), eq(nftLikes.farcasterFid, farcasterFid)) : and(eq(nftLikes.nftId, nftId), eq(nftLikes.walletAddress, walletAddress.toLowerCase()));
+    const [like] = await db.select().from(nftLikes).where(whereCondition);
+    return !!like;
+  }
+  async getUserLikedNFTIds(farcasterFid) {
+    if (!farcasterFid) {
+      return [];
+    }
+    const likes = await db.select({ nftId: nftLikes.nftId }).from(nftLikes).where(eq(nftLikes.farcasterFid, farcasterFid));
+    return likes.map((like) => like.nftId);
+  }
+  // Transaction operations
+  async getTransaction(id) {
+    const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
+    return transaction || void 0;
+  }
+  async getTransactionsByNFT(nftId) {
+    return await db.select().from(transactions).where(eq(transactions.nftId, nftId)).orderBy(sql2`${transactions.createdAt} DESC`);
+  }
+  async getTransactionsByUser(userAddress) {
+    return await db.select().from(transactions).where(sql2`${transactions.fromAddress} = ${userAddress} OR ${transactions.toAddress} = ${userAddress}`).orderBy(sql2`${transactions.createdAt} DESC`);
+  }
+  async getRecentTransactions(limit = 20) {
+    return await db.select({
+      id: transactions.id,
+      nftId: transactions.nftId,
+      fromAddress: transactions.fromAddress,
+      toAddress: transactions.toAddress,
+      transactionType: transactions.transactionType,
+      amount: transactions.amount,
+      platformFee: transactions.platformFee,
+      blockchainTxHash: transactions.blockchainTxHash,
+      createdAt: transactions.createdAt,
+      // Include NFT details
+      nft: {
+        id: nfts.id,
+        title: nfts.title,
+        imageUrl: nfts.imageUrl,
+        location: nfts.location,
+        price: nfts.price
+      }
+    }).from(transactions).leftJoin(nfts, eq(transactions.nftId, nfts.id)).where(sql2`${transactions.transactionType} IN ('purchase', 'sale')`).orderBy(sql2`${transactions.createdAt} DESC`).limit(limit);
+  }
+  async createTransaction(insertTransaction) {
+    const [transaction] = await db.insert(transactions).values(insertTransaction).returning();
+    return transaction;
+  }
+  async getTransactionByHash(blockchainTxHash) {
+    const [tx] = await db.select().from(transactions).where(eq(transactions.blockchainTxHash, blockchainTxHash));
+    return tx || void 0;
+  }
+  // Donation operations
+  async getDonationStats() {
+    const [basicStats] = await db.select({
+      totalDonations: sql2`COUNT(*)::int`,
+      totalAmount: sql2`COALESCE(SUM(${transactions.amount}::numeric), 0)::text`,
+      uniqueDonors: sql2`COUNT(DISTINCT ${transactions.fromAddress})::int`,
+      uniqueRecipients: sql2`COUNT(DISTINCT ${transactions.toAddress})::int`
+    }).from(transactions).where(eq(transactions.transactionType, "donation"));
+    const topRecipients = await db.select({
+      address: transactions.toAddress,
+      totalReceived: sql2`SUM(${transactions.amount}::numeric)::text`,
+      donationCount: sql2`COUNT(*)::int`
+    }).from(transactions).where(eq(transactions.transactionType, "donation")).groupBy(transactions.toAddress).orderBy(sql2`SUM(${transactions.amount}::numeric) DESC`).limit(10);
+    const topNFTs = await db.select({
+      nftId: transactions.nftId,
+      title: nfts.title,
+      totalReceived: sql2`SUM(${transactions.amount}::numeric)::text`,
+      donationCount: sql2`COUNT(*)::int`
+    }).from(transactions).leftJoin(nfts, eq(transactions.nftId, nfts.id)).where(eq(transactions.transactionType, "donation")).groupBy(transactions.nftId, nfts.title).orderBy(sql2`SUM(${transactions.amount}::numeric) DESC`).limit(10);
+    return {
+      totalDonations: basicStats?.totalDonations || 0,
+      totalAmount: basicStats?.totalAmount || "0",
+      uniqueDonors: basicStats?.uniqueDonors || 0,
+      uniqueRecipients: basicStats?.uniqueRecipients || 0,
+      topRecipients: topRecipients.map((r) => ({
+        address: r.address || "",
+        totalReceived: r.totalReceived || "0",
+        donationCount: r.donationCount || 0
+      })),
+      topNFTs: topNFTs.map((n) => ({
+        nftId: n.nftId || "",
+        title: n.title || "Unknown",
+        totalReceived: n.totalReceived || "0",
+        donationCount: n.donationCount || 0
+      }))
+    };
+  }
+  async getDonationsByNFT(nftId) {
+    return await db.select().from(transactions).where(and(
+      eq(transactions.nftId, nftId),
+      eq(transactions.transactionType, "donation")
+    )).orderBy(sql2`${transactions.createdAt} DESC`);
+  }
+  async getDonationsReceivedByWallet(walletAddress) {
+    return await db.select().from(transactions).where(and(
+      eq(transactions.toAddress, walletAddress),
+      eq(transactions.transactionType, "donation")
+    )).orderBy(sql2`${transactions.createdAt} DESC`);
+  }
+  async getNFTTipTotals() {
+    const result = await db.select({
+      nftId: transactions.nftId,
+      totalTips: sql2`SUM(CAST(${transactions.amount} AS DECIMAL) + CAST(${transactions.platformFee} AS DECIMAL))`.as("total_tips")
+    }).from(transactions).where(eq(transactions.transactionType, "donation")).groupBy(transactions.nftId);
+    const tipMap = /* @__PURE__ */ new Map();
+    for (const row of result) {
+      tipMap.set(row.nftId, parseFloat(row.totalTips || "0"));
+    }
+    return tipMap;
+  }
+  // Quest system operations
+  async getUserStats(farcasterFid) {
+    const [stats] = await db.select().from(userStats).where(eq(userStats.farcasterFid, farcasterFid));
+    return stats || void 0;
+  }
+  // Generate unique referral code
+  async generateReferralCode(username) {
+    const maxAttempts = 10;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const prefix = username.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, "");
+      const finalPrefix = prefix.length >= 3 ? prefix : prefix.padEnd(3, "X");
+      const randomDigits = Math.floor(100 + Math.random() * 900);
+      const code = `${finalPrefix}${randomDigits}`;
+      const existing = await db.select().from(userStats).where(eq(userStats.referralCode, code));
+      if (existing.length === 0) {
+        return code;
+      }
+    }
+    const timestamp2 = Date.now().toString().slice(-6);
+    return `REF${timestamp2}`;
+  }
+  async createOrUpdateUserStats(insertStats) {
+    const existing = await this.getUserStats(insertStats.farcasterFid);
+    if (existing) {
+      const referralCode = existing.referralCode || await this.generateReferralCode(insertStats.farcasterUsername);
+      const [updated] = await db.update(userStats).set({
+        ...insertStats,
+        referralCode,
+        // Ensure referralCode is set
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(userStats.farcasterFid, insertStats.farcasterFid)).returning();
+      return updated;
+    } else {
+      const referralCode = insertStats.referralCode || await this.generateReferralCode(insertStats.farcasterUsername);
+      const [created] = await db.insert(userStats).values({
+        ...insertStats,
+        referralCode,
+        referralCount: 0
+      }).returning();
+      return created;
+    }
+  }
+  async updateUserStats(farcasterFid, updates) {
+    const [updated] = await db.update(userStats).set({
+      ...updates,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(userStats.farcasterFid, farcasterFid)).returning();
+    return updated || void 0;
+  }
+  async getQuestCompletions(farcasterFid, date) {
+    if (date) {
+      return await db.select().from(questCompletions).where(
+        and(
+          eq(questCompletions.farcasterFid, farcasterFid),
+          eq(questCompletions.completionDate, date)
+        )
+      );
+    } else {
+      return await db.select().from(questCompletions).where(eq(questCompletions.farcasterFid, farcasterFid));
+    }
+  }
+  async createQuestCompletion(insertCompletion) {
+    const normalizedDate = insertCompletion.completionDate.split("T")[0];
+    const [completion] = await db.insert(questCompletions).values({
+      ...insertCompletion,
+      completionDate: normalizedDate
+    }).returning();
+    return completion;
+  }
+  async getQuestCompletion(farcasterFid, questType, day) {
+    const date = new Date(day * 24 * 60 * 60 * 1e3);
+    const completionDate = date.toISOString().split("T")[0];
+    const [completion] = await db.select().from(questCompletions).where(
+      and(
+        eq(questCompletions.farcasterFid, farcasterFid),
+        eq(questCompletions.questType, questType),
+        eq(questCompletions.completionDate, completionDate)
+      )
+    ).limit(1);
+    return completion || void 0;
+  }
+  async addQuestCompletion(data) {
+    const date = new Date(data.day * 24 * 60 * 60 * 1e3);
+    const normalizedDate = date.toISOString().split("T")[0];
+    return await this.createQuestCompletion({
+      farcasterFid: data.farcasterFid,
+      questType: data.questType,
+      completionDate: normalizedDate,
+      // Use normalized date from blockchain day
+      pointsEarned: data.pointsEarned
+    });
+  }
+  async getLeaderboard(limit = 50) {
+    return await db.select().from(userStats).orderBy(sql2`${userStats.totalPoints} DESC`).limit(limit);
+  }
+  async getWeeklyLeaderboard(limit = 50) {
+    console.log("\u{1F4CA} Fetching weekly leaderboard with actual weeklyPoints (not totalPoints)");
+    return await db.select().from(userStats).where(sql2`${userStats.farcasterUsername} IS NOT NULL AND ${userStats.farcasterUsername} != ''`).orderBy(sql2`${userStats.weeklyPoints} DESC`).limit(limit);
+  }
+  async checkHolderStatus(walletAddress) {
+    if (!walletAddress) {
+      return { isHolder: false, nftCount: 0 };
+    }
+    const userNFTs = await db.select().from(nfts).where(sql2`LOWER(${nfts.ownerAddress}) = LOWER(${walletAddress})`);
+    return {
+      isHolder: userNFTs.length > 0,
+      nftCount: userNFTs.length
+    };
+  }
+  // Multi-wallet operations
+  async addUserWallet(farcasterFid, walletAddress, platform) {
+    const lowerAddress = walletAddress.toLowerCase();
+    const [updated] = await db.update(userWallets).set({ platform }).where(sql2`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${lowerAddress}`).returning();
+    if (updated) {
+      console.log(`\u{1F504} Updated existing wallet platform: ${lowerAddress} \u2192 ${platform}`);
+      return updated;
+    }
+    const [userWallet] = await db.insert(userWallets).values({
+      farcasterFid,
+      walletAddress: lowerAddress,
+      platform
+    }).onConflictDoNothing().returning();
+    if (!userWallet) {
+      const [existing] = await db.select().from(userWallets).where(sql2`${userWallets.farcasterFid} = ${farcasterFid} AND ${userWallets.walletAddress} = ${lowerAddress}`);
+      console.log(`\u2139\uFE0F Returning existing wallet: ${lowerAddress} (${existing?.platform})`);
+      return existing;
+    }
+    console.log(`\u2705 Created new wallet link: ${lowerAddress} \u2192 ${platform}`);
+    return userWallet;
+  }
+  async getUserWallets(farcasterFid) {
+    return await db.select().from(userWallets).where(eq(userWallets.farcasterFid, farcasterFid));
+  }
+  async getLinkedWallets(walletAddress) {
+    return await db.select().from(userWallets).where(eq(userWallets.walletAddress, walletAddress.toLowerCase()));
+  }
+  // Get Farcaster FID and username from wallet address
+  async getFarcasterInfoFromWallet(walletAddress) {
+    try {
+      const [wallet] = await db.select().from(userWallets).where(eq(userWallets.walletAddress, walletAddress.toLowerCase())).limit(1);
+      if (wallet) {
+        const stats = await this.getUserStats(wallet.farcasterFid);
+        if (stats) {
+          return {
+            fid: wallet.farcasterFid,
+            username: stats.farcasterUsername
+          };
+        }
+      }
+      const { getNeynarUserByAddress: getNeynarUserByAddress2 } = await Promise.resolve().then(() => (init_neynar_api(), neynar_api_exports));
+      const neynarResult = await getNeynarUserByAddress2(walletAddress);
+      if (neynarResult) {
+        console.log(`\u2705 Found Farcaster user via Neynar: ${neynarResult.username} (${neynarResult.fid})`);
+        return neynarResult;
+      }
+      return null;
+    } catch (error) {
+      console.error(`\u274C Error fetching Farcaster info for wallet ${walletAddress}:`, error);
+      return null;
+    }
+  }
+  // Fetch verified addresses from Farcaster Hub API
+  async getFarcasterVerifiedAddresses(farcasterFid) {
+    try {
+      console.log(`\u{1F50D} Fetching verified addresses for Farcaster FID ${farcasterFid}`);
+      const hubEndpoints = [
+        "https://hub.farcaster.xyz",
+        "https://hub.pinata.cloud"
+      ];
+      for (const hubUrl of hubEndpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5e3);
+          const response = await fetch(
+            `${hubUrl}/v1/verificationsByFid?fid=${farcasterFid}`,
+            { signal: controller.signal }
+          );
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            console.log(`\u26A0\uFE0F Hub ${hubUrl} error: ${response.status} ${response.statusText}`);
+            continue;
+          }
+          const data = await response.json();
+          const addresses = [];
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages.forEach((message) => {
+              if (message.data?.verificationAddEthAddressBody?.address) {
+                const address = message.data.verificationAddEthAddressBody.address;
+                if (address.startsWith("0x")) {
+                  addresses.push(address.toLowerCase());
+                }
+              }
+            });
+          }
+          const uniqueAddresses = Array.from(new Set(addresses));
+          console.log(`\u2705 Found ${uniqueAddresses.length} verified addresses for FID ${farcasterFid} via ${hubUrl}:`, uniqueAddresses);
+          return uniqueAddresses;
+        } catch (hubError) {
+          console.log(`\u26A0\uFE0F Hub ${hubUrl} failed:`, hubError);
+          continue;
+        }
+      }
+      console.log(`\u26A0\uFE0F All Hub endpoints failed for FID ${farcasterFid}`);
+      return [];
+    } catch (error) {
+      console.error(`\u274C Error fetching verified addresses for FID ${farcasterFid}:`, error);
+      return [];
+    }
+  }
+  async getAllNFTsForUser(farcasterFid) {
+    const [linkedWallets, verifiedAddresses] = await Promise.all([
+      this.getUserWallets(farcasterFid),
+      this.getFarcasterVerifiedAddresses(farcasterFid)
+    ]);
+    const uniqueWallets = /* @__PURE__ */ new Map();
+    linkedWallets.forEach((wallet) => {
+      const address = wallet.walletAddress.toLowerCase();
+      uniqueWallets.set(address, {
+        address,
+        platform: wallet.platform
+      });
+    });
+    verifiedAddresses.forEach((address) => {
+      const lowerAddress = address.toLowerCase();
+      if (!uniqueWallets.has(lowerAddress)) {
+        uniqueWallets.set(lowerAddress, {
+          address: lowerAddress,
+          platform: "farcaster"
+        });
+      }
+    });
+    console.log(`\u{1F50D} Fetching NFTs for Farcaster FID ${farcasterFid}: ${linkedWallets.length} linked + ${verifiedAddresses.length} verified \u2192 ${uniqueWallets.size} unique addresses`);
+    if (uniqueWallets.size === 0) {
+      return [];
+    }
+    const allNFTs = [];
+    for (const [walletAddress, walletInfo] of Array.from(uniqueWallets.entries())) {
+      const nfts2 = await this.getNFTsByOwner(walletInfo.address);
+      const nftsWithSource = nfts2.map((nft) => ({
+        ...nft,
+        sourceWallet: walletInfo.address,
+        sourcePlatform: walletInfo.platform
+      }));
+      allNFTs.push(...nftsWithSource);
+      if (nfts2.length > 0) {
+        console.log(`  \u2705 Wallet ${walletInfo.address} (${walletInfo.platform}): ${nfts2.length} NFTs`);
+      }
+    }
+    return allNFTs;
+  }
+  async checkCombinedHolderStatus(farcasterFid) {
+    const [linkedWallets, verifiedAddresses] = await Promise.all([
+      this.getUserWallets(farcasterFid),
+      this.getFarcasterVerifiedAddresses(farcasterFid)
+    ]);
+    const uniqueWallets = /* @__PURE__ */ new Map();
+    linkedWallets.forEach((wallet) => {
+      const address = wallet.walletAddress.toLowerCase();
+      uniqueWallets.set(address, {
+        address,
+        platform: wallet.platform
+      });
+    });
+    verifiedAddresses.forEach((address) => {
+      const lowerAddress = address.toLowerCase();
+      if (!uniqueWallets.has(lowerAddress)) {
+        uniqueWallets.set(lowerAddress, {
+          address: lowerAddress,
+          platform: "farcaster_verified"
+        });
+      }
+    });
+    const uniqueWalletAddresses = Array.from(uniqueWallets.keys());
+    console.log(`\u{1F50D} Checking holder status for Farcaster FID ${farcasterFid}: ${linkedWallets.length} linked + ${verifiedAddresses.length} verified \u2192 ${uniqueWalletAddresses.length} unique addresses`);
+    let totalNFTCount = 0;
+    for (const walletAddress of uniqueWalletAddresses) {
+      const holderStatus = await this.checkHolderStatus(walletAddress);
+      totalNFTCount += holderStatus.nftCount;
+      if (holderStatus.nftCount > 0) {
+        console.log(`  \u2705 Wallet ${walletAddress}: ${holderStatus.nftCount} NFTs`);
+      }
+    }
+    return {
+      isHolder: totalNFTCount > 0,
+      nftCount: totalNFTCount
+    };
+  }
+  // Atomic quest claiming operation
+  async claimQuestAtomic(data) {
+    return await db.transaction(async (tx) => {
+      const existingCompletions = await tx.select().from(questCompletions).where(
+        and(
+          eq(questCompletions.farcasterFid, data.farcasterFid),
+          eq(questCompletions.questType, data.questType),
+          eq(questCompletions.completionDate, data.completionDate)
+        )
+      );
+      if (existingCompletions.length > 0) {
+        throw new Error(`Quest ${data.questType} already completed today`);
+      }
+      const existingUserStats = await tx.select().from(userStats).where(eq(userStats.farcasterFid, data.farcasterFid));
+      if (existingUserStats.length === 0) {
+        const currentWeekStart = getCurrentWeekStart();
+        const [newUserStats] = await tx.insert(userStats).values({
+          farcasterFid: data.farcasterFid,
+          farcasterUsername: data.farcasterUsername,
+          farcasterPfpUrl: data.farcasterPfpUrl || null,
+          walletAddress: data.walletAddress || null,
+          totalPoints: Math.round(data.pointsEarned * 100),
+          // Convert to fixed-point
+          weeklyPoints: Math.round(data.pointsEarned * 100),
+          // Same as totalPoints for new users
+          currentStreak: data.questType === "daily_checkin" ? 1 : 0,
+          lastCheckIn: data.questType === "daily_checkin" ? /* @__PURE__ */ new Date() : null,
+          lastStreakClaim: null,
+          weeklyResetDate: currentWeekStart
+          // Track current week
+        }).returning();
+        const [questCompletion] = await tx.insert(questCompletions).values({
+          farcasterFid: data.farcasterFid,
+          questType: data.questType,
+          pointsEarned: Math.round(data.pointsEarned * 100),
+          // Convert to fixed-point
+          completionDate: data.completionDate,
+          castUrl: data.castUrl
+          // Include cast URL for social_post quests
+        }).returning();
+        return { userStats: newUserStats, questCompletion };
+      } else {
+        const currentStats = existingUserStats[0];
+        const currentWeekStart = getCurrentWeekStart();
+        const needsWeeklyReset = !currentStats.weeklyResetDate || currentStats.weeklyResetDate !== currentWeekStart;
+        const updates = {
+          totalPoints: currentStats.totalPoints + Math.round(data.pointsEarned * 100),
+          // Add fixed-point values
+          weeklyPoints: needsWeeklyReset ? Math.round(data.pointsEarned * 100) : (currentStats.weeklyPoints || 0) + Math.round(data.pointsEarned * 100),
+          weeklyResetDate: currentWeekStart,
+          // Update to current week
+          farcasterPfpUrl: data.farcasterPfpUrl || currentStats.farcasterPfpUrl,
+          // Update profile picture if provided
+          updatedAt: /* @__PURE__ */ new Date(),
+          ...data.userStatsUpdates
+        };
+        const [updatedStats] = await tx.update(userStats).set(updates).where(eq(userStats.farcasterFid, data.farcasterFid)).returning();
+        const [questCompletion] = await tx.insert(questCompletions).values({
+          farcasterFid: data.farcasterFid,
+          questType: data.questType,
+          pointsEarned: Math.round(data.pointsEarned * 100),
+          // Convert to fixed-point
+          completionDate: data.completionDate,
+          castUrl: data.castUrl
+          // Include cast URL for social_post quests
+        }).returning();
+        return { userStats: updatedStats, questCompletion };
+      }
+    });
+  }
+  // One-time quest: Add Mini App to Farcaster
+  async completeAddMiniAppQuest(data) {
+    const referralCode = await this.generateReferralCode(data.farcasterUsername);
+    return await db.transaction(async (tx) => {
+      const existingUserStats = await tx.select().from(userStats).where(eq(userStats.farcasterFid, data.farcasterFid));
+      if (existingUserStats.length === 0) {
+        const currentWeekStart = getCurrentWeekStart();
+        const [newUserStats] = await tx.insert(userStats).values({
+          farcasterFid: data.farcasterFid,
+          farcasterUsername: data.farcasterUsername,
+          farcasterPfpUrl: data.farcasterPfpUrl || null,
+          totalPoints: data.pointsEarned,
+          weeklyPoints: data.pointsEarned,
+          hasAddedMiniApp: true,
+          weeklyResetDate: currentWeekStart,
+          referralCode,
+          referralCount: 0
+        }).returning();
+        return { totalPoints: newUserStats.totalPoints };
+      } else {
+        const currentStats = existingUserStats[0];
+        const currentWeekStart = getCurrentWeekStart();
+        const needsWeeklyReset = !currentStats.weeklyResetDate || currentStats.weeklyResetDate !== currentWeekStart;
+        const [updatedStats] = await tx.update(userStats).set({
+          totalPoints: currentStats.totalPoints + data.pointsEarned,
+          weeklyPoints: needsWeeklyReset ? data.pointsEarned : (currentStats.weeklyPoints || 0) + data.pointsEarned,
+          weeklyResetDate: currentWeekStart,
+          hasAddedMiniApp: true,
+          farcasterPfpUrl: data.farcasterPfpUrl || currentStats.farcasterPfpUrl,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(userStats.farcasterFid, data.farcasterFid)).returning();
+        return { totalPoints: updatedStats.totalPoints };
+      }
+    });
+  }
+  // Weekly reset and champion tracking
+  async performWeeklyReset() {
+    await db.transaction(async (tx) => {
+      const currentWeekStart = getCurrentWeekStart();
+      const weekEnd = getWeekEnd(currentWeekStart);
+      const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
+      const weekNumber = getWeekNumber();
+      const [sampleUser] = await tx.select().from(userStats).where(sql2`${userStats.weeklyResetDate} IS NOT NULL`).limit(1);
+      if (sampleUser && sampleUser.weeklyResetDate === currentWeekStart) {
+        console.log(`\u2139\uFE0F Weekly reset not needed - still in week starting ${currentWeekStart}`);
+        return;
+      }
+      console.log(`\u{1F504} Performing weekly reset for week starting ${currentWeekStart}`);
+      const [currentChampion] = await tx.select().from(userStats).where(sql2`${userStats.weeklyPoints} > 0 AND ${userStats.farcasterUsername} != 'coinacci' AND ${userStats.farcasterUsername} IS NOT NULL AND ${userStats.farcasterUsername} != ''`).orderBy(sql2`${userStats.weeklyPoints} DESC`).limit(1);
+      if (currentChampion && currentChampion.weeklyPoints > 0) {
+        await tx.insert(weeklyChampions).values({
+          farcasterFid: currentChampion.farcasterFid,
+          farcasterUsername: currentChampion.farcasterUsername,
+          weekStartDate: currentChampion.weeklyResetDate || currentWeekStart,
+          weekEndDate: weekEnd,
+          weeklyPoints: currentChampion.weeklyPoints,
+          weekNumber,
+          year: currentYear
+        }).onConflictDoNothing();
+      }
+      await tx.update(userStats).set({
+        weeklyPoints: 0,
+        weeklyResetDate: currentWeekStart,
+        updatedAt: /* @__PURE__ */ new Date()
+      });
+      console.log(`\u2705 Weekly reset completed for week starting ${currentWeekStart}`);
+    });
+  }
+  async getWeeklyChampions(limit = 10) {
+    return await db.select().from(weeklyChampions).where(sql2`${weeklyChampions.farcasterUsername} != 'coinacci'`).orderBy(sql2`${weeklyChampions.year} DESC, ${weeklyChampions.weekNumber} DESC`).limit(limit);
+  }
+  async getCurrentWeekChampion() {
+    const currentWeekStart = getCurrentWeekStart();
+    const [champion] = await db.select().from(weeklyChampions).where(eq(weeklyChampions.weekStartDate, currentWeekStart)).limit(1);
+    return champion || null;
+  }
+  async backfillWeeklyPointsFromTotal() {
+    return await db.transaction(async (tx) => {
+      const currentWeekStart = getCurrentWeekStart();
+      const usersNeedingBackfill = await tx.select().from(userStats).where(sql2`${userStats.weeklyPoints} = 0 AND ${userStats.totalPoints} > 0`);
+      console.log(`\u{1F50D} Found ${usersNeedingBackfill.length} users needing weekly points backfill`);
+      if (usersNeedingBackfill.length === 0) {
+        console.log("\u{1F4CB} No users needed weekly points backfill (all already migrated)");
+        return {
+          updated: 0,
+          message: "No users needed backfill - all users already have weekly points initialized"
+        };
+      }
+      const result = await tx.update(userStats).set({
+        weeklyPoints: sql2`${userStats.totalPoints}`,
+        // Copy totalPoints to weeklyPoints
+        weeklyResetDate: currentWeekStart,
+        // Mark as migrated to current week
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(sql2`${userStats.weeklyPoints} = 0 AND ${userStats.totalPoints} > 0`);
+      const updatedCount = result.rowCount || 0;
+      console.log(`\u2705 Backfilled weekly points for ${updatedCount} users`);
+      return {
+        updated: updatedCount,
+        message: `Successfully backfilled weekly points for ${updatedCount} users from their total points`
+      };
+    });
+  }
+  // NEW: Sync ALL weekly points with total points (for same week)
+  async syncWeeklyWithAllTime() {
+    return await db.transaction(async (tx) => {
+      const currentWeekStart = getCurrentWeekStart();
+      console.log(`\u{1F504} Syncing ALL weekly points with total points for week starting ${currentWeekStart}`);
+      const result = await tx.update(userStats).set({
+        weeklyPoints: sql2`${userStats.totalPoints}`,
+        // Copy totalPoints to weeklyPoints
+        weeklyResetDate: currentWeekStart,
+        // Mark as current week
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(sql2`${userStats.totalPoints} > 0`);
+      const updatedCount = result.rowCount || 0;
+      console.log(`\u2705 Synced weekly points with all-time for ${updatedCount} users`);
+      return {
+        updated: updatedCount,
+        message: `Successfully synced weekly points with all-time points for ${updatedCount} users`
+      };
+    });
+  }
+  // Backfill referral codes for existing users
+  async backfillReferralCodes() {
+    console.log("\u{1F50D} Starting referral code backfill...");
+    const usersNeedingCodes = await db.select().from(userStats).where(sql2`${userStats.referralCode} IS NULL`);
+    console.log(`\u{1F4CA} Found ${usersNeedingCodes.length} users without referral codes`);
+    if (usersNeedingCodes.length === 0) {
+      return {
+        updated: 0,
+        message: "No users need referral codes - all users already have codes"
+      };
+    }
+    let updatedCount = 0;
+    for (const user of usersNeedingCodes) {
+      try {
+        const referralCode = await this.generateReferralCode(user.farcasterUsername);
+        await db.update(userStats).set({
+          referralCode,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(userStats.farcasterFid, user.farcasterFid));
+        updatedCount++;
+        if (updatedCount % 50 === 0) {
+          console.log(`\u23F3 Progress: ${updatedCount}/${usersNeedingCodes.length} users updated`);
+        }
+      } catch (error) {
+        console.error(`\u274C Failed to generate referral code for ${user.farcasterUsername}:`, error);
+      }
+    }
+    console.log(`\u2705 Backfilled referral codes for ${updatedCount} users`);
+    return {
+      updated: updatedCount,
+      message: `Successfully generated referral codes for ${updatedCount} users`
+    };
+  }
+  // Notification operations
+  async updateUserNotificationToken(farcasterFid, token) {
+    const [user] = await db.update(userStats).set({
+      notificationToken: token,
+      notificationsEnabled: true,
+      // Auto-enable when token is set
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(userStats.farcasterFid, farcasterFid)).returning();
+    console.log(`\u{1F4F1} Updated notification token for user ${farcasterFid}`);
+    return user || void 0;
+  }
+  async enableUserNotifications(farcasterFid, enabled) {
+    const [user] = await db.update(userStats).set({
+      notificationsEnabled: enabled,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(userStats.farcasterFid, farcasterFid)).returning();
+    console.log(`\u{1F514} ${enabled ? "Enabled" : "Disabled"} notifications for user ${farcasterFid}`);
+    return user || void 0;
+  }
+  async getUsersWithNotifications() {
+    return await db.select().from(userStats).where(sql2`${userStats.notificationsEnabled} = true AND ${userStats.notificationToken} IS NOT NULL`);
+  }
+  async createNotificationHistory(notification) {
+    const [history] = await db.insert(notificationHistory).values(notification).returning();
+    console.log(`\u{1F4CB} Created notification history: ${notification.title} to ${notification.recipientCount} users`);
+    return history;
+  }
+  async getNotificationHistory(limit = 20) {
+    return await db.select().from(notificationHistory).orderBy(sql2`${notificationHistory.sentAt} DESC`).limit(limit);
+  }
+  async updateLastNotificationSent(farcasterFids) {
+    if (farcasterFids.length === 0) return 0;
+    const result = await db.update(userStats).set({ lastNotificationSent: /* @__PURE__ */ new Date() }).where(sql2`${userStats.farcasterFid} = ANY(${farcasterFids})`);
+    return result.rowCount || 0;
+  }
+  // Blockchain sync operations
+  async getSyncState(contractAddress) {
+    const [state] = await db.select().from(syncState).where(eq(syncState.contractAddress, contractAddress.toLowerCase()));
+    return state || void 0;
+  }
+  async updateSyncState(contractAddress, lastProcessedBlock) {
+    const existing = await this.getSyncState(contractAddress);
+    if (existing) {
+      const [updated] = await db.update(syncState).set({
+        lastProcessedBlock,
+        lastSyncAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(syncState.contractAddress, contractAddress.toLowerCase())).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(syncState).values({
+        contractAddress: contractAddress.toLowerCase(),
+        lastProcessedBlock,
+        lastSyncAt: /* @__PURE__ */ new Date()
+      }).returning();
+      return created;
+    }
+  }
+  // Referral operations
+  async validateAndApplyReferral(data) {
+    const newReferralCode = await this.generateReferralCode(data.newUserUsername);
+    return await db.transaction(async (tx) => {
+      const [referrer] = await tx.select().from(userStats).where(eq(userStats.referralCode, data.referralCode));
+      if (!referrer) {
+        return {
+          success: false,
+          message: "Invalid referral code"
+        };
+      }
+      if (referrer.farcasterFid === data.newUserFid) {
+        return {
+          success: false,
+          message: "Cannot use your own referral code"
+        };
+      }
+      const [newUser] = await tx.select().from(userStats).where(eq(userStats.farcasterFid, data.newUserFid));
+      if (newUser?.referredByFid) {
+        return {
+          success: false,
+          message: "Referral code already used"
+        };
+      }
+      const currentWeekStart = getCurrentWeekStart();
+      if (!newUser) {
+        await tx.insert(userStats).values({
+          farcasterFid: data.newUserFid,
+          farcasterUsername: data.newUserUsername,
+          farcasterPfpUrl: data.newUserPfpUrl || null,
+          totalPoints: 0,
+          weeklyPoints: 0,
+          referredByFid: referrer.farcasterFid,
+          referralCode: newReferralCode,
+          referralCount: 0,
+          weeklyResetDate: currentWeekStart
+        });
+      } else {
+        await tx.update(userStats).set({
+          referredByFid: referrer.farcasterFid,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(userStats.farcasterFid, data.newUserFid));
+      }
+      await tx.update(userStats).set({
+        referralCount: (referrer.referralCount || 0) + 1,
+        unclaimedReferrals: (referrer.unclaimedReferrals || 0) + 1,
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(userStats.farcasterFid, referrer.farcasterFid));
+      console.log(`\u{1F381} Referral successful: ${data.newUserUsername} referred by ${referrer.farcasterUsername} (unclaimed +1)`);
+      return {
+        success: true,
+        message: `Successfully applied referral code! ${referrer.farcasterUsername} can now claim the reward in Quests.`,
+        referrerPoints: referrer.totalPoints
+      };
+    });
+  }
+  // Pending mints operations
+  async createPendingMint(insertPendingMint) {
+    try {
+      const [pendingMint] = await db.insert(pendingMints).values(insertPendingMint).returning();
+      return pendingMint;
+    } catch (error) {
+      if (error.code === "23505") {
+        console.log(`\u26A0\uFE0F Pending mint already exists for token ${insertPendingMint.tokenId}`);
+        const [existing] = await db.select().from(pendingMints).where(
+          and(
+            eq(pendingMints.contractAddress, insertPendingMint.contractAddress),
+            eq(pendingMints.tokenId, insertPendingMint.tokenId)
+          )
+        );
+        return existing;
+      }
+      throw error;
+    }
+  }
+  async getPendingMints(limit = 100) {
+    return await db.select().from(pendingMints).orderBy(pendingMints.createdAt).limit(limit);
+  }
+  async updatePendingMintRetry(id, error) {
+    const [updated] = await db.update(pendingMints).set({
+      retryCount: sql2`${pendingMints.retryCount} + 1`,
+      lastError: error,
+      lastAttemptAt: /* @__PURE__ */ new Date()
+    }).where(eq(pendingMints.id, id)).returning();
+    return updated || void 0;
+  }
+  async deletePendingMint(id) {
+    await db.delete(pendingMints).where(eq(pendingMints.id, id));
+  }
+  // Badge operations
+  async getAllBadges() {
+    return await db.select().from(badges).orderBy(badges.category, badges.requirement);
+  }
+  async getUserBadges(identifier) {
+    const { farcasterFid, walletAddress } = identifier;
+    let userBadgeRecords = [];
+    if (farcasterFid) {
+      userBadgeRecords = await db.select().from(userBadges).where(eq(userBadges.farcasterFid, farcasterFid));
+    } else if (walletAddress) {
+      userBadgeRecords = await db.select().from(userBadges).where(sql2`LOWER(${userBadges.walletAddress}) = LOWER(${walletAddress})`);
+    }
+    const badgeIds = userBadgeRecords.map((ub) => ub.badgeId);
+    if (badgeIds.length === 0) return [];
+    const earnedBadges = await db.select().from(badges).where(sql2`${badges.id} IN (${sql2.join(badgeIds.map((id) => sql2`${id}`), sql2`, `)})`);
+    return earnedBadges.map((b) => b.code);
+  }
+  async awardBadge(badgeCode, identifier) {
+    const { farcasterFid, walletAddress } = identifier;
+    const [badge] = await db.select().from(badges).where(eq(badges.code, badgeCode));
+    if (!badge) return void 0;
+    try {
+      const [userBadge] = await db.insert(userBadges).values({
+        farcasterFid: farcasterFid || "",
+        walletAddress: walletAddress || null,
+        badgeId: badge.id
+      }).returning();
+      return userBadge;
+    } catch (error) {
+      if (error.code === "23505") {
+        return void 0;
+      }
+      throw error;
+    }
+  }
+};
+var storage = new DatabaseStorage();
+
+// server/routes.ts
 import { sql as sql4 } from "drizzle-orm";
+
+// server/blockchain.ts
+import { ethers } from "ethers";
+var BASE_RPC_URLS = [
+  "https://base-rpc.publicnode.com",
+  // Most reliable free option (542M+ requests)
+  "https://rpc.ankr.com/base",
+  // 30 req/sec free tier  
+  "https://base.llamarpc.com",
+  "https://base.gateway.tenderly.co",
+  "https://mainnet.base.org"
+  // Official as last resort
+];
+var currentRpcIndex = 0;
+var MORALIS_API_URL = "https://deep-index.moralis.io/api/v2";
+var MORALIS_API_KEY = process.env.MORALIS_API_KEY || "";
+var BASESCAN_API_URL = "https://api.basescan.org/api";
+var BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
+var NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+var USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+var MARKETPLACE_CONTRACT_ADDRESS = "0x480549919B9e8Dd1DA1a1a9644Fb3F8A115F2c2c";
+var QUEST_MANAGER_ADDRESS = "0x30eDb4493fA7c0F035adc75bA6381E2efFFeCa6c";
+var PLATFORM_WALLET = "0x7CDe7822456AAC667Df0420cD048295b92704084";
+var TRAVEL_NFT_ABI = [
+  "function ownerOf(uint256 tokenId) view returns (address)",
+  "function tokenURI(uint256 tokenId) view returns (string)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function getApproved(uint256 tokenId) view returns (address)",
+  "function isApprovedForAll(address owner, address operator) view returns (bool)",
+  "function transferFrom(address from, address to, uint256 tokenId)",
+  "function safeTransferFrom(address from, address to, uint256 tokenId)",
+  "function approve(address to, uint256 tokenId)",
+  "function setApprovalForAll(address operator, bool approved)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+];
+var MARKETPLACE_ABI = [
+  "function listNFT(uint256 tokenId, uint256 price)",
+  "function cancelListing(uint256 tokenId)",
+  "function updatePrice(uint256 tokenId, uint256 newPrice)",
+  "function purchaseNFT(uint256 tokenId)",
+  "function getListing(uint256 tokenId) view returns (tuple(address seller, uint256 price, bool active))",
+  "function isListed(uint256 tokenId) view returns (bool)",
+  "function getSellerVolume(address seller) view returns (uint256)",
+  "function totalVolume() view returns (uint256)",
+  "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price, uint256 timestamp)",
+  "event NFTUnlisted(uint256 indexed tokenId, address indexed seller, uint256 timestamp)",
+  "event PriceUpdated(uint256 indexed tokenId, address indexed seller, uint256 oldPrice, uint256 newPrice, uint256 timestamp)",
+  "event NFTPurchased(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee, uint256 timestamp)"
+];
+var ERC20_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)"
+];
+var QUEST_MANAGER_ABI = [
+  "event QuestCompleted(address indexed user, uint256 indexed questId, uint256 fee, uint256 timestamp, uint256 day)"
+];
+async function withRetry(fn, maxRetries = 3) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (error && typeof error === "object" && "info" in error) {
+        const info = error.info;
+        if (info?.error?.code === -32016 || info?.error?.message?.includes("rate limit")) {
+          console.log(`\u26A0\uFE0F Rate limit hit (attempt ${i + 1}/${maxRetries}), waiting...`);
+          await new Promise((resolve) => setTimeout(resolve, 1e3 + i * 500));
+          continue;
+        }
+      }
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1e3));
+      }
+    }
+  }
+  throw lastError;
+}
+var currentProvider;
+var currentNftContract;
+var currentMarketplaceContract;
+var currentUsdcContract;
+var currentQuestManagerContract;
+function initializeProvider(rpcUrl) {
+  console.log(`\u{1F50C} Initializing RPC provider: ${rpcUrl}`);
+  const provider2 = new ethers.JsonRpcProvider(rpcUrl);
+  return {
+    provider: provider2,
+    nftContract: new ethers.Contract(NFT_CONTRACT_ADDRESS, TRAVEL_NFT_ABI, provider2),
+    marketplaceContract: new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider2),
+    usdcContract: new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider2),
+    questManagerContract: new ethers.Contract(QUEST_MANAGER_ADDRESS, QUEST_MANAGER_ABI, provider2)
+  };
+}
+function rotateRpcProvider() {
+  const nextIndex = (currentRpcIndex + 1) % BASE_RPC_URLS.length;
+  currentRpcIndex = nextIndex;
+  const nextUrl = BASE_RPC_URLS[currentRpcIndex];
+  console.log(`\u{1F504} Rotating to RPC provider [${currentRpcIndex}]: ${nextUrl}`);
+  const { provider: provider2, nftContract: nftContract2, marketplaceContract: marketplaceContract2, usdcContract: usdcContract2, questManagerContract } = initializeProvider(nextUrl);
+  currentProvider = provider2;
+  currentNftContract = nftContract2;
+  currentMarketplaceContract = marketplaceContract2;
+  currentUsdcContract = usdcContract2;
+  currentQuestManagerContract = questManagerContract;
+  return true;
+}
+var initial = initializeProvider(BASE_RPC_URLS[0]);
+currentProvider = initial.provider;
+currentNftContract = initial.nftContract;
+currentMarketplaceContract = initial.marketplaceContract;
+currentUsdcContract = initial.usdcContract;
+currentQuestManagerContract = initial.questManagerContract;
+var provider = currentProvider;
+var nftContract = currentNftContract;
+var marketplaceContract = currentMarketplaceContract;
+var usdcContract = currentUsdcContract;
+function normalizeUri(uri) {
+  if (!uri) return [];
+  if (uri.startsWith("ipfs://")) {
+    const cid = uri.replace("ipfs://", "");
+    return [
+      `https://ipfs.io/ipfs/${cid}`,
+      // Most reliable public gateway
+      `https://cloudflare-ipfs.com/ipfs/${cid}`,
+      // Cloudflare CDN - very fast
+      `https://dweb.link/ipfs/${cid}`,
+      // Protocol Labs gateway
+      `https://4everland.io/ipfs/${cid}`,
+      // Alternative reliable gateway
+      `https://gateway.pinata.cloud/ipfs/${cid}`
+      // Pinata (may be rate limited)
+    ];
+  }
+  if (uri.includes("/ipfs/")) {
+    const hash = uri.split("/ipfs/")[1];
+    if (hash) {
+      const cleanHash = hash.split("?")[0];
+      return [
+        uri,
+        // Keep original first (may be fastest if not rate limited)
+        `https://ipfs.io/ipfs/${cleanHash}`,
+        // Most reliable
+        `https://cloudflare-ipfs.com/ipfs/${cleanHash}`,
+        // Fast CDN
+        `https://dweb.link/ipfs/${cleanHash}`,
+        // Protocol Labs
+        `https://4everland.io/ipfs/${cleanHash}`
+        // Alternative
+      ];
+    }
+  }
+  if (uri.startsWith("ar://")) {
+    const id = uri.replace("ar://", "");
+    return [`https://arweave.net/${id}`];
+  }
+  if (uri.startsWith("data:application/json;base64,")) {
+    try {
+      const base64 = uri.split(",")[1];
+      const jsonString = Buffer.from(base64, "base64").toString();
+      return [`data:${jsonString}`];
+    } catch (e) {
+      console.error("Failed to decode base64 JSON:", e);
+      return [];
+    }
+  }
+  if (uri.startsWith("http")) {
+    return [uri];
+  }
+  return [];
+}
+function extractCoordinates(metadata) {
+  if (!metadata || !metadata.attributes) {
+    return { latitude: null, longitude: null };
+  }
+  let latitude = null;
+  let longitude = null;
+  const coordTraits = ["latitude", "lat", "longitude", "lng", "lon", "coordinates", "coord", "gps", "geo"];
+  for (const attr of metadata.attributes) {
+    if (!attr.trait_type || !attr.value) continue;
+    const traitLower = attr.trait_type.toLowerCase();
+    const value = String(attr.value).trim();
+    if (traitLower.includes("latitude")) {
+      latitude = parseCoordinate(value);
+    } else if (traitLower === "lat") {
+      latitude = parseCoordinate(value);
+    }
+    if (traitLower.includes("longitude")) {
+      longitude = parseCoordinate(value);
+    } else if (traitLower === "lng" || traitLower === "lon") {
+      longitude = parseCoordinate(value);
+    }
+    if (traitLower.includes("coordinates") || traitLower.includes("coord") || traitLower.includes("gps")) {
+      const coords = parseCoordinatePair(value);
+      if (coords) {
+        latitude = coords.latitude;
+        longitude = coords.longitude;
+      }
+    }
+  }
+  return { latitude, longitude };
+}
+function parseCoordinate(value) {
+  if (!value) return null;
+  const cleaned = value.replace(/[^\d\.\-,]/g, "");
+  const num = parseFloat(cleaned);
+  if (!isNaN(num) && num !== 0) {
+    return num.toString();
+  }
+  return null;
+}
+function parseCoordinatePair(value) {
+  if (!value) return null;
+  const parts = value.split(",").map((p) => p.trim());
+  if (parts.length === 2) {
+    const lat = parseCoordinate(parts[0]);
+    const lng = parseCoordinate(parts[1]);
+    if (lat && lng) {
+      return { latitude: lat, longitude: lng };
+    }
+  }
+  return null;
+}
+async function fetchWithGateways(uris) {
+  let lastError = null;
+  for (let i = 0; i < uris.length; i++) {
+    const uri = uris[i];
+    try {
+      if (uri.startsWith("data:")) {
+        return JSON.parse(uri.replace("data:", ""));
+      }
+      console.log(`\u{1F517} Trying gateway ${i + 1}/${uris.length}: ${uri}`);
+      const controller = new AbortController();
+      const timeout = i === 0 ? 8e3 : i === 1 ? 12e3 : 15e3;
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const response = await fetch(uri, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "TravelMint/1.0",
+          "Accept": "application/json, text/plain, */*"
+        }
+      });
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          console.log(`\u2705 Gateway ${i + 1} success: JSON response`);
+          return await response.json();
+        } else {
+          console.log(`\u2705 Gateway ${i + 1} success: Text response`);
+          const text2 = await response.text();
+          if (text2.trim().startsWith("{") || text2.trim().startsWith("[")) {
+            try {
+              return JSON.parse(text2);
+            } catch {
+              return text2;
+            }
+          }
+          return text2;
+        }
+      } else {
+        console.log(`\u26A0\uFE0F Gateway ${i + 1} HTTP error: ${response.status} ${response.statusText}`);
+        if (response.status === 429) {
+          console.log(`\u26A0\uFE0F Gateway ${i + 1} rate limited, trying next...`);
+        }
+        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.log(`\u26A0\uFE0F Gateway ${i + 1} failed: ${errorMsg}`);
+      lastError = error instanceof Error ? error : new Error(errorMsg);
+      if (errorMsg.includes("aborted") || errorMsg.includes("timeout")) {
+        continue;
+      }
+    }
+  }
+  throw lastError || new Error(`All ${uris.length} gateways failed`);
+}
+var BlockchainService = class {
+  // Get specific NFT using Moralis API - much faster and more reliable
+  async getMoralisNFT(tokenId) {
+    try {
+      if (!MORALIS_API_KEY) {
+        console.log("\u26A0\uFE0F No Moralis API key - falling back to RPC");
+        return null;
+      }
+      console.log(`\u{1F680} Fetching Token ${tokenId} using Moralis API...`);
+      const moralisUrl = `${MORALIS_API_URL}/nft/${NFT_CONTRACT_ADDRESS}/${tokenId}?chain=base&format=decimal`;
+      const response = await fetch(moralisUrl, {
+        headers: {
+          "X-API-Key": MORALIS_API_KEY,
+          "Content-Type": "application/json"
+        }
+      });
+      if (!response.ok) {
+        console.log(`\u274C Moralis API error for Token ${tokenId}:`, response.status);
+        return null;
+      }
+      const nftData = await response.json();
+      if (!nftData.owner_of) {
+        console.log(`\u274C Token ${tokenId} has no owner (doesn't exist)`);
+        return null;
+      }
+      console.log(`\u2705 SUCCESS! Token ${tokenId} owner: ${nftData.owner_of}, tokenURI: ${nftData.token_uri}`);
+      let metadata = null;
+      if (nftData.token_uri) {
+        try {
+          metadata = await fetchWithGateways([nftData.token_uri]);
+          console.log(`\u2705 Parsed metadata for token ${tokenId}:`, metadata);
+        } catch (error) {
+          console.log(`\u274C Error fetching metadata for token ${tokenId}:`, error);
+        }
+      }
+      return {
+        tokenId,
+        owner: nftData.owner_of.toLowerCase(),
+        tokenURI: nftData.token_uri || "",
+        metadata
+      };
+    } catch (error) {
+      console.log(`\u274C Moralis API error for Token ${tokenId}:`, error);
+      return null;
+    }
+  }
+  // Get all NFTs from the contract using Moralis API for Transfer events
+  async getAllNFTs() {
+    try {
+      console.log("\u{1F517} Fetching NFTs using parallel scanning (RPC + Moralis)...");
+      const scanPromises = [];
+      scanPromises.push(this.tryKnownTokenIds());
+      if (MORALIS_API_KEY) {
+        console.log("\u{1F680} Starting parallel Moralis API call for Token 47...");
+        scanPromises.push(this.getMoralisNFT("47"));
+      } else {
+        scanPromises.push(Promise.resolve(null));
+      }
+      const [rpcResults, moralisToken47] = await Promise.allSettled(scanPromises);
+      const results = rpcResults.status === "fulfilled" ? rpcResults.value : [];
+      if (moralisToken47.status === "fulfilled" && moralisToken47.value) {
+        console.log("\u{1F389} SUCCESS! Token 47 found via Moralis API!");
+        const exists = results.some((nft) => nft.tokenId === "47");
+        if (!exists) {
+          console.log("\u2705 Adding Token 47 to results list");
+          results.push(moralisToken47.value);
+        }
+      }
+      console.log(`\u{1F4CA} Total NFTs found: ${results.length}`);
+      return results;
+    } catch (error) {
+      console.error("Error in getAllNFTs:", error);
+      return await this.tryKnownTokenIds();
+    }
+  }
+  // Fallback method to try known token IDs
+  async tryKnownTokenIds() {
+    console.log("\u{1F504} Trying known token IDs as fallback...");
+    const nfts2 = [];
+    let consecutiveFailures = 0;
+    for (let tokenId = 1; tokenId <= 1e3; tokenId++) {
+      try {
+        const owner = await withRetry(() => nftContract.ownerOf(tokenId));
+        const tokenURI = await nftContract.tokenURI(tokenId);
+        consecutiveFailures = 0;
+        let metadata = null;
+        const uris = normalizeUri(tokenURI);
+        if (uris.length > 0) {
+          try {
+            console.log(`\u{1F4E5} Fetching metadata from tokenURI: ${tokenURI}`);
+            metadata = await Promise.race([
+              fetchWithGateways(uris),
+              new Promise(
+                (_, reject) => setTimeout(() => reject(new Error("Metadata fetch timeout")), 3e3)
+              )
+            ]);
+            console.log(`\u2705 Parsed metadata for token ${tokenId}:`, metadata);
+          } catch (fetchError) {
+            console.log(`\u274C Error fetching metadata for token ${tokenId}:`, fetchError);
+          }
+        } else {
+          console.log(`\u26A0\uFE0F Unsupported tokenURI format for token ${tokenId}: ${tokenURI}`);
+        }
+        nfts2.push({
+          tokenId: tokenId.toString(),
+          owner: owner.toLowerCase(),
+          tokenURI,
+          metadata
+        });
+        console.log(`\u2705 Found NFT #${tokenId} owned by ${owner}`);
+      } catch (error) {
+        console.log(`\u274C Error checking token ${tokenId}:`, error.reason || error.message || error);
+        if (error.reason === "ERC721: invalid token ID" || error.code === "CALL_EXCEPTION" && !error.message?.includes("missing revert data") || error.message?.includes("invalid token ID")) {
+          consecutiveFailures++;
+          console.log(`\u26A0\uFE0F Token ${tokenId} doesn't exist (${consecutiveFailures} consecutive failures)`);
+        } else {
+          console.log(`\u{1F504} Rate limit/network error for token ${tokenId}, continuing without counting failure...`);
+        }
+        if (consecutiveFailures >= 15) {
+          console.log(`\u{1F6D1} Stopping search after ${consecutiveFailures} consecutive "token not found" failures at token ${tokenId}`);
+          break;
+        }
+      }
+    }
+    console.log(`Found ${nfts2.length} NFTs using fallback method`);
+    return nfts2;
+  }
+  // Get NFTs owned by a specific address
+  async getNFTsByOwner(ownerAddress) {
+    try {
+      ownerAddress = ownerAddress.toLowerCase();
+      console.log(`\u{1F517} Fetching NFTs for owner: ${ownerAddress}`);
+      const allNFTs = await this.getAllNFTs();
+      const ownerNFTs = allNFTs.filter((nft) => nft.owner === ownerAddress);
+      console.log(`\u2705 Owner ${ownerAddress} has ${ownerNFTs.length} NFTs`);
+      return ownerNFTs;
+    } catch (error) {
+      console.error(`Error fetching NFTs for owner ${ownerAddress}:`, error);
+      return [];
+    }
+  }
+  // Get a specific NFT by token ID
+  async getNFTByTokenId(tokenId) {
+    try {
+      const owner = await nftContract.ownerOf(tokenId);
+      const tokenURI = await nftContract.tokenURI(tokenId);
+      let metadata = null;
+      if (tokenURI && tokenURI.startsWith("http")) {
+        try {
+          const response = await fetch(tokenURI);
+          if (response.ok) {
+            metadata = await response.json();
+          }
+        } catch (e) {
+          console.log(`Failed to fetch metadata for token ${tokenId}:`, e);
+        }
+      }
+      return {
+        tokenId,
+        owner: owner.toLowerCase(),
+        tokenURI,
+        metadata
+      };
+    } catch (error) {
+      console.error(`Error fetching NFT ${tokenId}:`, error);
+      return null;
+    }
+  }
+  // Fixed locations for specific NFTs - these will never be changed by metadata updates
+  getLocationOverride(tokenId, nftTitle) {
+    const locationOverrides = {
+      // Baghdad NFT -> Iraq Baghdad
+      "106": { location: "Baghdad", latitude: "33.3152", longitude: "44.3661" },
+      // Vietnam Forest NFT -> Vietnam  
+      "89": { location: "Ho Chi Minh City", latitude: "10.8231", longitude: "106.6297" },
+      // Dubai Nights NFT -> Dubai
+      "48": { location: "Dubai", latitude: "25.2048", longitude: "55.2708" },
+      // Egypt Night NFT -> Cairo
+      "44": { location: "Cairo", latitude: "30.0444", longitude: "31.2357" },
+      // Georgia Moments NFT -> Tbilisi
+      "41": { location: "Tbilisi", latitude: "41.7151", longitude: "44.8271" }
+    };
+    return locationOverrides[tokenId] || null;
+  }
+  // Convert blockchain NFT to database format
+  async blockchainNFTToDBFormat(blockchainNFT) {
+    const metadata = blockchainNFT.metadata;
+    const override = this.getLocationOverride(blockchainNFT.tokenId, metadata?.name || "");
+    let location;
+    let latitude;
+    let longitude;
+    if (override) {
+      location = override.location;
+      latitude = override.latitude;
+      longitude = override.longitude;
+      console.log(`\u{1F512} Using fixed location for NFT #${blockchainNFT.tokenId}: ${location} at ${latitude}, ${longitude}`);
+    } else {
+      location = this.extractLocationFromMetadata(metadata);
+      const coords = extractCoordinates(metadata);
+      latitude = coords.latitude || void 0;
+      longitude = coords.longitude || void 0;
+    }
+    let imageUrl = await this.extractImageUrl(metadata, blockchainNFT.tokenURI);
+    if (blockchainNFT.tokenId === "1") {
+      imageUrl = "/attached_assets/IMG_4085_1756446465520.jpeg";
+    } else if (blockchainNFT.tokenId === "2") {
+      imageUrl = "/attached_assets/IMG_4086_1756446465520.jpeg";
+    } else if (blockchainNFT.tokenId === "37") {
+      imageUrl = "/attached_assets/IMG_4202_1756888569757.jpeg";
+    } else if (blockchainNFT.tokenId === "38") {
+      imageUrl = "/attached_assets/IMG_4202_1756890858921.jpeg";
+    }
+    return {
+      // Remove hard-coded id - let UUID default apply to prevent duplicate key errors
+      title: metadata?.name || `Travel NFT #${blockchainNFT.tokenId}`,
+      description: metadata?.description || "A beautiful travel memory captured on the blockchain.",
+      imageUrl,
+      location,
+      latitude: latitude || void 0,
+      longitude: longitude || void 0,
+      category: this.extractCategoryFromMetadata(metadata) || "travel",
+      price: "1.0",
+      // Fixed mint price
+      isForSale: 0,
+      creatorAddress: blockchainNFT.owner,
+      // Assume current owner is creator for now
+      ownerAddress: blockchainNFT.owner,
+      contractAddress: NFT_CONTRACT_ADDRESS,
+      mintPrice: "1.0",
+      royaltyPercentage: "5.0",
+      tokenId: blockchainNFT.tokenId,
+      transactionHash: null,
+      // Would need additional lookup to get mint transaction
+      metadata: JSON.stringify(metadata || {})
+    };
+  }
+  // URL validation helper to ensure image URLs point to actual images, not metadata
+  async validateAndFixImageUrl(url) {
+    try {
+      console.log(`\u{1F50D} Validating image URL: ${url.substring(0, 50)}...`);
+      const response = await fetch(url, { method: "HEAD" });
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
+        console.log("\u{1F4C4} Detected metadata URL, extracting actual image...");
+        const metadataResponse = await fetch(url);
+        const metadata = await metadataResponse.json();
+        if (metadata.image) {
+          console.log(`\u2705 Extracted image URL: ${metadata.image.substring(0, 50)}...`);
+          return metadata.image;
+        }
+      }
+      if (contentType?.startsWith("image/")) {
+        console.log("\u2705 Valid image URL confirmed");
+        return url;
+      }
+      console.log(`\u26A0\uFE0F URL not an image (${contentType}), keeping original`);
+      return url;
+    } catch (error) {
+      console.log("\u26A0\uFE0F Failed to validate URL, keeping original:", error);
+      return url;
+    }
+  }
+  // Extract proper image URL from metadata or tokenURI
+  async extractImageUrl(metadata, tokenURI) {
+    if (metadata?.image) {
+      return await this.validateAndFixImageUrl(metadata.image);
+    }
+    if (!tokenURI) {
+      return "";
+    }
+    try {
+      if (tokenURI.startsWith("http") && (tokenURI.includes("ipfs") || tokenURI.includes("metadata") || tokenURI.includes("json") || tokenURI.startsWith("https://gateway.pinata.cloud/ipfs/bafkrei"))) {
+        console.log(`\u{1F50D} Checking if ${tokenURI} contains metadata with image URL...`);
+        const response = await fetch(tokenURI);
+        if (response.ok) {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const fetchedMetadata = await response.json();
+            if (fetchedMetadata?.image) {
+              console.log(`\u2705 Found real image URL in metadata: ${fetchedMetadata.image}`);
+              return fetchedMetadata.image;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`\u26A0\uFE0F Failed to fetch potential metadata URL ${tokenURI}:`, error);
+    }
+    return tokenURI;
+  }
+  extractLocationFromMetadata(metadata) {
+    if (!metadata || !metadata.attributes) return "Unknown Location";
+    const locationAttr = metadata.attributes.find(
+      (attr) => attr.trait_type?.toLowerCase().includes("location") || attr.trait_type?.toLowerCase().includes("city")
+    );
+    return locationAttr?.value || "Unknown Location";
+  }
+  extractLatitudeFromMetadata(metadata) {
+    if (!metadata || !metadata.attributes) return null;
+    const latAttr = metadata.attributes.find(
+      (attr) => attr.trait_type?.toLowerCase().includes("latitude") || attr.trait_type?.toLowerCase().includes("lat")
+    );
+    if (latAttr?.value) {
+      return latAttr.value;
+    }
+    const locationAttr = metadata.attributes.find(
+      (attr) => attr.trait_type?.toLowerCase().includes("location")
+    );
+    if (locationAttr?.value?.toLowerCase() === "tuzla") {
+      return "40.8256";
+    } else if (locationAttr?.value?.toLowerCase() === "kadikoy" || locationAttr?.value?.toLowerCase() === "kad\u0131k\xF6y") {
+      return "40.9833";
+    }
+    return null;
+  }
+  extractLongitudeFromMetadata(metadata) {
+    if (!metadata || !metadata.attributes) return null;
+    const lngAttr = metadata.attributes.find(
+      (attr) => attr.trait_type?.toLowerCase().includes("longitude") || attr.trait_type?.toLowerCase().includes("lng") || attr.trait_type?.toLowerCase().includes("lon")
+    );
+    if (lngAttr?.value) {
+      return lngAttr.value;
+    }
+    const locationAttr = metadata.attributes.find(
+      (attr) => attr.trait_type?.toLowerCase().includes("location")
+    );
+    if (locationAttr?.value?.toLowerCase() === "tuzla") {
+      return "29.2997";
+    } else if (locationAttr?.value?.toLowerCase() === "kadikoy" || locationAttr?.value?.toLowerCase() === "kad\u0131k\xF6y") {
+      return "29.0167";
+    }
+    return null;
+  }
+  extractCategoryFromMetadata(metadata) {
+    if (!metadata || !metadata.attributes) return null;
+    const categoryAttr = metadata.attributes.find(
+      (attr) => attr.trait_type?.toLowerCase().includes("category") || attr.trait_type?.toLowerCase().includes("type")
+    );
+    return categoryAttr?.value || null;
+  }
+  // Check USDC balance for an address
+  async getUSDCBalance(address) {
+    return withRetry(async () => {
+      const balance = await usdcContract.balanceOf(address);
+      return ethers.formatUnits(balance, 6);
+    }).catch((error) => {
+      console.error(`Error fetching USDC balance for ${address}:`, error);
+      return "0";
+    });
+  }
+  // Check USDC allowance for NFT purchases
+  async getUSDCAllowance(owner, spender) {
+    return withRetry(async () => {
+      const allowance = await usdcContract.allowance(owner, spender);
+      return ethers.formatUnits(allowance, 6);
+    }).catch((error) => {
+      console.error(`Error fetching USDC allowance:`, error);
+      return "0";
+    });
+  }
+  // 🔐 SECURE: Generate marketplace purchase transaction (NO PRICE MANIPULATION!)
+  // This uses the new secure marketplace contract instead of the vulnerable NFT contract
+  async generatePurchaseTransaction(tokenId, buyerAddress) {
+    try {
+      if (!tokenId || !buyerAddress) {
+        throw new Error("Missing required parameters for purchase");
+      }
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        throw new Error("NFT is not listed for sale");
+      }
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      if (currentOwner.toLowerCase() !== listing.seller.toLowerCase()) {
+        throw new Error("NFT owner doesn't match marketplace listing");
+      }
+      const price = ethers.formatUnits(listing.price, 6);
+      const requiredAmount = parseFloat(price);
+      const buyerBalance = await this.getUSDCBalance(buyerAddress);
+      if (parseFloat(buyerBalance) < requiredAmount) {
+        throw new Error(`Insufficient USDC balance. Required: ${requiredAmount} USDC, Available: ${buyerBalance} USDC`);
+      }
+      const allowance = await this.getUSDCAllowance(buyerAddress, MARKETPLACE_CONTRACT_ADDRESS);
+      if (parseFloat(allowance) < requiredAmount) {
+        console.log(`\u26A0\uFE0F Insufficient USDC allowance. Required: ${requiredAmount} USDC, Allowed: ${allowance} USDC`);
+      }
+      const platformFee = listing.price * BigInt(5) / BigInt(100);
+      const sellerAmount = listing.price - platformFee;
+      console.log(`\u{1F4B0} Secure purchase: ${price} USDC total (Seller: ${(Number(sellerAmount) / 1e6).toFixed(6)}, Platform: ${(Number(platformFee) / 1e6).toFixed(6)})`);
+      return {
+        success: true,
+        // 🔐 SECURE: Use marketplace contract with NO price parameter!
+        transaction: {
+          type: "PURCHASE_NFT_MARKETPLACE",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("purchaseNFT", [
+            tokenId
+            // Only tokenId - price comes from secure listing!
+          ]),
+          description: `Secure purchase of NFT #${tokenId} for ${price} USDC via marketplace`
+        },
+        // Transaction details for confirmation
+        tokenId,
+        buyerAddress,
+        seller: listing.seller,
+        priceUSDC: price,
+        sellerAmount: (Number(sellerAmount) / 1e6).toFixed(6),
+        platformFee: (Number(platformFee) / 1e6).toFixed(6),
+        // USDC approval transaction (if needed)
+        approvalData: {
+          to: USDC_CONTRACT_ADDRESS,
+          data: usdcContract.interface.encodeFunctionData("approve", [
+            MARKETPLACE_CONTRACT_ADDRESS,
+            // Approve marketplace, not NFT contract!
+            listing.price
+          ]),
+          description: `Approve ${price} USDC spending for secure marketplace purchase`
+        }
+      };
+    } catch (error) {
+      console.error("Error generating secure purchase transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate secure purchase transaction"
+      };
+    }
+  }
+  // Verify NFT purchase transaction
+  async verifyPurchaseTransaction(transactionHash, expectedTokenId, expectedBuyer) {
+    try {
+      console.log(`\u{1F50D} Verifying purchase transaction: ${transactionHash}`);
+      const receipt = await withRetry(() => provider.getTransactionReceipt(transactionHash));
+      if (!receipt) {
+        return { success: false, error: "Transaction not found or still pending" };
+      }
+      if (receipt.status !== 1) {
+        return { success: false, error: "Transaction failed on blockchain" };
+      }
+      if (receipt.to?.toLowerCase() !== MARKETPLACE_CONTRACT_ADDRESS.toLowerCase()) {
+        return { success: false, error: "Transaction was not sent to the marketplace contract" };
+      }
+      const transaction = await withRetry(() => provider.getTransaction(transactionHash));
+      if (!transaction || !transaction.data) {
+        return { success: false, error: "Could not retrieve transaction data" };
+      }
+      try {
+        const decodedData = marketplaceContract.interface.parseTransaction({ data: transaction.data });
+        if (decodedData?.name !== "purchaseNFT") {
+          return { success: false, error: `Transaction called ${decodedData?.name || "unknown"} function, not purchaseNFT` };
+        }
+        const transactionTokenId = decodedData.args[0].toString();
+        if (transactionTokenId !== expectedTokenId) {
+          return { success: false, error: `Token ID mismatch: expected ${expectedTokenId}, got ${transactionTokenId}` };
+        }
+        if (transaction.from?.toLowerCase() !== expectedBuyer.toLowerCase()) {
+          return { success: false, error: `Buyer mismatch: expected ${expectedBuyer}, got ${transaction.from}` };
+        }
+        console.log(`\u2705 Purchase transaction verified: NFT #${transactionTokenId} purchased by ${transaction.from}`);
+        return {
+          success: true,
+          details: {
+            tokenId: transactionTokenId,
+            buyer: transaction.from,
+            price: decodedData.args[1].toString(),
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed.toString()
+          }
+        };
+      } catch (parseError) {
+        return { success: false, error: "Could not parse transaction data - may not be a valid NFT purchase" };
+      }
+    } catch (error) {
+      console.error("Error verifying purchase transaction:", error);
+      return { success: false, error: error.message || "Failed to verify transaction" };
+    }
+  }
+  // Check if wallet made any transaction on Base network today
+  async hasBaseTransactionToday(walletAddress) {
+    try {
+      if (!BASESCAN_API_KEY) {
+        console.log("\u26A0\uFE0F No Basescan API key - cannot verify Base transactions");
+        return false;
+      }
+      console.log(`\u{1F50D} Checking Base transactions for wallet: ${walletAddress}`);
+      const today = /* @__PURE__ */ new Date();
+      const todayStartUnix = Math.floor(new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1e3);
+      const nowUnix = Math.floor(Date.now() / 1e3);
+      const url = `${BASESCAN_API_URL}?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${BASESCAN_API_KEY}`;
+      console.log(`\u{1F4E1} Fetching transactions from Basescan...`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log(`\u274C Basescan API error:`, response.status);
+        return false;
+      }
+      const data = await response.json();
+      if (data.status !== "1") {
+        console.log(`\u274C Basescan API returned error:`, data.message);
+        return false;
+      }
+      const todayTransactions = data.result.filter((tx) => {
+        const txTimestamp = parseInt(tx.timeStamp);
+        return txTimestamp >= todayStartUnix && txTimestamp <= nowUnix;
+      });
+      const hasTransaction = todayTransactions.length > 0;
+      if (hasTransaction) {
+        console.log(`\u2705 Found ${todayTransactions.length} Base transaction(s) today for ${walletAddress}`);
+        console.log(`\u{1F4CB} Latest tx hash: ${todayTransactions[0].hash}`);
+      } else {
+        console.log(`\u274C No Base transactions found today for ${walletAddress}`);
+      }
+      return hasTransaction;
+    } catch (error) {
+      console.error(`\u274C Error checking Base transactions for ${walletAddress}:`, error);
+      return false;
+    }
+  }
+  // 🆕 Get current on-chain owner of an NFT  
+  async getNFTOwner(tokenId) {
+    try {
+      console.log(`\u{1F50D} Getting on-chain owner for NFT #${tokenId}`);
+      const owner = await withRetry(() => nftContract.ownerOf(tokenId));
+      console.log(`\u2705 NFT #${tokenId} owner: ${owner}`);
+      return owner;
+    } catch (error) {
+      console.error(`\u274C Failed to get owner for NFT #${tokenId}:`, error);
+      return null;
+    }
+  }
+  // 🏪 MARKETPLACE FUNCTIONS - Secure trading without modifying NFT contract
+  // Generate transaction to list NFT on marketplace
+  async generateListingTransaction(tokenId, seller, priceUSDC) {
+    try {
+      if (!tokenId || !seller || !priceUSDC) {
+        throw new Error("Missing required parameters for listing");
+      }
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      if (currentOwner.toLowerCase() !== seller.toLowerCase()) {
+        throw new Error("Only NFT owner can create listing");
+      }
+      const isApproved = await nftContract.isApprovedForAll(seller, MARKETPLACE_CONTRACT_ADDRESS);
+      const specificApproval = await nftContract.getApproved(tokenId);
+      if (!isApproved && specificApproval.toLowerCase() !== MARKETPLACE_CONTRACT_ADDRESS.toLowerCase()) {
+        console.log("\u26A0\uFE0F Marketplace not approved to transfer NFT - user needs to approve first");
+      }
+      const priceWei = ethers.parseUnits(priceUSDC, 6);
+      return {
+        success: true,
+        transaction: {
+          type: "LIST_NFT",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("listNFT", [
+            tokenId,
+            priceWei
+          ]),
+          description: `List NFT #${tokenId} for ${priceUSDC} USDC`
+        },
+        // NFT approval transaction (if needed)
+        approvalData: {
+          to: NFT_CONTRACT_ADDRESS,
+          data: nftContract.interface.encodeFunctionData("approve", [
+            MARKETPLACE_CONTRACT_ADDRESS,
+            tokenId
+          ]),
+          description: `Approve marketplace to transfer NFT #${tokenId}`
+        },
+        tokenId,
+        seller,
+        priceUSDC
+      };
+    } catch (error) {
+      console.error("Error generating listing transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate listing transaction"
+      };
+    }
+  }
+  // Generate transaction to cancel NFT listing
+  async generateCancelListingTransaction(tokenId, seller) {
+    try {
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        throw new Error("NFT is not listed for sale");
+      }
+      if (listing.seller.toLowerCase() !== seller.toLowerCase()) {
+        throw new Error("Only listing creator can cancel listing");
+      }
+      return {
+        success: true,
+        transaction: {
+          type: "CANCEL_LISTING",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("cancelListing", [
+            tokenId
+          ]),
+          description: `Cancel listing for NFT #${tokenId}`
+        },
+        tokenId,
+        seller
+      };
+    } catch (error) {
+      console.error("Error generating cancel listing transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate cancel listing transaction"
+      };
+    }
+  }
+  // Generate transaction to update NFT price
+  async generateUpdatePriceTransaction(tokenId, seller, newPriceUSDC) {
+    try {
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        throw new Error("NFT is not listed for sale");
+      }
+      if (listing.seller.toLowerCase() !== seller.toLowerCase()) {
+        throw new Error("Only listing creator can update price");
+      }
+      const newPriceWei = ethers.parseUnits(newPriceUSDC, 6);
+      return {
+        success: true,
+        transaction: {
+          type: "UPDATE_PRICE",
+          to: MARKETPLACE_CONTRACT_ADDRESS,
+          data: marketplaceContract.interface.encodeFunctionData("updatePrice", [
+            tokenId,
+            newPriceWei
+          ]),
+          description: `Update NFT #${tokenId} price to ${newPriceUSDC} USDC`
+        },
+        tokenId,
+        seller,
+        newPriceUSDC
+      };
+    } catch (error) {
+      console.error("Error generating update price transaction:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate update price transaction"
+      };
+    }
+  }
+  // Get marketplace listing for a specific NFT
+  async getMarketplaceListing(tokenId) {
+    try {
+      const listing = await marketplaceContract.getListing(tokenId);
+      if (!listing.active) {
+        return null;
+      }
+      return {
+        tokenId,
+        seller: listing.seller,
+        price: ethers.formatUnits(listing.price, 6),
+        // Convert to USDC
+        priceWei: listing.price.toString(),
+        listedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        // Use current time since contract doesn't store listedAt
+        active: listing.active
+      };
+    } catch (error) {
+      console.error(`Error getting marketplace listing for NFT #${tokenId}:`, error);
+      return null;
+    }
+  }
+  // Check if NFT is listed on marketplace
+  async isNFTListed(tokenId) {
+    try {
+      console.log(`\u{1F50D} Checking if NFT #${tokenId} is listed on marketplace...`);
+      const isListed = await marketplaceContract.isListed(tokenId);
+      console.log(`\u2705 NFT #${tokenId} listing status: ${isListed}`);
+      return isListed;
+    } catch (error) {
+      console.error(`\u274C Error checking if NFT #${tokenId} is listed:`, error);
+      console.error(`\u274C Error details:`, {
+        message: error.message,
+        code: error.code,
+        data: error.data,
+        stack: error.stack?.split("\n")[0]
+        // First line of stack
+      });
+      console.warn(`\u26A0\uFE0F Allowing purchase to proceed despite blockchain check failure for NFT #${tokenId}`);
+      return true;
+    }
+  }
+  // Get marketplace statistics
+  async getMarketplaceStats() {
+    try {
+      const totalVolume = await marketplaceContract.totalVolume();
+      return {
+        totalVolumeWei: totalVolume.toString(),
+        totalVolumeUSDC: ethers.formatUnits(totalVolume, 6)
+      };
+    } catch (error) {
+      console.error("Error getting marketplace stats:", error);
+      return {
+        totalVolumeWei: "0",
+        totalVolumeUSDC: "0"
+      };
+    }
+  }
+  // 🔄 Get recent NFT purchase events from blockchain by reading Transfer events
+  async getRecentPurchaseEvents(fromBlock) {
+    try {
+      if (fromBlock === void 0) {
+        const currentBlock = await provider.getBlockNumber();
+        fromBlock = Math.max(0, currentBlock - 5e4);
+      }
+      console.log(`\u{1F4E1} Fetching NFT Transfer events from block ${fromBlock}...`);
+      const transferFilter = nftContract.filters.Transfer();
+      const transferEvents = await nftContract.queryFilter(transferFilter, fromBlock, "latest");
+      console.log(`\u2705 Found ${transferEvents.length} transfer events, filtering for purchases...`);
+      const purchases = [];
+      for (const event of transferEvents) {
+        if (!("args" in event)) continue;
+        const txHash = event.transactionHash;
+        const from = event.args?.[0]?.toLowerCase();
+        const to = event.args?.[1]?.toLowerCase();
+        const tokenId = event.args?.[2]?.toString();
+        if (from === "0x0000000000000000000000000000000000000000") {
+          continue;
+        }
+        try {
+          const receipt = await provider.getTransactionReceipt(txHash);
+          if (!receipt) continue;
+          const usdcTransfers = receipt.logs.filter(
+            (log) => log.address.toLowerCase() === USDC_CONTRACT_ADDRESS.toLowerCase() && log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+            // Transfer event signature
+          );
+          if (usdcTransfers.length >= 2) {
+            let totalPrice = "0";
+            let platformFee = "0";
+            for (const usdcLog of usdcTransfers) {
+              const amount = ethers.formatUnits(usdcLog.data, 6);
+              const usdcTo = "0x" + usdcLog.topics[2].slice(26).toLowerCase();
+              if (usdcTo === PLATFORM_WALLET.toLowerCase()) {
+                platformFee = amount;
+              } else {
+                totalPrice = amount;
+              }
+            }
+            purchases.push({
+              tokenId,
+              buyer: to,
+              seller: from,
+              price: totalPrice,
+              platformFee,
+              timestamp: receipt.blockNumber,
+              // Use block number as approximation
+              blockNumber: receipt.blockNumber,
+              transactionHash: txHash
+            });
+            console.log(`\u2705 Found purchase: NFT #${tokenId} (${to} bought from ${from}) for ${totalPrice} USDC`);
+          }
+        } catch (error) {
+          console.error(`\u274C Error processing transfer ${txHash}:`, error);
+        }
+      }
+      console.log(`\u{1F389} Found ${purchases.length} purchase transactions on blockchain`);
+      return purchases;
+    } catch (error) {
+      console.error(`\u274C Error fetching purchase events:`, error);
+      return [];
+    }
+  }
+  // 🔄 Get ALL NFT transfer events (purchases + regular transfers) for auto-delist
+  async getAllTransferEvents(fromBlock) {
+    try {
+      if (fromBlock === void 0) {
+        const currentBlock = await provider.getBlockNumber();
+        fromBlock = Math.max(0, currentBlock - 1e4);
+      }
+      console.log(`\u{1F4E1} Fetching ALL NFT Transfer events from block ${fromBlock}...`);
+      const transferFilter = nftContract.filters.Transfer();
+      const transferEvents = await nftContract.queryFilter(transferFilter, fromBlock, "latest");
+      console.log(`\u2705 Found ${transferEvents.length} transfer events, processing...`);
+      const allTransfers = [];
+      for (const event of transferEvents) {
+        if (!("args" in event)) continue;
+        const txHash = event.transactionHash;
+        const from = event.args?.[0]?.toLowerCase();
+        const to = event.args?.[1]?.toLowerCase();
+        const tokenId = event.args?.[2]?.toString();
+        try {
+          const receipt = await provider.getTransactionReceipt(txHash);
+          if (!receipt) continue;
+          const usdcTransfers = receipt.logs.filter(
+            (log) => log.address.toLowerCase() === USDC_CONTRACT_ADDRESS.toLowerCase() && log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+            // Transfer event signature
+          );
+          let transferType = "transfer";
+          let totalPrice = "0";
+          let platformFee = "0";
+          if (usdcTransfers.length >= 2) {
+            transferType = "sale";
+            for (const usdcLog of usdcTransfers) {
+              const amount = ethers.formatUnits(usdcLog.data, 6);
+              const usdcTo = "0x" + usdcLog.topics[2].slice(26).toLowerCase();
+              if (usdcTo === PLATFORM_WALLET.toLowerCase()) {
+                platformFee = amount;
+              } else {
+                totalPrice = amount;
+              }
+            }
+          }
+          allTransfers.push({
+            tokenId,
+            from,
+            to,
+            transferType,
+            // 'sale' or 'transfer'
+            price: totalPrice,
+            platformFee,
+            blockNumber: receipt.blockNumber,
+            transactionHash: txHash
+          });
+          if (transferType === "sale") {
+            console.log(`\u{1F4B0} Sale: NFT #${tokenId} (${to} bought from ${from}) for ${totalPrice} USDC`);
+          } else {
+            console.log(`\u{1F4E6} Transfer: NFT #${tokenId} (${from} \u2192 ${to})`);
+          }
+        } catch (error) {
+          console.error(`\u274C Error processing transfer ${txHash}:`, error);
+        }
+      }
+      console.log(`\u{1F389} Found ${allTransfers.length} total transfers on blockchain`);
+      return allTransfers;
+    } catch (error) {
+      console.error(`\u274C Error fetching transfer events:`, error);
+      return [];
+    }
+  }
+  // 🚀 Incremental NFT sync with block chunking and checkpoint persistence
+  async syncNFTsIncremental(storage2, chunkSize = 1e3) {
+    let retryCount = 0;
+    const maxRetries = BASE_RPC_URLS.length;
+    try {
+      console.log(`\u{1F504} Starting incremental blockchain sync...`);
+      const currentBlock = await currentProvider.getBlockNumber();
+      console.log(`\u{1F4CA} Current block: ${currentBlock}`);
+      const syncState2 = await storage2.getSyncState(NFT_CONTRACT_ADDRESS);
+      const startBlock = syncState2 ? syncState2.lastProcessedBlock + 1 : Math.max(38137640, currentBlock - 1e4);
+      console.log(`\u{1F4CD} Last synced block: ${syncState2?.lastProcessedBlock || "none"}`);
+      console.log(`\u{1F4CD} Starting from block: ${startBlock}`);
+      console.log(`\u{1F4CD} Blocks to process: ${currentBlock - startBlock + 1}`);
+      if (startBlock > currentBlock) {
+        console.log(`\u2705 Already up to date!`);
+        return { newNFTs: [], lastBlock: currentBlock };
+      }
+      const newNFTs = [];
+      let processedBlock = startBlock;
+      while (processedBlock <= currentBlock) {
+        const toBlock = Math.min(processedBlock + chunkSize - 1, currentBlock);
+        console.log(`\u{1F50D} Scanning blocks ${processedBlock} to ${toBlock} (chunk size: ${toBlock - processedBlock + 1})`);
+        try {
+          const filter = currentNftContract.filters.Transfer();
+          const events = await currentNftContract.queryFilter(filter, processedBlock, toBlock);
+          console.log(`\u{1F4E5} Found ${events.length} Transfer events in this chunk`);
+          const processedTokens = /* @__PURE__ */ new Set();
+          for (const event of events) {
+            if (!("args" in event)) continue;
+            const tokenId = event.args?.tokenId?.toString();
+            if (!tokenId || processedTokens.has(tokenId)) continue;
+            processedTokens.add(tokenId);
+            try {
+              const owner = await currentNftContract.ownerOf(tokenId);
+              const tokenURI = await currentNftContract.tokenURI(tokenId);
+              console.log(`\u2705 Token ${tokenId}: owner=${owner}`);
+              newNFTs.push({
+                tokenId,
+                owner: owner.toLowerCase(),
+                tokenURI,
+                metadata: null
+                // Will be fetched async
+              });
+            } catch (error) {
+              console.error(`\u274C Error processing token ${tokenId}:`, error);
+            }
+          }
+          await storage2.updateSyncState(NFT_CONTRACT_ADDRESS, toBlock);
+          console.log(`\u2705 Checkpoint saved: block ${toBlock}`);
+          processedBlock = toBlock + 1;
+          retryCount = 0;
+          if (processedBlock <= currentBlock) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        } catch (error) {
+          console.error(`\u274C Error processing chunk ${processedBlock}-${toBlock}:`, error.message);
+          const isRpcError = error.message?.includes("timeout") || error.message?.includes("invalid block range") || error.message?.includes("could not detect network") || error.code === "TIMEOUT" || error.code === "NETWORK_ERROR" || error.error?.code === -32e3;
+          if (isRpcError && retryCount < maxRetries) {
+            console.log(`\u26A0\uFE0F RPC error detected, attempting provider rotation...`);
+            const rotated = rotateRpcProvider();
+            if (rotated) {
+              retryCount++;
+              console.log(`\u{1F504} Retrying with new provider (attempt ${retryCount}/${maxRetries})...`);
+              continue;
+            }
+          }
+          if (isRpcError) {
+            console.log(`\u26A0\uFE0F RPC error persists, reducing chunk size...`);
+            chunkSize = Math.max(100, Math.floor(chunkSize / 2));
+            console.log(`\u{1F504} Retrying with chunk size: ${chunkSize}`);
+            retryCount = 0;
+            continue;
+          }
+          console.log(`\u26A0\uFE0F Skipping problematic chunk, moving to next...`);
+          processedBlock = toBlock + 1;
+          retryCount = 0;
+        }
+      }
+      console.log(`\u{1F389} Sync complete! Found ${newNFTs.length} new NFTs`);
+      console.log(`\u{1F4CD} Synced up to block: ${currentBlock}`);
+      return { newNFTs, lastBlock: currentBlock };
+    } catch (error) {
+      console.error(`\u274C Incremental sync failed:`, error);
+      throw error;
+    }
+  }
+  // 🔄 Fetch metadata asynchronously for NFTs without blocking sync
+  async fetchMetadataAsync(blockchainNFT) {
+    if (!blockchainNFT.tokenURI) {
+      return blockchainNFT;
+    }
+    try {
+      const uris = normalizeUri(blockchainNFT.tokenURI);
+      if (uris.length === 0) {
+        console.log(`\u26A0\uFE0F No valid URIs for token ${blockchainNFT.tokenId}`);
+        return blockchainNFT;
+      }
+      console.log(`\u{1F4E5} Fetching metadata for token ${blockchainNFT.tokenId}...`);
+      const metadata = await fetchWithGateways(uris);
+      return {
+        ...blockchainNFT,
+        metadata
+      };
+    } catch (error) {
+      console.error(`\u274C Failed to fetch metadata for token ${blockchainNFT.tokenId}:`, error);
+      return blockchainNFT;
+    }
+  }
+  // 🔍 Get all minted token IDs directly from blockchain (no API dependency)
+  async getAllMintedTokenIds() {
+    console.log(`\u{1F50D} Scanning blockchain for all minted tokens...`);
+    try {
+      const tokenIds = /* @__PURE__ */ new Set();
+      const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+      const FALLBACK_START_BLOCK = 379e5;
+      const START_BLOCK = FALLBACK_START_BLOCK;
+      const currentBlock = await currentProvider.getBlockNumber();
+      console.log(`\u{1F4CA} Smart scan from block ${START_BLOCK} to ${currentBlock} (scanning recent ~${Math.floor((currentBlock - START_BLOCK) / 1e3)}K blocks)`);
+      const CHUNK_SIZE = 5e4;
+      let processedBlock = START_BLOCK;
+      while (processedBlock <= currentBlock) {
+        const toBlock = Math.min(processedBlock + CHUNK_SIZE - 1, currentBlock);
+        try {
+          console.log(`\u{1F50E} Scanning blocks ${processedBlock} to ${toBlock}...`);
+          const filter = currentNftContract.filters.Transfer(ZERO_ADDRESS, null, null);
+          const events = await currentNftContract.queryFilter(filter, processedBlock, toBlock);
+          for (const event of events) {
+            if ("args" in event) {
+              const tokenId = event.args?.tokenId?.toString();
+              if (tokenId) {
+                tokenIds.add(tokenId);
+              }
+            }
+          }
+          console.log(`\u{1F4E6} Found ${events.length} mints in this chunk (total: ${tokenIds.size})`);
+          processedBlock = toBlock + 1;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`\u274C Error scanning blocks ${processedBlock}-${toBlock}:`, error.message);
+          if (error.message?.includes("timeout") || error.message?.includes("limit")) {
+            console.log(`\u26A0\uFE0F RPC issue detected, rotating provider...`);
+            rotateRpcProvider();
+            continue;
+          }
+          processedBlock = toBlock + 1;
+        }
+      }
+      console.log(`\u2705 Blockchain scan complete! Found ${tokenIds.size} total minted tokens`);
+      return tokenIds;
+    } catch (error) {
+      console.error(`\u274C Error scanning blockchain for mints:`, error);
+      throw error;
+    }
+  }
+  // 🌐 Sync NFTs using blockchain RPC (no API dependency)
+  async syncNFTsFromBasescan(storage2) {
+    console.log(`\u{1F310} Starting blockchain sync for NFT discovery...`);
+    try {
+      const blockchainTokenIds = await this.getAllMintedTokenIds();
+      console.log(`\u{1F4CA} Blockchain reports ${blockchainTokenIds.size} total tokens minted`);
+      const existingNFTs = await storage2.getAllNFTs();
+      const existingTokenIds = new Set(existingNFTs.map((nft) => nft.tokenId.toString()));
+      console.log(`\u{1F4BE} Database has ${existingTokenIds.size} tokens`);
+      const missingTokens = [];
+      for (const tokenId of Array.from(blockchainTokenIds)) {
+        if (!existingTokenIds.has(tokenId)) {
+          missingTokens.push(tokenId);
+        }
+      }
+      if (missingTokens.length === 0) {
+        console.log(`\u2705 Database is up to date - no missing tokens!`);
+        return { newNFTs: [], missingTokens: [] };
+      }
+      console.log(`\u{1F50D} Found ${missingTokens.length} missing tokens: ${missingTokens.join(", ")}`);
+      const newNFTs = [];
+      for (const tokenId of missingTokens) {
+        try {
+          console.log(`\u{1F4E5} Fetching details for token ${tokenId}...`);
+          const owner = await currentNftContract.ownerOf(tokenId);
+          const tokenURI = await currentNftContract.tokenURI(tokenId);
+          console.log(`\u2705 Token ${tokenId}: owner=${owner}`);
+          newNFTs.push({
+            tokenId,
+            owner: owner.toLowerCase(),
+            tokenURI,
+            metadata: null
+            // Will be fetched async
+          });
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        } catch (error) {
+          console.error(`\u274C Error fetching token ${tokenId}:`, error);
+        }
+      }
+      console.log(`\u{1F389} Basescan sync complete! Found ${newNFTs.length} new NFTs`);
+      return { newNFTs, missingTokens };
+    } catch (error) {
+      console.error(`\u274C Basescan sync failed:`, error);
+      throw error;
+    }
+  }
+};
+var blockchainService = new BlockchainService();
+
+// server/metadataSyncService.ts
+import { ethers as ethers2 } from "ethers";
+var CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+var RPC_PROVIDERS = [
+  "https://mainnet.base.org",
+  "https://base.llamarpc.com",
+  "https://base.drpc.org"
+];
+var ABI = [
+  "function tokenURI(uint256 tokenId) view returns (string)"
+];
+var MetadataSyncService = class {
+  storage;
+  currentProviderIndex = 0;
+  constructor(storage2) {
+    this.storage = storage2;
+  }
+  async getProvider() {
+    const rpcUrl = RPC_PROVIDERS[this.currentProviderIndex];
+    this.currentProviderIndex = (this.currentProviderIndex + 1) % RPC_PROVIDERS.length;
+    return new ethers2.JsonRpcProvider(rpcUrl);
+  }
+  async fetchTokenMetadata(tokenId) {
+    for (const rpcUrl of RPC_PROVIDERS) {
+      try {
+        const provider2 = new ethers2.JsonRpcProvider(rpcUrl);
+        const contract = new ethers2.Contract(CONTRACT_ADDRESS, ABI, provider2);
+        const uri = await contract.tokenURI(tokenId);
+        if (uri.startsWith("data:application/json;base64,")) {
+          const base64Data = uri.replace("data:application/json;base64,", "");
+          const decoded = Buffer.from(base64Data, "base64").toString("utf-8");
+          const metadata = JSON.parse(decoded);
+          return metadata;
+        }
+        return null;
+      } catch (error) {
+        console.log(`\u26A0\uFE0F RPC ${rpcUrl} failed for token ${tokenId}: ${error.message}`);
+        continue;
+      }
+    }
+    console.log(`\u274C All RPC providers failed for token ${tokenId}`);
+    return null;
+  }
+  extractLocationData(metadata) {
+    let location = "Unknown Location";
+    let latitude = null;
+    let longitude = null;
+    if (metadata.location) {
+      location = metadata.location.city || "Unknown Location";
+      latitude = metadata.location.latitude || null;
+      longitude = metadata.location.longitude || null;
+    } else if (metadata.attributes) {
+      const locationAttr = metadata.attributes.find((a) => a.trait_type === "Location");
+      const latAttr = metadata.attributes.find((a) => a.trait_type === "Latitude");
+      const lngAttr = metadata.attributes.find((a) => a.trait_type === "Longitude");
+      if (locationAttr) location = locationAttr.value;
+      if (latAttr) latitude = latAttr.value;
+      if (lngAttr) longitude = lngAttr.value;
+    }
+    return { location, latitude, longitude };
+  }
+  async findTokensNeedingMetadataSync() {
+    const allNFTs = await this.storage.getAllNFTs();
+    const needsSync = [];
+    for (const nft of allNFTs) {
+      const needsUpdate = !nft.latitude || !nft.longitude || nft.location === "Unknown Location" || nft.imageUrl && nft.imageUrl.startsWith("data:application/json;base64,");
+      if (needsUpdate && nft.tokenId) {
+        needsSync.push(nft.tokenId);
+      }
+    }
+    return needsSync;
+  }
+  async syncTokenMetadata(tokenId) {
+    try {
+      console.log(`\u{1F504} Syncing metadata for token ${tokenId}...`);
+      const metadata = await this.fetchTokenMetadata(tokenId);
+      if (!metadata) {
+        console.log(`\u274C Failed to fetch metadata for token ${tokenId}`);
+        return false;
+      }
+      const { location, latitude, longitude } = this.extractLocationData(metadata);
+      const imageUrl = metadata.image;
+      const allNFTs = await this.storage.getAllNFTs();
+      const nft = allNFTs.find((n) => n.tokenId === tokenId);
+      if (!nft) {
+        console.log(`\u274C Token ${tokenId} not found in database`);
+        return false;
+      }
+      await this.storage.updateNFT(nft.id, {
+        title: metadata.name,
+        imageUrl,
+        location,
+        latitude,
+        longitude
+      });
+      console.log(`\u2705 Synced token ${tokenId}: ${metadata.name} @ ${location}`);
+      return true;
+    } catch (error) {
+      console.log(`\u274C Error syncing token ${tokenId}:`, error.message);
+      return false;
+    }
+  }
+  async processPendingMints() {
+    try {
+      console.log("\u{1F50D} Checking for pending mints...");
+      const pendingMints2 = await this.storage.getPendingMints(50);
+      if (pendingMints2.length === 0) {
+        return;
+      }
+      console.log(`\u{1F4CB} Found ${pendingMints2.length} pending mints to retry`);
+      let successCount = 0;
+      let failCount = 0;
+      for (const pending of pendingMints2) {
+        try {
+          console.log(`\u{1F504} Retrying token #${pending.tokenId} (attempt ${(pending.retryCount || 0) + 1})...`);
+          const metadata = await this.fetchTokenMetadata(pending.tokenId);
+          if (!metadata) {
+            throw new Error("Failed to fetch metadata from all RPC providers");
+          }
+          const { location, latitude, longitude } = this.extractLocationData(metadata);
+          const newNFT = {
+            title: metadata.name || `TravelNFT #${pending.tokenId}`,
+            description: metadata.description || "",
+            imageUrl: metadata.image || "",
+            objectStorageUrl: null,
+            location,
+            latitude,
+            longitude,
+            category: "travel",
+            price: "0",
+            isForSale: 0,
+            creatorAddress: pending.ownerAddress,
+            ownerAddress: pending.ownerAddress,
+            farcasterCreatorUsername: null,
+            farcasterOwnerUsername: null,
+            farcasterCreatorFid: null,
+            farcasterOwnerFid: null,
+            mintPrice: "1",
+            royaltyPercentage: "5",
+            tokenId: pending.tokenId,
+            contractAddress: pending.contractAddress,
+            transactionHash: pending.transactionHash,
+            metadata
+          };
+          await this.storage.createNFT(newNFT);
+          await this.storage.deletePendingMint(pending.id);
+          console.log(`\u2705 Successfully processed pending token #${pending.tokenId}: ${metadata.name}`);
+          successCount++;
+        } catch (error) {
+          const errorMessage = error.message || String(error);
+          console.log(`\u274C Failed to process pending token #${pending.tokenId}: ${errorMessage}`);
+          await this.storage.updatePendingMintRetry(pending.id, errorMessage);
+          failCount++;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1e3));
+      }
+      console.log(`\u2705 Pending mints processed: ${successCount} succeeded, ${failCount} failed`);
+    } catch (error) {
+      console.log("\u274C Pending mints processing error:", error.message);
+    }
+  }
+  async runMetadataSync() {
+    try {
+      console.log("\u{1F50D} Checking for tokens needing metadata sync...");
+      await this.processPendingMints();
+      const tokensToSync = await this.findTokensNeedingMetadataSync();
+      if (tokensToSync.length === 0) {
+        console.log("\u2705 All tokens have valid metadata");
+        return;
+      }
+      console.log(`\u{1F4CB} Found ${tokensToSync.length} tokens needing metadata sync: ${tokensToSync.join(", ")}`);
+      let successCount = 0;
+      let failCount = 0;
+      for (const tokenId of tokensToSync) {
+        const success = await this.syncTokenMetadata(tokenId);
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      console.log(`\u2705 Metadata sync complete: ${successCount} succeeded, ${failCount} failed`);
+    } catch (error) {
+      console.log("\u274C Metadata sync error:", error.message);
+    }
+  }
+};
+
+// server/places-service.ts
+import { eq as eq2, sql as sql3, ilike, desc } from "drizzle-orm";
+var GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+var CACHE_DURATION_MS = 24 * 60 * 60 * 1e3;
+function getPhotoUrl(photoName, maxWidth = 400) {
+  if (!GOOGLE_PLACES_API_KEY || !photoName) return "";
+  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth}&key=${GOOGLE_PLACES_API_KEY}`;
+}
+function extractCountryFromComponents(components) {
+  if (!components) return { country: "Unknown", countryCode: "" };
+  const countryComponent = components.find((c) => c.types.includes("country"));
+  return {
+    country: countryComponent?.longText || "Unknown",
+    countryCode: countryComponent?.shortText || ""
+  };
+}
+function mapCategoryToPlaceTypes(category) {
+  switch (category) {
+    case "landmark":
+      return ["tourist_attraction", "point_of_interest", "museum", "park", "church", "mosque", "hindu_temple", "synagogue"];
+    case "cafe":
+      return ["cafe", "bakery", "coffee"];
+    case "restaurant":
+      return ["restaurant", "meal_takeaway", "meal_delivery"];
+    case "hidden_gem":
+      return ["art_gallery", "book_store", "library", "spa", "bar", "night_club"];
+    default:
+      return ["point_of_interest"];
+  }
+}
+var PlacesService = class {
+  async searchCities(query) {
+    console.log(`\u{1F50D} Searching cities for: "${query}"`);
+    if (!GOOGLE_PLACES_API_KEY) {
+      console.error("\u274C GOOGLE_PLACES_API_KEY not configured");
+      return [];
+    }
+    const existingCities = await db.select().from(guideCities).where(ilike(guideCities.name, `%${query}%`)).limit(10);
+    if (existingCities.length > 0) {
+      console.log(`\u2705 Found ${existingCities.length} cached cities for "${query}"`);
+      return existingCities;
+    }
+    console.log(`\u{1F310} No cached cities, calling Google Places API for "${query}"`);
+    try {
+      const requestBody = {
+        textQuery: query,
+        maxResultCount: 5
+      };
+      console.log(`\u{1F310} Sending request to Places API (New):`, JSON.stringify(requestBody));
+      const response = await fetch(
+        "https://places.googleapis.com/v1/places:searchText",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.photos,places.addressComponents"
+          },
+          body: JSON.stringify(requestBody)
+        }
+      );
+      const data = await response.json();
+      console.log(`\u{1F4CA} Google Places API (New) response status: ${response.status}`);
+      console.log(`\u{1F4CA} Google Places API (New) response:`, JSON.stringify(data).substring(0, 500));
+      if (!data.places || data.places.length === 0) {
+        console.log("\u{1F4ED} No places found for query");
+        return [];
+      }
+      const cities = [];
+      for (const place of data.places) {
+        const existingCity = await db.select().from(guideCities).where(eq2(guideCities.placeId, place.id)).limit(1);
+        if (existingCity.length > 0) {
+          cities.push(existingCity[0]);
+          continue;
+        }
+        const { country, countryCode } = extractCountryFromComponents(place.addressComponents);
+        const heroPhoto = place.photos?.[0]?.name;
+        const cityData = {
+          placeId: place.id,
+          name: place.displayName?.text || query,
+          country,
+          countryCode,
+          heroImageUrl: heroPhoto ? getPhotoUrl(heroPhoto, 800) : null,
+          latitude: place.location?.latitude?.toString() || null,
+          longitude: place.location?.longitude?.toString() || null,
+          searchCount: 1
+        };
+        const [insertedCity] = await db.insert(guideCities).values(cityData).returning();
+        cities.push(insertedCity);
+        console.log(`\u2705 Added city: ${cityData.name}, ${country}`);
+      }
+      return cities;
+    } catch (error) {
+      console.error("\u274C Error searching cities:", error);
+      return [];
+    }
+  }
+  async getPopularCities(limit = 10) {
+    return db.select().from(guideCities).orderBy(desc(guideCities.searchCount)).limit(limit);
+  }
+  async getCityById(cityId) {
+    const [city] = await db.select().from(guideCities).where(eq2(guideCities.id, cityId)).limit(1);
+    if (city) {
+      await db.update(guideCities).set({ searchCount: sql3`${guideCities.searchCount} + 1` }).where(eq2(guideCities.id, cityId));
+    }
+    return city || null;
+  }
+  async getSpotsByCity(cityId, category, limit = 20, isHolder = true) {
+    if (!GOOGLE_PLACES_API_KEY) {
+      console.error("GOOGLE_PLACES_API_KEY not configured");
+      return [];
+    }
+    const city = await this.getCityById(cityId);
+    if (!city) return [];
+    const existingSpots = await db.select().from(guideSpots).where(eq2(guideSpots.cityId, cityId));
+    const now = /* @__PURE__ */ new Date();
+    const cacheValid = existingSpots.length > 0 && existingSpots.every((spot) => {
+      const lastSync = new Date(spot.lastSyncAt);
+      return now.getTime() - lastSync.getTime() < CACHE_DURATION_MS;
+    });
+    if (cacheValid) {
+      let spots2 = existingSpots;
+      if (category) {
+        spots2 = spots2.filter((s) => s.category === category);
+      }
+      if (!isHolder) {
+        const previewSpots = [];
+        const categories = ["landmark", "cafe", "restaurant", "hidden_gem"];
+        for (const cat of categories) {
+          const catSpot = spots2.find((s) => s.category === cat);
+          if (catSpot) previewSpots.push(catSpot);
+        }
+        return previewSpots;
+      }
+      return spots2.slice(0, limit);
+    }
+    await this.syncCitySpots(cityId, city);
+    const freshSpots = await db.select().from(guideSpots).where(eq2(guideSpots.cityId, cityId));
+    let spots = freshSpots;
+    if (category) {
+      spots = spots.filter((s) => s.category === category);
+    }
+    if (!isHolder) {
+      const previewSpots = [];
+      const categories = ["landmark", "cafe", "restaurant", "hidden_gem"];
+      for (const cat of categories) {
+        const catSpot = spots.find((s) => s.category === cat);
+        if (catSpot) previewSpots.push(catSpot);
+      }
+      return previewSpots;
+    }
+    return spots.slice(0, limit);
+  }
+  async syncCitySpots(cityId, city) {
+    const categories = ["landmark", "cafe", "restaurant", "hidden_gem"];
+    for (const category of categories) {
+      const types = mapCategoryToPlaceTypes(category);
+      try {
+        const response = await fetch(
+          "https://places.googleapis.com/v1/places:searchText",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+              "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.photos,places.regularOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.googleMapsUri,places.editorialSummary"
+            },
+            body: JSON.stringify({
+              textQuery: `${types[0].replace("_", " ")} in ${city.name}`,
+              locationBias: {
+                circle: {
+                  center: {
+                    latitude: parseFloat(city.latitude || "0"),
+                    longitude: parseFloat(city.longitude || "0")
+                  },
+                  radius: 5e3
+                }
+              },
+              maxResultCount: 5
+            })
+          }
+        );
+        const data = await response.json();
+        if (!data.places || data.places.length === 0) {
+          console.log(`\u{1F4ED} No ${category} spots found for ${city.name}`);
+          continue;
+        }
+        console.log(`\u{1F4CD} Found ${data.places.length} ${category} spots for ${city.name}`);
+        for (const place of data.places) {
+          const existing = await db.select().from(guideSpots).where(eq2(guideSpots.placeId, place.id)).limit(1);
+          if (existing.length > 0) {
+            await db.update(guideSpots).set({
+              rating: place.rating?.toString() || null,
+              userRatingsTotal: place.userRatingCount || null,
+              openNow: place.regularOpeningHours?.openNow || null,
+              lastSyncAt: /* @__PURE__ */ new Date()
+            }).where(eq2(guideSpots.placeId, place.id));
+            continue;
+          }
+          const photoName = place.photos?.[0]?.name;
+          const priceLevelNum = place.priceLevel ? parseInt(place.priceLevel.replace("PRICE_LEVEL_", "")) - 1 : null;
+          const spotData = {
+            cityId,
+            placeId: place.id,
+            name: place.displayName?.text || "Unknown",
+            category,
+            description: place.editorialSummary?.text || null,
+            address: place.formattedAddress || null,
+            rating: place.rating?.toString() || null,
+            userRatingsTotal: place.userRatingCount || null,
+            priceLevel: priceLevelNum,
+            photoUrl: photoName ? getPhotoUrl(photoName) : null,
+            latitude: place.location?.latitude?.toString() || null,
+            longitude: place.location?.longitude?.toString() || null,
+            openNow: place.regularOpeningHours?.openNow || null,
+            website: place.websiteUri || null,
+            phoneNumber: place.nationalPhoneNumber || null,
+            googleMapsUrl: place.googleMapsUri || null
+          };
+          await db.insert(guideSpots).values(spotData).onConflictDoNothing();
+        }
+      } catch (error) {
+        console.error(`\u274C Error syncing ${category} spots:`, error);
+      }
+    }
+  }
+};
+var placesService = new PlacesService();
+
+// server/routes.ts
 import { z as z3 } from "zod";
 import { ethers as ethers3 } from "ethers";
+
+// server/routes/ipfs.ts
+import { Router } from "express";
+import multer from "multer";
+
+// server/ipfs.ts
+import { NFTStorage, File } from "nft.storage";
+var NFTStorageService = class {
+  client;
+  constructor() {
+    if (!process.env.NFT_STORAGE_API_KEY) {
+      throw new Error("NFT_STORAGE_API_KEY environment variable is required");
+    }
+    this.client = new NFTStorage({
+      token: process.env.NFT_STORAGE_API_KEY
+    });
+    console.log("\u{1F517} NFT.Storage client initialized");
+  }
+  // Upload file buffer to IPFS via NFT.Storage
+  async uploadFile(fileBuffer, fileName, mimeType) {
+    try {
+      const file = new File([fileBuffer], fileName, { type: mimeType });
+      const cid = await this.client.storeBlob(file);
+      console.log("\u2705 File uploaded to IPFS via NFT.Storage:", cid);
+      return {
+        IpfsHash: cid,
+        PinSize: fileBuffer.length,
+        Timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      };
+    } catch (error) {
+      console.error("\u274C Error uploading file to IPFS:", error);
+      throw error;
+    }
+  }
+  // Upload JSON metadata to IPFS via NFT.Storage
+  async uploadJSON(data, name) {
+    try {
+      const jsonString = JSON.stringify(data);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const cid = await this.client.storeBlob(blob);
+      console.log("\u2705 Metadata uploaded to IPFS via NFT.Storage:", cid);
+      return {
+        IpfsHash: cid,
+        PinSize: jsonString.length,
+        Timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      };
+    } catch (error) {
+      console.error("\u274C Error uploading JSON to IPFS:", error);
+      throw error;
+    }
+  }
+  // Get optimized URL for IPFS content
+  async getOptimizedUrl(ipfsHash) {
+    try {
+      const url = `https://ipfs.io/ipfs/${ipfsHash}`;
+      console.log("\u{1F310} Using IPFS.io gateway URL:", url);
+      return url;
+    } catch (error) {
+      console.error("\u274C Error getting optimized URL, using fallback:", error);
+      return `https://nftstorage.link/ipfs/${ipfsHash}`;
+    }
+  }
+  // Test NFT.Storage connection
+  async testConnection() {
+    try {
+      const testBlob = new Blob(["test"], { type: "text/plain" });
+      const cid = await this.client.storeBlob(testBlob);
+      console.log("\u{1F517} NFT.Storage connection test successful:", cid);
+      return true;
+    } catch (error) {
+      console.error("\u274C NFT.Storage connection test failed:", error);
+      return false;
+    }
+  }
+};
+var nftStorageService = new NFTStorageService();
+
+// shared/ipfs.ts
+function createIPFSUrl(hash) {
+  const gateway = process.env.PINATA_GATEWAY;
+  if (gateway && typeof window === "undefined") {
+    return `https://${gateway}/ipfs/${hash}`;
+  }
+  return `https://ipfs.io/ipfs/${hash}`;
+}
+
+// server/routes/ipfs.ts
+var router = Router();
+var upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024
+    // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  }
+});
+router.post("/upload-image", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file provided" });
+    }
+    console.log("\u{1F4E4} Uploading image to IPFS via NFT.Storage:", req.file.originalname);
+    const result = await nftStorageService.uploadFile(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+    console.log("\u2705 Image uploaded successfully:", result.IpfsHash);
+    res.json({
+      IpfsHash: result.IpfsHash,
+      PinSize: result.PinSize,
+      Timestamp: result.Timestamp,
+      ipfsUrl: createIPFSUrl(result.IpfsHash)
+    });
+  } catch (error) {
+    console.error("\u274C Error uploading image:", error);
+    res.status(500).json({
+      error: "Failed to upload image to IPFS",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+router.post("/upload-metadata", async (req, res) => {
+  try {
+    const { metadata, name } = req.body;
+    if (!metadata) {
+      return res.status(400).json({ error: "No metadata provided" });
+    }
+    console.log("\u{1F4E4} Uploading metadata to IPFS via NFT.Storage:", name);
+    const result = await nftStorageService.uploadJSON(metadata, name);
+    console.log("\u2705 Metadata uploaded successfully:", result.IpfsHash);
+    res.json({
+      IpfsHash: result.IpfsHash,
+      PinSize: result.PinSize,
+      Timestamp: result.Timestamp,
+      ipfsUrl: createIPFSUrl(result.IpfsHash)
+    });
+  } catch (error) {
+    console.error("\u274C Error uploading metadata:", error);
+    res.status(500).json({
+      error: "Failed to upload metadata to IPFS",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+router.get("/test", async (req, res) => {
+  try {
+    console.log("\u{1F517} Testing NFT.Storage connection...");
+    const isConnected = await nftStorageService.testConnection();
+    if (isConnected) {
+      console.log("\u2705 NFT.Storage connection successful");
+      res.json({
+        status: "connected",
+        message: "NFT.Storage IPFS service is working correctly"
+      });
+    } else {
+      console.log("\u274C NFT.Storage connection failed");
+      res.status(500).json({
+        status: "error",
+        message: "Failed to connect to NFT.Storage IPFS service"
+      });
+    }
+  } catch (error) {
+    console.error("\u274C Error testing NFT.Storage connection:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error testing IPFS connection",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+router.get("/info/:hash", async (req, res) => {
+  try {
+    const { hash } = req.params;
+    console.log("\u{1F4CB} Getting IPFS file info for hash:", hash);
+    const fileInfo = { hash, message: "File info retrieval not yet implemented" };
+    if (fileInfo) {
+      res.json(fileInfo);
+    } else {
+      res.status(404).json({ error: "File not found" });
+    }
+  } catch (error) {
+    console.error("\u274C Error getting file info:", error);
+    res.status(500).json({
+      error: "Failed to get file info",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+var ipfs_default = router;
+
+// server/objectStorage.ts
+import { Storage } from "@google-cloud/storage";
+import { randomUUID } from "crypto";
+
+// server/objectAcl.ts
+var ACL_POLICY_METADATA_KEY = "custom:aclPolicy";
+function isPermissionAllowed(requested, granted) {
+  if (requested === "read" /* READ */) {
+    return ["read" /* READ */, "write" /* WRITE */].includes(granted);
+  }
+  return granted === "write" /* WRITE */;
+}
+function createObjectAccessGroup(group) {
+  switch (group.type) {
+    // Implement the case for each type of access group to instantiate.
+    //
+    // For example:
+    // case "USER_LIST":
+    //   return new UserListAccessGroup(group.id);
+    // case "EMAIL_DOMAIN":
+    //   return new EmailDomainAccessGroup(group.id);
+    // case "GROUP_MEMBER":
+    //   return new GroupMemberAccessGroup(group.id);
+    // case "SUBSCRIBER":
+    //   return new SubscriberAccessGroup(group.id);
+    default:
+      throw new Error(`Unknown access group type: ${group.type}`);
+  }
+}
+async function setObjectAclPolicy(objectFile, aclPolicy) {
+  const [exists] = await objectFile.exists();
+  if (!exists) {
+    throw new Error(`Object not found: ${objectFile.name}`);
+  }
+  await objectFile.setMetadata({
+    metadata: {
+      [ACL_POLICY_METADATA_KEY]: JSON.stringify(aclPolicy)
+    }
+  });
+}
+async function getObjectAclPolicy(objectFile) {
+  const [metadata] = await objectFile.getMetadata();
+  const aclPolicy = metadata?.metadata?.[ACL_POLICY_METADATA_KEY];
+  if (!aclPolicy) {
+    return null;
+  }
+  return JSON.parse(aclPolicy);
+}
+async function canAccessObject({
+  userId,
+  objectFile,
+  requestedPermission
+}) {
+  const aclPolicy = await getObjectAclPolicy(objectFile);
+  if (!aclPolicy) {
+    return false;
+  }
+  if (aclPolicy.visibility === "public" && requestedPermission === "read" /* READ */) {
+    return true;
+  }
+  if (!userId) {
+    return false;
+  }
+  if (aclPolicy.owner === userId) {
+    return true;
+  }
+  for (const rule of aclPolicy.aclRules || []) {
+    const accessGroup = createObjectAccessGroup(rule.group);
+    if (await accessGroup.hasMember(userId) && isPermissionAllowed(requestedPermission, rule.permission)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// server/objectStorage.ts
+var REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+var objectStorageClient = new Storage({
+  credentials: {
+    audience: "replit",
+    subject_token_type: "access_token",
+    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+    type: "external_account",
+    credential_source: {
+      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+      format: {
+        type: "json",
+        subject_token_field_name: "access_token"
+      }
+    },
+    universe_domain: "googleapis.com"
+  },
+  projectId: ""
+});
+var ObjectNotFoundError = class _ObjectNotFoundError extends Error {
+  constructor() {
+    super("Object not found");
+    this.name = "ObjectNotFoundError";
+    Object.setPrototypeOf(this, _ObjectNotFoundError.prototype);
+  }
+};
+var ObjectStorageService = class {
+  constructor() {
+  }
+  // Gets the public object search paths.
+  getPublicObjectSearchPaths() {
+    const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
+    const paths = Array.from(
+      new Set(
+        pathsStr.split(",").map((path) => path.trim()).filter((path) => path.length > 0)
+      )
+    );
+    if (paths.length === 0) {
+      throw new Error(
+        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
+      );
+    }
+    return paths;
+  }
+  // Gets the private object directory.
+  getPrivateObjectDir() {
+    const dir = process.env.PRIVATE_OBJECT_DIR || "";
+    if (!dir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+    return dir;
+  }
+  // Search for a public object from the search paths.
+  async searchPublicObject(filePath) {
+    for (const searchPath of this.getPublicObjectSearchPaths()) {
+      const fullPath = `${searchPath}/${filePath}`;
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      const [exists] = await file.exists();
+      if (exists) {
+        return file;
+      }
+    }
+    return null;
+  }
+  // Downloads an object to the response.
+  async downloadObject(file, res, cacheTtlSec = 3600) {
+    try {
+      const [metadata] = await file.getMetadata();
+      const aclPolicy = await getObjectAclPolicy(file);
+      const isPublic = aclPolicy?.visibility === "public";
+      res.set({
+        "Content-Type": metadata.contentType || "application/octet-stream",
+        "Content-Length": metadata.size,
+        "Cache-Control": `${isPublic ? "public" : "private"}, max-age=${cacheTtlSec}`
+      });
+      const stream = file.createReadStream();
+      stream.on("error", (err) => {
+        console.error("Stream error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error streaming file" });
+        }
+      });
+      stream.pipe(res);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error downloading file" });
+      }
+    }
+  }
+  // Gets the upload URL for an object entity.
+  async getObjectEntityUploadURL() {
+    const privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+    const objectId = randomUUID();
+    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900
+    });
+  }
+  // Gets the object entity file from the object path.
+  async getObjectEntityFile(objectPath) {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new ObjectNotFoundError();
+    }
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) {
+      throw new ObjectNotFoundError();
+    }
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const objectFile = bucket.file(objectName);
+    const [exists] = await objectFile.exists();
+    if (!exists) {
+      throw new ObjectNotFoundError();
+    }
+    return objectFile;
+  }
+  normalizeObjectEntityPath(rawPath) {
+    if (!rawPath.startsWith("https://storage.googleapis.com/")) {
+      return rawPath;
+    }
+    const url = new URL(rawPath);
+    const rawObjectPath = url.pathname;
+    let objectEntityDir = this.getPrivateObjectDir();
+    if (!objectEntityDir.endsWith("/")) {
+      objectEntityDir = `${objectEntityDir}/`;
+    }
+    if (!rawObjectPath.startsWith(objectEntityDir)) {
+      return rawObjectPath;
+    }
+    const entityId = rawObjectPath.slice(objectEntityDir.length);
+    return `/objects/${entityId}`;
+  }
+  // Tries to set the ACL policy for the object entity and return the normalized path.
+  async trySetObjectEntityAclPolicy(rawPath, aclPolicy) {
+    const normalizedPath = this.normalizeObjectEntityPath(rawPath);
+    if (!normalizedPath.startsWith("/")) {
+      return normalizedPath;
+    }
+    const objectFile = await this.getObjectEntityFile(normalizedPath);
+    await setObjectAclPolicy(objectFile, aclPolicy);
+    return normalizedPath;
+  }
+  // Checks if the user can access the object entity.
+  async canAccessObjectEntity({
+    userId,
+    objectFile,
+    requestedPermission
+  }) {
+    return canAccessObject({
+      userId,
+      objectFile,
+      requestedPermission: requestedPermission ?? "read" /* READ */
+    });
+  }
+  // Uploads a file buffer to object storage and returns the URL
+  async uploadFileBuffer(buffer, fileName, mimeType) {
+    const privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+    const objectId = randomUUID();
+    const extension = fileName.split(".").pop() || "bin";
+    const objectName = `uploads/${objectId}.${extension}`;
+    const fullPath = `${privateObjectDir}/${objectName}`;
+    const { bucketName, objectName: finalObjectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(finalObjectName);
+    await file.save(buffer, {
+      metadata: {
+        contentType: mimeType
+      }
+    });
+    return `/objects/${objectName}`;
+  }
+};
+function parseObjectPath(path) {
+  if (!path.startsWith("/")) {
+    path = `/${path}`;
+  }
+  const pathParts = path.split("/");
+  if (pathParts.length < 3) {
+    throw new Error("Invalid path: must contain at least a bucket name");
+  }
+  const bucketName = pathParts[1];
+  const objectName = pathParts.slice(2).join("/");
+  return {
+    bucketName,
+    objectName
+  };
+}
+async function signObjectURL({
+  bucketName,
+  objectName,
+  method,
+  ttlSec
+}) {
+  const request = {
+    bucket_name: bucketName,
+    object_name: objectName,
+    method,
+    expires_at: new Date(Date.now() + ttlSec * 1e3).toISOString()
+  };
+  const response = await fetch(
+    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(request)
+    }
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to sign object URL, errorcode: ${response.status}, make sure you're running on Replit`
+    );
+  }
+  const { signed_url: signedURL } = await response.json();
+  return signedURL;
+}
+
+// server/farcaster-validation.ts
+var FarcasterCastValidator = class {
+  /**
+   * Validate a Farcaster cast URL for social post quest
+   */
+  async validateCast(castUrl) {
+    try {
+      if (!castUrl.includes("warpcast.com") && !castUrl.includes("farcaster.xyz")) {
+        return { isValid: false, reason: "Invalid cast URL format" };
+      }
+      const castData = await this.fetchCastData(castUrl);
+      if (!castData) {
+        return { isValid: false, reason: "Could not fetch cast data" };
+      }
+      const contentValidation = this.validateContent(castData.text);
+      if (!contentValidation.isValid) {
+        return contentValidation;
+      }
+      const timestampValidation = this.validateTimestamp(castData.timestamp);
+      if (!timestampValidation.isValid) {
+        return timestampValidation;
+      }
+      return {
+        isValid: true,
+        reason: "Cast validation passed",
+        castData
+      };
+    } catch (error) {
+      console.error("\u{1F6A8} Cast validation error:", error);
+      return { isValid: false, reason: "Cast validation failed" };
+    }
+  }
+  /**
+   * Fetch cast data from Neynar API
+   */
+  async fetchCastData(castUrl) {
+    try {
+      const apiKey = process.env.NEYNAR_API_KEY;
+      if (!apiKey) {
+        console.error("\u274C NEYNAR_API_KEY not found");
+        return null;
+      }
+      console.log(`\u{1F50D} Fetching cast data from Neynar API for URL: ${castUrl}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1e4);
+      const encodedUrl = encodeURIComponent(castUrl);
+      const response = await fetch(
+        `https://api.neynar.com/v2/farcaster/cast?identifier=${encodedUrl}&type=url`,
+        {
+          signal: controller.signal,
+          headers: {
+            "accept": "application/json",
+            "x-api-key": apiKey
+          }
+        }
+      );
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        console.log(`\u26A0\uFE0F Neynar API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.log("Error response:", errorText);
+        return null;
+      }
+      const data = await response.json();
+      console.log("\u{1F50D} Neynar API response:", JSON.stringify(data, null, 2));
+      if (data && data.cast) {
+        const cast = data.cast;
+        if (!cast.timestamp) {
+          console.log("\u26A0\uFE0F Cast missing timestamp - cannot validate posting date");
+          return null;
+        }
+        let timestamp2;
+        if (typeof cast.timestamp === "string") {
+          timestamp2 = cast.timestamp;
+        } else if (typeof cast.timestamp === "number") {
+          const tsMillis = cast.timestamp > 1e12 ? cast.timestamp : cast.timestamp * 1e3;
+          timestamp2 = new Date(tsMillis).toISOString();
+        } else {
+          console.log("\u26A0\uFE0F Invalid timestamp format:", cast.timestamp);
+          return null;
+        }
+        return {
+          text: cast.text || "",
+          timestamp: timestamp2,
+          author: {
+            fid: cast.author?.fid || 0,
+            username: cast.author?.username || "unknown"
+          }
+        };
+      }
+      console.log("\u26A0\uFE0F Unexpected cast data format from Neynar API");
+      return null;
+    } catch (error) {
+      console.error("\u274C Neynar API request failed:", error);
+      return null;
+    }
+  }
+  /**
+   * Validate cast content for TravelMint requirements
+   */
+  validateContent(text2) {
+    const lowerText = text2.toLowerCase();
+    const travelMintKeywords = ["travelmint", "travel mint"];
+    const hasTravelMint = travelMintKeywords.some(
+      (keyword) => lowerText.includes(keyword.toLowerCase())
+    );
+    if (!hasTravelMint) {
+      return {
+        isValid: false,
+        reason: "Cast must mention 'TravelMint'"
+      };
+    }
+    return { isValid: true, reason: "Content validation passed" };
+  }
+  /**
+   * Validate that cast was posted today
+   */
+  validateTimestamp(timestamp2) {
+    try {
+      const castDate = new Date(timestamp2);
+      const today = getQuestDay();
+      const castDay = getQuestDay(castDate);
+      if (castDay !== today) {
+        return {
+          isValid: false,
+          reason: "Cast must be from today"
+        };
+      }
+      return { isValid: true, reason: "Timestamp validation passed" };
+    } catch (error) {
+      return {
+        isValid: false,
+        reason: "Invalid timestamp format"
+      };
+    }
+  }
+};
+var farcasterCastValidator = new FarcasterCastValidator();
+
+// server/notificationService.ts
+import { z as z2 } from "zod";
+var sendNotificationRequestSchema = z2.object({
+  target_fids: z2.array(z2.number()),
+  notification: z2.object({
+    title: z2.string(),
+    body: z2.string(),
+    target_url: z2.string(),
+    uuid: z2.string()
+  })
+});
+var sendNotificationResponseSchema = z2.object({
+  notification_deliveries: z2.array(z2.object({
+    object: z2.string(),
+    fid: z2.number(),
+    status: z2.string()
+  }))
+});
+var NotificationService = class {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+  }
+  neynarApiUrl = "https://api.neynar.com/v2/farcaster/frame/notifications";
+  /**
+   * Send notification to multiple Farcaster users by FID
+   */
+  async sendNotification(params) {
+    try {
+      const notificationRequest = {
+        target_fids: params.fids,
+        notification: {
+          title: params.title,
+          body: params.message,
+          target_url: params.targetUrl || "https://travelmint.replit.app",
+          uuid: crypto.randomUUID()
+        }
+      };
+      console.log(`\u{1F4F1} Sending notification to ${params.fids.length} users:`, {
+        title: params.title,
+        message: params.message,
+        fids: params.fids
+      });
+      console.log(`\u{1F504} Also testing with empty FID array for broader reach...`);
+      const response = await fetch(this.neynarApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": this.apiKey
+        },
+        body: JSON.stringify(notificationRequest)
+      });
+      const responseJson = await response.json();
+      console.log(`\u{1F50D} Neynar API Response (Status: ${response.status}):`, JSON.stringify(responseJson, null, 2));
+      if (response.status === 200) {
+        const parsedResponse = sendNotificationResponseSchema.safeParse(responseJson);
+        if (!parsedResponse.success) {
+          console.error("\u274C Invalid notification response format - Expected:", sendNotificationResponseSchema);
+          console.error("\u274C Actual response:", responseJson);
+          console.error("\u274C Parsing errors:", parsedResponse.error);
+          if (responseJson && responseJson.notification_deliveries) {
+            console.log("\u{1F504} Attempting to work with actual response format...");
+            const deliveries2 = responseJson.notification_deliveries;
+            const successCount2 = Array.isArray(deliveries2) ? deliveries2.filter((d) => d.status === "success").length : 0;
+            const failureCount2 = Array.isArray(deliveries2) ? deliveries2.filter((d) => d.status !== "success").length : 0;
+            console.log(`\u2705 Notification sent (raw format) - Success: ${successCount2}, Failed: ${failureCount2}`);
+            return {
+              success: successCount2 > 0,
+              successCount: successCount2,
+              failureCount: failureCount2,
+              rateLimitedCount: 0,
+              errors: failureCount2 > 0 ? [`${failureCount2} deliveries failed`] : void 0
+            };
+          }
+          return {
+            success: false,
+            successCount: 0,
+            failureCount: params.fids.length,
+            rateLimitedCount: 0,
+            errors: ["Invalid response format from notification service"]
+          };
+        }
+        const deliveries = parsedResponse.data.notification_deliveries;
+        const successCount = deliveries.filter((d) => d.status === "success").length;
+        const failureCount = deliveries.filter((d) => d.status !== "success").length;
+        console.log(`\u2705 Notification sent - Success: ${successCount}, Failed: ${failureCount}`);
+        return {
+          success: successCount > 0,
+          successCount,
+          failureCount,
+          rateLimitedCount: 0,
+          // Rate limiting info not provided in new API
+          errors: failureCount > 0 ? [`${failureCount} deliveries failed`] : void 0
+        };
+      } else {
+        console.error(`\u274C Notification API error (${response.status}):`, responseJson);
+        return {
+          success: false,
+          successCount: 0,
+          failureCount: params.fids.length,
+          rateLimitedCount: 0,
+          errors: [responseJson.message || `API error: ${response.status}`]
+        };
+      }
+    } catch (error) {
+      console.error("\u274C Notification service error:", error);
+      return {
+        success: false,
+        successCount: 0,
+        failureCount: params.fids.length,
+        rateLimitedCount: 0,
+        errors: [error.message || "Unknown notification error"]
+      };
+    }
+  }
+  /**
+   * Test notification service connectivity
+   */
+  async testConnection() {
+    try {
+      const testUrl = "https://api.neynar.com/v2/farcaster/user/bulk?fids=1&viewer_fid=1";
+      const testResponse = await fetch(testUrl, {
+        method: "GET",
+        headers: {
+          "accept": "application/json",
+          "x-api-key": this.apiKey
+        }
+      });
+      console.log(`\u{1F511} Notification service connection test: ${testResponse.status}`);
+      if (testResponse.status === 200) {
+        console.log("\u2705 Neynar API connection successful");
+        return true;
+      } else {
+        const errorText = await testResponse.text();
+        console.error(`\u274C Neynar API connection failed (${testResponse.status}):`, errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error("\u{1F511} Notification service connection test failed:", error);
+      return false;
+    }
+  }
+};
+var notificationService = null;
+function getNotificationService() {
+  if (!notificationService && process.env.NEYNAR_API_KEY) {
+    notificationService = new NotificationService(process.env.NEYNAR_API_KEY);
+    console.log("\u{1F4F1} Notification service initialized");
+  }
+  return notificationService;
+}
+function isNotificationServiceAvailable() {
+  return !!process.env.NEYNAR_API_KEY;
+}
+
+// server/image-sync.ts
+var objectStorageService = new ObjectStorageService();
+var IPFS_GATEWAYS = [
+  "https://ipfs.io/ipfs/",
+  "https://cloudflare-ipfs.com/ipfs/",
+  "https://dweb.link/ipfs/",
+  "https://4everland.io/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/"
+];
+var MAX_FILE_SIZE = 10 * 1024 * 1024;
+var DOWNLOAD_TIMEOUT = 3e4;
+var DELAY_BETWEEN_DOWNLOADS = 500;
+function extractIpfsCid(url) {
+  if (!url) return null;
+  if (url.startsWith("ipfs://")) {
+    let path = url.slice(7);
+    if (path.startsWith("ipfs/")) {
+      path = path.slice(5);
+    }
+    const cid = path.split("?")[0].split("/")[0];
+    return cid.length > 10 ? cid : null;
+  }
+  const subdomainMatch = url.match(/https?:\/\/([a-zA-Z0-9]+)\.ipfs\./);
+  if (subdomainMatch) {
+    return subdomainMatch[1];
+  }
+  const ipfsMatch = url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
+  if (ipfsMatch) {
+    return ipfsMatch[1];
+  }
+  return null;
+}
+function getFileExtension(contentType) {
+  const mimeToExt = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/svg+xml": "svg",
+    "image/avif": "avif"
+  };
+  return mimeToExt[contentType] || "jpg";
+}
+async function downloadImageWithTimeout(url, timeout) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "TravelMint-NFT-Sync/1.0"
+      }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    const contentLength = response.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
+      console.log(`\u26A0\uFE0F Image too large: ${parseInt(contentLength) / 1024 / 1024}MB`);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    if (buffer.length > MAX_FILE_SIZE) {
+      console.log(`\u26A0\uFE0F Downloaded image too large: ${buffer.length / 1024 / 1024}MB`);
+      return null;
+    }
+    return { buffer, contentType };
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+async function downloadFromIpfs(cid) {
+  for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+    const gateway = IPFS_GATEWAYS[i];
+    const url = `${gateway}${cid}`;
+    console.log(`\u{1F517} Trying gateway ${i + 1}/${IPFS_GATEWAYS.length}: ${gateway}`);
+    const result = await downloadImageWithTimeout(url, DOWNLOAD_TIMEOUT);
+    if (result) {
+      console.log(`\u2705 Successfully downloaded from ${gateway}`);
+      return result;
+    }
+  }
+  return null;
+}
+async function syncNftImage(nft, force = false) {
+  try {
+    if (nft.objectStorageUrl && !force) {
+      console.log(`\u23ED\uFE0F NFT ${nft.tokenId || nft.id} already cached, skipping`);
+      return true;
+    }
+    const imageUrl = nft.imageUrl;
+    if (!imageUrl) {
+      console.log(`\u26A0\uFE0F NFT ${nft.id} has no imageUrl`);
+      return false;
+    }
+    const cid = extractIpfsCid(imageUrl);
+    let imageData = null;
+    if (cid) {
+      console.log(`\u{1F4E5} Downloading IPFS image for NFT ${nft.tokenId || nft.id}: ${cid}`);
+      imageData = await downloadFromIpfs(cid);
+    } else if (imageUrl.startsWith("http")) {
+      console.log(`\u{1F4E5} Downloading HTTP image for NFT ${nft.tokenId || nft.id}: ${imageUrl}`);
+      imageData = await downloadImageWithTimeout(imageUrl, DOWNLOAD_TIMEOUT);
+    }
+    if (!imageData) {
+      console.log(`\u274C Failed to download image for NFT ${nft.tokenId || nft.id}`);
+      return false;
+    }
+    const extension = getFileExtension(imageData.contentType);
+    const fileName = `nft-${nft.tokenId || nft.id}.${extension}`;
+    console.log(`\u{1F4E4} Uploading to Object Storage: ${fileName} (${(imageData.buffer.length / 1024).toFixed(1)}KB)`);
+    const objectStorageUrl = await objectStorageService.uploadFileBuffer(
+      imageData.buffer,
+      fileName,
+      imageData.contentType
+    );
+    await storage.updateNFT(nft.id, { objectStorageUrl });
+    console.log(`\u2705 NFT ${nft.tokenId || nft.id} synced: ${objectStorageUrl}`);
+    return true;
+  } catch (error) {
+    console.error(`\u274C Error syncing NFT ${nft.id}:`, error.message);
+    return false;
+  }
+}
+async function syncAllImages() {
+  console.log("\u{1F504} Starting NFT image sync...");
+  const allNfts = await storage.getAllNFTs();
+  const tipTotals = await storage.getNFTTipTotals();
+  const nftsToSync = allNfts.filter((nft) => {
+    if (nft.objectStorageUrl) {
+      return false;
+    }
+    if (!nft.imageUrl) {
+      return false;
+    }
+    return true;
+  });
+  nftsToSync.sort((a, b) => {
+    const tipsA = tipTotals.get(a.id) || 0;
+    const tipsB = tipTotals.get(b.id) || 0;
+    return tipsB - tipsA;
+  });
+  const tippedCount = nftsToSync.filter((nft) => (tipTotals.get(nft.id) || 0) > 0).length;
+  console.log(`\u{1F4CA} Found ${nftsToSync.length} NFTs to sync (${tippedCount} with tips prioritized, ${allNfts.length} total)`);
+  let synced = 0;
+  let failed = 0;
+  let skipped = allNfts.length - nftsToSync.length;
+  for (let i = 0; i < nftsToSync.length; i++) {
+    const nft = nftsToSync[i];
+    console.log(`
+[${i + 1}/${nftsToSync.length}] Processing NFT: ${nft.title || nft.tokenId || nft.id}`);
+    const success = await syncNftImage(nft);
+    if (success) {
+      synced++;
+    } else {
+      failed++;
+    }
+    if (i < nftsToSync.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_DOWNLOADS));
+    }
+  }
+  console.log(`
+\u2705 Sync complete: ${synced} synced, ${failed} failed, ${skipped} already cached`);
+  return { synced, failed, skipped };
+}
+async function syncSingleImage(nftId) {
+  const nft = await storage.getNFT(nftId);
+  if (!nft) {
+    console.log(`\u274C NFT not found: ${nftId}`);
+    return false;
+  }
+  return syncNftImage(nft);
+}
+async function getSyncStatus() {
+  const allNfts = await storage.getAllNFTs();
+  const cached = allNfts.filter((nft) => nft.objectStorageUrl).length;
+  const pending = allNfts.length - cached;
+  const percentage = allNfts.length > 0 ? Math.round(cached / allNfts.length * 100) : 0;
+  return { total: allNfts.length, cached, pending, percentage };
+}
+
+// server/routes.ts
 import multer2 from "multer";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import { readFileSync } from "fs";
 import { join } from "path";
+var interRegular = null;
+var interBold = null;
+try {
+  interRegular = readFileSync(join(process.cwd(), "server/fonts/Inter-Regular.ttf"));
+  interBold = readFileSync(join(process.cwd(), "server/fonts/Inter-Bold.ttf"));
+} catch (e) {
+  console.warn("Failed to load Inter fonts, share images will use fallback");
+}
+var ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
+var PLATFORM_WALLET2 = "0x7CDe7822456AAC667Df0420cD048295b92704084";
+var nftCache = {};
+var CACHE_DURATION = 30 * 1e3;
+var CACHE_DURATION_TIPS = 60 * 1e3;
 function isCacheValid(key) {
   const entry = nftCache[key];
   if (!entry) return false;
@@ -4852,6 +4785,21 @@ function createUserObject(walletAddress, farcasterUsername, farcasterFid) {
     };
   }
 }
+var adminAttempts = /* @__PURE__ */ new Map();
+var adminBlocks = /* @__PURE__ */ new Map();
+var ADMIN_RATE_LIMIT = {
+  maxAttempts: 5,
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  blockDurationMs: 30 * 60 * 1e3
+  // 30 minutes block
+};
+var ADMIN_SESSION = {
+  maxAgeMs: 8 * 60 * 60 * 1e3,
+  // 8 hours
+  renewalThresholdMs: 2 * 60 * 60 * 1e3
+  // renew if less than 2 hours left
+};
 function getClientIp(req) {
   return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.connection?.remoteAddress || req.socket?.remoteAddress || "unknown";
 }
@@ -9578,60 +9526,104 @@ async function registerRoutes(app2) {
   });
   return createServer(app2);
 }
-var interRegular, interBold, ALLOWED_CONTRACT, PLATFORM_WALLET2, nftCache, CACHE_DURATION, CACHE_DURATION_TIPS, adminAttempts, adminBlocks, ADMIN_RATE_LIMIT, ADMIN_SESSION;
-var init_routes = __esm({
-  "server/routes.ts"() {
-    "use strict";
-    init_storage();
-    init_db();
-    init_schema();
-    init_blockchain();
-    init_metadataSyncService();
-    init_schema();
-    init_places_service();
-    init_ipfs3();
-    init_objectStorage();
-    init_farcaster_validation();
-    init_notificationService();
-    init_image_sync();
-    interRegular = null;
-    interBold = null;
-    try {
-      interRegular = readFileSync(join(process.cwd(), "server/fonts/Inter-Regular.ttf"));
-      interBold = readFileSync(join(process.cwd(), "server/fonts/Inter-Bold.ttf"));
-    } catch (e) {
-      console.warn("Failed to load Inter fonts, share images will use fallback");
+
+// server/createApp.ts
+function createApp() {
+  const app2 = express();
+  app2.use(express.json({ limit: "50mb" }));
+  app2.use(express.urlencoded({ extended: false, limit: "50mb" }));
+  app2.get("/.well-known/farcaster.json", (req, res) => {
+    console.log("\u{1F3AF} HIGH PRIORITY FARCASTER ROUTE HIT!", Date.now());
+    const currentTimestamp = Date.now();
+    const cacheBuster = `?v=${currentTimestamp}&force=${Math.random().toString(36).substring(7)}`;
+    const farcasterConfig = {
+      "accountAssociation": {
+        "header": "eyJmaWQiOjI5MDY3MywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUwMkUyNTU3YkI4MDdDZjdFMzBDZUY4YzMxNDY5NjNhOGExZDQ0OTYifQ",
+        "payload": "eyJkb21haW4iOiJ0cmF2ZWxtaW50bmZ0LnZlcmNlbC5hcHAifQ",
+        "signature": "ZWhR28DttKO6Kzdr2iuvajB0mi86rmos/UIP63S8bKs2ExtVC4XmemQjGpCUI5sdRxjeLkjmVJEfF19Ev7kb6Bw="
+      },
+      "miniapp": {
+        "version": "1",
+        "name": "TravelMint",
+        "author": "coinacci",
+        "authorUrl": "https://warpcast.com/coinacci",
+        "description": "Mint, buy, and sell location-based travel photo NFTs. Create unique travel memories on the blockchain with GPS coordinates and discover NFTs on an interactive map.",
+        "iconUrl": "https://travelmintnft.vercel.app/icon.png",
+        "homeUrl": "https://travelmintnft.vercel.app/",
+        "imageUrl": "https://travelmintnft.vercel.app/logo.jpeg",
+        "splashImageUrl": "https://travelmintnft.vercel.app/logo.jpeg",
+        "splashBackgroundColor": "#0f172a",
+        "subtitle": "Travel Photo NFT Marketplace",
+        "heroImageUrl": "https://travelmintnft.vercel.app/logo.jpeg",
+        "tagline": "Turn travel into NFTs",
+        "ogTitle": "TravelMint NFT App",
+        "ogDescription": "Mint, buy, and sell location-based travel photo NFTs on Base blockchain",
+        "ogImageUrl": "https://travelmintnft.vercel.app/logo.jpeg",
+        "castShareUrl": "https://travelmintnft.vercel.app/share",
+        "webhookUrl": "https://api.neynar.com/f/app/968f2785-2da9-451a-a984-d753e739713c/event",
+        "license": "MIT",
+        "privacyPolicyUrl": "https://travelmintnft.vercel.app/privacy",
+        "tags": ["travel", "nft", "blockchain", "photography", "base"],
+        "screenshotUrls": [
+          "https://travelmintnft.vercel.app/logo.jpeg",
+          "https://travelmintnft.vercel.app/logo.jpeg"
+        ],
+        "noindex": false,
+        "primaryCategory": "productivity"
+      },
+      "baseBuilder": {
+        "allowedAddresses": ["0x7F397c837b9B67559E3cFfaEceA4a2151c05b548"]
+      }
+    };
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("ETag", `"v${currentTimestamp}"`);
+    res.setHeader("Last-Modified", (/* @__PURE__ */ new Date()).toUTCString());
+    res.setHeader("X-Timestamp", currentTimestamp.toString());
+    res.setHeader("X-Cache-Buster", cacheBuster);
+    res.setHeader("X-Farcaster-Version", `3.${currentTimestamp}`);
+    res.setHeader("X-Debug", "HIGH-PRIORITY-ROUTE");
+    res.send(JSON.stringify(farcasterConfig, null, 2));
+  });
+  app2.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma");
+    res.header("Access-Control-Allow-Credentials", "false");
+    res.header("X-Content-Type-Options", "nosniff");
+    res.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.header("Content-Security-Policy", [
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: moz-extension: safari-extension: https: data: blob:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https: data:",
+      "font-src 'self' https://fonts.gstatic.com https: data:",
+      "img-src 'self' data: https: http: chrome-extension: moz-extension: safari-extension: blob:",
+      "connect-src 'self' https: http: wss: ws: chrome-extension: moz-extension: safari-extension: data: blob:",
+      "frame-src 'self' chrome-extension: moz-extension: safari-extension: https: data:",
+      "frame-ancestors *",
+      "worker-src 'self' blob:",
+      "child-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self' https:"
+    ].join("; "));
+    if (req.method === "OPTIONS") {
+      res.sendStatus(200);
+      return;
     }
-    ALLOWED_CONTRACT = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f";
-    PLATFORM_WALLET2 = "0x7CDe7822456AAC667Df0420cD048295b92704084";
-    nftCache = {};
-    CACHE_DURATION = 30 * 1e3;
-    CACHE_DURATION_TIPS = 60 * 1e3;
-    adminAttempts = /* @__PURE__ */ new Map();
-    adminBlocks = /* @__PURE__ */ new Map();
-    ADMIN_RATE_LIMIT = {
-      maxAttempts: 5,
-      windowMs: 15 * 60 * 1e3,
-      // 15 minutes
-      blockDurationMs: 30 * 60 * 1e3
-      // 30 minutes block
-    };
-    ADMIN_SESSION = {
-      maxAgeMs: 8 * 60 * 60 * 1e3,
-      // 8 hours
-      renewalThresholdMs: 2 * 60 * 60 * 1e3
-      // renew if less than 2 hours left
-    };
+    next();
+  });
+  if (process.env.VERCEL) {
+    console.log("\u{1F527} Running in Vercel serverless mode - skipping server setup");
+    registerRoutes(app2);
   }
-});
+  return app2;
+}
 
 // api/index.ts
-import express from "express";
-var app = express();
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: false, limit: "50mb" }));
-var { registerRoutes: registerRoutes2 } = await Promise.resolve().then(() => (init_routes(), routes_exports));
-await registerRoutes2(app);
+var app = createApp();
 var index_default = app;
 export {
   index_default as default
