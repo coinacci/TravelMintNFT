@@ -2,11 +2,11 @@ import { ethers } from "ethers";
 
 // Use multiple high-performance RPC providers (avoiding rate-limited official endpoint)
 const BASE_RPC_URLS = [
-  "https://base-rpc.publicnode.com", // Most reliable free option (542M+ requests)
-  "https://rpc.ankr.com/base", // 30 req/sec free tier  
+  "https://base-mainnet.g.alchemy.com/v2/FrGL6bs872qQha3-NDj-u",
+  "https://base-rpc.publicnode.com",
+  "https://rpc.ankr.com/base",
   "https://base.llamarpc.com",
-  "https://base.gateway.tenderly.co",
-  "https://mainnet.base.org" // Official as last resort
+  "https://mainnet.base.org"
 ];
 
 let currentRpcIndex = 0;

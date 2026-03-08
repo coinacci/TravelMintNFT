@@ -2001,14 +2001,11 @@ import { sql as sql4 } from "drizzle-orm";
 // server/blockchain.ts
 import { ethers } from "ethers";
 var BASE_RPC_URLS = [
+  "https://base-mainnet.g.alchemy.com/v2/FrGL6bs872qQha3-NDj-u",
   "https://base-rpc.publicnode.com",
-  // Most reliable free option (542M+ requests)
   "https://rpc.ankr.com/base",
-  // 30 req/sec free tier  
   "https://base.llamarpc.com",
-  "https://base.gateway.tenderly.co",
   "https://mainnet.base.org"
-  // Official as last resort
 ];
 var currentRpcIndex = 0;
 var MORALIS_API_URL = "https://deep-index.moralis.io/api/v2";
