@@ -2001,7 +2001,6 @@ import { sql as sql4 } from "drizzle-orm";
 // server/blockchain.ts
 import { ethers } from "ethers";
 var BASE_RPC_URLS = [
-  "https://base-mainnet.g.alchemy.com/v2/FrGL6bs872qQha3-NDj-u",
   "https://base-rpc.publicnode.com",
   "https://rpc.ankr.com/base",
   "https://base.llamarpc.com",
