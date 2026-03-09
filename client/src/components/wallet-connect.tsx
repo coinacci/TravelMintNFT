@@ -11,8 +11,8 @@ import QRCodeSVG from "react-qr-code";
 // Farcaster AuthKit configuration
 const authConfig = {
   rpcUrl: 'https://mainnet.optimism.io',
-  domain: typeof window !== 'undefined' ? window.location.host : 'travelmint.replit.app',
-  siweUri: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/farcaster` : 'https://travelmint.replit.app/api/auth/farcaster',
+  domain: typeof window !== 'undefined' ? window.location.host : 'travelmintnft.vercel.app',
+  siweUri: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/farcaster` : 'https://travelmintnft.vercel.app/api/auth/farcaster',
 };
 
 // Farcaster QR Code Authentication Component (must be used inside AuthKitProvider)
