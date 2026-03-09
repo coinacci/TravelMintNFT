@@ -2579,19 +2579,24 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "No file provided" });
       }
       
-      const objectStorageService = new ObjectStorageService();
-      const relativeObjectUrl = await objectStorageService.uploadFileBuffer(
-        file.buffer,
-        fileName || file.originalname,
-        mimeType || file.mimetype
-      );
-      
-      // Convert relative URL to full URL for OpenSea compatibility
-      const protocol = req.protocol || 'https';
-      const host = req.get('host') || req.headers.host;
-      const fullObjectUrl = `${protocol}://${host}${relativeObjectUrl}`;
-      
-      console.log('\u2705 Object uploaded successfully:', fullObjectUrl);
+      const pinataJwt = process.env.PINATA_JWT;
+      if (!pinataJwt) {
+        return res.status(500).json({ error: 'Pinata JWT not configured' });
+      }
+      const formData = new FormData();
+      const blob = new Blob([file.buffer], { type: mimeType || file.mimetype });
+      formData.append('file', blob, fileName || file.originalname);
+      const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${pinataJwt}` },
+        body: formData,
+      });
+      if (!pinataResponse.ok) {
+        throw new Error(`Pinata upload failed: ${pinataResponse.statusText}`);
+      }
+      const pinataData = await pinataResponse.json();
+      const fullObjectUrl = `https://gateway.pinata.cloud/ipfs/${pinataData.IpfsHash}`;
+      console.log('Object uploaded to IPFS:', fullObjectUrl);
       res.json({ objectUrl: fullObjectUrl });
     } catch (error) {
       console.error('\u274c Object upload failed:', error);
