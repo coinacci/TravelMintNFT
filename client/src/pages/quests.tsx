@@ -424,7 +424,7 @@ export default function Quests() {
             </div>
             <Button
               onClick={() => {
-                if (farcasterUser) {
+                if (address) {
                   const data = encodeFunctionData({
                     abi: QUEST_ABI,
                     functionName: 'completeQuest',
@@ -437,7 +437,7 @@ export default function Quests() {
                   });
                 }
               }}
-              disabled={!farcasterUser || !address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
+              disabled={!address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
               variant="outline"
               size="sm"
               className={farcasterUser && address && !hasClaimedBaseTransaction ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
