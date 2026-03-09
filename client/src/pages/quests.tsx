@@ -423,7 +423,7 @@ export default function Quests() {
               <span className="text-xs text-muted-foreground">+1 Point</span>
             </div>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (address) {
                   const data = encodeFunctionData({
                     abi: QUEST_ABI,
