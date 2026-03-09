@@ -18,7 +18,7 @@ const getAppUrl = () => {
     }
   }
   // Production: use production domain
-  return 'https://travelnft.replit.app';
+  return 'https://travelmintnft.vercel.app';
 };
 
 // Manual connection config - no auto-connect to prevent Farcaster crashes
