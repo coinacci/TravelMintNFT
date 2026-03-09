@@ -876,7 +876,7 @@ export default function MyNFTs() {
     setIsGeneratingFrame(true);
     try {
       // Use production domain for Farcaster frame URL (must match registered domain)
-      const productionDomain = 'https://travelnft.replit.app';
+      const productionDomain = 'https://travelmintnft.vercel.app';
       const frameUrl = `${productionDomain}/api/frames/nft/${nft.tokenId}`;
       
       // Create share message with NFT title

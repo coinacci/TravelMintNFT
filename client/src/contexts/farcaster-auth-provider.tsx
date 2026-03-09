@@ -4,8 +4,8 @@ import "@farcaster/auth-kit/styles.css";
 
 const config = {
   rpcUrl: "https://mainnet.optimism.io",
-  domain: "travelnft.replit.app",
-  siweUri: "https://travelnft.replit.app",
+  domain: "travelmintnft.vercel.app",
+  siweUri: "https://travelmintnft.vercel.app",
   relay: "https://relay.farcaster.xyz",
 };
 

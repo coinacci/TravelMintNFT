@@ -419,7 +419,7 @@ export default function AdminNotifications() {
                     type="url"
                     value={targetUrl}
                     onChange={(e) => setTargetUrl(e.target.value)}
-                    placeholder="https://travelmint.replit.app"
+                    placeholder="https://travelmintnft.vercel.app"
                     data-testid="input-target-url"
                   />
                 </div>

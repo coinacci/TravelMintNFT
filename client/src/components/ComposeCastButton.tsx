@@ -116,7 +116,7 @@ export default function ComposeCastButton({
       } else if (embeds.length > 0) {
         castEmbeds = embeds;
       } else {
-        castEmbeds = [typeof window !== 'undefined' ? window.location.origin : 'https://travelnft.replit.app'];
+        castEmbeds = [typeof window !== 'undefined' ? window.location.origin : 'https://travelmintnft.vercel.app'];
       }
 
       const result = await sdk.actions.composeCast({
