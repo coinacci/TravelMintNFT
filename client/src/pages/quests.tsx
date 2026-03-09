@@ -430,11 +430,37 @@ export default function Quests() {
                     functionName: 'completeQuest',
                     args: [BigInt(1)]
                   });
-                  sendTransaction({
-                    to: QUEST_MANAGER_ADDRESS,
-                    value: parseEther('0.000005'),
-                    data
-                  });
+                  // Try wagmi first, fallback to window.ethereum for Base App
+                  try {
+                    sendTransaction({
+                      to: QUEST_MANAGER_ADDRESS,
+                      value: parseEther('0.000005'),
+                      data
+                    });
+                  } catch (e) {
+                    // Fallback for Base App
+                    if (window.ethereum) {
+                      const txHash = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                          to: QUEST_MANAGER_ADDRESS,
+                          value: '0x1C6BF52634000',
+                          data,
+                          from: address
+                        }]
+                      });
+                      if (txHash) {
+                        await apiRequest('POST', '/api/quest-claim', {
+                          farcasterFid: farcasterUser ? String(farcasterUser.fid) : null,
+                          questType: 'base_transaction',
+                          walletAddress: address,
+                          farcasterUsername: farcasterUser?.username || address
+                        });
+                        toast({ title: "Hello TravelMint! ⚡", description: "+1 point earned!" });
+                        queryClient.invalidateQueries({ queryKey: ['/api/quest-completions'] });
+                      }
+                    }
+                  }
                 }
               }}
               disabled={!address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
