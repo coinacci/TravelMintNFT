@@ -3737,82 +3737,73 @@ import { Router } from "express";
 import multer from "multer";
 
 // server/ipfs.ts
-var NFTStorageService = class {
-  pinataJwt;
-  constructor() {
-    if (!process.env.PINATA_JWT) {
-      throw new Error("PINATA_JWT environment variable is required");
-    }
-    this.pinataJwt = process.env.PINATA_JWT;
-    console.log("Pinata V3 client initialized");
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
+var filebaseClient = new S3Client({
+  region: "us-east-1",
+  endpoint: "https://s3.filebase.com",
+  credentials: {
+    accessKeyId: process.env.FILEBASE_ACCESS_KEY || "",
+    secretAccessKey: process.env.FILEBASE_SECRET_KEY || ""
   }
+});
+var FILEBASE_BUCKET = process.env.FILEBASE_BUCKET || "travelmint";
+var NFTStorageService = class {
   async uploadFile(fileBuffer, fileName, mimeType) {
     try {
-      const formData = new FormData();
-      const blob = new Blob([fileBuffer], { type: mimeType });
-      formData.append("file", blob, fileName);
-      const response = await fetch("https://uploads.pinata.cloud/v3/files", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${this.pinataJwt}` },
-        body: formData
+      const key = `uploads/${randomUUID()}-${fileName}`;
+      const command = new PutObjectCommand({
+        Bucket: FILEBASE_BUCKET,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: mimeType
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Pinata upload failed: ${response.statusText} - ${errText}`);
-      }
-      const data = await response.json();
-      const cid = data.data?.cid || data.IpfsHash;
-      console.log("File uploaded to IPFS via Pinata V3:", cid);
+      const response = await filebaseClient.send(command);
+      const cid = response.$metadata?.httpHeaders?.["x-amz-meta-cid"] || response.ETag?.replace(/"/g, "");
+      console.log("File uploaded to IPFS via Filebase:", key);
       return {
-        IpfsHash: cid,
+        IpfsHash: cid || key,
         PinSize: fileBuffer.length,
         Timestamp: (/* @__PURE__ */ new Date()).toISOString()
       };
     } catch (error) {
-      console.error("Error uploading file to IPFS:", error);
+      console.error("Error uploading file to Filebase:", error);
       throw error;
     }
   }
   async uploadJSON(data, name) {
     try {
-      const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.pinataJwt}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          pinataContent: data,
-          pinataMetadata: { name }
-        })
+      const key = `metadata/${randomUUID()}-${name}.json`;
+      const jsonString = JSON.stringify(data);
+      const command = new PutObjectCommand({
+        Bucket: FILEBASE_BUCKET,
+        Key: key,
+        Body: Buffer.from(jsonString),
+        ContentType: "application/json"
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Pinata JSON upload failed: ${response.statusText} - ${errText}`);
-      }
-      const result = await response.json();
-      console.log("Metadata uploaded to IPFS via Pinata:", result.IpfsHash);
+      const response = await filebaseClient.send(command);
+      const cid = response.$metadata?.httpHeaders?.["x-amz-meta-cid"] || response.ETag?.replace(/"/g, "");
+      console.log("Metadata uploaded to IPFS via Filebase:", key);
       return {
-        IpfsHash: result.IpfsHash,
-        PinSize: JSON.stringify(data).length,
+        IpfsHash: cid || key,
+        PinSize: jsonString.length,
         Timestamp: (/* @__PURE__ */ new Date()).toISOString()
       };
     } catch (error) {
-      console.error("Error uploading JSON to IPFS:", error);
+      console.error("Error uploading JSON to Filebase:", error);
       throw error;
     }
   }
   async getOptimizedUrl(ipfsHash) {
-    return `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    return `https://ipfs.filebase.io/ipfs/${ipfsHash}`;
   }
   async testConnection() {
     try {
-      const response = await fetch("https://api.pinata.cloud/data/testAuthentication", {
-        headers: { "Authorization": `Bearer ${this.pinataJwt}` }
-      });
-      return response.ok;
+      const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
+      await filebaseClient.send(new ListObjectsV2Command({ Bucket: FILEBASE_BUCKET, MaxKeys: 1 }));
+      return true;
     } catch (error) {
-      console.error("Pinata connection test failed:", error);
+      console.error("Filebase connection test failed:", error);
       return false;
     }
   }
@@ -3941,7 +3932,7 @@ var ipfs_default = router;
 
 // server/objectStorage.ts
 import { Storage } from "@google-cloud/storage";
-import { randomUUID } from "crypto";
+import { randomUUID as randomUUID2 } from "crypto";
 
 // server/objectAcl.ts
 var ACL_POLICY_METADATA_KEY = "custom:aclPolicy";
@@ -4116,7 +4107,7 @@ var ObjectStorageService = class {
         "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
       );
     }
-    const objectId = randomUUID();
+    const objectId = randomUUID2();
     const fullPath = `${privateObjectDir}/uploads/${objectId}`;
     const { bucketName, objectName } = parseObjectPath(fullPath);
     return signObjectURL({
@@ -4196,7 +4187,7 @@ var ObjectStorageService = class {
         "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set PRIVATE_OBJECT_DIR env var."
       );
     }
-    const objectId = randomUUID();
+    const objectId = randomUUID2();
     const extension = fileName.split(".").pop() || "bin";
     const objectName = `uploads/${objectId}.${extension}`;
     const fullPath = `${privateObjectDir}/${objectName}`;

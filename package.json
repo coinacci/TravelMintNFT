@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1005.0",
     "@coinbase/wallet-sdk": "^4.3.7",
     "@farcaster/auth-kit": "^0.8.1",
     "@farcaster/frame-sdk": "^0.0.64",
