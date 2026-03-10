@@ -430,16 +430,17 @@ export default function Quests() {
                     functionName: 'completeQuest',
                     args: [BigInt(1)]
                   });
-                  // Try wagmi first, fallback to window.ethereum for Base App
-                  try {
+                  // Farcaster: use wagmi sendTransaction, Base App: use window.ethereum
+                  const isInFarcaster = !!farcasterUser;
+                  if (isInFarcaster) {
+                    // Farcaster mini app - use wagmi
                     sendTransaction({
                       to: QUEST_MANAGER_ADDRESS,
                       value: parseEther('0.000005'),
                       data
                     });
-                  } catch (e) {
-                    // Fallback for Base App
-                    if (window.ethereum) {
+                  } else if (window.ethereum) {
+                    try {
                       const txHash = await window.ethereum.request({
                         method: 'eth_sendTransaction',
                         params: [{
