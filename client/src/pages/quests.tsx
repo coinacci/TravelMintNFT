@@ -460,6 +460,8 @@ export default function Quests() {
                         toast({ title: "Hello TravelMint! ⚡", description: "+1 point earned!" });
                         queryClient.invalidateQueries({ queryKey: ['/api/quest-completions'] });
                       }
+                    } catch (e: any) {
+                      toast({ title: "Transaction failed", description: e?.message || "Please try again", variant: "destructive" });
                     }
                   }
                 }
