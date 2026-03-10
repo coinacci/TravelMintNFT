@@ -21,10 +21,19 @@ const getAppUrl = () => {
   return 'https://travelmintnft.vercel.app';
 };
 
+// Detect if running inside Farcaster or Base mini app
+const isMiniApp = typeof window !== 'undefined' && (
+  window.location !== window.parent.location || // inside iframe
+  navigator.userAgent.includes('Farcaster') ||
+  navigator.userAgent.includes('Base')
+);
+
 // Manual connection config - no auto-connect to prevent Farcaster crashes
 export const config = createConfig({
   chains: [base, mainnet, baseSepolia],
-  connectors: [
+  connectors: isMiniApp ? [
+    miniAppConnector(), // Only use mini app connector in iframe/mini app context
+  ] : [
     miniAppConnector(), // Native Farcaster Mini App connector
     injected({
       shimDisconnect: true,
