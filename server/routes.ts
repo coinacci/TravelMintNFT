@@ -2586,16 +2586,18 @@ export async function registerRoutes(app: Express) {
       const formData = new FormData();
       const blob = new Blob([file.buffer], { type: mimeType || file.mimetype });
       formData.append('file', blob, fileName || file.originalname);
-      const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      const pinataResponse = await fetch('https://uploads.pinata.cloud/v3/files', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${pinataJwt}` },
         body: formData,
       });
       if (!pinataResponse.ok) {
-        throw new Error(`Pinata upload failed: ${pinataResponse.statusText}`);
+        const errText = await pinataResponse.text();
+        throw new Error(`Pinata upload failed: ${pinataResponse.statusText} - ${errText}`);
       }
       const pinataData = await pinataResponse.json();
-      const fullObjectUrl = `https://gateway.pinata.cloud/ipfs/${pinataData.IpfsHash}`;
+      const cid = pinataData.data?.cid || pinataData.IpfsHash;
+      const fullObjectUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
       console.log('Object uploaded to IPFS:', fullObjectUrl);
       res.json({ objectUrl: fullObjectUrl });
     } catch (error) {

@@ -3737,71 +3737,82 @@ import { Router } from "express";
 import multer from "multer";
 
 // server/ipfs.ts
-import { NFTStorage, File } from "nft.storage";
 var NFTStorageService = class {
-  client;
+  pinataJwt;
   constructor() {
-    if (!process.env.NFT_STORAGE_API_KEY) {
-      throw new Error("NFT_STORAGE_API_KEY environment variable is required");
+    if (!process.env.PINATA_JWT) {
+      throw new Error("PINATA_JWT environment variable is required");
     }
-    this.client = new NFTStorage({
-      token: process.env.NFT_STORAGE_API_KEY
-    });
-    console.log("\u{1F517} NFT.Storage client initialized");
+    this.pinataJwt = process.env.PINATA_JWT;
+    console.log("Pinata V3 client initialized");
   }
-  // Upload file buffer to IPFS via NFT.Storage
   async uploadFile(fileBuffer, fileName, mimeType) {
     try {
-      const file = new File([fileBuffer], fileName, { type: mimeType });
-      const cid = await this.client.storeBlob(file);
-      console.log("\u2705 File uploaded to IPFS via NFT.Storage:", cid);
+      const formData = new FormData();
+      const blob = new Blob([fileBuffer], { type: mimeType });
+      formData.append("file", blob, fileName);
+      const response = await fetch("https://uploads.pinata.cloud/v3/files", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${this.pinataJwt}` },
+        body: formData
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Pinata upload failed: ${response.statusText} - ${errText}`);
+      }
+      const data = await response.json();
+      const cid = data.data?.cid || data.IpfsHash;
+      console.log("File uploaded to IPFS via Pinata V3:", cid);
       return {
         IpfsHash: cid,
         PinSize: fileBuffer.length,
         Timestamp: (/* @__PURE__ */ new Date()).toISOString()
       };
     } catch (error) {
-      console.error("\u274C Error uploading file to IPFS:", error);
+      console.error("Error uploading file to IPFS:", error);
       throw error;
     }
   }
-  // Upload JSON metadata to IPFS via NFT.Storage
   async uploadJSON(data, name) {
     try {
-      const jsonString = JSON.stringify(data);
-      const blob = new Blob([jsonString], { type: "application/json" });
-      const cid = await this.client.storeBlob(blob);
-      console.log("\u2705 Metadata uploaded to IPFS via NFT.Storage:", cid);
+      const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.pinataJwt}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          pinataContent: data,
+          pinataMetadata: { name }
+        })
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Pinata JSON upload failed: ${response.statusText} - ${errText}`);
+      }
+      const result = await response.json();
+      console.log("Metadata uploaded to IPFS via Pinata:", result.IpfsHash);
       return {
-        IpfsHash: cid,
-        PinSize: jsonString.length,
+        IpfsHash: result.IpfsHash,
+        PinSize: JSON.stringify(data).length,
         Timestamp: (/* @__PURE__ */ new Date()).toISOString()
       };
     } catch (error) {
-      console.error("\u274C Error uploading JSON to IPFS:", error);
+      console.error("Error uploading JSON to IPFS:", error);
       throw error;
     }
   }
-  // Get optimized URL for IPFS content
   async getOptimizedUrl(ipfsHash) {
-    try {
-      const url = `https://ipfs.io/ipfs/${ipfsHash}`;
-      console.log("\u{1F310} Using IPFS.io gateway URL:", url);
-      return url;
-    } catch (error) {
-      console.error("\u274C Error getting optimized URL, using fallback:", error);
-      return `https://nftstorage.link/ipfs/${ipfsHash}`;
-    }
+    return `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
   }
-  // Test NFT.Storage connection
   async testConnection() {
     try {
-      const testBlob = new Blob(["test"], { type: "text/plain" });
-      const cid = await this.client.storeBlob(testBlob);
-      console.log("\u{1F517} NFT.Storage connection test successful:", cid);
-      return true;
+      const response = await fetch("https://api.pinata.cloud/data/testAuthentication", {
+        headers: { "Authorization": `Bearer ${this.pinataJwt}` }
+      });
+      return response.ok;
     } catch (error) {
-      console.error("\u274C NFT.Storage connection test failed:", error);
+      console.error("Pinata connection test failed:", error);
       return false;
     }
   }
@@ -6620,16 +6631,18 @@ async function registerRoutes(app2) {
       const formData = new FormData();
       const blob = new Blob([file.buffer], { type: mimeType || file.mimetype });
       formData.append("file", blob, fileName || file.originalname);
-      const pinataResponse = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+      const pinataResponse = await fetch("https://uploads.pinata.cloud/v3/files", {
         method: "POST",
         headers: { "Authorization": `Bearer ${pinataJwt}` },
         body: formData
       });
       if (!pinataResponse.ok) {
-        throw new Error(`Pinata upload failed: ${pinataResponse.statusText}`);
+        const errText = await pinataResponse.text();
+        throw new Error(`Pinata upload failed: ${pinataResponse.statusText} - ${errText}`);
       }
       const pinataData = await pinataResponse.json();
-      const fullObjectUrl = `https://gateway.pinata.cloud/ipfs/${pinataData.IpfsHash}`;
+      const cid = pinataData.data?.cid || pinataData.IpfsHash;
+      const fullObjectUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
       console.log("Object uploaded to IPFS:", fullObjectUrl);
       res.json({ objectUrl: fullObjectUrl });
     } catch (error) {
