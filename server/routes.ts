@@ -515,6 +515,7 @@ export async function registerRoutes(app: Express) {
   // Get all NFTs - fast cached version
   app.get("/api/nfts", async (req, res) => {
     try {
+      res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
       const sortBy = req.query.sortBy as string | undefined;
       const farcasterFid = req.query.farcasterFid as string | undefined;
       const cacheKey = sortBy ? `all-nfts-${sortBy}` : 'all-nfts';
@@ -1908,6 +1909,7 @@ export async function registerRoutes(app: Express) {
   // Stats endpoint with country calculation
   app.get("/api/stats", async (req, res) => {
     try {
+      res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
       const allNFTs = await storage.getAllNFTs();
       const totalNFTs = allNFTs.length;
       const totalVolume = allNFTs.reduce((sum, nft) => sum + parseFloat(nft.price), 0);

@@ -5088,6 +5088,7 @@ async function registerRoutes(app2) {
   });
   app2.get("/api/nfts", async (req, res) => {
     try {
+      res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
       const sortBy = req.query.sortBy;
       const farcasterFid = req.query.farcasterFid;
       const cacheKey = sortBy ? `all-nfts-${sortBy}` : "all-nfts";
@@ -6115,6 +6116,7 @@ async function registerRoutes(app2) {
   };
   app2.get("/api/stats", async (req, res) => {
     try {
+      res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
       const allNFTs = await storage.getAllNFTs();
       const totalNFTs = allNFTs.length;
       const totalVolume = allNFTs.reduce((sum, nft) => sum + parseFloat(nft.price), 0);
@@ -9636,4 +9638,3 @@ var index_default = app;
 export {
   index_default as default
 };
-// rebuild 12 Mar 2026 Per +03 12:00:09
