@@ -331,6 +331,12 @@ export function WalletConnect({ farcasterUser }: { farcasterUser?: any }) {
             const isInjectedConnector = connector.type === 'injected';
             const isDisabled = isPending || (isInjectedConnector && !hasInjectedProvider);
             
+            // Hide Farcaster connector in regular browser (only show in mini app)
+            const isMiniApp = window.location !== window.parent.location;
+            if (connector.name.toLowerCase().includes('farcaster') && !isMiniApp) {
+              return null;
+            }
+
             return (
               <Button
                 key={connector.uid}
