@@ -7592,12 +7592,6 @@ async function registerRoutes(app2) {
         });
       }
       const { farcasterFid, questType, walletAddress, castUrl, farcasterUsername, farcasterPfpUrl } = validationResult.data;
-      if (!farcasterUsername || farcasterUsername.trim() === "") {
-        console.warn("\u{1F6A8} Quest claim without proper Farcaster context:", farcasterFid);
-        return res.status(403).json({
-          message: "Farcaster verification required. Please connect through Farcaster."
-        });
-      }
       const today = getQuestDay();
       let pointsEarned = 0;
       let userStatsUpdates = {};

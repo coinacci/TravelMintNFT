@@ -3740,14 +3740,8 @@ export async function registerRoutes(app: Express) {
 
       const { farcasterFid, questType, walletAddress, castUrl, farcasterUsername, farcasterPfpUrl } = validationResult.data;
       
-      // 🔒 SECURITY: Basic Farcaster verification (client-side context check)
-      // NOTE: This is a basic security layer. In production, implement server-side Farcaster signature verification
-      if (!farcasterUsername || farcasterUsername.trim() === '') {
-        console.warn('🚨 Quest claim without proper Farcaster context:', farcasterFid);
-        return res.status(403).json({ 
-          message: "Farcaster verification required. Please connect through Farcaster." 
-        });
-      }
+      // Allow wallet-only users (no Farcaster required)
+      // Use wallet address as identifier if no Farcaster username
 
       const today = getQuestDay();
       

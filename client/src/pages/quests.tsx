@@ -115,36 +115,36 @@ export default function Quests() {
 
   // Fetch user stats
   const { data: userStats, isLoading: statsLoading } = useQuery<UserStats>({
-    queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : null],
-    enabled: !!farcasterUser?.fid,
+    queryKey: ['/api/user-stats', farcasterUser?.fid ? farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet") : address || null],
+    enabled: !!(farcasterUser?.fid || address),
   });
 
   // Fetch today's completed quests
   const { data: todayQuests = [] } = useQuery<QuestCompletion[]>({
-    queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : null, getQuestDay()],
-    enabled: !!farcasterUser?.fid,
+    queryKey: ['/api/quest-completions', farcasterUser?.fid ? farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet") : address || null, getQuestDay()],
+    enabled: !!(farcasterUser?.fid || address),
   });
 
   // Check if user holds NFTs (holder status) - uses all linked wallets + verified addresses
   const { data: holderStatus } = useQuery<{ isHolder: boolean; nftCount: number }>({
-    queryKey: ['/api/combined-holder-status', farcasterUser?.fid ? String(farcasterUser.fid) : null],
-    enabled: !!farcasterUser?.fid,
+    queryKey: ['/api/combined-holder-status', farcasterUser?.fid ? farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet") : address || null],
+    enabled: !!(farcasterUser?.fid || address),
   });
 
   // Daily check-in mutation
   const checkInMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: String(farcasterUser.fid),
+      farcasterFid: farcasterUser?.fid ? farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet") : address || 'wallet',
       questType: 'daily_checkin',
-      farcasterUsername: farcasterUser.username
+      farcasterUsername: farcasterUser?.username || address || 'wallet'
     }),
     onSuccess: () => {
       toast({
         title: "Daily check-in complete! 🎉",
         description: "+1.00 points earned"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"), getQuestDay()] });
     },
     onError: (error) => {
       toast({
@@ -158,9 +158,9 @@ export default function Quests() {
   // Holder bonus mutation - uses combined multi-wallet NFT count
   const holderBonusMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: String(farcasterUser.fid),
+      farcasterFid: farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"),
       questType: 'holder_bonus',
-      farcasterUsername: farcasterUser.username
+      farcasterUsername: farcasterUser?.username || address || "wallet"
     }),
     onSuccess: () => {
       const nftCount = holderStatus?.nftCount || 1;
@@ -169,9 +169,9 @@ export default function Quests() {
         title: "Holder bonus claimed! 🏆",
         description: `+${points.toFixed(2)} point${points !== 0.15 ? 's' : ''} earned (${nftCount} NFT${nftCount > 1 ? 's' : ''})`
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
-      queryClient.invalidateQueries({ queryKey: ['/api/combined-holder-status', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"), getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/combined-holder-status', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
     },
     onError: (error) => {
       toast({
@@ -185,10 +185,10 @@ export default function Quests() {
   // Social post quest mutation
   const socialPostMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quest-claim', {
-      farcasterFid: String(farcasterUser.fid),
+      farcasterFid: farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"),
       questType: 'social_post',
       castUrl: castUrl.trim(),
-      farcasterUsername: farcasterUser.username
+      farcasterUsername: farcasterUser?.username || address || "wallet"
     }),
     onSuccess: () => {
       toast({
@@ -196,8 +196,8 @@ export default function Quests() {
         description: "+5 points earned for sharing TravelMint!"
       });
       setCastUrl(''); // Clear the input
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
-      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"), getQuestDay()] });
     },
     onError: (error) => {
       toast({
@@ -211,8 +211,8 @@ export default function Quests() {
   // Add Mini App quest mutation (one-time)
   const addMiniAppMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/quests/complete-add-miniapp', {
-      farcasterFid: String(farcasterUser.fid),
-      farcasterUsername: farcasterUser.username,
+      farcasterFid: farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"),
+      farcasterUsername: farcasterUser?.username || address || "wallet",
       farcasterPfpUrl: farcasterUser.pfpUrl
     }),
     onSuccess: () => {
@@ -220,7 +220,7 @@ export default function Quests() {
         title: "Add Mini App quest completed! 🎉",
         description: "+5 points earned for adding TravelMint!"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
     },
     onError: (error) => {
       // Check if already completed
@@ -244,7 +244,7 @@ export default function Quests() {
   const claimReferralMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest('POST', '/api/quests/claim-referral', {
-        farcasterFid: String(farcasterUser.fid)
+        farcasterFid: farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")
       });
       return await res.json();
     },
@@ -257,7 +257,7 @@ export default function Quests() {
         title: "Referral rewards claimed! 🎁",
         description: `+${displayPoints} point${displayPoints !== 1 ? 's' : ''} earned from referrals!`
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
     },
     onError: (error) => {
       if (error?.message?.includes('No unclaimed referrals')) {
@@ -283,10 +283,10 @@ export default function Quests() {
       const claimQuestReward = async () => {
         try {
           await apiRequest('POST', '/api/quest-claim', {
-            farcasterFid: String(farcasterUser.fid),
+            farcasterFid: farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"),
             questType: 'base_transaction',
             walletAddress: address,
-            farcasterUsername: farcasterUser.username
+            farcasterUsername: farcasterUser?.username || address || "wallet"
           });
 
           toast({
@@ -294,8 +294,8 @@ export default function Quests() {
             description: "+1 point earned for Base transaction!"
           });
           
-          queryClient.invalidateQueries({ queryKey: ['/api/user-stats', String(farcasterUser.fid)] });
-          queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', String(farcasterUser.fid), getQuestDay()] });
+          queryClient.invalidateQueries({ queryKey: ['/api/user-stats', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet")] });
+          queryClient.invalidateQueries({ queryKey: ['/api/quest-completions', farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet"), getQuestDay()] });
         } catch (error) {
           toast({
             title: "Quest claiming failed",
@@ -373,7 +373,7 @@ export default function Quests() {
             </div>
             <Button
               onClick={() => farcasterUser && checkInMutation.mutate()}
-              disabled={!farcasterUser || hasCheckedInToday || checkInMutation.isPending}
+              disabled={!address || hasCheckedInToday || checkInMutation.isPending}
               variant="outline"
               size="sm"
               className={farcasterUser && !hasCheckedInToday ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
@@ -398,7 +398,7 @@ export default function Quests() {
             </div>
             <Button
               onClick={() => farcasterUser && holderBonusMutation.mutate()}
-              disabled={!farcasterUser || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
+              disabled={!address || !holderStatus?.isHolder || hasClaimedHolderBonus || holderBonusMutation.isPending}
               variant="outline"
               size="sm"
               className={farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
@@ -452,7 +452,7 @@ export default function Quests() {
                       });
                       if (txHash) {
                         await apiRequest('POST', '/api/quest-claim', {
-                          farcasterFid: farcasterUser ? String(farcasterUser.fid) : null,
+                          farcasterFid: farcasterUser ? farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet") : null,
                           questType: 'base_transaction',
                           walletAddress: address,
                           farcasterUsername: farcasterUser?.username || address
@@ -492,7 +492,7 @@ export default function Quests() {
             </div>
             <Button
               onClick={() => farcasterUser && socialPostMutation.mutate()}
-              disabled={!farcasterUser || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
+              disabled={!address || !castUrl.trim() || hasClaimedSocialPost || socialPostMutation.isPending}
               variant="outline"
               size="sm"
               className={farcasterUser && !hasClaimedSocialPost && castUrl.trim() ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
@@ -510,7 +510,7 @@ export default function Quests() {
             placeholder="Paste your Farcaster cast URL..."
             value={castUrl}
             onChange={(e) => setCastUrl(e.target.value)}
-            disabled={!farcasterUser || hasClaimedSocialPost}
+            disabled={!address || hasClaimedSocialPost}
             className="text-sm"
             data-testid="input-cast-url"
           />
@@ -535,7 +535,7 @@ export default function Quests() {
             </div>
             <Button
               onClick={() => farcasterUser && addMiniAppMutation.mutate()}
-              disabled={!farcasterUser || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
+              disabled={!address || userStats?.hasAddedMiniApp || addMiniAppMutation.isPending}
               variant="outline"
               size="sm"
               className={farcasterUser && !userStats?.hasAddedMiniApp ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
@@ -561,7 +561,7 @@ export default function Quests() {
             {(userStats?.unclaimedReferrals ?? 0) > 0 ? (
               <Button
                 onClick={() => claimReferralMutation.mutate()}
-                disabled={!farcasterUser || claimReferralMutation.isPending}
+                disabled={!address || claimReferralMutation.isPending}
                 variant="outline"
                 size="sm"
                 className="bg-questClaim border-questClaim text-white hover:bg-questClaim/90"
@@ -576,7 +576,7 @@ export default function Quests() {
                     window.location.href = '/my-nfts';
                   }
                 }}
-                disabled={!farcasterUser}
+                disabled={!address}
                 variant="outline"
                 size="sm"
                 className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
