@@ -63,42 +63,7 @@ export default function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-end">
             <div className="flex items-center space-x-2">
-              {/* Show Sign in With Farcaster only for browser users (not in Mini App) */}
-              {!isFrameSDK && !isAuthenticated && (
-                <SignInButton
-                  onSuccess={({ fid, username }) => {
-                    console.log(`✅ Signed in with Farcaster: @${username} (FID: ${fid})`);
-                  }}
-                />
-              )}
-              
-              {/* Show user info and sign-out if authenticated via AuthKit */}
-              {!isFrameSDK && isAuthenticated && user && isAuthKit && (
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-2 text-white text-sm">
-                    {user.pfpUrl && (
-                      <img 
-                        src={user.pfpUrl} 
-                        alt={user.username}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
-                    <span>@{user.username}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      signOut();
-                      console.log('👋 Signed out from Farcaster');
-                    }}
-                    className="text-white hover:bg-gray-800"
-                    data-testid="button-signout"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+
               
               {/* Notification indicator removed - notifications work via FID-based system */}
               <WalletConnect farcasterUser={notificationUser} />

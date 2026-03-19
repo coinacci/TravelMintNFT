@@ -352,10 +352,10 @@ export default function Quests() {
   return (
     <div className="container mx-auto px-4 max-w-4xl pb-24">
       {/* Farcaster Connection Banner */}
-      {!farcasterUser && (
+      {!address && (
         <div className="mb-6 p-3 bg-[#ffffff]/10 border border-[#ffffff]/20 rounded-lg">
           <p className="text-sm font-medium text-[#ffffff]">
-            Connect via Farcaster to claim quest rewards
+            Connect your wallet to claim quest rewards
           </p>
         </div>
       )}
@@ -379,7 +379,7 @@ export default function Quests() {
               className={farcasterUser && !hasCheckedInToday ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-daily-checkin"
             >
-              {!farcasterUser ? "Connect"
+              {!address ? "Connect"
                : hasCheckedInToday ? "Claimed" 
                : "Claim"}
             </Button>
@@ -404,7 +404,7 @@ export default function Quests() {
               className={farcasterUser && holderStatus?.isHolder && !hasClaimedHolderBonus ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-holder-bonus"
             >
-              {!farcasterUser ? "Connect"
+              {!address ? "Connect"
                : !holderStatus?.isHolder ? "No NFTs"
                : hasClaimedHolderBonus ? "Claimed"
                : "Claim"}
@@ -472,7 +472,7 @@ export default function Quests() {
               className={farcasterUser && address && !hasClaimedBaseTransaction ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-base-transaction"
             >
-              {!farcasterUser ? "Connect"
+              {!address ? "Connect"
                : !address ? "Wallet" 
                : hasClaimedBaseTransaction ? "Claimed"
                : "Claim"}
@@ -498,7 +498,7 @@ export default function Quests() {
               className={farcasterUser && !hasClaimedSocialPost && castUrl.trim() ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-daily-post"
             >
-              {!farcasterUser ? "Connect"
+              {!address ? "Connect"
                : hasClaimedSocialPost ? "Claimed"
                : "Claim"}
             </Button>
@@ -541,7 +541,7 @@ export default function Quests() {
               className={farcasterUser && !userStats?.hasAddedMiniApp ? "bg-questClaim border-questClaim text-white hover:bg-questClaim/90" : "border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"}
               data-testid="button-add-miniapp"
             >
-              {!farcasterUser ? "Connect"
+              {!address ? "Connect"
                : userStats?.hasAddedMiniApp ? "Claimed"
                : "Claim"}
             </Button>
@@ -582,7 +582,7 @@ export default function Quests() {
                 className="border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff]/10"
                 data-testid="button-view-referral"
               >
-                {!farcasterUser ? "Connect"
+                {!address ? "Connect"
                  : (userStats?.referralCount ?? 0) > 0 ? "View Link"
                  : "Get Link"}
               </Button>
