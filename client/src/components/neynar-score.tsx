@@ -197,7 +197,12 @@ export default function NeynarScore({ fid }: NeynarScoreProps) {
                 const score = data.neynarScore;
                 const label = getScoreLabel(score);
                 const text = `My Neynar Score on @travelnftapp is ${score.toFixed(2)} (${label}) 🏆\n\nCheck yours on Farcaster 👇\nhttps://farcaster.xyz/miniapps/Ie0PvztUB40n/travelmint`;
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                if (sdk?.actions?.openUrl) {
+                  sdk.actions.openUrl(twitterUrl);
+                } else {
+                  window.open(twitterUrl, '_blank');
+                }
               }}
               variant="ghost"
               size="sm"
