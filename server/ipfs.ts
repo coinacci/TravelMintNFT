@@ -1,5 +1,5 @@
 import { IPFSUploadResponse, NFTMetadata } from '@shared/ipfs';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 
 const filebaseClient = new S3Client({
@@ -13,6 +13,17 @@ const filebaseClient = new S3Client({
 
 const FILEBASE_BUCKET = process.env.FILEBASE_BUCKET || 'travelmint';
 
+async function getCIDFromFilebase(key: string): Promise<string> {
+  const headCommand = new HeadObjectCommand({
+    Bucket: FILEBASE_BUCKET,
+    Key: key,
+  });
+  const headResponse = await filebaseClient.send(headCommand);
+  const cid = (headResponse as any).Metadata?.['cid'] || 
+              (headResponse as any).Metadata?.['ipfs-hash'];
+  return cid || '';
+}
+
 export class NFTStorageService {
   async uploadFile(fileBuffer: Buffer, fileName: string, mimeType: string): Promise<IPFSUploadResponse> {
     try {
@@ -25,11 +36,11 @@ export class NFTStorageService {
         ContentType: mimeType,
       });
 
-      const response = await filebaseClient.send(command);
-      const cid = (response as any).$metadata?.httpHeaders?.['x-amz-meta-cid'] || 
-                  (response as any).ETag?.replace(/"/g, '');
+      await filebaseClient.send(command);
       
-      console.log('File uploaded to IPFS via Filebase:', key);
+      // Get CID via HeadObject
+      const cid = await getCIDFromFilebase(key);
+      console.log('File uploaded to IPFS via Filebase, CID:', cid);
 
       return {
         IpfsHash: cid || key,
@@ -54,11 +65,11 @@ export class NFTStorageService {
         ContentType: 'application/json',
       });
 
-      const response = await filebaseClient.send(command);
-      const cid = (response as any).$metadata?.httpHeaders?.['x-amz-meta-cid'] || 
-                  (response as any).ETag?.replace(/"/g, '');
-
-      console.log('Metadata uploaded to IPFS via Filebase:', key);
+      await filebaseClient.send(command);
+      
+      // Get CID via HeadObject
+      const cid = await getCIDFromFilebase(key);
+      console.log('Metadata uploaded to IPFS via Filebase, CID:', cid);
 
       return {
         IpfsHash: cid || key,

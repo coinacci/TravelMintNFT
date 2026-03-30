@@ -3737,7 +3737,7 @@ import { Router } from "express";
 import multer from "multer";
 
 // server/ipfs.ts
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 var filebaseClient = new S3Client({
   region: "us-east-1",
@@ -3748,6 +3748,15 @@ var filebaseClient = new S3Client({
   }
 });
 var FILEBASE_BUCKET = process.env.FILEBASE_BUCKET || "travelmint";
+async function getCIDFromFilebase(key) {
+  const headCommand = new HeadObjectCommand({
+    Bucket: FILEBASE_BUCKET,
+    Key: key
+  });
+  const headResponse = await filebaseClient.send(headCommand);
+  const cid = headResponse.Metadata?.["cid"] || headResponse.Metadata?.["ipfs-hash"];
+  return cid || "";
+}
 var NFTStorageService = class {
   async uploadFile(fileBuffer, fileName, mimeType) {
     try {
@@ -3758,9 +3767,9 @@ var NFTStorageService = class {
         Body: fileBuffer,
         ContentType: mimeType
       });
-      const response = await filebaseClient.send(command);
-      const cid = response.$metadata?.httpHeaders?.["x-amz-meta-cid"] || response.ETag?.replace(/"/g, "");
-      console.log("File uploaded to IPFS via Filebase:", key);
+      await filebaseClient.send(command);
+      const cid = await getCIDFromFilebase(key);
+      console.log("File uploaded to IPFS via Filebase, CID:", cid);
       return {
         IpfsHash: cid || key,
         PinSize: fileBuffer.length,
@@ -3781,9 +3790,9 @@ var NFTStorageService = class {
         Body: Buffer.from(jsonString),
         ContentType: "application/json"
       });
-      const response = await filebaseClient.send(command);
-      const cid = response.$metadata?.httpHeaders?.["x-amz-meta-cid"] || response.ETag?.replace(/"/g, "");
-      console.log("Metadata uploaded to IPFS via Filebase:", key);
+      await filebaseClient.send(command);
+      const cid = await getCIDFromFilebase(key);
+      console.log("Metadata uploaded to IPFS via Filebase, CID:", cid);
       return {
         IpfsHash: cid || key,
         PinSize: jsonString.length,
