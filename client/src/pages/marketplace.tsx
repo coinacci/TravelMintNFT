@@ -843,10 +843,13 @@ export default function Marketplace() {
         case "price-high":
           return parseFloat(b.price) - parseFloat(a.price);
         case "popular":
-          // Backend already sorted by like count - preserve order
           return 0;
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         default:
-          return 0; // Recent (default order from backend)
+          return 0;
       }
     });
 
@@ -894,6 +897,8 @@ export default function Marketplace() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="recent">Recently Listed</SelectItem>
+                  <SelectItem value="newest">Recently Created</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
                   <SelectItem value="price-low">Price: Low to High</SelectItem>
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                   <SelectItem value="popular">Most Popular</SelectItem>
