@@ -3,7 +3,6 @@ import { base, mainnet, baseSepolia } from 'wagmi/chains'
 import { coinbaseWallet, walletConnect, injected } from 'wagmi/connectors'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import { Attribution } from 'ox/erc8021'
-import { baseAccount } from '@base-org/account'
 
 const DATA_SUFFIX = Attribution.toDataSuffix({
   codes: ['bc_x25appl2'],
@@ -48,10 +47,6 @@ export const config = createConfig({
         icons: [`${getAppUrl()}/icon-192x192.png`],
       },
       showQrModal: true,
-    }),
-    baseAccount({
-      appName: 'TravelMint',
-      appLogoUrl: `${getAppUrl()}/icon-192x192.png`,
     }),
     coinbaseWallet({
       appName: 'TravelMint',
