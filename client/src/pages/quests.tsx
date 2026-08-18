@@ -445,7 +445,7 @@ export default function Quests() {
                         method: 'eth_sendTransaction',
                         params: [{
                           to: QUEST_MANAGER_ADDRESS,
-                          value: '0x1C6BF52634000',
+                          value: '0x48c27395000',
                           data,
                           from: address
                         }]
