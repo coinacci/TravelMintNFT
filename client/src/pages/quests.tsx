@@ -431,13 +431,11 @@ export default function Quests() {
                     functionName: 'completeQuest',
                     args: [BigInt(1)]
                   });
-                  // Use sendCalls for builder code attribution via dataSuffix
-                  sendQuestCalls({
-                    calls: [{
-                      to: QUEST_MANAGER_ADDRESS,
-                      value: parseEther('0.000005'),
-                      data
-                    }]
+                  // Use sendTransaction for all platforms
+                  sendTransaction({
+                    to: QUEST_MANAGER_ADDRESS,
+                    value: parseEther('0.000005'),
+                    data
                   });
                 }
               }}
