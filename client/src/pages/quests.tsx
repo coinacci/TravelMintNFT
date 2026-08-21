@@ -430,40 +430,12 @@ export default function Quests() {
                     functionName: 'completeQuest',
                     args: [BigInt(1)]
                   });
-                  // Farcaster: use wagmi sendTransaction, Base App: use window.ethereum
-                  const isInFarcaster = !!farcasterUser;
-                  if (isInFarcaster) {
-                    // Farcaster mini app - use wagmi
-                    sendTransaction({
-                      to: QUEST_MANAGER_ADDRESS,
-                      value: parseEther('0.000005'),
-                      data
-                    });
-                  } else if (window.ethereum) {
-                    try {
-                      const txHash = await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{
-                          to: QUEST_MANAGER_ADDRESS,
-                          value: '0x48c27395000',
-                          data,
-                          from: address
-                        }]
-                      });
-                      if (txHash) {
-                        await apiRequest('POST', '/api/quest-claim', {
-                          farcasterFid: farcasterUser ? farcasterUser?.fid ? String(farcasterUser.fid) : (address || "wallet") : null,
-                          questType: 'base_transaction',
-                          walletAddress: address,
-                          farcasterUsername: farcasterUser?.username || address
-                        });
-                        toast({ title: "Hello TravelMint! ⚡", description: "+1 point earned!" });
-                        queryClient.invalidateQueries({ queryKey: ['/api/quest-completions'] });
-                      }
-                    } catch (e: any) {
-                      toast({ title: "Transaction failed", description: e?.message || "Please try again", variant: "destructive" });
-                    }
-                  }
+                  // Use wagmi sendTransaction for all platforms (includes dataSuffix for builder code attribution)
+                  sendTransaction({
+                    to: QUEST_MANAGER_ADDRESS,
+                    value: parseEther('0.000005'),
+                    data
+                  });
                 }
               }}
               disabled={!address || hasClaimedBaseTransaction || isClaimPending || isClaimConfirming}
