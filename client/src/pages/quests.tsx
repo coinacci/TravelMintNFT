@@ -12,7 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
 import ComposeCastButton from "@/components/ComposeCastButton";
-import { useWriteContract, useWaitForTransactionReceipt, useSendTransaction } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useSendTransaction, useSendCalls } from "wagmi";
 import { parseEther, encodeFunctionData } from "viem";
 
 // Contract configuration
@@ -68,6 +68,7 @@ export default function Quests() {
 
   // Smart contract interactions for Base transaction quest
   const { data: claimHash, error: claimError, isPending: isClaimPending, sendTransaction } = useSendTransaction();
+  const { sendCalls: sendQuestCalls } = useSendCalls();
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
   const queryClient = useQueryClient();
   
@@ -430,11 +431,13 @@ export default function Quests() {
                     functionName: 'completeQuest',
                     args: [BigInt(1)]
                   });
-                  // Use wagmi sendTransaction for all platforms (includes dataSuffix for builder code attribution)
-                  sendTransaction({
-                    to: QUEST_MANAGER_ADDRESS,
-                    value: parseEther('0.000005'),
-                    data
+                  // Use sendCalls for builder code attribution via dataSuffix
+                  sendQuestCalls({
+                    calls: [{
+                      to: QUEST_MANAGER_ADDRESS,
+                      value: parseEther('0.000005'),
+                      data
+                    }]
                   });
                 }
               }}
