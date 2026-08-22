@@ -13,7 +13,8 @@ import sdk from "@farcaster/frame-sdk";
 import { getQuestDay } from "@shared/schema";
 import ComposeCastButton from "@/components/ComposeCastButton";
 import { useWriteContract, useWaitForTransactionReceipt, useSendTransaction, useSendCalls } from "wagmi";
-import { parseEther, encodeFunctionData } from "viem";
+import { parseEther, encodeFunctionData, concat } from "viem";
+import { Attribution } from "ox/erc8021";
 
 // Contract configuration
 const NFT_CONTRACT_ADDRESS = "0x8c12C9ebF7db0a6370361ce9225e3b77D22A558f" as const;
@@ -431,11 +432,13 @@ export default function Quests() {
                     functionName: 'completeQuest',
                     args: [BigInt(1)]
                   });
-                  // Use sendTransaction for all platforms
+                  // Use sendTransaction with builder code attribution suffix
+                  const builderSuffix = Attribution.toDataSuffix({ codes: ['bc_x25appl2'] });
+                  const dataWithSuffix = concat([data, builderSuffix]);
                   sendTransaction({
                     to: QUEST_MANAGER_ADDRESS,
                     value: parseEther('0.000005'),
-                    data
+                    data: dataWithSuffix
                   });
                 }
               }}
